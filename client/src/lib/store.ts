@@ -74,7 +74,25 @@ const SPEAKER_COLORS = [
   'hsl(300, 76%, 45%)',
 ];
 
+const MAX_HISTORY = 100;
+
 const generateId = () => Math.random().toString(36).substring(2, 11);
+
+const pushHistory = (
+  history: HistoryState[],
+  historyIndex: number,
+  state: HistoryState,
+) => {
+  const newHistory = history.slice(0, historyIndex + 1);
+  newHistory.push(state);
+  const trimmedHistory = newHistory.length > MAX_HISTORY
+    ? newHistory.slice(newHistory.length - MAX_HISTORY)
+    : newHistory;
+  return {
+    history: trimmedHistory,
+    historyIndex: trimmedHistory.length - 1,
+  };
+};
 
 export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   audioFile: null,
@@ -121,22 +139,24 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
 
   updateSegmentText: (id, text) => {
     const { segments, speakers, history, historyIndex } = get();
+    const segment = segments.find(s => s.id === id);
+    if (!segment || segment.text === text) return;
     const newSegments = segments.map(s => 
       s.id === id ? { ...s, text } : s
     );
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   updateSegmentSpeaker: (id, speaker) => {
     const { segments, speakers, history, historyIndex } = get();
+    const segment = segments.find(s => s.id === id);
+    if (!segment || segment.speaker === speaker) return;
     const newSegments = segments.map(s => 
       s.id === id ? { ...s, speaker } : s
     );
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   splitSegment: (id, wordIndex) => {
@@ -175,9 +195,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       ...segments.slice(segmentIndex + 1),
     ];
     
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   mergeSegments: (id1, id2) => {
@@ -208,40 +227,41 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       ...segments.slice(Math.max(index1, index2) + 1),
     ];
     
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   updateSegmentTiming: (id, start, end) => {
     const { segments, speakers, history, historyIndex } = get();
+    const segment = segments.find(s => s.id === id);
+    if (!segment || (segment.start === start && segment.end === end)) return;
     const newSegments = segments.map(s => 
       s.id === id ? { ...s, start, end } : s
     );
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   deleteSegment: (id) => {
     const { segments, speakers, history, historyIndex } = get();
     const newSegments = segments.filter(s => s.id !== id);
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers });
-    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+    if (newSegments.length === segments.length) return;
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
+    set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   renameSpeaker: (oldName, newName) => {
     const { segments, speakers, history, historyIndex } = get();
+    if (oldName === newName) return;
+    if (!speakers.some(s => s.name === oldName)) return;
     const newSpeakers = speakers.map(s => 
       s.name === oldName ? { ...s, name: newName } : s
     );
     const newSegments = segments.map(s => 
       s.speaker === oldName ? { ...s, speaker: newName } : s
     );
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments: newSegments, speakers: newSpeakers });
-    set({ segments: newSegments, speakers: newSpeakers, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers: newSpeakers });
+    set({ segments: newSegments, speakers: newSpeakers, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   addSpeaker: (name) => {
@@ -254,9 +274,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       color: SPEAKER_COLORS[speakers.length % SPEAKER_COLORS.length],
     };
     const newSpeakers = [...speakers, newSpeaker];
-    const newHistory = history.slice(0, historyIndex + 1);
-    newHistory.push({ segments, speakers: newSpeakers });
-    set({ speakers: newSpeakers, history: newHistory, historyIndex: newHistory.length - 1 });
+    const nextHistory = pushHistory(history, historyIndex, { segments, speakers: newSpeakers });
+    set({ speakers: newSpeakers, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },
 
   undo: () => {
