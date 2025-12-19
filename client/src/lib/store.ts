@@ -59,6 +59,7 @@ interface TranscriptState {
   
   renameSpeaker: (oldName: string, newName: string) => void;
   addSpeaker: (name: string) => void;
+  mergeSpeakers: (fromName: string, toName: string) => void;
   
   undo: () => void;
   redo: () => void;
@@ -267,6 +268,20 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const newSegments = segments.map(s => 
       s.speaker === oldName ? { ...s, speaker: newName } : s
     );
+    const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers: newSpeakers });
+    set({ segments: newSegments, speakers: newSpeakers, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
+  },
+
+  mergeSpeakers: (fromName, toName) => {
+    const { segments, speakers, history, historyIndex } = get();
+    if (fromName === toName) return;
+    if (!speakers.some(s => s.name === fromName)) return;
+    if (!speakers.some(s => s.name === toName)) return;
+
+    const newSegments = segments.map(s =>
+      s.speaker === fromName ? { ...s, speaker: toName } : s
+    );
+    const newSpeakers = speakers.filter(s => s.name !== fromName);
     const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers: newSpeakers });
     set({ segments: newSegments, speakers: newSpeakers, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
   },

@@ -49,6 +49,7 @@ export function TranscriptEditor() {
     deleteSegment,
     renameSpeaker,
     addSpeaker,
+    mergeSpeakers,
     undo,
     redo,
     canUndo,
@@ -350,6 +351,7 @@ export function TranscriptEditor() {
               segments={segments}
               onRenameSpeaker={renameSpeaker}
               onAddSpeaker={addSpeaker}
+              onMergeSpeakers={mergeSpeakers}
               onSpeakerSelect={(name) => setFilterSpeaker(filterSpeaker === name ? undefined : name)}
               onClearFilter={() => setFilterSpeaker(undefined)}
               selectedSpeaker={filterSpeaker}

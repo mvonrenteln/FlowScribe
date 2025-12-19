@@ -1,16 +1,23 @@
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Check, X, Edit2 } from 'lucide-react';
+import { Plus, Check, X, Edit2, Merge } from 'lucide-react';
 import type { Speaker, Segment } from '@/lib/store';
 import { cn } from '@/lib/utils';
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu';
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
   segments: Segment[];
   onRenameSpeaker: (oldName: string, newName: string) => void;
   onAddSpeaker: (name: string) => void;
+  onMergeSpeakers?: (fromName: string, toName: string) => void;
   onSpeakerSelect?: (speakerName: string) => void;
   onClearFilter?: () => void;
   selectedSpeaker?: string;
@@ -21,6 +28,7 @@ export function SpeakerSidebar({
   segments,
   onRenameSpeaker,
   onAddSpeaker,
+  onMergeSpeakers,
   onSpeakerSelect,
   onClearFilter,
   selectedSpeaker,
@@ -29,6 +37,14 @@ export function SpeakerSidebar({
   const [editValue, setEditValue] = useState('');
   const [isAdding, setIsAdding] = useState(false);
   const [newSpeakerName, setNewSpeakerName] = useState('');
+  const editInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (editingId && editInputRef.current) {
+      editInputRef.current.focus();
+      editInputRef.current.select();
+    }
+  }, [editingId]);
 
   const getSegmentCount = (speakerName: string) => {
     return segments.filter(s => s.speaker === speakerName).length;
@@ -110,6 +126,7 @@ export function SpeakerSidebar({
                 {editingId === speaker.id ? (
                   <div className="flex items-center gap-1">
                     <Input
+                      ref={editInputRef}
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={(e) => {
@@ -146,6 +163,30 @@ export function SpeakerSidebar({
                       <span className="text-sm font-medium truncate">
                         {speaker.name}
                       </span>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6 invisible group-hover:visible"
+                            onClick={(e) => e.stopPropagation()}
+                            data-testid={`button-merge-${speaker.id}`}
+                          >
+                            <Merge className="h-3 w-3" />
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          {speakers.filter((s) => s.name !== speaker.name).map((target) => (
+                            <DropdownMenuItem
+                              key={target.id}
+                              onClick={() => onMergeSpeakers?.(speaker.name, target.name)}
+                              data-testid={`menu-merge-${speaker.id}-into-${target.id}`}
+                            >
+                              Merge into {target.name}
+                            </DropdownMenuItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                       <Button
                         size="icon"
                         variant="ghost"
