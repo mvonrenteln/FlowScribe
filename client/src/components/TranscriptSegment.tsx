@@ -111,6 +111,7 @@ export function TranscriptSegment({
       )}
       onClick={onSelect}
       data-testid={`segment-${segment.id}`}
+      data-segment-id={segment.id}
       role="article"
       aria-label={`Segment by ${segment.speaker}`}
     >

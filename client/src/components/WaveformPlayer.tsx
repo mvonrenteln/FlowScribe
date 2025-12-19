@@ -3,6 +3,8 @@ import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 import { useTranscriptStore, type Segment, type Speaker } from '@/lib/store';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Button } from '@/components/ui/button';
+import { Minus, Plus } from 'lucide-react';
 
 interface WaveformPlayerProps {
   audioUrl: string | null;
@@ -36,6 +38,16 @@ export function WaveformPlayer({
   const regionsRef = useRef<RegionsPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
+  const [zoomLevel, setZoomLevel] = useState(100);
+
+  const MIN_ZOOM = 1;
+  const MAX_ZOOM = 500;
+
+  const getZoomStep = (value: number) => {
+    if (value <= 10) return 1;
+    if (value <= 50) return 5;
+    return 25;
+  };
 
   const getSpeakerColor = useCallback((speakerName: string) => {
     const speaker = speakers.find(s => s.name === speakerName);
@@ -61,6 +73,7 @@ export function WaveformPlayer({
       barWidth: 2,
       barGap: 1,
       barRadius: 2,
+      minPxPerSec: 100,
       plugins: [regions],
     });
 
@@ -71,6 +84,7 @@ export function WaveformPlayer({
     ws.on('ready', () => {
       setIsLoading(false);
       setIsReady(true);
+      ws.zoom(zoomLevel);
       onDurationChange(ws.getDuration());
     });
 
@@ -151,6 +165,12 @@ export function WaveformPlayer({
     }
   }, [currentTime, isReady]);
 
+  useEffect(() => {
+    const ws = wavesurferRef.current;
+    if (!ws || !isReady) return;
+    ws.zoom(zoomLevel);
+  }, [zoomLevel, isReady]);
+
   if (!audioUrl) {
     return (
       <div className="h-32 flex items-center justify-center bg-muted rounded-lg border border-dashed">
@@ -168,6 +188,36 @@ export function WaveformPlayer({
           <Skeleton className="h-32 w-full" />
         </div>
       )}
+      <div className="absolute top-2 right-2 z-20 flex items-center gap-1 rounded-md bg-card/80 p-1 backdrop-blur pointer-events-auto">
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setZoomLevel((prev) => Math.max(MIN_ZOOM, prev - getZoomStep(prev)));
+          }}
+          disabled={!audioUrl || zoomLevel <= MIN_ZOOM}
+          aria-label="Zoom out"
+          data-testid="button-zoom-out"
+        >
+          <Minus className="h-4 w-4" />
+        </Button>
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setZoomLevel((prev) => Math.min(MAX_ZOOM, prev + getZoomStep(prev)));
+          }}
+          disabled={!audioUrl || zoomLevel >= MAX_ZOOM}
+          aria-label="Zoom in"
+          data-testid="button-zoom-in"
+        >
+          <Plus className="h-4 w-4" />
+        </Button>
+      </div>
       <div 
         ref={containerRef} 
         id="waveform"

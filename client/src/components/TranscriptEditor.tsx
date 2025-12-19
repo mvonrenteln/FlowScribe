@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from 'react';
+import { useCallback, useState, useEffect, useRef } from 'react';
 import { useHotkeys } from 'react-hotkeys-hook';
 import { useTranscriptStore } from '@/lib/store';
 import { FileUpload } from './FileUpload';
@@ -58,6 +58,7 @@ export function TranscriptEditor() {
   const [showExport, setShowExport] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeaker, setFilterSpeaker] = useState<string | undefined>();
+  const transcriptListRef = useRef<HTMLDivElement>(null);
 
   const handleAudioUpload = useCallback((file: File) => {
     setAudioFile(file);
@@ -239,6 +240,19 @@ export function TranscriptEditor() {
     }
   }, [activeSegment, isPlaying, selectedSegmentId, setSelectedSegmentId]);
 
+  useEffect(() => {
+    if (!isPlaying || !activeSegment) return;
+    const container = transcriptListRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(
+      `[data-segment-id="${activeSegment.id}"]`,
+    );
+    if (!target) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    });
+  }, [activeSegment?.id, isPlaying]);
+
   const filteredSegments = filterSpeaker
     ? segments.filter(s => s.speaker === filterSpeaker)
     : segments;
@@ -363,7 +377,7 @@ export function TranscriptEditor() {
           </div>
 
           <ScrollArea className="flex-1">
-            <div className="max-w-4xl mx-auto p-4 space-y-2">
+            <div ref={transcriptListRef} className="max-w-4xl mx-auto p-4 space-y-2">
               {filteredSegments.length === 0 ? (
                 <div className="text-center py-12 text-muted-foreground">
                   {segments.length === 0 ? (
