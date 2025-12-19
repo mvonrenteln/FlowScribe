@@ -111,6 +111,7 @@ export function WaveformPlayer({
       });
 
       if (region.element) {
+        region.element.classList.add('ws-region');
         region.element.style.border = '0';
         region.element.style.boxShadow = 'none';
         region.element.style.outline = 'none';

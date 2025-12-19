@@ -174,20 +174,19 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 
-  .wavesurfer-region {
-    border: 0 !important;
-    box-shadow: none !important;
-    outline: 0 !important;
-  }
-
-  .wavesurfer-handle {
-    background: transparent !important;
-  }
-
   #waveform ::part(region) {
     border: 0 !important;
     box-shadow: none !important;
     outline: 0 !important;
+    cursor: pointer;
+  }
+
+  #waveform ::part(region):hover {
+    filter: brightness(0.92);
+  }
+
+  .ws-region:hover {
+    filter: brightness(0.92);
   }
 
   #waveform ::part(region-handle-left),
