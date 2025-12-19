@@ -2,7 +2,7 @@ import { useEffect, useRef, useCallback, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
 import MinimapPlugin from 'wavesurfer.js/dist/plugins/minimap.js';
-import { type Segment, type Speaker } from '@/lib/store';
+import { useTranscriptStore, type Segment, type Speaker } from '@/lib/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
 import { Minus, Plus } from 'lucide-react';
@@ -37,10 +37,11 @@ export function WaveformPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsRef = useRef<RegionsPlugin | null>(null);
-  const lastWaveTimeRef = useRef(0);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
+  const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
   const MIN_ZOOM = 1;
   const MAX_ZOOM = 500;
@@ -98,7 +99,6 @@ export function WaveformPlayer({
     });
 
     ws.on('timeupdate', (time) => {
-      lastWaveTimeRef.current = time;
       onTimeUpdate(time);
     });
 
@@ -106,15 +106,6 @@ export function WaveformPlayer({
     ws.on('pause', () => onPlayPause(false));
 
     ws.on('seeking', (time) => {
-      lastWaveTimeRef.current = time;
-      onSeek(time);
-    });
-
-    ws.on('interaction', (progress) => {
-      const duration = ws.getDuration();
-      if (!Number.isFinite(duration) || duration <= 0) return;
-      const time = progress * duration;
-      lastWaveTimeRef.current = time;
       onSeek(time);
     });
 
@@ -182,17 +173,13 @@ export function WaveformPlayer({
 
   useEffect(() => {
     const ws = wavesurferRef.current;
-    if (!ws || !isReady) return;
-
-    const wsTime = ws.getCurrentTime();
+    if (!ws || !isReady || seekRequestTime === null) return;
     const duration = ws.getDuration();
     if (!Number.isFinite(duration) || duration <= 0) return;
-
-    if (Math.abs(currentTime - lastWaveTimeRef.current) > 0.25 &&
-        Math.abs(wsTime - currentTime) > 0.25) {
-      ws.seekTo(currentTime / duration);
-    }
-  }, [currentTime, isReady]);
+    const time = Math.max(0, Math.min(duration, seekRequestTime));
+    ws.setTime(time);
+    clearSeekRequest();
+  }, [seekRequestTime, isReady, clearSeekRequest]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;

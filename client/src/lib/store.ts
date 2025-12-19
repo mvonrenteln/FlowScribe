@@ -35,6 +35,7 @@ interface TranscriptState {
   currentTime: number;
   isPlaying: boolean;
   duration: number;
+  seekRequestTime: number | null;
   history: HistoryState[];
   historyIndex: number;
   isWhisperXFormat: boolean;
@@ -46,6 +47,8 @@ interface TranscriptState {
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setDuration: (duration: number) => void;
+  requestSeek: (time: number) => void;
+  clearSeekRequest: () => void;
   
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
@@ -103,6 +106,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   currentTime: 0,
   isPlaying: false,
   duration: 0,
+  seekRequestTime: null,
   history: [],
   historyIndex: -1,
   isWhisperXFormat: false,
@@ -136,6 +140,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   setCurrentTime: (time) => set({ currentTime: time }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setDuration: (duration) => set({ duration }),
+  requestSeek: (time) => set({ seekRequestTime: time }),
+  clearSeekRequest: () => set({ seekRequestTime: null }),
 
   updateSegmentText: (id, text) => {
     const { segments, speakers, history, historyIndex } = get();

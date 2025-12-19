@@ -40,6 +40,7 @@ export function TranscriptEditor() {
     setCurrentTime,
     setIsPlaying,
     setDuration,
+    requestSeek,
     updateSegmentText,
     updateSegmentSpeaker,
     splitSegment,
@@ -155,16 +156,16 @@ export function TranscriptEditor() {
   }, [isPlaying, setIsPlaying]);
 
   const handleSeek = useCallback((time: number) => {
-    setCurrentTime(time);
-  }, [setCurrentTime]);
+    requestSeek(time);
+  }, [requestSeek]);
 
   const handleSkipBack = useCallback(() => {
-    setCurrentTime(Math.max(0, currentTime - 5));
-  }, [currentTime, setCurrentTime]);
+    requestSeek(Math.max(0, currentTime - 5));
+  }, [currentTime, requestSeek]);
 
   const handleSkipForward = useCallback(() => {
-    setCurrentTime(Math.min(duration, currentTime + 5));
-  }, [currentTime, duration, setCurrentTime]);
+    requestSeek(Math.min(duration, currentTime + 5));
+  }, [currentTime, duration, requestSeek]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return segments.findIndex(s => s.id === selectedSegmentId);
@@ -360,7 +361,7 @@ export function TranscriptEditor() {
               onTimeUpdate={setCurrentTime}
               onPlayPause={setIsPlaying}
               onDurationChange={setDuration}
-              onSeek={handleSeek}
+              onSeek={setCurrentTime}
               onSegmentBoundaryChange={updateSegmentTiming}
             />
 
