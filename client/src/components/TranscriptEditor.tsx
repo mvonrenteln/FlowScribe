@@ -231,10 +231,13 @@ export function TranscriptEditor() {
   );
 
   useEffect(() => {
-    if (activeSegment && !selectedSegmentId) {
-      setSelectedSegmentId(activeSegment.id);
+    if (!activeSegment) return;
+    if (isPlaying || !selectedSegmentId) {
+      if (activeSegment.id !== selectedSegmentId) {
+        setSelectedSegmentId(activeSegment.id);
+      }
     }
-  }, [activeSegment, selectedSegmentId, setSelectedSegmentId]);
+  }, [activeSegment, isPlaying, selectedSegmentId, setSelectedSegmentId]);
 
   const filteredSegments = filterSpeaker
     ? segments.filter(s => s.speaker === filterSpeaker)
