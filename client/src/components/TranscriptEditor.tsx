@@ -196,8 +196,8 @@ export function TranscriptEditor() {
   useHotkeys('right', () => handleSeek(Math.min(duration, currentTime + 1)), { enableOnFormTags: false });
   useHotkeys('home', () => handleSeek(0), { enableOnFormTags: false });
   useHotkeys('end', () => handleSeek(duration), { enableOnFormTags: false });
-  useHotkeys('up', selectPreviousSegment, { enableOnFormTags: false });
-  useHotkeys('down', selectNextSegment, { enableOnFormTags: false });
+  useHotkeys('up', selectPreviousSegment, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
+  useHotkeys('down', selectNextSegment, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
   useHotkeys('escape', () => setSelectedSegmentId(null));
   useHotkeys('mod+z', () => { if (canUndo()) undo(); });
   useHotkeys('mod+shift+z', () => { if (canRedo()) redo(); });
@@ -208,10 +208,13 @@ export function TranscriptEditor() {
     if (selectedSegmentId) {
       const index = getSelectedSegmentIndex();
       if (index < segments.length - 1) {
-        mergeSegments(selectedSegmentId, segments[index + 1].id);
+        const mergedId = mergeSegments(selectedSegmentId, segments[index + 1].id);
+        if (mergedId) {
+          setSelectedSegmentId(mergedId);
+        }
       }
     }
-  }, { enableOnFormTags: false });
+  }, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
 
   useHotkeys('delete', () => {
     if (selectedSegmentId) {
@@ -407,13 +410,23 @@ export function TranscriptEditor() {
                     onSpeakerChange={(speaker) => updateSegmentSpeaker(segment.id, speaker)}
                     onSplit={(wordIndex) => splitSegment(segment.id, wordIndex)}
                     onMergeWithPrevious={
-                      index > 0 
-                        ? () => mergeSegments(filteredSegments[index - 1].id, segment.id)
+                      index > 0
+                        ? () => {
+                            const mergedId = mergeSegments(filteredSegments[index - 1].id, segment.id);
+                            if (mergedId) {
+                              setSelectedSegmentId(mergedId);
+                            }
+                          }
                         : undefined
                     }
                     onMergeWithNext={
                       index < filteredSegments.length - 1
-                        ? () => mergeSegments(segment.id, filteredSegments[index + 1].id)
+                        ? () => {
+                            const mergedId = mergeSegments(segment.id, filteredSegments[index + 1].id);
+                            if (mergedId) {
+                              setSelectedSegmentId(mergedId);
+                            }
+                          }
                         : undefined
                     }
                     onDelete={() => deleteSegment(segment.id)}

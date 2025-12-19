@@ -53,7 +53,7 @@ interface TranscriptState {
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
   splitSegment: (id: string, wordIndex: number) => void;
-  mergeSegments: (id1: string, id2: string) => void;
+  mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
   deleteSegment: (id: string) => void;
   
@@ -210,8 +210,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const index1 = segments.findIndex(s => s.id === id1);
     const index2 = segments.findIndex(s => s.id === id2);
     
-    if (index1 === -1 || index2 === -1) return;
-    if (Math.abs(index1 - index2) !== 1) return;
+    if (index1 === -1 || index2 === -1) return null;
+    if (Math.abs(index1 - index2) !== 1) return null;
     
     const [first, second] = index1 < index2 
       ? [segments[index1], segments[index2]]
@@ -235,6 +235,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     
     const nextHistory = pushHistory(history, historyIndex, { segments: newSegments, speakers });
     set({ segments: newSegments, history: nextHistory.history, historyIndex: nextHistory.historyIndex });
+    return merged.id;
   },
 
   updateSegmentTiming: (id, start, end) => {
