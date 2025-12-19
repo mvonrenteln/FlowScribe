@@ -203,6 +203,13 @@ export function TranscriptEditor() {
   useHotkeys('mod+shift+z', () => { if (canRedo()) redo(); });
   useHotkeys('mod+e', () => setShowExport(true));
   useHotkeys('shift+/', () => setShowShortcuts(true));
+  useHotkeys('enter', () => {
+    if (!selectedSegmentId) return;
+    const segment = segments.find((s) => s.id === selectedSegmentId);
+    if (!segment) return;
+    requestSeek(segment.start);
+    setIsPlaying(true);
+  }, { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true });
 
   useHotkeys('m', () => {
     if (selectedSegmentId) {
