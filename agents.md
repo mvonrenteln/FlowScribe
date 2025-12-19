@@ -85,7 +85,6 @@ Detailes in [Features].
 - wavesurfer.js for audio visualization
 - react-hotkeys-hook for keyboard shortcuts
 - Tailwind CSS with shadcn/ui components
-- Express.js backend
 
 ## Design
 Design in [design_guidelines]
