@@ -1,0 +1,280 @@
+import { create } from 'zustand';
+
+export interface Word {
+  word: string;
+  start: number;
+  end: number;
+}
+
+export interface Segment {
+  id: string;
+  speaker: string;
+  start: number;
+  end: number;
+  text: string;
+  words: Word[];
+}
+
+export interface Speaker {
+  id: string;
+  name: string;
+  color: string;
+}
+
+interface HistoryState {
+  segments: Segment[];
+  speakers: Speaker[];
+}
+
+interface TranscriptState {
+  audioFile: File | null;
+  audioUrl: string | null;
+  segments: Segment[];
+  speakers: Speaker[];
+  selectedSegmentId: string | null;
+  currentTime: number;
+  isPlaying: boolean;
+  duration: number;
+  history: HistoryState[];
+  historyIndex: number;
+  isWhisperXFormat: boolean;
+  
+  setAudioFile: (file: File | null) => void;
+  setAudioUrl: (url: string | null) => void;
+  loadTranscript: (data: { segments: Segment[]; speakers?: Speaker[]; isWhisperXFormat?: boolean }) => void;
+  setSelectedSegmentId: (id: string | null) => void;
+  setCurrentTime: (time: number) => void;
+  setIsPlaying: (playing: boolean) => void;
+  setDuration: (duration: number) => void;
+  
+  updateSegmentText: (id: string, text: string) => void;
+  updateSegmentSpeaker: (id: string, speaker: string) => void;
+  splitSegment: (id: string, wordIndex: number) => void;
+  mergeSegments: (id1: string, id2: string) => void;
+  updateSegmentTiming: (id: string, start: number, end: number) => void;
+  deleteSegment: (id: string) => void;
+  
+  renameSpeaker: (oldName: string, newName: string) => void;
+  addSpeaker: (name: string) => void;
+  
+  undo: () => void;
+  redo: () => void;
+  canUndo: () => boolean;
+  canRedo: () => boolean;
+}
+
+const SPEAKER_COLORS = [
+  'hsl(217, 91%, 48%)',
+  'hsl(142, 76%, 36%)',
+  'hsl(271, 81%, 48%)',
+  'hsl(43, 96%, 42%)',
+  'hsl(340, 82%, 52%)',
+  'hsl(190, 90%, 40%)',
+  'hsl(25, 95%, 53%)',
+  'hsl(300, 76%, 45%)',
+];
+
+const generateId = () => Math.random().toString(36).substring(2, 11);
+
+export const useTranscriptStore = create<TranscriptState>((set, get) => ({
+  audioFile: null,
+  audioUrl: null,
+  segments: [],
+  speakers: [],
+  selectedSegmentId: null,
+  currentTime: 0,
+  isPlaying: false,
+  duration: 0,
+  history: [],
+  historyIndex: -1,
+  isWhisperXFormat: false,
+
+  setAudioFile: (file) => set({ audioFile: file }),
+  setAudioUrl: (url) => set({ audioUrl: url }),
+  
+  loadTranscript: (data) => {
+    const uniqueSpeakers = Array.from(new Set(data.segments.map(s => s.speaker)));
+    const speakers: Speaker[] = data.speakers || uniqueSpeakers.map((name, i) => ({
+      id: generateId(),
+      name,
+      color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
+    }));
+    
+    const segments = data.segments.map(s => ({
+      ...s,
+      id: s.id || generateId(),
+    }));
+    
+    set({ 
+      segments, 
+      speakers,
+      isWhisperXFormat: data.isWhisperXFormat || false,
+      history: [{ segments, speakers }],
+      historyIndex: 0,
+    });
+  },
+
+  setSelectedSegmentId: (id) => set({ selectedSegmentId: id }),
+  setCurrentTime: (time) => set({ currentTime: time }),
+  setIsPlaying: (playing) => set({ isPlaying: playing }),
+  setDuration: (duration) => set({ duration }),
+
+  updateSegmentText: (id, text) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const newSegments = segments.map(s => 
+      s.id === id ? { ...s, text } : s
+    );
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  updateSegmentSpeaker: (id, speaker) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const newSegments = segments.map(s => 
+      s.id === id ? { ...s, speaker } : s
+    );
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  splitSegment: (id, wordIndex) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const segmentIndex = segments.findIndex(s => s.id === id);
+    if (segmentIndex === -1) return;
+    
+    const segment = segments[segmentIndex];
+    if (wordIndex <= 0 || wordIndex >= segment.words.length) return;
+    
+    const firstWords = segment.words.slice(0, wordIndex);
+    const secondWords = segment.words.slice(wordIndex);
+    
+    const firstSegment: Segment = {
+      id: generateId(),
+      speaker: segment.speaker,
+      start: segment.start,
+      end: firstWords[firstWords.length - 1].end,
+      text: firstWords.map(w => w.word).join(' '),
+      words: firstWords,
+    };
+    
+    const secondSegment: Segment = {
+      id: generateId(),
+      speaker: segment.speaker,
+      start: secondWords[0].start,
+      end: segment.end,
+      text: secondWords.map(w => w.word).join(' '),
+      words: secondWords,
+    };
+    
+    const newSegments = [
+      ...segments.slice(0, segmentIndex),
+      firstSegment,
+      secondSegment,
+      ...segments.slice(segmentIndex + 1),
+    ];
+    
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  mergeSegments: (id1, id2) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const index1 = segments.findIndex(s => s.id === id1);
+    const index2 = segments.findIndex(s => s.id === id2);
+    
+    if (index1 === -1 || index2 === -1) return;
+    if (Math.abs(index1 - index2) !== 1) return;
+    
+    const [first, second] = index1 < index2 
+      ? [segments[index1], segments[index2]]
+      : [segments[index2], segments[index1]];
+    
+    const merged: Segment = {
+      id: generateId(),
+      speaker: first.speaker,
+      start: first.start,
+      end: second.end,
+      text: `${first.text} ${second.text}`,
+      words: [...first.words, ...second.words],
+    };
+    
+    const minIndex = Math.min(index1, index2);
+    const newSegments = [
+      ...segments.slice(0, minIndex),
+      merged,
+      ...segments.slice(Math.max(index1, index2) + 1),
+    ];
+    
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  updateSegmentTiming: (id, start, end) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const newSegments = segments.map(s => 
+      s.id === id ? { ...s, start, end } : s
+    );
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  deleteSegment: (id) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const newSegments = segments.filter(s => s.id !== id);
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers });
+    set({ segments: newSegments, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  renameSpeaker: (oldName, newName) => {
+    const { segments, speakers, history, historyIndex } = get();
+    const newSpeakers = speakers.map(s => 
+      s.name === oldName ? { ...s, name: newName } : s
+    );
+    const newSegments = segments.map(s => 
+      s.speaker === oldName ? { ...s, speaker: newName } : s
+    );
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments: newSegments, speakers: newSpeakers });
+    set({ segments: newSegments, speakers: newSpeakers, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  addSpeaker: (name) => {
+    const { speakers, segments, history, historyIndex } = get();
+    if (speakers.find(s => s.name === name)) return;
+    
+    const newSpeaker: Speaker = {
+      id: generateId(),
+      name,
+      color: SPEAKER_COLORS[speakers.length % SPEAKER_COLORS.length],
+    };
+    const newSpeakers = [...speakers, newSpeaker];
+    const newHistory = history.slice(0, historyIndex + 1);
+    newHistory.push({ segments, speakers: newSpeakers });
+    set({ speakers: newSpeakers, history: newHistory, historyIndex: newHistory.length - 1 });
+  },
+
+  undo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex <= 0) return;
+    const newIndex = historyIndex - 1;
+    const state = history[newIndex];
+    set({ segments: state.segments, speakers: state.speakers, historyIndex: newIndex });
+  },
+
+  redo: () => {
+    const { history, historyIndex } = get();
+    if (historyIndex >= history.length - 1) return;
+    const newIndex = historyIndex + 1;
+    const state = history[newIndex];
+    set({ segments: state.segments, speakers: state.speakers, historyIndex: newIndex });
+  },
+
+  canUndo: () => get().historyIndex > 0,
+  canRedo: () => get().historyIndex < get().history.length - 1,
+}));
