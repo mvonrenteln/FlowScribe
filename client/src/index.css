@@ -173,6 +173,29 @@
   body {
     @apply font-sans antialiased bg-background text-foreground;
   }
+
+  .wavesurfer-region {
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  .wavesurfer-handle {
+    background: transparent !important;
+  }
+
+  #waveform ::part(region) {
+    border: 0 !important;
+    box-shadow: none !important;
+    outline: 0 !important;
+  }
+
+  #waveform ::part(region-handle-left),
+  #waveform ::part(region-handle-right) {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+  }
 }
 
 /**

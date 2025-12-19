@@ -110,6 +110,17 @@ export function WaveformPlayer({
         resize: true,
       });
 
+      if (region.element) {
+        region.element.style.border = '0';
+        region.element.style.boxShadow = 'none';
+        region.element.style.outline = 'none';
+        region.element.style.borderLeft = '0';
+        region.element.style.borderRight = '0';
+        region.element.querySelectorAll('.wavesurfer-handle').forEach((handle) => {
+          (handle as HTMLElement).style.background = 'transparent';
+        });
+      }
+
       region.on('update-end', () => {
         if (onSegmentBoundaryChange) {
           onSegmentBoundaryChange(segment.id, region.start, region.end);
@@ -158,6 +169,7 @@ export function WaveformPlayer({
       )}
       <div 
         ref={containerRef} 
+        id="waveform"
         className="h-32 rounded-lg bg-card"
         data-testid="waveform-container"
       />
