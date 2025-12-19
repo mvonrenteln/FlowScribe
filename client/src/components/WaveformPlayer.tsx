@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback, useState } from 'react';
 import WaveSurfer from 'wavesurfer.js';
 import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
+import MinimapPlugin from 'wavesurfer.js/dist/plugins/minimap.js';
 import { useTranscriptStore, type Segment, type Speaker } from '@/lib/store';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Button } from '@/components/ui/button';
@@ -62,6 +63,11 @@ export function WaveformPlayer({
 
     const regions = RegionsPlugin.create();
     regionsRef.current = regions;
+    const minimap = MinimapPlugin.create({
+      height: 24,
+      waveColor: 'hsl(var(--muted))',
+      progressColor: 'hsl(var(--muted-foreground))',
+    });
 
     const ws = WaveSurfer.create({
       container: containerRef.current,
@@ -74,7 +80,9 @@ export function WaveformPlayer({
       barGap: 1,
       barRadius: 2,
       minPxPerSec: 100,
-      plugins: [regions],
+      hideScrollbar: true,
+      autoCenter: false,
+      plugins: [regions, minimap],
     });
 
     wavesurferRef.current = ws;
@@ -100,7 +108,13 @@ export function WaveformPlayer({
     });
 
     return () => {
-      ws.destroy();
+      try {
+        ws.destroy();
+      } catch (error) {
+        if (!(error instanceof DOMException && error.name === 'AbortError')) {
+          console.warn('WaveSurfer destroy failed:', error);
+        }
+      }
       wavesurferRef.current = null;
       regionsRef.current = null;
     };
