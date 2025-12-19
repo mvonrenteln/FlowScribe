@@ -76,7 +76,7 @@ const SPEAKER_COLORS = [
 
 const MAX_HISTORY = 100;
 
-const generateId = () => Math.random().toString(36).substring(2, 11);
+const generateId = () => crypto.randomUUID();
 
 const pushHistory = (
   history: HistoryState[],
