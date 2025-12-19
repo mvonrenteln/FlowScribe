@@ -66,6 +66,8 @@ client/src/
 - Filter view by speaker
 - Export to JSON, SRT subtitles, or plain text
 
+Detailes in [Features].
+
 ## Keyboard Shortcuts
 - Space: Play/Pause
 - J/L: Skip back/forward 5 seconds
@@ -84,3 +86,6 @@ client/src/
 - react-hotkeys-hook for keyboard shortcuts
 - Tailwind CSS with shadcn/ui components
 - Express.js backend
+
+## Design
+Design in [design_guidelines]
