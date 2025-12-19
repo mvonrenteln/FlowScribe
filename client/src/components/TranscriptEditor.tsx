@@ -198,7 +198,10 @@ export function TranscriptEditor() {
   useHotkeys('end', () => handleSeek(duration), { enableOnFormTags: false });
   useHotkeys('up', selectPreviousSegment, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
   useHotkeys('down', selectNextSegment, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
-  useHotkeys('escape', () => setSelectedSegmentId(null));
+  useHotkeys('escape', () => {
+    setSelectedSegmentId(null);
+    setFilterSpeaker(undefined);
+  });
   useHotkeys('mod+z', () => { if (canUndo()) undo(); });
   useHotkeys('mod+shift+z', () => { if (canRedo()) redo(); });
   useHotkeys('mod+e', () => setShowExport(true));
@@ -342,14 +345,15 @@ export function TranscriptEditor() {
             !sidebarOpen && "w-0 overflow-hidden border-0"
           )}
         >
-          <SpeakerSidebar
-            speakers={speakers}
-            segments={segments}
-            onRenameSpeaker={renameSpeaker}
-            onAddSpeaker={addSpeaker}
-            onSpeakerSelect={(name) => setFilterSpeaker(filterSpeaker === name ? undefined : name)}
-            selectedSpeaker={filterSpeaker}
-          />
+            <SpeakerSidebar
+              speakers={speakers}
+              segments={segments}
+              onRenameSpeaker={renameSpeaker}
+              onAddSpeaker={addSpeaker}
+              onSpeakerSelect={(name) => setFilterSpeaker(filterSpeaker === name ? undefined : name)}
+              onClearFilter={() => setFilterSpeaker(undefined)}
+              selectedSpeaker={filterSpeaker}
+            />
         </aside>
 
         <main className="flex-1 flex flex-col overflow-hidden">

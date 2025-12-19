@@ -12,6 +12,7 @@ interface SpeakerSidebarProps {
   onRenameSpeaker: (oldName: string, newName: string) => void;
   onAddSpeaker: (name: string) => void;
   onSpeakerSelect?: (speakerName: string) => void;
+  onClearFilter?: () => void;
   selectedSpeaker?: string;
 }
 
@@ -21,6 +22,7 @@ export function SpeakerSidebar({
   onRenameSpeaker,
   onAddSpeaker,
   onSpeakerSelect,
+  onClearFilter,
   selectedSpeaker,
 }: SpeakerSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -69,7 +71,19 @@ export function SpeakerSidebar({
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
-        <h2 className="text-sm font-semibold">Speakers</h2>
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">Speakers</h2>
+          {selectedSpeaker && (
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onClearFilter?.()}
+              data-testid="button-clear-speaker-filter"
+            >
+              Clear
+            </Button>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground mt-1">
           {speakers.length} speaker{speakers.length !== 1 ? 's' : ''} detected
         </p>
@@ -77,7 +91,7 @@ export function SpeakerSidebar({
 
       <ScrollArea className="flex-1">
         <div className="p-2 space-y-1">
-          {speakers.map((speaker) => (
+          {speakers.map((speaker, index) => (
             <div
               key={speaker.id}
               className={cn(
@@ -126,6 +140,9 @@ export function SpeakerSidebar({
                 ) : (
                   <>
                     <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5">
+                        {index + 1}
+                      </span>
                       <span className="text-sm font-medium truncate">
                         {speaker.name}
                       </span>
