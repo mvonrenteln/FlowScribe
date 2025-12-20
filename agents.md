@@ -1,9 +1,11 @@
 # TranscriptEditor - Audio Transcription Editor
 
 ## Overview
+
 A professional audio transcription editor webapp that loads audio files (MP3, WAV, M4A) and Whisper/WhisperX JSON transcripts. Features waveform visualization, keyboard-driven workflow, editable speaker-tagged text with word-level timestamps, segment operations, and export capabilities.
 
 ## Project Structure
+
 ```
 client/src/
 ├── components/
@@ -24,16 +26,19 @@ client/src/
 ## Supported Transcript Formats
 
 ### Whisper Format (simple array)
+
 ```json
 [
   { "timestamp": [0, 3.16], "text": " Text content here" },
   { "timestamp": [3.5, 7.2], "text": " More text content" }
 ]
 ```
+
 - Segments are assigned to SPEAKER_00
 - Word timestamps are auto-generated based on segment duration
 
 ### WhisperX Format (object with segments)
+
 ```json
 {
   "segments": [
@@ -50,11 +55,13 @@ client/src/
   ]
 }
 ```
+
 - Supports multiple speakers with speaker diarization
 - Word-level timestamps preserved when available
 - Speaker regions shown on waveform when multiple speakers present
 
 ## Key Features
+
 - Waveform visualization with wavesurfer.js
 - Word-level highlighting during playback
 - Inline text editing (double-click to edit)
@@ -69,6 +76,7 @@ client/src/
 Detailes in [Features].
 
 ## Keyboard Shortcuts
+
 - Space: Play/Pause
 - J/L: Skip back/forward 5 seconds
 - Left/Right arrows: Seek 1 second
@@ -80,12 +88,24 @@ Detailes in [Features].
 - ?: Show shortcuts
 
 ## Technologies
+
 - React with TypeScript
 - Zustand for state management
 - wavesurfer.js for audio visualization
 - react-hotkeys-hook for keyboard shortcuts
 - Tailwind CSS with shadcn/ui components
 - Frontend-only Vite app (no backend)
+- Tests with Vitest
 
 ## Design
+
 Design in [design_guidelines]
+
+## General Behavior
+
+- For every code change, run `npm test`.
+  - If `npm test` fails, run `npm install -D vitest @vitest/ui jsdom` before.
+- Before making any change, verify full branch coverage for the planned change.
+- If full branch coverage is missing and unit or component tests can cover it, add those tests first and make sure they pass.
+- Then implement the change and update tests so full coverage remains after the change.
+- use categories like chore/feat/bug etc for commits and comment titles
