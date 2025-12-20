@@ -94,4 +94,88 @@ describe("useTranscriptStore", () => {
     expect(speakers[0].name).toBe("Interviewerin");
     expect(segments.every((segment) => segment.speaker === "Interviewerin")).toBe(true);
   });
+
+  it("updates segment speakers and keeps history", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { updateSegmentSpeaker } = useTranscriptStore.getState();
+
+    updateSegmentSpeaker("seg-1", "SPEAKER_01");
+
+    const { segments, historyIndex, canUndo } = useTranscriptStore.getState();
+    expect(segments[0].speaker).toBe("SPEAKER_01");
+    expect(historyIndex).toBe(1);
+    expect(canUndo()).toBe(true);
+  });
+
+  it("splits a segment at a valid word boundary", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().splitSegment("seg-1", 1);
+
+    const { segments } = useTranscriptStore.getState();
+    expect(segments).toHaveLength(3);
+    expect(segments[0].text).toBe("Hallo");
+    expect(segments[1].text).toBe("Welt");
+    expect(segments[0].end).toBeCloseTo(0.6, 5);
+    expect(segments[1].start).toBeCloseTo(0.6, 5);
+  });
+
+  it("does not split a segment when the word index is invalid", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().splitSegment("seg-1", 0);
+    useTranscriptStore.getState().splitSegment("seg-1", 2);
+    useTranscriptStore.getState().splitSegment("missing", 1);
+
+    const { segments, historyIndex } = useTranscriptStore.getState();
+    expect(segments).toHaveLength(2);
+    expect(historyIndex).toBe(0);
+  });
+
+  it("updates segment timing and records history", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().updateSegmentTiming("seg-2", 1.4, 2.8);
+
+    const { segments, historyIndex } = useTranscriptStore.getState();
+    expect(segments[1].start).toBeCloseTo(1.4, 5);
+    expect(segments[1].end).toBeCloseTo(2.8, 5);
+    expect(historyIndex).toBe(1);
+  });
+
+  it("deletes a segment and tracks history", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().deleteSegment("seg-1");
+
+    const { segments, historyIndex } = useTranscriptStore.getState();
+    expect(segments).toHaveLength(1);
+    expect(segments[0].id).toBe("seg-2");
+    expect(historyIndex).toBe(1);
+  });
+
+  it("undoes and redoes transcript changes", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { updateSegmentText, undo, redo, canRedo, canUndo } = useTranscriptStore.getState();
+
+    updateSegmentText("seg-1", "Hallo zusammen");
+
+    expect(canUndo()).toBe(true);
+    undo();
+    expect(useTranscriptStore.getState().segments[0].text).toBe("Hallo Welt");
+    expect(canRedo()).toBe(true);
+    redo();
+    expect(useTranscriptStore.getState().segments[0].text).toBe("Hallo zusammen");
+  });
+
+  it("avoids invalid merges and duplicate speakers", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { mergeSegments, addSpeaker, speakers } = useTranscriptStore.getState();
+
+    const result = mergeSegments("seg-1", "seg-1");
+    addSpeaker("SPEAKER_00");
+
+    expect(result).toBeNull();
+    expect(useTranscriptStore.getState().speakers).toEqual(speakers);
+  });
 });
