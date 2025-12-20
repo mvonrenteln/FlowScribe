@@ -1,0 +1,99 @@
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { SpeakerSidebar } from "@/components/SpeakerSidebar";
+import type { Segment, Speaker } from "@/lib/store";
+
+const speakers: Speaker[] = [
+  { id: "s1", name: "SPEAKER_00", color: "hsl(217, 91%, 48%)" },
+  { id: "s2", name: "SPEAKER_01", color: "hsl(142, 76%, 36%)" },
+];
+
+const segments: Segment[] = [
+  {
+    id: "seg-1",
+    speaker: "SPEAKER_00",
+    start: 0,
+    end: 1,
+    text: "Hallo",
+    words: [{ word: "Hallo", start: 0, end: 1 }],
+  },
+  {
+    id: "seg-2",
+    speaker: "SPEAKER_01",
+    start: 1,
+    end: 2,
+    text: "Servus",
+    words: [{ word: "Servus", start: 1, end: 2 }],
+  },
+];
+
+describe("SpeakerSidebar", () => {
+  it("renames speakers", async () => {
+    const onRenameSpeaker = vi.fn();
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={onRenameSpeaker}
+        onAddSpeaker={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-edit-s1"));
+    const input = screen.getByTestId("input-rename-s1");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Moderator{enter}");
+
+    expect(onRenameSpeaker).toHaveBeenCalledWith("SPEAKER_00", "Moderator");
+  });
+
+  it("adds and merges speakers", async () => {
+    const onAddSpeaker = vi.fn();
+    const onMergeSpeakers = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={onAddSpeaker}
+        onMergeSpeakers={onMergeSpeakers}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-add-speaker"));
+    const addInput = screen.getByTestId("input-new-speaker");
+    await userEvent.type(addInput, "Gast{enter}");
+
+    expect(onAddSpeaker).toHaveBeenCalledWith("Gast");
+
+    await userEvent.click(screen.getByTestId("button-merge-s1"));
+    await userEvent.click(screen.getByTestId("menu-merge-s1-into-s2"));
+
+    expect(onMergeSpeakers).toHaveBeenCalledWith("SPEAKER_00", "SPEAKER_01");
+  });
+
+  it("filters and clears speaker selection", async () => {
+    const onSpeakerSelect = vi.fn();
+    const onClearFilter = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={vi.fn()}
+        onSpeakerSelect={onSpeakerSelect}
+        onClearFilter={onClearFilter}
+        selectedSpeaker="SPEAKER_00"
+      />,
+    );
+
+    await userEvent.click(screen.getByText("SPEAKER_00"));
+    expect(onSpeakerSelect).toHaveBeenCalledWith("SPEAKER_00");
+
+    await userEvent.click(screen.getByTestId("button-clear-speaker-filter"));
+    expect(onClearFilter).toHaveBeenCalled();
+  });
+});
