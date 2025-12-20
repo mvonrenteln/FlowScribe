@@ -203,8 +203,31 @@ export function TranscriptEditor() {
     setSelectedSegmentId(null);
     setFilterSpeaker(undefined);
   });
-  useHotkeys('mod+z', () => { if (canUndo()) undo(); });
-  useHotkeys('mod+shift+z', () => { if (canRedo()) redo(); });
+  useHotkeys('mod+z', () => { if (canUndo()) undo(); }, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
+  useHotkeys('mod+shift+z', () => { if (canRedo()) redo(); }, { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true });
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      if (!target) return;
+      const isEditable = target.isContentEditable;
+      const tagName = target.tagName;
+      const isFormElement = tagName === 'INPUT' || tagName === 'TEXTAREA' || tagName === 'SELECT';
+
+      if (isEditable || isFormElement) return;
+      if (event.ctrlKey || event.metaKey || event.altKey || event.shiftKey) return;
+
+      if (event.key.toLowerCase() === 'z') {
+        if (canUndo()) {
+          event.preventDefault();
+          undo();
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, undo]);
   useHotkeys('mod+e', () => setShowExport(true));
   useHotkeys('shift+/', () => setShowShortcuts(true));
   useHotkeys('enter', () => {
