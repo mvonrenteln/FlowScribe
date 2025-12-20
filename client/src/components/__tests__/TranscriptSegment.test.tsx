@@ -24,6 +24,7 @@ const segment: Segment = {
 describe("TranscriptSegment", () => {
   it("renders word tokens and seeks on click", async () => {
     const onSeek = vi.fn();
+    const onSelect = vi.fn();
     render(
       <TranscriptSegment
         segment={segment}
@@ -31,7 +32,7 @@ describe("TranscriptSegment", () => {
         isSelected={false}
         isActive={false}
         currentTime={0}
-        onSelect={vi.fn()}
+        onSelect={onSelect}
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
@@ -40,9 +41,12 @@ describe("TranscriptSegment", () => {
       />,
     );
 
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    fireEvent.keyDown(segmentCard, { key: "Enter" });
     const word = screen.getByTestId("word-seg-1-0");
     await userEvent.click(word);
 
+    expect(onSelect).toHaveBeenCalled();
     expect(onSeek).toHaveBeenCalledWith(0);
     expect(screen.getByText("Hallo")).toBeInTheDocument();
     expect(screen.getByText("Welt")).toBeInTheDocument();

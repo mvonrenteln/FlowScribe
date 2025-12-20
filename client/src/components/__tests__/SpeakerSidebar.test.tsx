@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { SpeakerSidebar } from "@/components/SpeakerSidebar";
@@ -90,7 +90,8 @@ describe("SpeakerSidebar", () => {
       />,
     );
 
-    await userEvent.click(screen.getByText("SPEAKER_00"));
+    const speakerCard = screen.getByTestId("speaker-card-s1");
+    fireEvent.keyDown(speakerCard, { key: "Enter" });
     expect(onSpeakerSelect).toHaveBeenCalledWith("SPEAKER_00");
 
     await userEvent.click(screen.getByTestId("button-clear-speaker-filter"));
