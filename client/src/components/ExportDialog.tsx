@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { Download, FileJson, FileText } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   Dialog,
   DialogContent,
@@ -6,12 +8,10 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
-} from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
-import { Label } from '@/components/ui/label';
-import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
-import { Download, FileJson, FileText } from 'lucide-react';
-import type { Segment } from '@/lib/store';
+} from "@/components/ui/dialog";
+import { Label } from "@/components/ui/label";
+import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import type { Segment } from "@/lib/store";
 
 interface ExportDialogProps {
   open: boolean;
@@ -20,44 +20,48 @@ interface ExportDialogProps {
   fileName?: string;
 }
 
-type ExportFormat = 'json' | 'srt' | 'txt';
+type ExportFormat = "json" | "srt" | "txt";
 
 function formatSRT(segments: Segment[]): string {
-  return segments.map((segment, index) => {
-    const formatTime = (seconds: number): string => {
-      const hrs = Math.floor(seconds / 3600);
-      const mins = Math.floor((seconds % 3600) / 60);
-      const secs = Math.floor(seconds % 60);
-      const ms = Math.floor((seconds % 1) * 1000);
-      return `${hrs.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')},${ms.toString().padStart(3, '0')}`;
-    };
+  return segments
+    .map((segment, index) => {
+      const formatTime = (seconds: number): string => {
+        const hrs = Math.floor(seconds / 3600);
+        const mins = Math.floor((seconds % 3600) / 60);
+        const secs = Math.floor(seconds % 60);
+        const ms = Math.floor((seconds % 1) * 1000);
+        return `${hrs.toString().padStart(2, "0")}:${mins.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")},${ms.toString().padStart(3, "0")}`;
+      };
 
-    return `${index + 1}
+      return `${index + 1}
 ${formatTime(segment.start)} --> ${formatTime(segment.end)}
 [${segment.speaker}] ${segment.text}
 `;
-  }).join('\n');
+    })
+    .join("\n");
 }
 
 function formatTXT(segments: Segment[]): string {
-  return segments.map(segment => {
-    const formatTime = (seconds: number): string => {
-      const mins = Math.floor(seconds / 60);
-      const secs = Math.floor(seconds % 60);
-      return `${mins}:${secs.toString().padStart(2, '0')}`;
-    };
+  return segments
+    .map((segment) => {
+      const formatTime = (seconds: number): string => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, "0")}`;
+      };
 
-    return `[${formatTime(segment.start)}] ${segment.speaker}: ${segment.text}`;
-  }).join('\n\n');
+      return `[${formatTime(segment.start)}] ${segment.speaker}: ${segment.text}`;
+    })
+    .join("\n\n");
 }
 
-export function ExportDialog({ 
-  open, 
-  onOpenChange, 
+export function ExportDialog({
+  open,
+  onOpenChange,
   segments,
-  fileName = 'transcript'
+  fileName = "transcript",
 }: ExportDialogProps) {
-  const [format, setFormat] = useState<ExportFormat>('json');
+  const [format, setFormat] = useState<ExportFormat>("json");
 
   const handleExport = () => {
     let content: string;
@@ -65,26 +69,26 @@ export function ExportDialog({
     let extension: string;
 
     switch (format) {
-      case 'json':
+      case "json":
         content = JSON.stringify({ segments }, null, 2);
-        mimeType = 'application/json';
-        extension = 'json';
+        mimeType = "application/json";
+        extension = "json";
         break;
-      case 'srt':
+      case "srt":
         content = formatSRT(segments);
-        mimeType = 'text/srt';
-        extension = 'srt';
+        mimeType = "text/srt";
+        extension = "srt";
         break;
-      case 'txt':
+      case "txt":
         content = formatTXT(segments);
-        mimeType = 'text/plain';
-        extension = 'txt';
+        mimeType = "text/plain";
+        extension = "txt";
         break;
     }
 
     const blob = new Blob([content], { type: mimeType });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `${fileName}.${extension}`;
     document.body.appendChild(a);
@@ -100,9 +104,7 @@ export function ExportDialog({
       <DialogContent>
         <DialogHeader>
           <DialogTitle>Export Transcript</DialogTitle>
-          <DialogDescription>
-            Choose a format to export your edited transcript.
-          </DialogDescription>
+          <DialogDescription>Choose a format to export your edited transcript.</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
