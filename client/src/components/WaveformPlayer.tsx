@@ -1,11 +1,11 @@
-import { useEffect, useRef, useCallback, useState } from 'react';
-import WaveSurfer from 'wavesurfer.js';
-import RegionsPlugin from 'wavesurfer.js/dist/plugins/regions.js';
-import MinimapPlugin from 'wavesurfer.js/dist/plugins/minimap.js';
-import { useTranscriptStore, type Segment, type Speaker } from '@/lib/store';
-import { Skeleton } from '@/components/ui/skeleton';
-import { Button } from '@/components/ui/button';
-import { Minus, Plus } from 'lucide-react';
+import { Minus, Plus } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import WaveSurfer from "wavesurfer.js";
+import MinimapPlugin from "wavesurfer.js/dist/plugins/minimap.js";
+import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.js";
+import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
+import { type Segment, type Speaker, useTranscriptStore } from "@/lib/store";
 
 interface WaveformPlayerProps {
   audioUrl: string | null;
@@ -53,20 +53,23 @@ export function WaveformPlayer({
     return 25;
   };
 
-  const getSpeakerColor = useCallback((speakerName: string) => {
-    const speaker = speakers.find(s => s.name === speakerName);
-    return speaker?.color || 'hsl(217, 91%, 48%)';
-  }, [speakers]);
+  const getSpeakerColor = useCallback(
+    (speakerName: string) => {
+      const speaker = speakers.find((s) => s.name === speakerName);
+      return speaker?.color || "hsl(217, 91%, 48%)";
+    },
+    [speakers],
+  );
 
   const getWaveColors = useCallback(() => {
     const styles = getComputedStyle(document.documentElement);
     const pick = (name: string) => styles.getPropertyValue(name).trim();
     return {
-      waveColor: `hsl(${pick('--wave-color')})`,
-      progressColor: `hsl(${pick('--wave-progress')})`,
-      cursorColor: `hsl(${pick('--foreground')})`,
-      minimapWaveColor: `hsl(${pick('--wave-minimap')})`,
-      minimapProgressColor: `hsl(${pick('--wave-minimap-progress')})`,
+      waveColor: `hsl(${pick("--wave-color")})`,
+      progressColor: `hsl(${pick("--wave-progress")})`,
+      cursorColor: `hsl(${pick("--foreground")})`,
+      minimapWaveColor: `hsl(${pick("--wave-minimap")})`,
+      minimapProgressColor: `hsl(${pick("--wave-minimap-progress")})`,
     };
   }, []);
 
@@ -124,7 +127,7 @@ export function WaveformPlayer({
 
     ws.load(audioUrl);
 
-    ws.on('ready', () => {
+    ws.on("ready", () => {
       setIsLoading(false);
       setIsReady(true);
       const containerWidth = containerRef.current?.clientWidth || ws.getWrapper()?.clientWidth || 0;
@@ -138,14 +141,14 @@ export function WaveformPlayer({
       onDurationChange(ws.getDuration());
     });
 
-    ws.on('timeupdate', (time) => {
+    ws.on("timeupdate", (time) => {
       onTimeUpdate(time);
     });
 
-    ws.on('play', () => onPlayPause(true));
-    ws.on('pause', () => onPlayPause(false));
+    ws.on("play", () => onPlayPause(true));
+    ws.on("pause", () => onPlayPause(false));
 
-    ws.on('seeking', (time) => {
+    ws.on("seeking", (time) => {
       onSeek(time);
     });
 
@@ -157,19 +160,27 @@ export function WaveformPlayer({
         }
         ws.destroy();
       } catch (error) {
-        if (!(error instanceof DOMException && error.name === 'AbortError')) {
-          console.warn('WaveSurfer destroy failed:', error);
+        if (!(error instanceof DOMException && error.name === "AbortError")) {
+          console.warn("WaveSurfer destroy failed:", error);
         }
       }
       wavesurferRef.current = null;
       regionsRef.current = null;
     };
-  }, [audioUrl, onDurationChange, onTimeUpdate, onPlayPause, onSeek, applyWaveColors, getWaveColors]);
+  }, [
+    audioUrl,
+    onDurationChange,
+    onTimeUpdate,
+    onPlayPause,
+    onSeek,
+    applyWaveColors,
+    getWaveColors,
+  ]);
 
   useEffect(() => {
     if (!wavesurferRef.current) return;
     const observer = new MutationObserver(() => applyWaveColors());
-    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ["class"] });
     return () => observer.disconnect();
   }, [applyWaveColors]);
 
@@ -186,24 +197,24 @@ export function WaveformPlayer({
         id: segment.id,
         start: segment.start,
         end: segment.end,
-        color: color.replace(')', ', 0.2)').replace('hsl', 'hsla'),
+        color: color.replace(")", ", 0.2)").replace("hsl", "hsla"),
         drag: false,
         resize: true,
       });
 
       if (region.element) {
-        region.element.classList.add('ws-region');
-        region.element.style.border = '0';
-        region.element.style.boxShadow = 'none';
-        region.element.style.outline = 'none';
-        region.element.style.borderLeft = '0';
-        region.element.style.borderRight = '0';
-        region.element.querySelectorAll('.wavesurfer-handle').forEach((handle) => {
-          (handle as HTMLElement).style.background = 'transparent';
+        region.element.classList.add("ws-region");
+        region.element.style.border = "0";
+        region.element.style.boxShadow = "none";
+        region.element.style.outline = "none";
+        region.element.style.borderLeft = "0";
+        region.element.style.borderRight = "0";
+        region.element.querySelectorAll(".wavesurfer-handle").forEach((handle) => {
+          (handle as HTMLElement).style.background = "transparent";
         });
       }
 
-      region.on('update-end', () => {
+      region.on("update-end", () => {
         if (onSegmentBoundaryChange) {
           onSegmentBoundaryChange(segment.id, region.start, region.end);
         }
@@ -287,8 +298,8 @@ export function WaveformPlayer({
           <Plus className="h-4 w-4" />
         </Button>
       </div>
-      <div 
-        ref={containerRef} 
+      <div
+        ref={containerRef}
         id="waveform"
         className="h-32 rounded-lg bg-card"
         data-testid="waveform-container"

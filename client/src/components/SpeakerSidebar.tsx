@@ -1,16 +1,16 @@
-import { useState, useRef, useEffect } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { ScrollArea } from '@/components/ui/scroll-area';
-import { Plus, Check, X, Edit2, Merge } from 'lucide-react';
-import type { Speaker, Segment } from '@/lib/store';
-import { cn } from '@/lib/utils';
+import { Check, Edit2, Merge, Plus, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
+} from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import type { Segment, Speaker } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
@@ -34,9 +34,9 @@ export function SpeakerSidebar({
   selectedSpeaker,
 }: SpeakerSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [editValue, setEditValue] = useState('');
+  const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
-  const [newSpeakerName, setNewSpeakerName] = useState('');
+  const [newSpeakerName, setNewSpeakerName] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -47,15 +47,15 @@ export function SpeakerSidebar({
   }, [editingId]);
 
   const getSegmentCount = (speakerName: string) => {
-    return segments.filter(s => s.speaker === speakerName).length;
+    return segments.filter((s) => s.speaker === speakerName).length;
   };
 
   const getTotalDuration = (speakerName: string) => {
-    const speakerSegments = segments.filter(s => s.speaker === speakerName);
+    const speakerSegments = segments.filter((s) => s.speaker === speakerName);
     const total = speakerSegments.reduce((acc, s) => acc + (s.end - s.start), 0);
     const mins = Math.floor(total / 60);
     const secs = Math.floor(total % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
   const handleStartEdit = (speaker: Speaker) => {
@@ -68,18 +68,18 @@ export function SpeakerSidebar({
       onRenameSpeaker(oldName, editValue.trim());
     }
     setEditingId(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const handleCancelEdit = () => {
     setEditingId(null);
-    setEditValue('');
+    setEditValue("");
   };
 
   const handleAddSpeaker = () => {
     if (newSpeakerName.trim()) {
       onAddSpeaker(newSpeakerName.trim());
-      setNewSpeakerName('');
+      setNewSpeakerName("");
       setIsAdding(false);
     }
   };
@@ -101,7 +101,7 @@ export function SpeakerSidebar({
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-1">
-          {speakers.length} speaker{speakers.length !== 1 ? 's' : ''} detected
+          {speakers.length} speaker{speakers.length !== 1 ? "s" : ""} detected
         </p>
       </div>
 
@@ -112,16 +112,16 @@ export function SpeakerSidebar({
               key={speaker.id}
               className={cn(
                 "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
-                selectedSpeaker === speaker.name && "bg-accent"
+                selectedSpeaker === speaker.name && "bg-accent",
               )}
               onClick={() => onSpeakerSelect?.(speaker.name)}
               data-testid={`speaker-card-${speaker.id}`}
             >
-              <div 
+              <div
                 className="w-1 h-10 rounded-full flex-shrink-0"
                 style={{ backgroundColor: speaker.color }}
               />
-              
+
               <div className="flex-1 min-w-0">
                 {editingId === speaker.id ? (
                   <div className="flex items-center gap-1">
@@ -130,24 +130,24 @@ export function SpeakerSidebar({
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === 'Enter') handleSaveEdit(speaker.name);
-                        if (e.key === 'Escape') handleCancelEdit();
+                        if (e.key === "Enter") handleSaveEdit(speaker.name);
+                        if (e.key === "Escape") handleCancelEdit();
                       }}
                       className="h-7 text-sm"
                       autoFocus
                       data-testid={`input-rename-${speaker.id}`}
                     />
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-7 w-7"
                       onClick={() => handleSaveEdit(speaker.name)}
                     >
                       <Check className="h-3 w-3" />
                     </Button>
-                    <Button 
-                      size="icon" 
-                      variant="ghost" 
+                    <Button
+                      size="icon"
+                      variant="ghost"
                       className="h-7 w-7"
                       onClick={handleCancelEdit}
                     >
@@ -160,9 +160,7 @@ export function SpeakerSidebar({
                       <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5">
                         {index + 1}
                       </span>
-                      <span className="text-sm font-medium truncate">
-                        {speaker.name}
-                      </span>
+                      <span className="text-sm font-medium truncate">{speaker.name}</span>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
                           <Button
@@ -176,15 +174,17 @@ export function SpeakerSidebar({
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          {speakers.filter((s) => s.name !== speaker.name).map((target) => (
-                            <DropdownMenuItem
-                              key={target.id}
-                              onClick={() => onMergeSpeakers?.(speaker.name, target.name)}
-                              data-testid={`menu-merge-${speaker.id}-into-${target.id}`}
-                            >
-                              Merge into {target.name}
-                            </DropdownMenuItem>
-                          ))}
+                          {speakers
+                            .filter((s) => s.name !== speaker.name)
+                            .map((target) => (
+                              <DropdownMenuItem
+                                key={target.id}
+                                onClick={() => onMergeSpeakers?.(speaker.name, target.name)}
+                                data-testid={`menu-merge-${speaker.id}-into-${target.id}`}
+                              >
+                                Merge into {target.name}
+                              </DropdownMenuItem>
+                            ))}
                         </DropdownMenuContent>
                       </DropdownMenu>
                       <Button
@@ -219,10 +219,10 @@ export function SpeakerSidebar({
               value={newSpeakerName}
               onChange={(e) => setNewSpeakerName(e.target.value)}
               onKeyDown={(e) => {
-                if (e.key === 'Enter') handleAddSpeaker();
-                if (e.key === 'Escape') {
+                if (e.key === "Enter") handleAddSpeaker();
+                if (e.key === "Escape") {
                   setIsAdding(false);
-                  setNewSpeakerName('');
+                  setNewSpeakerName("");
                 }
               }}
               placeholder="Speaker name..."
@@ -230,21 +230,16 @@ export function SpeakerSidebar({
               autoFocus
               data-testid="input-new-speaker"
             />
-            <Button 
-              size="icon" 
-              variant="ghost" 
-              className="h-8 w-8"
-              onClick={handleAddSpeaker}
-            >
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddSpeaker}>
               <Check className="h-4 w-4" />
             </Button>
-            <Button 
-              size="icon" 
-              variant="ghost" 
+            <Button
+              size="icon"
+              variant="ghost"
               className="h-8 w-8"
               onClick={() => {
                 setIsAdding(false);
-                setNewSpeakerName('');
+                setNewSpeakerName("");
               }}
             >
               <X className="h-4 w-4" />

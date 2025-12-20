@@ -1,22 +1,16 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
-import { Badge } from '@/components/ui/badge';
-import { Button } from '@/components/ui/button';
+import { Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { 
-  MoreVertical, 
-  Scissors, 
-  Merge, 
-  Trash2, 
-  User 
-} from 'lucide-react';
-import type { Segment, Speaker, Word } from '@/lib/store';
-import { cn } from '@/lib/utils';
+} from "@/components/ui/dropdown-menu";
+import type { Segment, Speaker, Word } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface TranscriptSegmentProps {
   segment: Segment;
@@ -38,7 +32,7 @@ function formatTimestamp(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 100);
-  return `${mins}:${secs.toString().padStart(2, '0')}.${ms.toString().padStart(2, '0')}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
 }
 
 export function TranscriptSegment({
@@ -60,8 +54,8 @@ export function TranscriptSegment({
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const textRef = useRef<HTMLDivElement>(null);
 
-  const speaker = speakers.find(s => s.name === segment.speaker);
-  const speakerColor = speaker?.color || 'hsl(217, 91%, 48%)';
+  const speaker = speakers.find((s) => s.name === segment.speaker);
+  const speakerColor = speaker?.color || "hsl(217, 91%, 48%)";
 
   const handleBlur = useCallback(() => {
     setIsEditing(false);
@@ -70,33 +64,37 @@ export function TranscriptSegment({
     }
   }, [onTextChange]);
 
-  const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleBlur();
-    }
-    if (e.key === 'Escape') {
-      setIsEditing(false);
-      if (textRef.current) {
-        textRef.current.innerText = segment.text;
+  const handleKeyDown = useCallback(
+    (e: React.KeyboardEvent) => {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        handleBlur();
       }
-    }
-  }, [handleBlur, segment.text]);
+      if (e.key === "Escape") {
+        setIsEditing(false);
+        if (textRef.current) {
+          textRef.current.innerText = segment.text;
+        }
+      }
+    },
+    [handleBlur, segment.text],
+  );
 
-  const handleWordClick = useCallback((word: Word, index: number, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (e.shiftKey) {
-      setSelectedWordIndex(index);
-    } else {
-      onSeek(word.start);
-    }
-  }, [onSeek]);
+  const handleWordClick = useCallback(
+    (word: Word, index: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (e.shiftKey) {
+        setSelectedWordIndex(index);
+      } else {
+        onSeek(word.start);
+      }
+    },
+    [onSeek],
+  );
 
   const getActiveWordIndex = useCallback(() => {
     if (!isActive) return -1;
-    return segment.words.findIndex(
-      (w) => currentTime >= w.start && currentTime <= w.end
-    );
+    return segment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [segment.words, currentTime, isActive]);
 
   const activeWordIndex = getActiveWordIndex();
@@ -107,7 +105,7 @@ export function TranscriptSegment({
         "group relative p-3 rounded-md border transition-colors cursor-pointer",
         isSelected && "ring-2 ring-ring",
         isActive && "bg-accent/50",
-        !isSelected && !isActive && "hover-elevate"
+        !isSelected && !isActive && "hover-elevate",
       )}
       onClick={onSelect}
       data-testid={`segment-${segment.id}`}
@@ -116,22 +114,19 @@ export function TranscriptSegment({
       aria-label={`Segment by ${segment.speaker}`}
     >
       <div className="flex items-start gap-3">
-        <div 
-          className="w-1 self-stretch rounded-full"
-          style={{ backgroundColor: speakerColor }}
-        />
-        
+        <div className="w-1 self-stretch rounded-full" style={{ backgroundColor: speakerColor }} />
+
         <div className="flex-1 min-w-0">
           <div className="flex flex-wrap items-center gap-2 mb-2">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Badge 
-                  variant="secondary" 
+                <Badge
+                  variant="secondary"
                   className="cursor-pointer text-xs uppercase tracking-wide"
-                  style={{ 
+                  style={{
                     backgroundColor: `${speakerColor}20`,
                     color: speakerColor,
-                    borderColor: speakerColor 
+                    borderColor: speakerColor,
                   }}
                   data-testid={`badge-speaker-${segment.id}`}
                 >
@@ -146,8 +141,8 @@ export function TranscriptSegment({
                     onClick={() => onSpeakerChange(s.name)}
                     data-testid={`menu-speaker-${s.name}`}
                   >
-                    <div 
-                      className="w-2 h-2 rounded-full mr-2" 
+                    <div
+                      className="w-2 h-2 rounded-full mr-2"
                       style={{ backgroundColor: s.color }}
                     />
                     {s.name}
@@ -155,7 +150,7 @@ export function TranscriptSegment({
                 ))}
               </DropdownMenuContent>
             </DropdownMenu>
-            
+
             <span className="text-xs font-mono tabular-nums text-muted-foreground">
               {formatTimestamp(segment.start)} - {formatTimestamp(segment.end)}
             </span>
@@ -170,28 +165,26 @@ export function TranscriptSegment({
             onKeyDown={handleKeyDown}
             className={cn(
               "text-base leading-relaxed outline-none",
-              isEditing && "bg-background rounded px-2 py-1 ring-1 ring-ring"
+              isEditing && "bg-background rounded px-2 py-1 ring-1 ring-ring",
             )}
             data-testid={`text-segment-${segment.id}`}
           >
-            {!isEditing ? (
-              segment.words.map((word, index) => (
-                <span
-                  key={index}
-                  onClick={(e) => handleWordClick(word, index, e)}
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    index === activeWordIndex && "bg-primary/20 underline",
-                    index === selectedWordIndex && "bg-accent ring-1 ring-ring"
-                  )}
-                  data-testid={`word-${segment.id}-${index}`}
-                >
-                  {word.word}{' '}
-                </span>
-              ))
-            ) : (
-              segment.text
-            )}
+            {!isEditing
+              ? segment.words.map((word, index) => (
+                  <span
+                    key={index}
+                    onClick={(e) => handleWordClick(word, index, e)}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      index === activeWordIndex && "bg-primary/20 underline",
+                      index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                    )}
+                    data-testid={`word-${segment.id}-${index}`}
+                  >
+                    {word.word}{" "}
+                  </span>
+                ))
+              : segment.text}
           </div>
         </div>
 
@@ -211,11 +204,11 @@ export function TranscriptSegment({
               <Scissors className="h-4 w-4" />
             </Button>
           )}
-          
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button 
-                size="icon" 
+              <Button
+                size="icon"
                 variant="ghost"
                 onClick={(e) => e.stopPropagation()}
                 data-testid={`button-segment-menu-${segment.id}`}
@@ -238,10 +231,7 @@ export function TranscriptSegment({
                 </DropdownMenuItem>
               )}
               <DropdownMenuSeparator />
-              <DropdownMenuItem 
-                onClick={onDelete}
-                className="text-destructive"
-              >
+              <DropdownMenuItem onClick={onDelete} className="text-destructive">
                 <Trash2 className="h-4 w-4 mr-2" />
                 Delete segment
               </DropdownMenuItem>
