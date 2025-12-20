@@ -25,7 +25,7 @@ export function WaveformPlayer({
   audioUrl,
   segments,
   speakers,
-  currentTime,
+  currentTime: _currentTime,
   isPlaying,
   showSpeakerRegions,
   onTimeUpdate,
@@ -185,15 +185,16 @@ export function WaveformPlayer({
   }, [applyWaveColors]);
 
   useEffect(() => {
-    if (!regionsRef.current || !isReady) return;
+    const regions = regionsRef.current;
+    if (!regions || !isReady) return;
 
-    regionsRef.current.clearRegions();
+    regions.clearRegions();
 
     if (!showSpeakerRegions) return;
 
     segments.forEach((segment) => {
       const color = getSpeakerColor(segment.speaker);
-      const region = regionsRef.current!.addRegion({
+      const region = regions.addRegion({
         id: segment.id,
         start: segment.start,
         end: segment.end,

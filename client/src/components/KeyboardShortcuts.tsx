@@ -49,15 +49,18 @@ export function KeyboardShortcuts({ open, onOpenChange }: KeyboardShortcutsProps
             <div key={category}>
               <h3 className="text-sm font-semibold mb-3">{category}</h3>
               <div className="space-y-2">
-                {items.map((shortcut, index) => (
-                  <div key={index} className="flex items-center justify-between gap-4">
+                {items.map((shortcut) => (
+                  <div
+                    key={`${category}-${shortcut.description}`}
+                    className="flex items-center justify-between gap-4"
+                  >
                     <div className="flex items-center gap-1">
-                      {shortcut.keys.map((key, keyIndex) => (
-                        <span key={keyIndex} className="contents">
+                      {shortcut.keys.map((key) => (
+                        <span key={`${shortcut.description}-${key}`} className="contents">
                           <Badge variant="secondary" className="font-mono text-xs px-2">
                             {key}
                           </Badge>
-                          {keyIndex < shortcut.keys.length - 1 && (
+                          {key !== shortcut.keys[shortcut.keys.length - 1] && (
                             <span className="text-muted-foreground text-xs">+</span>
                           )}
                         </span>
