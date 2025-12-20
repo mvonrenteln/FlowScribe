@@ -37,6 +37,7 @@ export function WaveformPlayer({
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsRef = useRef<RegionsPlugin | null>(null);
+  const minimapRef = useRef<MinimapPlugin | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
@@ -57,6 +58,42 @@ export function WaveformPlayer({
     return speaker?.color || 'hsl(217, 91%, 48%)';
   }, [speakers]);
 
+  const getWaveColors = useCallback(() => {
+    const styles = getComputedStyle(document.documentElement);
+    const pick = (name: string) => styles.getPropertyValue(name).trim();
+    return {
+      waveColor: `hsl(${pick('--wave-color')})`,
+      progressColor: `hsl(${pick('--wave-progress')})`,
+      cursorColor: `hsl(${pick('--foreground')})`,
+      minimapWaveColor: `hsl(${pick('--wave-minimap')})`,
+      minimapProgressColor: `hsl(${pick('--wave-minimap-progress')})`,
+    };
+  }, []);
+
+  const applyWaveColors = useCallback(() => {
+    const ws = wavesurferRef.current;
+    if (!ws) return;
+    const colors = getWaveColors();
+    ws.setOptions({
+      waveColor: colors.waveColor,
+      progressColor: colors.progressColor,
+      cursorColor: colors.cursorColor,
+    });
+
+    if (minimapRef.current) {
+      minimapRef.current.destroy();
+      minimapRef.current = null;
+    }
+
+    const minimap = MinimapPlugin.create({
+      height: 24,
+      waveColor: colors.minimapWaveColor,
+      progressColor: colors.minimapProgressColor,
+    });
+    minimapRef.current = minimap;
+    ws.registerPlugin(minimap);
+  }, [getWaveColors]);
+
   useEffect(() => {
     if (!containerRef.current || !audioUrl) return;
 
@@ -65,17 +102,12 @@ export function WaveformPlayer({
 
     const regions = RegionsPlugin.create();
     regionsRef.current = regions;
-    const minimap = MinimapPlugin.create({
-      height: 24,
-      waveColor: 'hsl(var(--muted))',
-      progressColor: 'hsl(var(--muted-foreground))',
-    });
-
+    const colors = getWaveColors();
     const ws = WaveSurfer.create({
       container: containerRef.current,
-      waveColor: 'hsl(var(--muted-foreground))',
-      progressColor: 'hsl(var(--primary))',
-      cursorColor: 'hsl(var(--foreground))',
+      waveColor: colors.waveColor,
+      progressColor: colors.progressColor,
+      cursorColor: colors.cursorColor,
       cursorWidth: 2,
       height: 128,
       barWidth: 2,
@@ -84,10 +116,11 @@ export function WaveformPlayer({
       minPxPerSec: 100,
       hideScrollbar: true,
       autoCenter: false,
-      plugins: [regions, minimap],
+      plugins: [regions],
     });
 
     wavesurferRef.current = ws;
+    applyWaveColors();
 
     ws.load(audioUrl);
 
@@ -118,6 +151,10 @@ export function WaveformPlayer({
 
     return () => {
       try {
+        if (minimapRef.current) {
+          minimapRef.current.destroy();
+          minimapRef.current = null;
+        }
         ws.destroy();
       } catch (error) {
         if (!(error instanceof DOMException && error.name === 'AbortError')) {
@@ -127,7 +164,14 @@ export function WaveformPlayer({
       wavesurferRef.current = null;
       regionsRef.current = null;
     };
-  }, [audioUrl, onDurationChange, onTimeUpdate, onPlayPause, onSeek]);
+  }, [audioUrl, onDurationChange, onTimeUpdate, onPlayPause, onSeek, applyWaveColors, getWaveColors]);
+
+  useEffect(() => {
+    if (!wavesurferRef.current) return;
+    const observer = new MutationObserver(() => applyWaveColors());
+    observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+    return () => observer.disconnect();
+  }, [applyWaveColors]);
 
   useEffect(() => {
     if (!regionsRef.current || !isReady) return;
@@ -215,6 +259,7 @@ export function WaveformPlayer({
         <Button
           size="icon"
           variant="ghost"
+          className="text-foreground"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
@@ -229,6 +274,7 @@ export function WaveformPlayer({
         <Button
           size="icon"
           variant="ghost"
+          className="text-foreground"
           onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();

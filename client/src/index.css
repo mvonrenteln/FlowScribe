@@ -57,6 +57,10 @@
   --shadow-2xl: 0px 2px 0px 0px hsl(210 6% 12% / 0.00);
   --tracking-normal: 0em;
   --spacing: 0.25rem;
+  --wave-color: 210 6% 45%;
+  --wave-progress: 217 91% 48%;
+  --wave-minimap: 210 6% 75%;
+  --wave-minimap-progress: 210 6% 45%;
 
 /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
@@ -135,6 +139,10 @@
   --shadow-lg: 0px 2px 0px 0px hsl(210 5% 92% / 0.00), 0px 4px 6px -1px hsl(210 5% 92% / 0.00);
   --shadow-xl: 0px 2px 0px 0px hsl(210 5% 92% / 0.00), 0px 8px 10px -1px hsl(210 5% 92% / 0.00);
   --shadow-2xl: 0px 2px 0px 0px hsl(210 5% 92% / 0.00);
+  --wave-color: 210 8% 82%;
+  --wave-progress: 217 91% 62%;
+  --wave-minimap: 210 6% 55%;
+  --wave-minimap-progress: 210 6% 82%;
 
 /* Fallback for older browsers */
   --sidebar-primary-border: hsl(var(--sidebar-primary));
