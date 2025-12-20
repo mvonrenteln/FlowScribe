@@ -80,16 +80,34 @@ export function TranscriptSegment({
     [handleBlur, segment.text],
   );
 
-  const handleWordClick = useCallback(
-    (word: Word, index: number, e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (e.shiftKey) {
+  const handleWordAction = useCallback(
+    (word: Word, index: number, shiftKey: boolean) => {
+      if (shiftKey) {
         setSelectedWordIndex(index);
       } else {
         onSeek(word.start);
       }
     },
     [onSeek],
+  );
+
+  const handleWordClick = useCallback(
+    (word: Word, index: number, e: React.MouseEvent) => {
+      e.stopPropagation();
+      handleWordAction(word, index, e.shiftKey);
+    },
+    [handleWordAction],
+  );
+
+  const handleWordKeyDown = useCallback(
+    (word: Word, index: number, event: React.KeyboardEvent<HTMLSpanElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        event.stopPropagation();
+        handleWordAction(word, index, event.shiftKey);
+      }
+    },
+    [handleWordAction],
   );
 
   const handleSelectKeyDown = useCallback(
@@ -121,8 +139,9 @@ export function TranscriptSegment({
       onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
-      role="article"
+      role="button"
       aria-label={`Segment by ${segment.speaker}`}
+      aria-pressed={isSelected}
       tabIndex={0}
     >
       <div className="flex items-start gap-3">
@@ -182,18 +201,22 @@ export function TranscriptSegment({
             data-testid={`text-segment-${segment.id}`}
             role="textbox"
             aria-readonly={!isEditing}
+            tabIndex={0}
           >
             {!isEditing
               ? segment.words.map((word, index) => (
                   <span
                     key={`${segment.id}-${word.start}-${word.end}`}
                     onClick={(e) => handleWordClick(word, index, e)}
+                    onKeyDown={(event) => handleWordKeyDown(word, index, event)}
                     className={cn(
                       "cursor-pointer transition-colors",
                       index === activeWordIndex && "bg-primary/20 underline",
                       index === selectedWordIndex && "bg-accent ring-1 ring-ring",
                     )}
                     data-testid={`word-${segment.id}-${index}`}
+                    role="button"
+                    tabIndex={0}
                   >
                     {word.word}{" "}
                   </span>

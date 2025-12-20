@@ -107,4 +107,90 @@ describe("TranscriptSegment", () => {
 
     expect(onTextChange).toHaveBeenCalledWith("Hallo zusammen");
   });
+
+  it("saves edited text on Enter and cancels on Escape", () => {
+    const onTextChange = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        currentTime={0}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const textBlock = screen.getByTestId("text-segment-seg-1");
+    fireEvent.doubleClick(textBlock);
+    Object.defineProperty(textBlock, "innerText", {
+      value: "Hallo zusammen",
+      writable: true,
+    });
+    fireEvent.keyDown(textBlock, { key: "Enter" });
+
+    expect(onTextChange).toHaveBeenCalledWith("Hallo zusammen");
+
+    fireEvent.doubleClick(textBlock);
+    Object.defineProperty(textBlock, "innerText", {
+      value: "Andere Worte",
+      writable: true,
+    });
+    fireEvent.keyDown(textBlock, { key: "Escape" });
+
+    expect(onTextChange).toHaveBeenCalledTimes(1);
+    expect(textBlock).toHaveTextContent(segment.text);
+  });
+
+  it("seeks when activating word with keyboard", () => {
+    const onSeek = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        currentTime={0}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={onSeek}
+      />,
+    );
+
+    const word = screen.getByTestId("word-seg-1-0");
+    fireEvent.keyDown(word, { key: " " });
+
+    expect(onSeek).toHaveBeenCalledWith(0);
+  });
+
+  it("uses fallback speaker color when missing speaker data", () => {
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={[]}
+        isSelected={false}
+        isActive={false}
+        currentTime={0}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    const colorSwatch = segmentCard.querySelector("div[style]");
+
+    expect(colorSwatch).toHaveStyle({ backgroundColor: "hsl(217, 91%, 48%)" });
+  });
 });
