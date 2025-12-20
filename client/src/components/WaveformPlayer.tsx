@@ -175,6 +175,7 @@ export function WaveformPlayer({
     onSeek,
     applyWaveColors,
     getWaveColors,
+    zoomLevel,
   ]);
 
   useEffect(() => {
@@ -221,7 +222,7 @@ export function WaveformPlayer({
         }
       });
     });
-  }, [segments, speakers, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange]);
+  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;
