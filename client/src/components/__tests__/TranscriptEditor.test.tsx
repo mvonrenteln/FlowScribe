@@ -104,8 +104,10 @@ describe("TranscriptEditor", () => {
     const speakerLabel = screen
       .getAllByText("SPEAKER_01")
       .find((node) => node.closest('[data-testid^="speaker-card-"]'));
-    expect(speakerLabel).toBeTruthy();
-    await userEvent.click(speakerLabel!);
+    if (!speakerLabel) {
+      throw new Error("Expected to find a speaker card for SPEAKER_01.");
+    }
+    await userEvent.click(speakerLabel);
 
     expect(screen.queryByText("Hallo")).not.toBeInTheDocument();
     expect(screen.getByText("Servus")).toBeInTheDocument();

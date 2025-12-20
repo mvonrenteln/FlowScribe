@@ -172,7 +172,7 @@ export function TranscriptSegment({
             {!isEditing
               ? segment.words.map((word, index) => (
                   <span
-                    key={index}
+                    key={`${segment.id}-${word.start}-${word.end}`}
                     onClick={(e) => handleWordClick(word, index, e)}
                     className={cn(
                       "cursor-pointer transition-colors",
