@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { FileUpload } from '../FileUpload';
+import { useState } from "react";
+import { FileUpload } from "../FileUpload";
 
 export default function FileUploadExample() {
   const [audioFileName, setAudioFileName] = useState<string | undefined>();
@@ -8,11 +8,11 @@ export default function FileUploadExample() {
   return (
     <FileUpload
       onAudioUpload={(file) => {
-        console.log('Audio uploaded:', file.name);
+        console.log("Audio uploaded:", file.name);
         setAudioFileName(file.name);
       }}
       onTranscriptUpload={(data) => {
-        console.log('Transcript loaded:', data);
+        console.log("Transcript loaded:", data);
         setTranscriptLoaded(true);
       }}
       audioFileName={audioFileName}

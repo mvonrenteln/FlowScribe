@@ -1,7 +1,7 @@
-import { useState } from 'react';
-import { KeyboardShortcuts } from '../KeyboardShortcuts';
-import { Button } from '@/components/ui/button';
-import { Keyboard } from 'lucide-react';
+import { Keyboard } from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { KeyboardShortcuts } from "../KeyboardShortcuts";
 
 export default function KeyboardShortcutsExample() {
   const [open, setOpen] = useState(false);

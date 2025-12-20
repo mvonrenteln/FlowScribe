@@ -1,16 +1,16 @@
-import { Button } from '@/components/ui/button';
-import { Slider } from '@/components/ui/slider';
-import { 
-  Play, 
-  Pause, 
-  SkipBack, 
-  SkipForward, 
-  Rewind, 
+import {
   FastForward,
+  Pause,
+  Play,
+  Rewind,
+  SkipBack,
+  SkipForward,
   Volume2,
-  VolumeX
-} from 'lucide-react';
-import { useState } from 'react';
+  VolumeX,
+} from "lucide-react";
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -27,7 +27,7 @@ function formatTime(seconds: number): string {
   const mins = Math.floor(seconds / 60);
   const secs = Math.floor(seconds % 60);
   const ms = Math.floor((seconds % 1) * 10);
-  return `${mins}:${secs.toString().padStart(2, '0')}.${ms}`;
+  return `${mins}:${secs.toString().padStart(2, "0")}.${ms}`;
 }
 
 export function PlaybackControls({
@@ -44,9 +44,9 @@ export function PlaybackControls({
 
   return (
     <div className="flex items-center gap-2">
-      <Button 
-        size="icon" 
-        variant="ghost" 
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={onSkipBack}
         disabled={disabled}
         data-testid="button-skip-back"
@@ -54,10 +54,10 @@ export function PlaybackControls({
       >
         <SkipBack className="h-4 w-4" />
       </Button>
-      
-      <Button 
-        size="icon" 
-        variant="ghost" 
+
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={() => onSeek(Math.max(0, currentTime - 1))}
         disabled={disabled}
         data-testid="button-rewind"
@@ -66,20 +66,20 @@ export function PlaybackControls({
         <Rewind className="h-4 w-4" />
       </Button>
 
-      <Button 
-        size="icon" 
+      <Button
+        size="icon"
         variant="default"
         onClick={onPlayPause}
         disabled={disabled}
         data-testid="button-play-pause"
-        aria-label={isPlaying ? 'Pause' : 'Play'}
+        aria-label={isPlaying ? "Pause" : "Play"}
       >
         {isPlaying ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4" />}
       </Button>
 
-      <Button 
-        size="icon" 
-        variant="ghost" 
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={() => onSeek(Math.min(duration, currentTime + 1))}
         disabled={disabled}
         data-testid="button-fast-forward"
@@ -88,9 +88,9 @@ export function PlaybackControls({
         <FastForward className="h-4 w-4" />
       </Button>
 
-      <Button 
-        size="icon" 
-        variant="ghost" 
+      <Button
+        size="icon"
+        variant="ghost"
         onClick={onSkipForward}
         disabled={disabled}
         data-testid="button-skip-forward"
@@ -111,17 +111,20 @@ export function PlaybackControls({
         />
       </div>
 
-      <span className="text-xs font-mono tabular-nums text-muted-foreground min-w-[80px]" data-testid="text-current-time">
+      <span
+        className="text-xs font-mono tabular-nums text-muted-foreground min-w-[80px]"
+        data-testid="text-current-time"
+      >
         {formatTime(currentTime)} / {formatTime(duration)}
       </span>
 
-      <Button 
-        size="icon" 
+      <Button
+        size="icon"
         variant="ghost"
         onClick={() => setIsMuted(!isMuted)}
         disabled={disabled}
         data-testid="button-mute"
-        aria-label={isMuted ? 'Unmute' : 'Mute'}
+        aria-label={isMuted ? "Unmute" : "Mute"}
       >
         {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
       </Button>

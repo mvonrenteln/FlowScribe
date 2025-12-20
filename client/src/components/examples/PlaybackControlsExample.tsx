@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { PlaybackControls } from '../PlaybackControls';
+import { useState } from "react";
+import { PlaybackControls } from "../PlaybackControls";
 
 export default function PlaybackControlsExample() {
   const [isPlaying, setIsPlaying] = useState(false);
