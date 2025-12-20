@@ -31,4 +31,10 @@ export default defineConfig({
       deny: ["**/.*"],
     },
   },
+  test: {
+    environment: "jsdom",
+    globals: true,
+    setupFiles: "src/test/setup.ts",
+    css: true,
+  },
 });
