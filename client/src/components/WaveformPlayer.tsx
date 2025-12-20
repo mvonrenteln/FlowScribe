@@ -94,7 +94,14 @@ export function WaveformPlayer({
     ws.on('ready', () => {
       setIsLoading(false);
       setIsReady(true);
-      ws.zoom(zoomLevel);
+      const containerWidth = containerRef.current?.clientWidth || ws.getWrapper()?.clientWidth || 0;
+      if (containerWidth > 0) {
+        const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, containerWidth / 240));
+        setZoomLevel(targetZoom);
+        ws.zoom(targetZoom);
+      } else {
+        ws.zoom(zoomLevel);
+      }
       onDurationChange(ws.getDuration());
     });
 
