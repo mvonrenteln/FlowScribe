@@ -250,25 +250,33 @@ describe("TranscriptEditor", () => {
     });
   });
 
-  it("seeks when clicking a segment", async () => {
-    useTranscriptStore.setState({
+  it("seeks to a clicked segment while paused", async () => {
+    mockTranscriptData = {
       segments: [
         {
-          id: "segment-1",
           speaker: "SPEAKER_00",
-          start: 5,
-          end: 6,
+          start: 4,
+          end: 5,
           text: "Hallo",
-          words: [{ word: "Hallo", start: 5, end: 6 }],
+          words: [{ word: "Hallo", start: 4, end: 5 }],
         },
       ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-    });
+    };
 
     render(<TranscriptEditor />);
 
-    await userEvent.click(screen.getByTestId("segment-segment-1"));
+    await userEvent.click(screen.getByTestId("mock-upload"));
 
-    expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+    const [segment] = useTranscriptStore.getState().segments;
+    if (!segment) {
+      throw new Error("Expected a segment to exist.");
+    }
+
+    const segmentCard = await screen.findByTestId(`segment-${segment.id}`);
+    await userEvent.click(segmentCard);
+
+    const state = useTranscriptStore.getState();
+    expect(state.currentTime).toBe(segment.start);
+    expect(state.seekRequestTime).toBe(segment.start);
   });
 });

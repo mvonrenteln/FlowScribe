@@ -171,9 +171,10 @@ export function TranscriptEditor() {
 
   const handleSeek = useCallback(
     (time: number) => {
+      setCurrentTime(time);
       requestSeek(time);
     },
-    [requestSeek],
+    [requestSeek, setCurrentTime],
   );
 
   const handleSkipBack = useCallback(() => {
@@ -384,7 +385,7 @@ export function TranscriptEditor() {
         return {
           onSelect: () => {
             setSelectedSegmentId(segment.id);
-            requestSeek(segment.start);
+            handleSeek(segment.start);
           },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
@@ -396,8 +397,8 @@ export function TranscriptEditor() {
       }),
     [
       filteredSegments,
+      handleSeek,
       mergeSegments,
-      requestSeek,
       setSelectedSegmentId,
       updateSegmentSpeaker,
       updateSegmentText,
