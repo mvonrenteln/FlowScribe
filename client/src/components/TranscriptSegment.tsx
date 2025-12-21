@@ -1,5 +1,5 @@
 import { Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -17,7 +17,7 @@ interface TranscriptSegmentProps {
   speakers: Speaker[];
   isSelected: boolean;
   isActive: boolean;
-  currentTime: number;
+  activeWordIndex?: number;
   onSelect: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
@@ -35,12 +35,12 @@ function formatTimestamp(seconds: number): string {
   return `${mins}:${secs.toString().padStart(2, "0")}.${ms.toString().padStart(2, "0")}`;
 }
 
-export function TranscriptSegment({
+function TranscriptSegmentComponent({
   segment,
   speakers,
   isSelected,
   isActive,
-  currentTime,
+  activeWordIndex,
   onSelect,
   onTextChange,
   onSpeakerChange,
@@ -120,12 +120,7 @@ export function TranscriptSegment({
     [onSelect],
   );
 
-  const getActiveWordIndex = useCallback(() => {
-    if (!isActive) return -1;
-    return segment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
-  }, [segment.words, currentTime, isActive]);
-
-  const activeWordIndex = getActiveWordIndex();
+  const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
 
   return (
     <div
@@ -211,7 +206,7 @@ export function TranscriptSegment({
                     onKeyDown={(event) => handleWordKeyDown(word, index, event)}
                     className={cn(
                       "cursor-pointer transition-colors",
-                      index === activeWordIndex && "bg-primary/20 underline",
+                      index === resolvedActiveWordIndex && "bg-primary/20 underline",
                       index === selectedWordIndex && "bg-accent ring-1 ring-ring",
                     )}
                     data-testid={`word-${segment.id}-${index}`}
@@ -279,3 +274,23 @@ export function TranscriptSegment({
     </div>
   );
 }
+
+const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProps) => {
+  return (
+    prev.segment === next.segment &&
+    prev.speakers === next.speakers &&
+    prev.isSelected === next.isSelected &&
+    prev.isActive === next.isActive &&
+    prev.activeWordIndex === next.activeWordIndex &&
+    prev.onSelect === next.onSelect &&
+    prev.onTextChange === next.onTextChange &&
+    prev.onSpeakerChange === next.onSpeakerChange &&
+    prev.onSplit === next.onSplit &&
+    prev.onMergeWithPrevious === next.onMergeWithPrevious &&
+    prev.onMergeWithNext === next.onMergeWithNext &&
+    prev.onDelete === next.onDelete &&
+    prev.onSeek === next.onSeek
+  );
+};
+
+export const TranscriptSegment = memo(TranscriptSegmentComponent, arePropsEqual);

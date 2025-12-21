@@ -34,7 +34,6 @@ const mockSegment: Segment = {
 export default function TranscriptSegmentExample() {
   const [segment, setSegment] = useState(mockSegment);
   const [isSelected, setIsSelected] = useState(false);
-  const currentTime = 2.4;
 
   return (
     <div className="p-4 space-y-4">
@@ -43,7 +42,6 @@ export default function TranscriptSegmentExample() {
         speakers={mockSpeakers}
         isSelected={isSelected}
         isActive={true}
-        currentTime={currentTime}
         onSelect={() => setIsSelected(!isSelected)}
         onTextChange={(text) => setSegment({ ...segment, text })}
         onSpeakerChange={(speaker) => setSegment({ ...segment, speaker })}
