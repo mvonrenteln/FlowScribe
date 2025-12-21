@@ -84,6 +84,16 @@ export function SpeakerSidebar({
     }
   };
 
+  const handleSpeakerKeyDown = (
+    event: React.KeyboardEvent<HTMLDivElement>,
+    speakerName: string,
+  ) => {
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      onSpeakerSelect?.(speakerName);
+    }
+  };
+
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b">
@@ -115,7 +125,11 @@ export function SpeakerSidebar({
                 selectedSpeaker === speaker.name && "bg-accent",
               )}
               onClick={() => onSpeakerSelect?.(speaker.name)}
+              onKeyDown={(event) => handleSpeakerKeyDown(event, speaker.name)}
               data-testid={`speaker-card-${speaker.id}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selectedSpeaker === speaker.name}
             >
               <div
                 className="w-1 h-10 rounded-full flex-shrink-0"

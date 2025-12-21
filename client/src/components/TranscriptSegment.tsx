@@ -92,6 +92,16 @@ export function TranscriptSegment({
     [onSeek],
   );
 
+  const handleSelectKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        onSelect();
+      }
+    },
+    [onSelect],
+  );
+
   const getActiveWordIndex = useCallback(() => {
     if (!isActive) return -1;
     return segment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
@@ -108,10 +118,12 @@ export function TranscriptSegment({
         !isSelected && !isActive && "hover-elevate",
       )}
       onClick={onSelect}
+      onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
       role="article"
       aria-label={`Segment by ${segment.speaker}`}
+      tabIndex={0}
     >
       <div className="flex items-start gap-3">
         <div className="w-1 self-stretch rounded-full" style={{ backgroundColor: speakerColor }} />
@@ -168,6 +180,8 @@ export function TranscriptSegment({
               isEditing && "bg-background rounded px-2 py-1 ring-1 ring-ring",
             )}
             data-testid={`text-segment-${segment.id}`}
+            role="textbox"
+            aria-readonly={!isEditing}
           >
             {!isEditing
               ? segment.words.map((word, index) => (
