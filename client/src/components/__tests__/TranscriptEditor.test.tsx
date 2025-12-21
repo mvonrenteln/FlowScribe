@@ -5,9 +5,12 @@ import { TranscriptEditor } from "@/components/TranscriptEditor";
 import { useTranscriptStore } from "@/lib/store";
 
 let mockTranscriptData: unknown;
+const hotkeyHandlers = new Map<string, (event: KeyboardEvent) => void>();
 
 vi.mock("react-hotkeys-hook", () => ({
-  useHotkeys: () => {},
+  useHotkeys: (keys: string, handler: (event: KeyboardEvent) => void) => {
+    hotkeyHandlers.set(keys, handler);
+  },
 }));
 
 vi.mock("@/components/FileUpload", () => ({
@@ -62,6 +65,7 @@ const resetStore = () => {
 describe("TranscriptEditor", () => {
   beforeEach(() => {
     resetStore();
+    hotkeyHandlers.clear();
   });
 
   it("loads whisper transcripts and renders segments", async () => {
@@ -115,5 +119,37 @@ describe("TranscriptEditor", () => {
 
     expect(screen.queryByText("Hallo")).not.toBeInTheDocument();
     expect(screen.getByText("Servus")).toBeInTheDocument();
+  });
+
+  it("assigns speakers with numeric hotkeys", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+      ],
+      speakers: [
+        { id: "speaker-0", name: "SPEAKER_00", color: "red" },
+        { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
+      ],
+      selectedSegmentId: "segment-1",
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("1,2,3,4,5,6,7,8,9");
+    if (!handler) {
+      throw new Error("Expected numeric hotkeys to be registered.");
+    }
+
+    handler(new KeyboardEvent("keydown", { key: "2" }));
+
+    const updatedSegment = useTranscriptStore.getState().segments[0];
+    expect(updatedSegment.speaker).toBe("SPEAKER_01");
   });
 });

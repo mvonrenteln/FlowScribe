@@ -307,17 +307,17 @@ export function TranscriptEditor() {
     { enableOnFormTags: false },
   );
 
-  ["1", "2", "3", "4", "5", "6", "7", "8", "9"].forEach((key, index) => {
-    useHotkeys(
-      key,
-      () => {
-        if (selectedSegmentId && speakers[index]) {
-          updateSegmentSpeaker(selectedSegmentId, speakers[index].name);
-        }
-      },
-      { enableOnFormTags: false },
-    );
-  });
+  useHotkeys(
+    "1,2,3,4,5,6,7,8,9",
+    (event) => {
+      const speakerIndex = Number(event.key) - 1;
+      if (!Number.isInteger(speakerIndex)) return;
+      if (selectedSegmentId && speakers[speakerIndex]) {
+        updateSegmentSpeaker(selectedSegmentId, speakers[speakerIndex].name);
+      }
+    },
+    { enableOnFormTags: false },
+  );
 
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
 
@@ -339,7 +339,7 @@ export function TranscriptEditor() {
     requestAnimationFrame(() => {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
     });
-  }, [activeSegment?.id, isPlaying]);
+  }, [activeSegment, isPlaying]);
 
   const filteredSegments = filterSpeaker
     ? segments.filter((s) => s.speaker === filterSpeaker)
