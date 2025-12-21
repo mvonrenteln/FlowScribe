@@ -1,5 +1,5 @@
 import { Download, Keyboard, PanelLeft, PanelLeftClose, Redo2, Undo2 } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -320,6 +320,11 @@ export function TranscriptEditor() {
   );
 
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
+  const activeSegmentId = activeSegment?.id ?? null;
+  const activeWordIndex = useMemo(() => {
+    if (!activeSegment) return -1;
+    return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
+  }, [activeSegment, currentTime]);
 
   useEffect(() => {
     if (!activeSegment) return;
@@ -344,6 +349,50 @@ export function TranscriptEditor() {
   const filteredSegments = filterSpeaker
     ? segments.filter((s) => s.speaker === filterSpeaker)
     : segments;
+
+  const segmentHandlers = useMemo(
+    () =>
+      filteredSegments.map((segment, index) => {
+        const onMergeWithPrevious =
+          index > 0
+            ? () => {
+                const mergedId = mergeSegments(filteredSegments[index - 1].id, segment.id);
+                if (mergedId) {
+                  setSelectedSegmentId(mergedId);
+                }
+              }
+            : undefined;
+
+        const onMergeWithNext =
+          index < filteredSegments.length - 1
+            ? () => {
+                const mergedId = mergeSegments(segment.id, filteredSegments[index + 1].id);
+                if (mergedId) {
+                  setSelectedSegmentId(mergedId);
+                }
+              }
+            : undefined;
+
+        return {
+          onSelect: () => setSelectedSegmentId(segment.id),
+          onTextChange: (text: string) => updateSegmentText(segment.id, text),
+          onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
+          onSplit: (wordIndex: number) => splitSegment(segment.id, wordIndex),
+          onMergeWithPrevious,
+          onMergeWithNext,
+          onDelete: () => deleteSegment(segment.id),
+        };
+      }),
+    [
+      filteredSegments,
+      mergeSegments,
+      setSelectedSegmentId,
+      updateSegmentSpeaker,
+      updateSegmentText,
+      splitSegment,
+      deleteSegment,
+    ],
+  );
 
   return (
     <div className="flex flex-col h-screen bg-background">
@@ -488,48 +537,27 @@ export function TranscriptEditor() {
                   )}
                 </div>
               ) : (
-                filteredSegments.map((segment, index) => (
+                filteredSegments.map((segment, index) => {
+                  const handlers = segmentHandlers[index];
+                  return (
                   <TranscriptSegment
                     key={segment.id}
                     segment={segment}
                     speakers={speakers}
                     isSelected={segment.id === selectedSegmentId}
-                    isActive={activeSegment?.id === segment.id}
-                    currentTime={currentTime}
-                    onSelect={() => setSelectedSegmentId(segment.id)}
-                    onTextChange={(text) => updateSegmentText(segment.id, text)}
-                    onSpeakerChange={(speaker) => updateSegmentSpeaker(segment.id, speaker)}
-                    onSplit={(wordIndex) => splitSegment(segment.id, wordIndex)}
-                    onMergeWithPrevious={
-                      index > 0
-                        ? () => {
-                            const mergedId = mergeSegments(
-                              filteredSegments[index - 1].id,
-                              segment.id,
-                            );
-                            if (mergedId) {
-                              setSelectedSegmentId(mergedId);
-                            }
-                          }
-                        : undefined
-                    }
-                    onMergeWithNext={
-                      index < filteredSegments.length - 1
-                        ? () => {
-                            const mergedId = mergeSegments(
-                              segment.id,
-                              filteredSegments[index + 1].id,
-                            );
-                            if (mergedId) {
-                              setSelectedSegmentId(mergedId);
-                            }
-                          }
-                        : undefined
-                    }
-                    onDelete={() => deleteSegment(segment.id)}
+                    isActive={activeSegmentId === segment.id}
+                    activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                    onSelect={handlers.onSelect}
+                    onTextChange={handlers.onTextChange}
+                    onSpeakerChange={handlers.onSpeakerChange}
+                    onSplit={handlers.onSplit}
+                    onMergeWithPrevious={handlers.onMergeWithPrevious}
+                    onMergeWithNext={handlers.onMergeWithNext}
+                    onDelete={handlers.onDelete}
                     onSeek={handleSeek}
                   />
-                ))
+                  );
+                })
               )}
             </div>
           </ScrollArea>

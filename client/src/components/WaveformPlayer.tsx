@@ -43,6 +43,8 @@ export function WaveformPlayer({
   const [isReady, setIsReady] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
   const zoomLevelRef = useRef(zoomLevel);
+  const frameRequestRef = useRef<number | null>(null);
+  const pendingTimeRef = useRef<number | null>(null);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -75,6 +77,20 @@ export function WaveformPlayer({
     };
   }, []);
 
+  const scheduleTimeUpdate = useCallback(
+    (time: number) => {
+      pendingTimeRef.current = time;
+      if (frameRequestRef.current !== null) return;
+      frameRequestRef.current = requestAnimationFrame(() => {
+        frameRequestRef.current = null;
+        if (pendingTimeRef.current !== null) {
+          onTimeUpdate(pendingTimeRef.current);
+        }
+      });
+    },
+    [onTimeUpdate],
+  );
+
   const applyWaveColors = useCallback(() => {
     const ws = wavesurferRef.current;
     if (!ws) return;
@@ -102,6 +118,14 @@ export function WaveformPlayer({
   useEffect(() => {
     zoomLevelRef.current = zoomLevel;
   }, [zoomLevel]);
+
+  useEffect(() => {
+    return () => {
+      if (frameRequestRef.current !== null) {
+        cancelAnimationFrame(frameRequestRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!containerRef.current || !audioUrl) return;
@@ -164,7 +188,7 @@ export function WaveformPlayer({
     });
 
     ws.on("timeupdate", (time) => {
-      onTimeUpdate(time);
+      scheduleTimeUpdate(time);
     });
 
     ws.on("play", () => onPlayPause(true));
@@ -198,6 +222,7 @@ export function WaveformPlayer({
     onSeek,
     applyWaveColors,
     getWaveColors,
+    scheduleTimeUpdate,
   ]);
 
   useEffect(() => {
