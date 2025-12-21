@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/react";
-import { beforeAll, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { SidebarProvider, useSidebar } from "@/components/ui/sidebar";
 
 const SidebarState = () => {
@@ -15,6 +15,8 @@ const SidebarState = () => {
 };
 
 describe("SidebarProvider", () => {
+  const cookieStoreSet = vi.fn().mockResolvedValue(undefined);
+
   beforeAll(() => {
     Object.defineProperty(window, "matchMedia", {
       writable: true,
@@ -26,6 +28,16 @@ describe("SidebarProvider", () => {
         removeEventListener: vi.fn(),
         dispatchEvent: vi.fn(),
       })),
+    });
+  });
+
+  beforeEach(() => {
+    cookieStoreSet.mockClear();
+    Object.defineProperty(window, "cookieStore", {
+      writable: true,
+      value: {
+        set: cookieStoreSet,
+      },
     });
   });
 
@@ -41,7 +53,14 @@ describe("SidebarProvider", () => {
     fireEvent.click(screen.getByRole("button", { name: "Toggle" }));
 
     expect(screen.getByTestId("sidebar-state")).toHaveTextContent("collapsed");
-    expect(document.cookie).toContain("sidebar_state=false");
+    expect(cookieStoreSet).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: "sidebar_state",
+        value: "false",
+        path: "/",
+        expires: expect.any(Date),
+      }),
+    );
   });
 
   it("toggles the sidebar with the keyboard shortcut", () => {
