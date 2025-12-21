@@ -38,9 +38,11 @@ export function WaveformPlayer({
   const wavesurferRef = useRef<WaveSurfer | null>(null);
   const regionsRef = useRef<RegionsPlugin | null>(null);
   const minimapRef = useRef<MinimapPlugin | null>(null);
+  const hasAudioRef = useRef(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const zoomLevelRef = useRef(zoomLevel);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -98,6 +100,10 @@ export function WaveformPlayer({
   }, [getWaveColors]);
 
   useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
+
+  useEffect(() => {
     if (!containerRef.current || !audioUrl) return;
 
     setIsLoading(true);
@@ -125,18 +131,34 @@ export function WaveformPlayer({
     wavesurferRef.current = ws;
     applyWaveColors();
 
-    ws.load(audioUrl);
+    const loadResult = ws.load(audioUrl);
+    if (loadResult && typeof (loadResult as Promise<void>).catch === "function") {
+      void (loadResult as Promise<void>).catch((error) => {
+        if (error instanceof DOMException && error.name === "AbortError") {
+          return;
+        }
+        console.error("WaveSurfer load failed:", error);
+      });
+    }
+
+    ws.on("error", (error) => {
+      if (error instanceof DOMException && error.name === "AbortError") {
+        return;
+      }
+      console.error("WaveSurfer error:", error);
+    });
 
     ws.on("ready", () => {
       setIsLoading(false);
       setIsReady(true);
+      hasAudioRef.current = true;
       const containerWidth = containerRef.current?.clientWidth || ws.getWrapper()?.clientWidth || 0;
       if (containerWidth > 0) {
         const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, containerWidth / 240));
         setZoomLevel(targetZoom);
         ws.zoom(targetZoom);
       } else {
-        ws.zoom(zoomLevel);
+        ws.zoom(zoomLevelRef.current);
       }
       onDurationChange(ws.getDuration());
     });
@@ -164,6 +186,7 @@ export function WaveformPlayer({
           console.warn("WaveSurfer destroy failed:", error);
         }
       }
+      hasAudioRef.current = false;
       wavesurferRef.current = null;
       regionsRef.current = null;
     };
@@ -175,7 +198,6 @@ export function WaveformPlayer({
     onSeek,
     applyWaveColors,
     getWaveColors,
-    zoomLevel,
   ]);
 
   useEffect(() => {
@@ -248,7 +270,14 @@ export function WaveformPlayer({
   useEffect(() => {
     const ws = wavesurferRef.current;
     if (!ws || !isReady) return;
-    ws.zoom(zoomLevel);
+    if (!hasAudioRef.current) return;
+    const duration = ws.getDuration();
+    if (!Number.isFinite(duration) || duration <= 0) return;
+    try {
+      ws.zoom(zoomLevel);
+    } catch (error) {
+      console.warn("WaveSurfer zoom skipped:", error);
+    }
   }, [zoomLevel, isReady]);
 
   if (!audioUrl) {

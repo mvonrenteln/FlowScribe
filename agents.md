@@ -109,3 +109,8 @@ Design in [design_guidelines]
 - If full branch coverage is missing and unit or component tests can cover it, add those tests first and make sure they pass.
 - Then implement the change and update tests so full coverage remains after the change.
 - use categories like chore/feat/bug etc for commits and comment titles
+
+## Warning
+
+Changes around audio loading in `client/src/components/WaveformPlayer.tsx` have previously broken audio playback. Be extra cautious and validate loading and cleanup behavior whenever touching this area.
+Zoom handling in `client/src/components/WaveformPlayer.tsx` can cause repeated WaveSurfer re-initialization and flicker if it triggers the main init effect. Avoid wiring zoom state into the initialization dependency chain.
