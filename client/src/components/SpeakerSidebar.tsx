@@ -32,7 +32,7 @@ export function SpeakerSidebar({
   onSpeakerSelect,
   onClearFilter,
   selectedSpeakerId,
-}: SpeakerSidebarProps) {
+}: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
@@ -85,7 +85,7 @@ export function SpeakerSidebar({
     }
   };
 
-  const handleSpeakerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, speakerId: string) => {
+  const handleSpeakerKeyDown = (event: KeyboardEvent<HTMLDivElement>, speakerId: string) => {
     if (editingId === speakerId) {
       return;
     }

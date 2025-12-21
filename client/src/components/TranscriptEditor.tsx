@@ -234,7 +234,7 @@ export function TranscriptEditor() {
   });
   useHotkeys("escape", () => {
     setSelectedSegmentId(null);
-    setFilterSpeaker(undefined);
+    setFilterSpeakerId(undefined);
   });
   useHotkeys(
     "mod+z",
