@@ -53,9 +53,10 @@ describe("useTranscriptStore", () => {
   it("loads transcripts and generates speakers", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 
-    const { segments, speakers } = useTranscriptStore.getState();
+    const { segments, speakers, selectedSegmentId } = useTranscriptStore.getState();
     expect(segments).toHaveLength(2);
     expect(speakers.map((speaker) => speaker.name)).toEqual(["SPEAKER_00", "SPEAKER_01"]);
+    expect(selectedSegmentId).toBe("seg-1");
   });
 
   it("updates segment text and keeps history", () => {
@@ -74,12 +75,13 @@ describe("useTranscriptStore", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 
     const mergedId = useTranscriptStore.getState().mergeSegments("seg-1", "seg-2");
-    const { segments } = useTranscriptStore.getState();
+    const { segments, selectedSegmentId } = useTranscriptStore.getState();
 
     expect(mergedId).not.toBeNull();
     expect(segments).toHaveLength(1);
     expect(segments[0].text).toBe("Hallo Welt Guten Morgen");
     expect(segments[0].words).toHaveLength(4);
+    expect(selectedSegmentId).toBe(mergedId);
   });
 
   it("renames and merges speakers", () => {
@@ -166,6 +168,19 @@ describe("useTranscriptStore", () => {
     expect(canRedo()).toBe(true);
     redo();
     expect(useTranscriptStore.getState().segments[0].text).toBe("Hallo zusammen");
+  });
+
+  it("restores selection when undoing a merge", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { setSelectedSegmentId, mergeSegments, undo } = useTranscriptStore.getState();
+
+    setSelectedSegmentId("seg-2");
+
+    const mergedId = mergeSegments("seg-1", "seg-2");
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe(mergedId);
+
+    undo();
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("seg-2");
   });
 
   it("avoids invalid merges and duplicate speakers", () => {
