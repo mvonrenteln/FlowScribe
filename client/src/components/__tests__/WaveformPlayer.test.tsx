@@ -16,6 +16,7 @@ const waveSurferMock = vi.hoisted(() => {
     zoom: vi.fn(),
     getDuration: vi.fn(() => 120),
     getWrapper: vi.fn(() => ({ clientWidth: 480 })),
+    getCurrentTime: vi.fn(() => 0),
     isPlaying: vi.fn(() => false),
     play: vi.fn(),
     pause: vi.fn(),
@@ -162,16 +163,20 @@ describe("WaveformPlayer", () => {
     fireEvent.click(screen.getByTestId("button-zoom-in"));
   });
 
-  it("forwards seeking events to onSeek", () => {
+  it("forwards seek interactions to onSeek", () => {
     const onSeek = vi.fn();
 
     render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" onSeek={onSeek} />);
 
     act(() => {
-      waveSurferMock.handlers.get("seeking")?.(42);
+      waveSurferMock.handlers.get("seeking")?.(12);
+    });
+    act(() => {
+      waveSurferMock.handlers.get("interaction")?.(18);
     });
 
-    expect(onSeek).toHaveBeenCalledWith(42);
+    expect(onSeek).toHaveBeenCalledWith(12);
+    expect(onSeek).toHaveBeenCalledWith(18);
   });
 
   it("handles seek requests from the store", async () => {

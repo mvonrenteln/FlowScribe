@@ -279,4 +279,38 @@ describe("TranscriptEditor", () => {
     expect(state.currentTime).toBe(segment.start);
     expect(state.seekRequestTime).toBe(segment.start);
   });
+
+  it("updates the selected segment when currentTime changes while paused", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    act(() => {
+      useTranscriptStore.setState({ currentTime: 2.5 });
+    });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+  });
 });

@@ -194,9 +194,14 @@ export function WaveformPlayer({
     ws.on("play", () => onPlayPause(true));
     ws.on("pause", () => onPlayPause(false));
 
-    ws.on("seeking", (time) => {
-      onSeek(time);
-    });
+    const handleSeekEvent = (time?: number) => {
+      const nextTime = typeof time === "number" ? time : ws.getCurrentTime();
+      onSeek(nextTime);
+    };
+
+    ws.on("seeking", handleSeekEvent);
+    ws.on("seek", handleSeekEvent);
+    ws.on("interaction", handleSeekEvent);
 
     return () => {
       try {

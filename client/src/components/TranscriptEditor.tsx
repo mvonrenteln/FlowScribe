@@ -350,7 +350,7 @@ export function TranscriptEditor() {
   }, [activeSegment, selectedSegmentId, setSelectedSegmentId]);
 
   useEffect(() => {
-    if (!isPlaying || !activeSegment) return;
+    if (!activeSegment) return;
     const container = transcriptListRef.current;
     if (!container) return;
     const target = container.querySelector<HTMLElement>(`[data-segment-id="${activeSegment.id}"]`);
