@@ -41,6 +41,7 @@ export function WaveformPlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [isReady, setIsReady] = useState(false);
   const [zoomLevel, setZoomLevel] = useState(100);
+  const zoomLevelRef = useRef(zoomLevel);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -98,6 +99,10 @@ export function WaveformPlayer({
   }, [getWaveColors]);
 
   useEffect(() => {
+    zoomLevelRef.current = zoomLevel;
+  }, [zoomLevel]);
+
+  useEffect(() => {
     if (!containerRef.current || !audioUrl) return;
 
     setIsLoading(true);
@@ -136,7 +141,7 @@ export function WaveformPlayer({
         setZoomLevel(targetZoom);
         ws.zoom(targetZoom);
       } else {
-        ws.zoom(zoomLevel);
+        ws.zoom(zoomLevelRef.current);
       }
       onDurationChange(ws.getDuration());
     });
@@ -221,7 +226,7 @@ export function WaveformPlayer({
         }
       });
     });
-  }, [segments, speakers, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange]);
+  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;

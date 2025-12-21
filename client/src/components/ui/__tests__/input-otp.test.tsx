@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
 import { OTPInputContext } from "input-otp";
+import { describe, expect, it } from "vitest";
 import { InputOTPGroup, InputOTPSeparator, InputOTPSlot } from "@/components/ui/input-otp";
 
 describe("InputOTPSeparator", () => {
