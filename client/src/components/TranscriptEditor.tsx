@@ -52,7 +52,7 @@ export function TranscriptEditor() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [filterSpeaker, setFilterSpeaker] = useState<string | undefined>();
+  const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const transcriptListRef = useRef<HTMLDivElement>(null);
 
   const handleAudioUpload = useCallback(
@@ -156,6 +156,13 @@ export function TranscriptEditor() {
       }
     },
     [loadTranscript],
+  );
+
+  const handleRenameSpeaker = useCallback(
+    (oldName: string, newName: string) => {
+      renameSpeaker(oldName, newName);
+    },
+    [renameSpeaker],
   );
 
   const handlePlayPause = useCallback(() => {
@@ -346,8 +353,11 @@ export function TranscriptEditor() {
     });
   }, [activeSegment, isPlaying]);
 
-  const filteredSegments = filterSpeaker
-    ? segments.filter((s) => s.speaker === filterSpeaker)
+  const activeSpeakerName = filterSpeakerId
+    ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
+    : undefined;
+  const filteredSegments = activeSpeakerName
+    ? segments.filter((s) => s.speaker === activeSpeakerName)
     : segments;
 
   const segmentHandlers = useMemo(
@@ -473,12 +483,14 @@ export function TranscriptEditor() {
           <SpeakerSidebar
             speakers={speakers}
             segments={segments}
-            onRenameSpeaker={renameSpeaker}
+            onRenameSpeaker={handleRenameSpeaker}
             onAddSpeaker={addSpeaker}
             onMergeSpeakers={mergeSpeakers}
-            onSpeakerSelect={(name) => setFilterSpeaker(filterSpeaker === name ? undefined : name)}
-            onClearFilter={() => setFilterSpeaker(undefined)}
-            selectedSpeaker={filterSpeaker}
+            onSpeakerSelect={(id) =>
+              setFilterSpeakerId((current) => (current === id ? undefined : id))
+            }
+            onClearFilter={() => setFilterSpeakerId(undefined)}
+            selectedSpeakerId={filterSpeakerId}
           />
         </aside>
 

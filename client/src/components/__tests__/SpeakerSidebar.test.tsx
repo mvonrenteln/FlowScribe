@@ -86,13 +86,13 @@ describe("SpeakerSidebar", () => {
         onAddSpeaker={vi.fn()}
         onSpeakerSelect={onSpeakerSelect}
         onClearFilter={onClearFilter}
-        selectedSpeaker="SPEAKER_00"
+        selectedSpeakerId="s1"
       />,
     );
 
     const speakerCard = screen.getByTestId("speaker-card-s1");
     fireEvent.keyDown(speakerCard, { key: "Enter" });
-    expect(onSpeakerSelect).toHaveBeenCalledWith("SPEAKER_00");
+    expect(onSpeakerSelect).toHaveBeenCalledWith("s1");
 
     await userEvent.click(screen.getByTestId("button-clear-speaker-filter"));
     expect(onClearFilter).toHaveBeenCalled();
