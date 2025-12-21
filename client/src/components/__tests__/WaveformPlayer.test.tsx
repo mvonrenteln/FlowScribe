@@ -161,4 +161,34 @@ describe("WaveformPlayer", () => {
 
     fireEvent.click(screen.getByTestId("button-zoom-in"));
   });
+
+  it("forwards seeking events to onSeek", () => {
+    const onSeek = vi.fn();
+
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" onSeek={onSeek} />);
+
+    act(() => {
+      waveSurferMock.handlers.get("seeking")?.(42);
+    });
+
+    expect(onSeek).toHaveBeenCalledWith(42);
+  });
+
+  it("handles seek requests from the store", async () => {
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    act(() => {
+      useTranscriptStore.setState({ seekRequestTime: 80 });
+    });
+
+    await waitFor(() => {
+      expect(waveSurferMock.instance.setTime).toHaveBeenCalledWith(80);
+    });
+
+    expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+  });
 });

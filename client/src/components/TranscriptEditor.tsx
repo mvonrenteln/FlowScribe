@@ -335,12 +335,10 @@ export function TranscriptEditor() {
 
   useEffect(() => {
     if (!activeSegment) return;
-    if (isPlaying || !selectedSegmentId) {
-      if (activeSegment.id !== selectedSegmentId) {
-        setSelectedSegmentId(activeSegment.id);
-      }
+    if (activeSegment.id !== selectedSegmentId) {
+      setSelectedSegmentId(activeSegment.id);
     }
-  }, [activeSegment, isPlaying, selectedSegmentId, setSelectedSegmentId]);
+  }, [activeSegment, selectedSegmentId, setSelectedSegmentId]);
 
   useEffect(() => {
     if (!isPlaying || !activeSegment) return;
@@ -384,7 +382,10 @@ export function TranscriptEditor() {
             : undefined;
 
         return {
-          onSelect: () => setSelectedSegmentId(segment.id),
+          onSelect: () => {
+            setSelectedSegmentId(segment.id);
+            requestSeek(segment.start);
+          },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => splitSegment(segment.id, wordIndex),
@@ -396,6 +397,7 @@ export function TranscriptEditor() {
     [
       filteredSegments,
       mergeSegments,
+      requestSeek,
       setSelectedSegmentId,
       updateSegmentSpeaker,
       updateSegmentText,
