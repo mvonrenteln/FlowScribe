@@ -280,7 +280,7 @@ describe("TranscriptEditor", () => {
     expect(state.seekRequestTime).toBe(segment.start);
   });
 
-  it("updates the selected segment when currentTime changes while paused", () => {
+  it("updates the selected segment when currentTime changes while paused", async () => {
     useTranscriptStore.setState({
       segments: [
         {
@@ -311,7 +311,9 @@ describe("TranscriptEditor", () => {
       useTranscriptStore.setState({ currentTime: 2.5 });
     });
 
-    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    });
   });
 
   it("moves selection with arrow keys while paused", async () => {
