@@ -192,20 +192,28 @@ export function TranscriptEditor() {
   const selectPreviousSegment = useCallback(() => {
     const currentIndex = getSelectedSegmentIndex();
     if (currentIndex > 0) {
-      setSelectedSegmentId(segments[currentIndex - 1].id);
+      const segment = segments[currentIndex - 1];
+      setSelectedSegmentId(segment.id);
+      handleSeek(segment.start);
     } else if (currentIndex === -1 && segments.length > 0) {
-      setSelectedSegmentId(segments[segments.length - 1].id);
+      const segment = segments[segments.length - 1];
+      setSelectedSegmentId(segment.id);
+      handleSeek(segment.start);
     }
-  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId]);
+  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId, handleSeek]);
 
   const selectNextSegment = useCallback(() => {
     const currentIndex = getSelectedSegmentIndex();
     if (currentIndex < segments.length - 1) {
-      setSelectedSegmentId(segments[currentIndex + 1].id);
+      const segment = segments[currentIndex + 1];
+      setSelectedSegmentId(segment.id);
+      handleSeek(segment.start);
     } else if (currentIndex === -1 && segments.length > 0) {
-      setSelectedSegmentId(segments[0].id);
+      const segment = segments[0];
+      setSelectedSegmentId(segment.id);
+      handleSeek(segment.start);
     }
-  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId]);
+  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId, handleSeek]);
 
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
@@ -231,16 +239,6 @@ export function TranscriptEditor() {
   });
   useHotkeys("home", () => handleSeek(0), { enableOnFormTags: false });
   useHotkeys("end", () => handleSeek(duration), { enableOnFormTags: false });
-  useHotkeys("up", selectPreviousSegment, {
-    enableOnFormTags: true,
-    enableOnContentEditable: true,
-    preventDefault: true,
-  });
-  useHotkeys("down", selectNextSegment, {
-    enableOnFormTags: true,
-    enableOnContentEditable: true,
-    preventDefault: true,
-  });
   useHotkeys("escape", () => {
     setSelectedSegmentId(null);
     setFilterSpeakerId(undefined);
@@ -359,6 +357,38 @@ export function TranscriptEditor() {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
     });
   }, [activeSegment, isPlaying]);
+
+  useEffect(() => {
+    if (!selectedSegmentId || isPlaying) return;
+    const container = transcriptListRef.current;
+    if (!container) return;
+    const target = container.querySelector<HTMLElement>(`[data-segment-id="${selectedSegmentId}"]`);
+    if (!target) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    });
+  }, [selectedSegmentId, isPlaying]);
+
+  useEffect(() => {
+    const handleGlobalArrowNav = (event: KeyboardEvent) => {
+      if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+        if (isFormElement || target.isContentEditable) return;
+      }
+      event.preventDefault();
+      if (event.key === "ArrowUp") {
+        selectPreviousSegment();
+      } else {
+        selectNextSegment();
+      }
+    };
+
+    window.addEventListener("keydown", handleGlobalArrowNav, { capture: true });
+    return () => window.removeEventListener("keydown", handleGlobalArrowNav, { capture: true });
+  }, [selectNextSegment, selectPreviousSegment]);
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name

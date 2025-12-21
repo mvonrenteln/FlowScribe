@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranscriptEditor } from "@/components/TranscriptEditor";
@@ -312,5 +312,47 @@ describe("TranscriptEditor", () => {
     });
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+  });
+
+  it("moves selection with arrow keys while paused", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    await act(async () => {});
+
+    const segmentCard = screen.getByTestId("segment-segment-1");
+    fireEvent.keyDown(segmentCard, { key: "ArrowDown" });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    expect(useTranscriptStore.getState().currentTime).toBe(2);
+
+    const nextSegmentCard = screen.getByTestId("segment-segment-2");
+    fireEvent.keyDown(nextSegmentCard, { key: "ArrowUp" });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+    expect(useTranscriptStore.getState().currentTime).toBe(0);
   });
 });
