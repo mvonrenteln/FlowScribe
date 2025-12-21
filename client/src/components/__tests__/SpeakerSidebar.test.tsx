@@ -86,15 +86,63 @@ describe("SpeakerSidebar", () => {
         onAddSpeaker={vi.fn()}
         onSpeakerSelect={onSpeakerSelect}
         onClearFilter={onClearFilter}
-        selectedSpeaker="SPEAKER_00"
+        selectedSpeakerId="s1"
       />,
     );
 
     const speakerCard = screen.getByTestId("speaker-card-s1");
     fireEvent.keyDown(speakerCard, { key: "Enter" });
-    expect(onSpeakerSelect).toHaveBeenCalledWith("SPEAKER_00");
+    expect(onSpeakerSelect).toHaveBeenCalledWith("s1");
 
     await userEvent.click(screen.getByTestId("button-clear-speaker-filter"));
     expect(onClearFilter).toHaveBeenCalled();
+  });
+
+  it("cancels adding a speaker", async () => {
+    const onAddSpeaker = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={onAddSpeaker}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-add-speaker"));
+    const addInput = screen.getByTestId("input-new-speaker");
+    await userEvent.type(addInput, "Guest{escape}");
+
+    expect(onAddSpeaker).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("input-new-speaker")).toBeNull();
+
+    await userEvent.click(screen.getByTestId("button-add-speaker"));
+    await userEvent.type(screen.getByTestId("input-new-speaker"), "Guest");
+    await userEvent.click(screen.getByTestId("button-cancel-add-speaker"));
+
+    expect(onAddSpeaker).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("input-new-speaker")).toBeNull();
+  });
+
+  it("cancels renaming a speaker", async () => {
+    const onRenameSpeaker = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={onRenameSpeaker}
+        onAddSpeaker={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-edit-s1"));
+    const input = screen.getByTestId("input-rename-s1");
+    await userEvent.clear(input);
+    await userEvent.type(input, "Host{escape}");
+
+    expect(onRenameSpeaker).not.toHaveBeenCalled();
+    expect(screen.queryByTestId("input-rename-s1")).toBeNull();
   });
 });
