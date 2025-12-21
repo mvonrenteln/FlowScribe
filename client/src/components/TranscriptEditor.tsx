@@ -207,14 +207,22 @@ export function TranscriptEditor() {
     }
   }, [getSelectedSegmentIndex, segments, setSelectedSegmentId]);
 
-  useHotkeys(
-    "space",
-    (e) => {
-      e.preventDefault();
+  useEffect(() => {
+    const handleGlobalSpace = (event: KeyboardEvent) => {
+      if (event.key !== " ") return;
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+        if (isFormElement || target.isContentEditable) return;
+      }
+      event.preventDefault();
       handlePlayPause();
-    },
-    { enableOnFormTags: false },
-  );
+    };
+
+    window.addEventListener("keydown", handleGlobalSpace, { capture: true });
+    return () => window.removeEventListener("keydown", handleGlobalSpace, { capture: true });
+  }, [handlePlayPause]);
   useHotkeys("j", handleSkipBack, { enableOnFormTags: false });
   useHotkeys("l", handleSkipForward, { enableOnFormTags: false });
   useHotkeys("left", () => handleSeek(Math.max(0, currentTime - 1)), { enableOnFormTags: false });
