@@ -103,7 +103,7 @@ Design in [design_guidelines]
 
 ## General Behavior
 
-- For every code change, run `npm test`.
+- For every code change, run `npm lint` and `npm test`.
   - If `npm test` fails, run `npm install -D vitest @vitest/ui jsdom` before.
 - Before making any change, verify full branch coverage for the planned change.
 - If full branch coverage is missing and unit or component tests can cover it, add those tests first and make sure they pass.
