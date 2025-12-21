@@ -109,16 +109,76 @@ describe("TranscriptEditor", () => {
 
     await userEvent.click(screen.getByTestId("mock-upload"));
 
-    const speakerLabel = screen
-      .getAllByText("SPEAKER_01")
-      .find((node) => node.closest('[data-testid^="speaker-card-"]'));
-    if (!speakerLabel) {
-      throw new Error("Expected to find a speaker card for SPEAKER_01.");
-    }
-    await userEvent.click(speakerLabel);
+    const state = useTranscriptStore.getState();
+    const speaker = state.speakers.find((item) => item.name === "SPEAKER_01");
+    const targetSegment = state.segments.find((segment) => segment.speaker === "SPEAKER_01");
+    const otherSegment = state.segments.find((segment) => segment.speaker === "SPEAKER_00");
 
-    expect(screen.queryByText("Hallo")).not.toBeInTheDocument();
-    expect(screen.getByText("Servus")).toBeInTheDocument();
+    if (!speaker || !targetSegment || !otherSegment) {
+      throw new Error("Expected SPEAKER_01 and SPEAKER_00 data to exist.");
+    }
+
+    const speakerCard = await screen.findByTestId(`speaker-card-${speaker.id}`);
+    await userEvent.click(speakerCard);
+
+    expect(screen.queryByTestId(`text-segment-${otherSegment.id}`)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(`text-segment-${targetSegment.id}`)).toHaveTextContent(
+      "Servus",
+    );
+  });
+
+  it("keeps speaker filter after renaming the speaker", async () => {
+    mockTranscriptData = {
+      segments: [
+        {
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          speaker: "SPEAKER_01",
+          start: 1,
+          end: 2,
+          text: "Servus",
+          words: [{ word: "Servus", start: 1, end: 2 }],
+        },
+      ],
+    };
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("mock-upload"));
+
+    const state = useTranscriptStore.getState();
+    const speaker = state.speakers.find((item) => item.name === "SPEAKER_01");
+    const targetSegment = state.segments.find((segment) => segment.speaker === "SPEAKER_01");
+    const otherSegment = state.segments.find((segment) => segment.speaker === "SPEAKER_00");
+
+    if (!speaker || !targetSegment || !otherSegment) {
+      throw new Error("Expected SPEAKER_01 and SPEAKER_00 data to exist.");
+    }
+
+    const speakerCard = await screen.findByTestId(`speaker-card-${speaker.id}`);
+    await userEvent.click(speakerCard);
+
+    expect(screen.queryByTestId(`text-segment-${otherSegment.id}`)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(`text-segment-${targetSegment.id}`)).toHaveTextContent(
+      "Servus",
+    );
+
+    await userEvent.click(screen.getByTestId(`button-edit-${speaker.id}`));
+
+    const renameInput = screen.getByTestId(`input-rename-${speaker.id}`);
+    await userEvent.clear(renameInput);
+    await userEvent.type(renameInput, "GAST{enter}");
+
+    expect(screen.queryByTestId(`text-segment-${otherSegment.id}`)).not.toBeInTheDocument();
+    expect(await screen.findByTestId(`text-segment-${targetSegment.id}`)).toHaveTextContent(
+      "Servus",
+    );
+    expect(screen.getAllByText("GAST").length).toBeGreaterThanOrEqual(1);
   });
 
   it("assigns speakers with numeric hotkeys", () => {

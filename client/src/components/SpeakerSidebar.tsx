@@ -18,9 +18,9 @@ interface SpeakerSidebarProps {
   onRenameSpeaker: (oldName: string, newName: string) => void;
   onAddSpeaker: (name: string) => void;
   onMergeSpeakers?: (fromName: string, toName: string) => void;
-  onSpeakerSelect?: (speakerName: string) => void;
+  onSpeakerSelect?: (speakerId: string) => void;
   onClearFilter?: () => void;
-  selectedSpeaker?: string;
+  selectedSpeakerId?: string;
 }
 
 export function SpeakerSidebar({
@@ -31,7 +31,7 @@ export function SpeakerSidebar({
   onMergeSpeakers,
   onSpeakerSelect,
   onClearFilter,
-  selectedSpeaker,
+  selectedSpeakerId,
 }: SpeakerSidebarProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -64,8 +64,9 @@ export function SpeakerSidebar({
   };
 
   const handleSaveEdit = (oldName: string) => {
-    if (editValue.trim() && editValue !== oldName) {
-      onRenameSpeaker(oldName, editValue.trim());
+    const trimmedValue = editValue.trim();
+    if (trimmedValue && trimmedValue !== oldName) {
+      onRenameSpeaker(oldName, trimmedValue);
     }
     setEditingId(null);
     setEditValue("");
@@ -84,13 +85,13 @@ export function SpeakerSidebar({
     }
   };
 
-  const handleSpeakerKeyDown = (
-    event: React.KeyboardEvent<HTMLDivElement>,
-    speakerName: string,
-  ) => {
+  const handleSpeakerKeyDown = (event: React.KeyboardEvent<HTMLDivElement>, speakerId: string) => {
+    if (editingId === speakerId) {
+      return;
+    }
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
-      onSpeakerSelect?.(speakerName);
+      onSpeakerSelect?.(speakerId);
     }
   };
 
@@ -99,7 +100,7 @@ export function SpeakerSidebar({
       <div className="p-4 border-b">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Speakers</h2>
-          {selectedSpeaker && (
+          {selectedSpeakerId && (
             <Button
               size="sm"
               variant="ghost"
@@ -122,14 +123,19 @@ export function SpeakerSidebar({
               key={speaker.id}
               className={cn(
                 "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
-                selectedSpeaker === speaker.name && "bg-accent",
+                selectedSpeakerId === speaker.id && "bg-accent",
               )}
-              onClick={() => onSpeakerSelect?.(speaker.name)}
-              onKeyDown={(event) => handleSpeakerKeyDown(event, speaker.name)}
+              onClick={() => {
+                if (editingId === speaker.id) {
+                  return;
+                }
+                onSpeakerSelect?.(speaker.id);
+              }}
+              onKeyDown={(event) => handleSpeakerKeyDown(event, speaker.id)}
               data-testid={`speaker-card-${speaker.id}`}
               role="button"
               tabIndex={0}
-              aria-pressed={selectedSpeaker === speaker.name}
+              aria-pressed={selectedSpeakerId === speaker.id}
             >
               <div
                 className="w-1 h-10 rounded-full flex-shrink-0"
@@ -144,8 +150,17 @@ export function SpeakerSidebar({
                       value={editValue}
                       onChange={(e) => setEditValue(e.target.value)}
                       onKeyDown={(e) => {
-                        if (e.key === "Enter") handleSaveEdit(speaker.name);
-                        if (e.key === "Escape") handleCancelEdit();
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSaveEdit(speaker.name);
+                          return;
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCancelEdit();
+                        }
                       }}
                       className="h-7 text-sm"
                       autoFocus
@@ -155,7 +170,10 @@ export function SpeakerSidebar({
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      onClick={() => handleSaveEdit(speaker.name)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSaveEdit(speaker.name);
+                      }}
                     >
                       <Check className="h-3 w-3" />
                     </Button>
@@ -163,7 +181,10 @@ export function SpeakerSidebar({
                       size="icon"
                       variant="ghost"
                       className="h-7 w-7"
-                      onClick={handleCancelEdit}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCancelEdit();
+                      }}
                     >
                       <X className="h-3 w-3" />
                     </Button>

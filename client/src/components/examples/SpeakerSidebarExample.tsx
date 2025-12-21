@@ -19,7 +19,7 @@ const mockSegments: Segment[] = [
 
 export default function SpeakerSidebarExample() {
   const [speakers, setSpeakers] = useState(initialSpeakers);
-  const [selectedSpeaker, setSelectedSpeaker] = useState<string | undefined>();
+  const [selectedSpeakerId, setSelectedSpeakerId] = useState<string | undefined>();
 
   const handleRename = (oldName: string, newName: string) => {
     setSpeakers(speakers.map((s) => (s.name === oldName ? { ...s, name: newName } : s)));
@@ -46,8 +46,8 @@ export default function SpeakerSidebarExample() {
         segments={mockSegments}
         onRenameSpeaker={handleRename}
         onAddSpeaker={handleAdd}
-        onSpeakerSelect={setSelectedSpeaker}
-        selectedSpeaker={selectedSpeaker}
+        onSpeakerSelect={setSelectedSpeakerId}
+        selectedSpeakerId={selectedSpeakerId}
       />
     </div>
   );
