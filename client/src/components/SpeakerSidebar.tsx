@@ -1,5 +1,5 @@
 import { Check, Edit2, Merge, Plus, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -84,10 +84,7 @@ export function SpeakerSidebar({
     }
   };
 
-  const handleSpeakerKeyDown = (
-    event: React.KeyboardEvent<HTMLDivElement>,
-    speakerName: string,
-  ) => {
+  const handleSpeakerKeyDown = (event: KeyboardEvent<HTMLDivElement>, speakerName: string) => {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
       onSpeakerSelect?.(speakerName);
@@ -255,6 +252,7 @@ export function SpeakerSidebar({
                 setIsAdding(false);
                 setNewSpeakerName("");
               }}
+              data-testid="button-cancel-add-speaker"
             >
               <X className="h-4 w-4" />
             </Button>

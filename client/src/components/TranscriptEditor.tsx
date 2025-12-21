@@ -540,22 +540,22 @@ export function TranscriptEditor() {
                 filteredSegments.map((segment, index) => {
                   const handlers = segmentHandlers[index];
                   return (
-                  <TranscriptSegment
-                    key={segment.id}
-                    segment={segment}
-                    speakers={speakers}
-                    isSelected={segment.id === selectedSegmentId}
-                    isActive={activeSegmentId === segment.id}
-                    activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
-                    onSelect={handlers.onSelect}
-                    onTextChange={handlers.onTextChange}
-                    onSpeakerChange={handlers.onSpeakerChange}
-                    onSplit={handlers.onSplit}
-                    onMergeWithPrevious={handlers.onMergeWithPrevious}
-                    onMergeWithNext={handlers.onMergeWithNext}
-                    onDelete={handlers.onDelete}
-                    onSeek={handleSeek}
-                  />
+                    <TranscriptSegment
+                      key={segment.id}
+                      segment={segment}
+                      speakers={speakers}
+                      isSelected={segment.id === selectedSegmentId}
+                      isActive={activeSegmentId === segment.id}
+                      activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                      onSelect={handlers.onSelect}
+                      onTextChange={handlers.onTextChange}
+                      onSpeakerChange={handlers.onSpeakerChange}
+                      onSplit={handlers.onSplit}
+                      onMergeWithPrevious={handlers.onMergeWithPrevious}
+                      onMergeWithNext={handlers.onMergeWithNext}
+                      onDelete={handlers.onDelete}
+                      onSeek={handleSeek}
+                    />
                   );
                 })
               )}

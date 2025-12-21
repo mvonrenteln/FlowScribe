@@ -217,7 +217,6 @@ export function WaveformPlayer({
   }, [
     audioUrl,
     onDurationChange,
-    onTimeUpdate,
     onPlayPause,
     onSeek,
     applyWaveColors,
