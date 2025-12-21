@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranscriptEditor } from "@/components/TranscriptEditor";
@@ -151,5 +151,64 @@ describe("TranscriptEditor", () => {
 
     const updatedSegment = useTranscriptStore.getState().segments[0];
     expect(updatedSegment.speaker).toBe("SPEAKER_01");
+  });
+
+  it("updates the selected segment when current time changes while paused", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Welt",
+          words: [{ word: "Welt", start: 2, end: 3 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      selectedSegmentId: "segment-1",
+      currentTime: 0,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    act(() => {
+      useTranscriptStore.setState({ currentTime: 2.5 });
+    });
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    });
+  });
+
+  it("seeks when clicking a segment", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 5,
+          end: 6,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 5, end: 6 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("segment-segment-1"));
+
+    expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
   });
 });
