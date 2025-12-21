@@ -89,7 +89,7 @@ export function SpeakerSidebar({
     if (editingId === speakerId) {
       return;
     }
-    if (event.key === "Enter" || event.key === " ") {
+    if (event.key === "Enter") {
       event.preventDefault();
       onSpeakerSelect?.(speakerId);
     }
