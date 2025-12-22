@@ -20,6 +20,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -32,6 +33,8 @@ interface TranscriptSegmentProps {
   splitWordIndex?: number;
   highlightLowConfidence?: boolean;
   lowConfidenceThreshold?: number | null;
+  lexiconMatches?: Map<number, { term: string; score: number }>;
+  showLexiconMatches?: boolean;
   onSelect: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
@@ -61,6 +64,8 @@ function TranscriptSegmentComponent({
   splitWordIndex,
   highlightLowConfidence = false,
   lowConfidenceThreshold = null,
+  lexiconMatches,
+  showLexiconMatches = false,
   onSelect,
   onTextChange,
   onSpeakerChange,
@@ -278,30 +283,82 @@ function TranscriptSegmentComponent({
               aria-readonly
               tabIndex={0}
             >
-              {segment.words.map((word, index) => (
-                <span
-                  key={`${segment.id}-${word.start}-${word.end}`}
-                  onClick={(e) => handleWordClick(word, index, e)}
-                  onKeyDown={(event) => handleWordKeyDown(word, index, event)}
-                  className={cn(
-                    "cursor-pointer transition-colors",
-                    index === resolvedActiveWordIndex && "bg-primary/20 underline",
-                    index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                    isLowConfidence(word) &&
-                      "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                  )}
-                  data-testid={`word-${segment.id}-${index}`}
-                  title={
-                    isLowConfidence(word) && typeof word.score === "number"
-                      ? `Score: ${word.score.toFixed(2)}`
-                      : undefined
-                  }
-                  role="button"
-                  tabIndex={0}
-                >
-                  {word.word}{" "}
-                </span>
-              ))}
+              {segment.words.map((word, index) => {
+                const lexiconMatch = showLexiconMatches ? lexiconMatches?.get(index) : undefined;
+                const isLexiconMatch = Boolean(lexiconMatch);
+                const nextText = segment.words.map((item) => item.word);
+                if (isLexiconMatch && lexiconMatch) {
+                  return (
+                    <TooltipProvider key={`${segment.id}-${word.start}-${word.end}`}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span
+                            onClick={(e) => handleWordClick(word, index, e)}
+                            onKeyDown={(event) => handleWordKeyDown(word, index, event)}
+                            className={cn(
+                              "cursor-pointer transition-colors",
+                              index === resolvedActiveWordIndex && "bg-primary/20 underline",
+                              index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                              isLowConfidence(word) &&
+                                "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
+                              "bg-amber-100/70 text-amber-950 underline decoration-dotted decoration-amber-600",
+                            )}
+                            data-testid={`word-${segment.id}-${index}`}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            {word.word}{" "}
+                          </span>
+                        </TooltipTrigger>
+                        <TooltipContent className="flex items-center gap-2">
+                          <div className="text-xs">
+                            Match: {lexiconMatch.term} ({lexiconMatch.score.toFixed(2)})
+                          </div>
+                          {lexiconMatch.score < 1 && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              data-testid={`button-apply-glossary-${segment.id}-${index}`}
+                              onClick={(event) => {
+                                event.stopPropagation();
+                                nextText[index] = lexiconMatch.term;
+                                onTextChange(nextText.join(" "));
+                              }}
+                            >
+                              Apply
+                            </Button>
+                          )}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
+                  );
+                }
+
+                return (
+                  <span
+                    key={`${segment.id}-${word.start}-${word.end}`}
+                    onClick={(e) => handleWordClick(word, index, e)}
+                    onKeyDown={(event) => handleWordKeyDown(word, index, event)}
+                    className={cn(
+                      "cursor-pointer transition-colors",
+                      index === resolvedActiveWordIndex && "bg-primary/20 underline",
+                      index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                      isLowConfidence(word) &&
+                        "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
+                    )}
+                    data-testid={`word-${segment.id}-${index}`}
+                    title={
+                      isLowConfidence(word) && typeof word.score === "number"
+                        ? `Score: ${word.score.toFixed(2)}`
+                        : undefined
+                    }
+                    role="button"
+                    tabIndex={0}
+                  >
+                    {word.word}{" "}
+                  </span>
+                );
+              })}
             </div>
           ) : (
             <div className="space-y-2">
@@ -459,6 +516,8 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.activeWordIndex === next.activeWordIndex &&
     prev.highlightLowConfidence === next.highlightLowConfidence &&
     prev.lowConfidenceThreshold === next.lowConfidenceThreshold &&
+    prev.lexiconMatches === next.lexiconMatches &&
+    prev.showLexiconMatches === next.showLexiconMatches &&
     prev.onSelect === next.onSelect &&
     prev.onTextChange === next.onTextChange &&
     prev.onSpeakerChange === next.onSpeakerChange &&

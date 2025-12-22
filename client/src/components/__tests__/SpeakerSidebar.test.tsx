@@ -177,4 +177,30 @@ describe("SpeakerSidebar", () => {
 
     expect(screen.getByRole("slider")).toBeInTheDocument();
   });
+
+  it("toggles the glossary filter", async () => {
+    const onToggleLexiconFilter = vi.fn();
+    const onToggleLexiconLowScoreFilter = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={vi.fn()}
+        lexiconFilterActive={false}
+        lexiconMatchCount={2}
+        lexiconLowScoreMatchCount={1}
+        onToggleLexiconFilter={onToggleLexiconFilter}
+        lexiconLowScoreFilterActive={false}
+        onToggleLexiconLowScoreFilter={onToggleLexiconLowScoreFilter}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary"));
+    expect(onToggleLexiconFilter).toHaveBeenCalled();
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
+    expect(onToggleLexiconLowScoreFilter).toHaveBeenCalled();
+  });
 });

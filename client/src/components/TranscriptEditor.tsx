@@ -6,11 +6,13 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
+import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
-import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { ExportDialog } from "./ExportDialog";
 import { FileUpload } from "./FileUpload";
+import { GlossaryDialog } from "./GlossaryDialog";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { PlaybackControls } from "./PlaybackControls";
 import { SpeakerSidebar } from "./SpeakerSidebar";
@@ -29,6 +31,8 @@ export function TranscriptEditor() {
     isPlaying,
     duration,
     isWhisperXFormat,
+    lexiconTerms,
+    lexiconThreshold,
     setAudioFile,
     setAudioUrl,
     loadTranscript,
@@ -57,6 +61,7 @@ export function TranscriptEditor() {
 
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showExport, setShowExport] = useState(false);
+  const [showLexicon, setShowLexicon] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
@@ -64,6 +69,8 @@ export function TranscriptEditor() {
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [filterLowConfidence, setFilterLowConfidence] = useState(false);
   const [filterBookmarked, setFilterBookmarked] = useState(false);
+  const [filterLexicon, setFilterLexicon] = useState(false);
+  const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
@@ -239,6 +246,55 @@ export function TranscriptEditor() {
   }, [segments]);
   const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
 
+  const lexiconEntries = useMemo(
+    () =>
+      lexiconTerms
+        .map((term) => ({ term, normalized: normalizeToken(term) }))
+        .filter((entry) => entry.normalized.length > 0),
+    [lexiconTerms],
+  );
+
+  const lexiconMatchesBySegment = useMemo(() => {
+    if (lexiconEntries.length === 0)
+      return new Map<string, Map<number, { term: string; score: number }>>();
+    const matches = new Map<string, Map<number, { term: string; score: number }>>();
+    segments.forEach((segment) => {
+      const wordMatches = new Map<number, { term: string; score: number }>();
+      segment.words.forEach((word, index) => {
+        const normalizedWord = normalizeToken(word.word);
+        if (!normalizedWord) return;
+        let bestScore = 0;
+        let bestTerm = "";
+        lexiconEntries.forEach((entry) => {
+          const score = similarityScore(normalizedWord, entry.normalized);
+          if (score > bestScore) {
+            bestScore = score;
+            bestTerm = entry.term;
+          }
+        });
+        if (bestScore >= lexiconThreshold) {
+          wordMatches.set(index, { term: bestTerm, score: bestScore });
+        }
+      });
+      if (wordMatches.size > 0) {
+        matches.set(segment.id, wordMatches);
+      }
+    });
+    return matches;
+  }, [lexiconEntries, lexiconThreshold, segments]);
+
+  const { lexiconMatchCount, lexiconLowScoreMatchCount } = useMemo(() => {
+    let totalMatches = 0;
+    let lowScoreMatches = 0;
+    lexiconMatchesBySegment.forEach((matches) => {
+      totalMatches += matches.size;
+      matches.forEach((match) => {
+        if (match.score < 1) lowScoreMatches += 1;
+      });
+    });
+    return { lexiconMatchCount: totalMatches, lexiconLowScoreMatchCount: lowScoreMatches };
+  }, [lexiconMatchesBySegment]);
+
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
     : undefined;
@@ -257,9 +313,27 @@ export function TranscriptEditor() {
       if (filterBookmarked && !segment.bookmarked) {
         return false;
       }
+      if (filterLexicon) {
+        if (!lexiconMatchesBySegment.has(segment.id)) return false;
+      }
+      if (filterLexiconLowScore) {
+        const matches = lexiconMatchesBySegment.get(segment.id);
+        if (!matches) return false;
+        const hasLowMatch = Array.from(matches.values()).some((match) => match.score < 1);
+        if (!hasLowMatch) return false;
+      }
       return true;
     });
-  }, [activeSpeakerName, filterBookmarked, filterLowConfidence, lowConfidenceThreshold, segments]);
+  }, [
+    activeSpeakerName,
+    filterBookmarked,
+    filterLexicon,
+    filterLexiconLowScore,
+    filterLowConfidence,
+    lexiconMatchesBySegment,
+    lowConfidenceThreshold,
+    segments,
+  ]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -751,9 +825,7 @@ export function TranscriptEditor() {
             </PopoverTrigger>
             <PopoverContent className="w-64" align="end">
               <div className="space-y-3">
-                <div className="text-xs text-muted-foreground">
-                  Low confidence threshold
-                </div>
+                <div className="text-xs text-muted-foreground">Low confidence threshold</div>
                 <Slider
                   value={[lowConfidenceThreshold ?? 0.4]}
                   min={0}
@@ -782,6 +854,16 @@ export function TranscriptEditor() {
               </div>
             </PopoverContent>
           </Popover>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => setShowLexicon(true)}
+            aria-label="Glossary settings"
+            data-testid="button-glossary"
+            className="px-2"
+          >
+            <span className="text-sm underline decoration-dotted underline-offset-2">ABC~</span>
+          </Button>
           <ThemeToggle />
         </div>
       </header>
@@ -793,29 +875,33 @@ export function TranscriptEditor() {
             !sidebarOpen && "w-0 overflow-hidden border-0",
           )}
         >
-            <SpeakerSidebar
-              speakers={speakers}
-              segments={segments}
-              onRenameSpeaker={handleRenameSpeaker}
-              onAddSpeaker={addSpeaker}
-              onMergeSpeakers={mergeSpeakers}
-              onSpeakerSelect={(id) =>
-                setFilterSpeakerId((current) => (current === id ? undefined : id))
-              }
-              onClearFilter={() => setFilterSpeakerId(undefined)}
-              selectedSpeakerId={filterSpeakerId}
-              lowConfidenceFilterActive={filterLowConfidence}
-              onToggleLowConfidenceFilter={() =>
-                setFilterLowConfidence((current) => !current)
-              }
-              lowConfidenceThreshold={lowConfidenceThreshold}
-              onLowConfidenceThresholdChange={(value) => {
-                setManualConfidenceThreshold(value);
-                setHighlightLowConfidence(true);
-              }}
-              bookmarkFilterActive={filterBookmarked}
-              onToggleBookmarkFilter={() => setFilterBookmarked((current) => !current)}
-            />
+          <SpeakerSidebar
+            speakers={speakers}
+            segments={segments}
+            onRenameSpeaker={handleRenameSpeaker}
+            onAddSpeaker={addSpeaker}
+            onMergeSpeakers={mergeSpeakers}
+            onSpeakerSelect={(id) =>
+              setFilterSpeakerId((current) => (current === id ? undefined : id))
+            }
+            onClearFilter={() => setFilterSpeakerId(undefined)}
+            selectedSpeakerId={filterSpeakerId}
+            lowConfidenceFilterActive={filterLowConfidence}
+            onToggleLowConfidenceFilter={() => setFilterLowConfidence((current) => !current)}
+            lowConfidenceThreshold={lowConfidenceThreshold}
+            onLowConfidenceThresholdChange={(value) => {
+              setManualConfidenceThreshold(value);
+              setHighlightLowConfidence(true);
+            }}
+            bookmarkFilterActive={filterBookmarked}
+            onToggleBookmarkFilter={() => setFilterBookmarked((current) => !current)}
+            lexiconFilterActive={filterLexicon}
+            onToggleLexiconFilter={() => setFilterLexicon((current) => !current)}
+            lexiconMatchCount={lexiconMatchCount}
+            lexiconLowScoreMatchCount={lexiconLowScoreMatchCount}
+            lexiconLowScoreFilterActive={filterLexiconLowScore}
+            onToggleLexiconLowScoreFilter={() => setFilterLexiconLowScore((current) => !current)}
+          />
         </aside>
 
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -909,6 +995,8 @@ export function TranscriptEditor() {
                       splitWordIndex={resolvedSplitWordIndex ?? undefined}
                       highlightLowConfidence={highlightLowConfidence}
                       lowConfidenceThreshold={lowConfidenceThreshold}
+                      lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
+                      showLexiconMatches={lexiconEntries.length > 0}
                       onSelect={handlers.onSelect}
                       onTextChange={handlers.onTextChange}
                       onSpeakerChange={handlers.onSpeakerChange}
@@ -935,6 +1023,7 @@ export function TranscriptEditor() {
         segments={segments}
         fileName={audioFile?.name?.replace(/\.[^/.]+$/, "") || "transcript"}
       />
+      <GlossaryDialog open={showLexicon} onOpenChange={setShowLexicon} />
     </div>
   );
 }

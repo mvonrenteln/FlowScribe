@@ -160,11 +160,7 @@ export function FileUpload({
         </Button>
 
         {!audioFileName && audioHandle && (
-          <Button
-            variant="outline"
-            onClick={handleRestoreAudio}
-            data-testid="button-restore-audio"
-          >
+          <Button variant="outline" onClick={handleRestoreAudio} data-testid="button-restore-audio">
             <RotateCcw className="h-4 w-4 mr-2" />
             Reopen Audio
           </Button>

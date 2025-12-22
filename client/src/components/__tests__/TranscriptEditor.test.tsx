@@ -45,6 +45,10 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="mock-theme" />,
 }));
 
+vi.mock("@/components/GlossaryDialog", () => ({
+  GlossaryDialog: () => null,
+}));
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   loadAudioHandle: vi.fn().mockResolvedValue(null),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
@@ -64,6 +68,8 @@ const resetStore = () => {
     history: [],
     historyIndex: -1,
     isWhisperXFormat: false,
+    lexiconTerms: [],
+    lexiconThreshold: 0.82,
   });
 };
 
@@ -536,7 +542,6 @@ describe("TranscriptEditor", () => {
     await waitFor(() => {
       expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
     });
-
   });
 
   it("keeps selection on visible segments when active segment is filtered out", async () => {
@@ -658,5 +663,71 @@ describe("TranscriptEditor", () => {
     });
 
     expect(useTranscriptStore.getState().seekRequestTime).toBe(2);
+  });
+
+  it("filters segments using the lexicon filter", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Zwergenbar",
+          words: [{ word: "Zwergenbar", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Ritter",
+          words: [{ word: "Ritter", start: 1, end: 2 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconTerms: ["Zwergenb\u00e4r"],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary"));
+
+    expect(screen.queryByText("Ritter")).not.toBeInTheDocument();
+    expect(screen.getByText("Zwergenbar")).toBeInTheDocument();
+  });
+
+  it("filters segments using the glossary low-score filter", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Zwergenbar",
+          words: [{ word: "Zwergenbar", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Zwergenbear",
+          words: [{ word: "Zwergenbear", start: 1, end: 2 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconTerms: ["Zwergenbear"],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
+
+    expect(screen.queryByTestId("segment-segment-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-segment-2")).not.toBeInTheDocument();
   });
 });

@@ -86,6 +86,10 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="mock-theme" />,
 }));
 
+vi.mock("@/components/GlossaryDialog", () => ({
+  GlossaryDialog: () => null,
+}));
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   loadAudioHandle: vi.fn().mockResolvedValue(null),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
@@ -105,6 +109,8 @@ const resetStore = () => {
     history: [],
     historyIndex: -1,
     isWhisperXFormat: false,
+    lexiconTerms: [],
+    lexiconThreshold: 0.82,
   });
 };
 

@@ -44,6 +44,8 @@ interface TranscriptState {
   history: HistoryState[];
   historyIndex: number;
   isWhisperXFormat: boolean;
+  lexiconTerms: string[];
+  lexiconThreshold: number;
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -63,6 +65,10 @@ interface TranscriptState {
   updateSegmentSpeaker: (id: string, speaker: string) => void;
   confirmSegment: (id: string) => void;
   toggleSegmentBookmark: (id: string) => void;
+  setLexiconTerms: (terms: string[]) => void;
+  addLexiconTerm: (term: string) => void;
+  removeLexiconTerm: (term: string) => void;
+  setLexiconThreshold: (value: number) => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -99,6 +105,8 @@ type PersistedTranscriptState = {
   selectedSegmentId: string | null;
   currentTime: number;
   isWhisperXFormat: boolean;
+  lexiconTerms: string[];
+  lexiconThreshold: number;
 };
 
 const canUseLocalStorage = () => {
@@ -122,13 +130,16 @@ const readPersistedState = (): PersistedTranscriptState | null => {
     const selectedSegmentId =
       parsed.selectedSegmentId && parsed.segments.some((s) => s.id === parsed.selectedSegmentId)
         ? parsed.selectedSegmentId
-        : parsed.segments[0]?.id ?? null;
+        : (parsed.segments[0]?.id ?? null);
     return {
       segments: parsed.segments,
       speakers: parsed.speakers,
       selectedSegmentId,
       currentTime: Number.isFinite(parsed.currentTime) ? parsed.currentTime : 0,
       isWhisperXFormat: Boolean(parsed.isWhisperXFormat),
+      lexiconTerms: Array.isArray(parsed.lexiconTerms) ? parsed.lexiconTerms : [],
+      lexiconThreshold:
+        typeof parsed.lexiconThreshold === "number" ? parsed.lexiconThreshold : 0.82,
     };
   } catch {
     return null;
@@ -136,6 +147,16 @@ const readPersistedState = (): PersistedTranscriptState | null => {
 };
 
 const generateId = () => crypto.randomUUID();
+const normalizeLexiconTerm = (value: string) => value.trim().toLowerCase();
+const uniqueTerms = (terms: string[]) => {
+  const seen = new Set<string>();
+  return terms.filter((term) => {
+    const normalized = normalizeLexiconTerm(term);
+    if (!normalized || seen.has(normalized)) return false;
+    seen.add(normalized);
+    return true;
+  });
+};
 
 const persistedState = readPersistedState();
 const initialHistory =
@@ -176,6 +197,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   history: initialHistory,
   historyIndex: initialHistoryIndex,
   isWhisperXFormat: persistedState?.isWhisperXFormat ?? false,
+  lexiconTerms: persistedState?.lexiconTerms ?? [],
+  lexiconThreshold: persistedState?.lexiconThreshold ?? 0.82,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -286,12 +309,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       const matches = findMatches(prevText, nextWordTexts);
       const updated: typeof prevWords = [];
 
-      const addRegion = (
-        oldStart: number,
-        oldEnd: number,
-        newStart: number,
-        newEnd: number,
-      ) => {
+      const addRegion = (oldStart: number, oldEnd: number, newStart: number, newEnd: number) => {
         const regionWords = nextWordTexts.slice(newStart, newEnd);
         if (regionWords.length === 0) return;
 
@@ -422,6 +440,31 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
+  },
+
+  setLexiconTerms: (terms) => {
+    const cleanedTerms = uniqueTerms(terms.map((term) => term.trim()).filter(Boolean));
+    set({ lexiconTerms: cleanedTerms });
+  },
+
+  addLexiconTerm: (term) => {
+    const cleaned = term.trim();
+    if (!cleaned) return;
+    const { lexiconTerms } = get();
+    const next = uniqueTerms([...lexiconTerms, cleaned]);
+    set({ lexiconTerms: next });
+  },
+
+  removeLexiconTerm: (term) => {
+    const normalized = normalizeLexiconTerm(term);
+    const { lexiconTerms } = get();
+    const next = lexiconTerms.filter((item) => normalizeLexiconTerm(item) !== normalized);
+    set({ lexiconTerms: next });
+  },
+
+  setLexiconThreshold: (value) => {
+    const clamped = Math.max(0.5, Math.min(0.99, value));
+    set({ lexiconThreshold: clamped });
   },
 
   splitSegment: (id, wordIndex) => {
@@ -703,6 +746,8 @@ if (canUseLocalStorage()) {
       selectedSegmentId: state.selectedSegmentId,
       currentTime: state.currentTime,
       isWhisperXFormat: state.isWhisperXFormat,
+      lexiconTerms: state.lexiconTerms,
+      lexiconThreshold: state.lexiconThreshold,
     });
   });
 }

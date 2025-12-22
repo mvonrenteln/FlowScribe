@@ -14,6 +14,8 @@ const baseState = {
   history: [],
   historyIndex: -1,
   isWhisperXFormat: false,
+  lexiconTerms: [],
+  lexiconThreshold: 0.82,
 };
 
 const sampleSegments: Segment[] = [
@@ -95,11 +97,7 @@ describe("useTranscriptStore", () => {
     updateSegmentText("seg-1", "Hallo schoene neue");
 
     const { segments } = useTranscriptStore.getState();
-    expect(segments[0].words.map((word) => word.word)).toEqual([
-      "Hallo",
-      "schoene",
-      "neue",
-    ]);
+    expect(segments[0].words.map((word) => word.word)).toEqual(["Hallo", "schoene", "neue"]);
     expect(segments[0].words[0]).toEqual({ word: "Hallo", start: 0, end: 1, score: 0.4 });
     expect(segments[0].words[1]?.start).toBe(1);
     expect(segments[0].words[2]?.end).toBe(3);
@@ -229,6 +227,25 @@ describe("useTranscriptStore", () => {
     expect(state.segments[0].bookmarked).toBe(false);
   });
 
+  it("manages lexicon terms and threshold", () => {
+    const { addLexiconTerm, removeLexiconTerm, setLexiconThreshold } =
+      useTranscriptStore.getState();
+
+    addLexiconTerm("Zwergenb\u00e4r");
+    addLexiconTerm("zwergenb\u00e4r");
+    addLexiconTerm("  ");
+
+    let state = useTranscriptStore.getState();
+    expect(state.lexiconTerms).toEqual(["Zwergenb\u00e4r"]);
+
+    removeLexiconTerm("ZWErgenb\u00e4r");
+    state = useTranscriptStore.getState();
+    expect(state.lexiconTerms).toEqual([]);
+
+    setLexiconThreshold(0.9);
+    expect(useTranscriptStore.getState().lexiconThreshold).toBeCloseTo(0.9);
+  });
+
   it("splits a segment at a valid word boundary", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 
@@ -245,7 +262,6 @@ describe("useTranscriptStore", () => {
     expect(currentTime).toBeCloseTo(segments[1].start, 5);
     expect(seekRequestTime).toBeCloseTo(segments[1].start, 5);
   });
-
 
   it("does not split a segment when the word index is invalid", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });

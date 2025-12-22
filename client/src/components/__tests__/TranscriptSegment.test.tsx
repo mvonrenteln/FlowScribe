@@ -436,4 +436,65 @@ describe("TranscriptSegment", () => {
     expect(lowWord.className).toContain("decoration-dotted");
     expect(highWord.className).not.toContain("decoration-dotted");
   });
+
+  it("highlights lexicon matches when provided", () => {
+    const lexiconMatch = new Map<number, { term: string; score: number }>();
+    lexiconMatch.set(1, { term: "Welt", score: 0.9 });
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        lexiconMatches={lexiconMatch}
+        showLexiconMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    expect(matchWord.className).toContain("bg-amber-100");
+    expect(matchWord).toHaveTextContent("Welt");
+  });
+
+  it("applies a glossary suggestion from the tooltip", async () => {
+    const onTextChange = vi.fn();
+    const lexiconMatch = new Map<number, { term: string; score: number }>();
+    lexiconMatch.set(1, { term: "Welt", score: 0.9 });
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        lexiconMatches={lexiconMatch}
+        showLexiconMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    await userEvent.hover(matchWord);
+
+    const applyButton = await screen.findAllByTestId("button-apply-glossary-seg-1-1");
+    await userEvent.click(applyButton[0]);
+
+    expect(onTextChange).toHaveBeenCalledWith("Hallo Welt");
+  });
 });

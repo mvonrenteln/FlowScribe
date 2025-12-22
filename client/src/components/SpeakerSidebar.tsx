@@ -28,6 +28,12 @@ interface SpeakerSidebarProps {
   onLowConfidenceThresholdChange?: (value: number | null) => void;
   bookmarkFilterActive?: boolean;
   onToggleBookmarkFilter?: () => void;
+  lexiconFilterActive?: boolean;
+  onToggleLexiconFilter?: () => void;
+  lexiconMatchCount?: number;
+  lexiconLowScoreMatchCount?: number;
+  lexiconLowScoreFilterActive?: boolean;
+  onToggleLexiconLowScoreFilter?: () => void;
 }
 
 export function SpeakerSidebar({
@@ -45,6 +51,12 @@ export function SpeakerSidebar({
   onLowConfidenceThresholdChange,
   bookmarkFilterActive = false,
   onToggleBookmarkFilter,
+  lexiconFilterActive = false,
+  onToggleLexiconFilter,
+  lexiconMatchCount = 0,
+  lexiconLowScoreMatchCount = 0,
+  lexiconLowScoreFilterActive = false,
+  onToggleLexiconLowScoreFilter,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -331,16 +343,57 @@ export function SpeakerSidebar({
                 "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
                 "hover-elevate",
                 bookmarkFilterActive && "bg-accent",
-                bookmarkCount === 0 && "opacity-50 cursor-not-allowed",
+                bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
               )}
               onClick={() => {
-                if (bookmarkCount === 0) return;
+                if (bookmarkCount === 0 && !bookmarkFilterActive) return;
                 onToggleBookmarkFilter?.();
               }}
               data-testid="button-filter-bookmarks"
             >
               <span>Bookmarked</span>
               <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
+            </button>
+          </div>
+          <div className="pt-3 mt-3 border-t">
+            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Glossary
+            </div>
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                lexiconFilterActive && "bg-accent",
+                lexiconMatchCount === 0 && !lexiconFilterActive && "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (lexiconMatchCount === 0 && !lexiconFilterActive) return;
+                onToggleLexiconFilter?.();
+              }}
+              data-testid="button-filter-glossary"
+            >
+              <span>Glossary matches</span>
+              <span className="text-xs text-muted-foreground">{lexiconMatchCount}</span>
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                lexiconLowScoreFilterActive && "bg-accent",
+                lexiconLowScoreMatchCount === 0 &&
+                  !lexiconLowScoreFilterActive &&
+                  "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;
+                onToggleLexiconLowScoreFilter?.();
+              }}
+              data-testid="button-filter-glossary-low-score"
+            >
+              <span>Uncertain Glossary Matches</span>
+              <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
             </button>
           </div>
         </div>
