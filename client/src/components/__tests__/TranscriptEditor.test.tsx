@@ -215,6 +215,41 @@ describe("TranscriptEditor", () => {
     expect(updatedSegment.speaker).toBe("SPEAKER_01");
   });
 
+  it("splits the active segment at the current word with the s hotkey", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 3,
+          text: "Hallo Welt Heute",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 2 },
+            { word: "Heute", start: 2, end: 3 },
+          ],
+        },
+      ],
+      currentTime: 1.2,
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("s");
+    if (!handler) {
+      throw new Error("Expected split hotkey to be registered.");
+    }
+
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "s" }));
+    });
+
+    const [first, second] = useTranscriptStore.getState().segments;
+    expect(first?.text).toBe("Hallo");
+    expect(second?.text).toBe("Welt Heute");
+  });
+
   it("updates the selected segment when current time changes while paused", async () => {
     useTranscriptStore.setState({
       segments: [

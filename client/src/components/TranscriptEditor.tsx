@@ -334,6 +334,26 @@ export function TranscriptEditor() {
   );
 
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
+
+  const getSplitWordIndex = useCallback(() => {
+    if (!activeSegment) return null;
+    if (activeSegment.words.length < 2) return null;
+    const index = activeSegment.words.findIndex(
+      (word) => currentTime >= word.start && currentTime <= word.end,
+    );
+    if (index <= 0 || index >= activeSegment.words.length) return null;
+    return index;
+  }, [activeSegment, currentTime]);
+
+  useHotkeys(
+    "s",
+    () => {
+      const index = getSplitWordIndex();
+      if (index === null || !activeSegment) return;
+      splitSegment(activeSegment.id, index);
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
   const activeSegmentId = activeSegment?.id ?? null;
   const activeWordIndex = useMemo(() => {
     if (!activeSegment) return -1;
