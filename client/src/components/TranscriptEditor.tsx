@@ -197,9 +197,8 @@ export function TranscriptEditor() {
   );
 
   const handlePlayPause = useCallback(() => {
-    if (isTranscriptEditing()) return;
     setIsPlaying(!isPlaying);
-  }, [isPlaying, isTranscriptEditing, setIsPlaying]);
+  }, [isPlaying, setIsPlaying]);
 
   const handleSeek = useCallback(
     (time: number) => {
@@ -493,13 +492,21 @@ export function TranscriptEditor() {
   }, [activeSegment, currentTime]);
 
   useEffect(() => {
+    if (isTranscriptEditing()) return;
     if (!activeSegment || !isActiveSegmentVisible) return;
     if (activeSegment.id !== selectedSegmentId) {
       setSelectedSegmentId(activeSegment.id);
     }
-  }, [activeSegment, isActiveSegmentVisible, selectedSegmentId, setSelectedSegmentId]);
+  }, [
+    activeSegment,
+    isActiveSegmentVisible,
+    isTranscriptEditing,
+    selectedSegmentId,
+    setSelectedSegmentId,
+  ]);
 
   useEffect(() => {
+    if (isTranscriptEditing()) return;
     if (!activeSegment) return;
     const container = transcriptListRef.current;
     if (!container) return;
@@ -508,9 +515,10 @@ export function TranscriptEditor() {
     requestAnimationFrame(() => {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
     });
-  }, [activeSegment]);
+  }, [activeSegment, isTranscriptEditing]);
 
   useEffect(() => {
+    if (isTranscriptEditing()) return;
     if (!selectedSegmentId || isPlaying) return;
     const container = transcriptListRef.current;
     if (!container) return;
@@ -519,7 +527,7 @@ export function TranscriptEditor() {
     requestAnimationFrame(() => {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
     });
-  }, [selectedSegmentId, isPlaying]);
+  }, [selectedSegmentId, isPlaying, isTranscriptEditing]);
 
   useEffect(() => {
     const handleGlobalArrowNav = (event: KeyboardEvent) => {
