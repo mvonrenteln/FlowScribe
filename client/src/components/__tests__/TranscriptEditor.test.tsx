@@ -207,7 +207,9 @@ describe("TranscriptEditor", () => {
       throw new Error("Expected numeric hotkeys to be registered.");
     }
 
-    handler(new KeyboardEvent("keydown", { key: "2" }));
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "2" }));
+    });
 
     const updatedSegment = useTranscriptStore.getState().segments[0];
     expect(updatedSegment.speaker).toBe("SPEAKER_01");
