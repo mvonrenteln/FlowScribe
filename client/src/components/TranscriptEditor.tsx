@@ -430,7 +430,7 @@ export function TranscriptEditor() {
         }
       }
     },
-    { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
   );
 
   useHotkeys(
