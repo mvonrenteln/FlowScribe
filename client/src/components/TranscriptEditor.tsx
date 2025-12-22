@@ -34,6 +34,7 @@ export function TranscriptEditor() {
     setIsPlaying,
     setDuration,
     requestSeek,
+    clearSeekRequest,
     updateSegmentText,
     updateSegmentSpeaker,
     splitSegment,
@@ -349,23 +350,49 @@ export function TranscriptEditor() {
 
   const getSplitWordIndex = useCallback(() => {
     if (!activeSegment) return null;
-    if (activeSegment.words.length < 2) return null;
-    const index = activeSegment.words.findIndex(
-      (word) => currentTime >= word.start && currentTime <= word.end,
-    );
-    if (index <= 0 || index >= activeSegment.words.length) return null;
+    const { words } = activeSegment;
+    if (words.length < 2) return null;
+    let index = words.findIndex((word) => currentTime >= word.start && currentTime <= word.end);
+    if (index === -1) {
+      index = words.findIndex((word) => currentTime < word.start);
+      if (index === -1) {
+        index = words.length - 1;
+      }
+    }
+    if (index <= 0) {
+      return words.length > 1 ? 1 : null;
+    }
+    if (index >= words.length) return null;
     return index;
   }, [activeSegment, currentTime]);
 
-  useHotkeys(
-    "s",
-    () => {
-      const index = getSplitWordIndex();
-      if (index === null || !activeSegment) return;
-      splitSegment(activeSegment.id, index);
+  const handleSplitSegment = useCallback(
+    (segmentId: string, wordIndex: number) => {
+      const wasPlaying = isPlaying;
+      const resumeTime = currentTime;
+      splitSegment(segmentId, wordIndex);
+      if (wasPlaying) {
+        setCurrentTime(resumeTime);
+        clearSeekRequest();
+      }
     },
-    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+    [clearSeekRequest, currentTime, isPlaying, setCurrentTime, splitSegment],
   );
+
+  const handleSplitAtCurrentWord = useCallback(() => {
+    const index = getSplitWordIndex();
+    if (index === null || !activeSegment) return;
+    handleSplitSegment(activeSegment.id, index);
+  }, [activeSegment, getSplitWordIndex, handleSplitSegment]);
+
+  const splitWordIndex = getSplitWordIndex();
+  const canSplitAtCurrentWord = splitWordIndex !== null;
+
+  useHotkeys("s", handleSplitAtCurrentWord, {
+    enableOnFormTags: false,
+    enableOnContentEditable: false,
+    preventDefault: true,
+  });
   const activeSegmentId = activeSegment?.id ?? null;
   const activeWordIndex = useMemo(() => {
     if (!activeSegment) return -1;
@@ -452,7 +479,7 @@ export function TranscriptEditor() {
           },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
-          onSplit: (wordIndex: number) => splitSegment(segment.id, wordIndex),
+          onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
           onMergeWithPrevious,
           onMergeWithNext,
           onDelete: () => deleteSegment(segment.id),
@@ -591,6 +618,8 @@ export function TranscriptEditor() {
               onSeek={handleSeek}
               onSkipBack={handleSkipBack}
               onSkipForward={handleSkipForward}
+              onSplitAtCurrentWord={handleSplitAtCurrentWord}
+              canSplitAtCurrentWord={canSplitAtCurrentWord}
               disabled={!audioUrl}
             />
           </div>
@@ -617,6 +646,8 @@ export function TranscriptEditor() {
               ) : (
                 filteredSegments.map((segment, index) => {
                   const handlers = segmentHandlers[index];
+                  const resolvedSplitWordIndex =
+                    activeSegmentId === segment.id ? splitWordIndex : null;
                   return (
                     <TranscriptSegment
                       key={segment.id}
@@ -625,6 +656,7 @@ export function TranscriptEditor() {
                       isSelected={segment.id === selectedSegmentId}
                       isActive={activeSegmentId === segment.id}
                       activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                      splitWordIndex={resolvedSplitWordIndex ?? undefined}
                       onSelect={handlers.onSelect}
                       onTextChange={handlers.onTextChange}
                       onSpeakerChange={handlers.onSpeakerChange}

@@ -3,6 +3,7 @@ import {
   Pause,
   Play,
   Rewind,
+  Scissors,
   SkipBack,
   SkipForward,
   Volume2,
@@ -20,6 +21,8 @@ interface PlaybackControlsProps {
   onSeek: (time: number) => void;
   onSkipBack: () => void;
   onSkipForward: () => void;
+  onSplitAtCurrentWord: () => void;
+  canSplitAtCurrentWord: boolean;
   disabled?: boolean;
 }
 
@@ -38,6 +41,8 @@ export function PlaybackControls({
   onSeek,
   onSkipBack,
   onSkipForward,
+  onSplitAtCurrentWord,
+  canSplitAtCurrentWord,
   disabled = false,
 }: PlaybackControlsProps) {
   const [isMuted, setIsMuted] = useState(false);
@@ -127,6 +132,17 @@ export function PlaybackControls({
         aria-label={isMuted ? "Unmute" : "Mute"}
       >
         {isMuted ? <VolumeX className="h-4 w-4" /> : <Volume2 className="h-4 w-4" />}
+      </Button>
+
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={onSplitAtCurrentWord}
+        disabled={disabled || !canSplitAtCurrentWord}
+        data-testid="button-split-current-word"
+        aria-label="Split at current word"
+      >
+        <Scissors className="h-4 w-4" />
       </Button>
     </div>
   );

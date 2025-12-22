@@ -187,4 +187,53 @@ describe("TranscriptSegment", () => {
 
     expect(colorSwatch).toHaveStyle({ backgroundColor: "hsl(217, 91%, 48%)" });
   });
+
+  it("splits at the current word from the segment menu", async () => {
+    const onSplit = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={true}
+        activeWordIndex={1}
+        splitWordIndex={1}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={onSplit}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-seg-1"));
+    await userEvent.click(screen.getByText("Split at current word"));
+
+    expect(onSplit).toHaveBeenCalledWith(1);
+  });
+
+  it("does not split at the current word when the segment is inactive", async () => {
+    const onSplit = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        activeWordIndex={1}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={onSplit}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-seg-1"));
+    await userEvent.click(screen.getByText("Split at current word"));
+
+    expect(onSplit).not.toHaveBeenCalled();
+  });
 });

@@ -114,12 +114,16 @@ describe("useTranscriptStore", () => {
 
     useTranscriptStore.getState().splitSegment("seg-1", 1);
 
-    const { segments } = useTranscriptStore.getState();
+    const { segments, selectedSegmentId, currentTime, seekRequestTime } =
+      useTranscriptStore.getState();
     expect(segments).toHaveLength(3);
     expect(segments[0].text).toBe("Hallo");
     expect(segments[1].text).toBe("Welt");
     expect(segments[0].end).toBeCloseTo(0.6, 5);
     expect(segments[1].start).toBeCloseTo(0.6, 5);
+    expect(selectedSegmentId).toBe(segments[1].id);
+    expect(currentTime).toBeCloseTo(segments[1].start, 5);
+    expect(seekRequestTime).toBeCloseTo(segments[1].start, 5);
   });
 
   it("does not split a segment when the word index is invalid", () => {

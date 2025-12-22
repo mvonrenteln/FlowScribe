@@ -18,6 +18,7 @@ interface TranscriptSegmentProps {
   isSelected: boolean;
   isActive: boolean;
   activeWordIndex?: number;
+  splitWordIndex?: number;
   onSelect: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
@@ -41,6 +42,7 @@ function TranscriptSegmentComponent({
   isSelected,
   isActive,
   activeWordIndex,
+  splitWordIndex,
   onSelect,
   onTextChange,
   onSpeakerChange,
@@ -132,6 +134,8 @@ function TranscriptSegmentComponent({
   );
 
   const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
+  const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
+  const canSplitAtCurrentWord = resolvedSplitWordIndex > 0;
 
   return (
     <div
@@ -261,6 +265,18 @@ function TranscriptSegmentComponent({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem
+                onClick={() => {
+                  if (!canSplitAtCurrentWord) return;
+                  onSplit(resolvedSplitWordIndex);
+                  setSelectedWordIndex(null);
+                }}
+                disabled={!canSplitAtCurrentWord}
+              >
+                <Scissors className="h-4 w-4 mr-2" />
+                Split at current word
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
               {onMergeWithPrevious && (
                 <DropdownMenuItem onClick={onMergeWithPrevious}>
                   <Merge className="h-4 w-4 mr-2" />

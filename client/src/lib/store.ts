@@ -198,7 +198,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   },
 
   splitSegment: (id, wordIndex) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex } = get();
     const segmentIndex = segments.findIndex((s) => s.id === id);
     if (segmentIndex === -1) return;
 
@@ -236,10 +236,13 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
-      selectedSegmentId,
+      selectedSegmentId: secondSegment.id,
     });
     set({
       segments: newSegments,
+      selectedSegmentId: secondSegment.id,
+      currentTime: secondSegment.start,
+      seekRequestTime: secondSegment.start,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
