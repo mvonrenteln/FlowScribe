@@ -84,8 +84,8 @@ describe("useTranscriptStore", () => {
           end: 3,
           text: "Hallo Welt",
           words: [
-            { word: "Hallo", start: 0, end: 1 },
-            { word: "Welt", start: 1, end: 3 },
+            { word: "Hallo", start: 0, end: 1, score: 0.4 },
+            { word: "Welt", start: 1, end: 3, score: 0.7 },
           ],
         },
       ],
@@ -100,9 +100,11 @@ describe("useTranscriptStore", () => {
       "schoene",
       "neue",
     ]);
-    expect(segments[0].words[0]).toEqual({ word: "Hallo", start: 0, end: 1 });
+    expect(segments[0].words[0]).toEqual({ word: "Hallo", start: 0, end: 1, score: 0.4 });
     expect(segments[0].words[1]?.start).toBe(1);
     expect(segments[0].words[2]?.end).toBe(3);
+    expect(segments[0].words[1]?.score).toBe(1);
+    expect(segments[0].words[2]?.score).toBe(1);
   });
 
   it("merges adjacent segments", () => {

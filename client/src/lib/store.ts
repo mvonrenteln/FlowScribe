@@ -4,6 +4,7 @@ export interface Word {
   word: string;
   start: number;
   end: number;
+  score?: number;
 }
 
 export interface Segment {
@@ -235,6 +236,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
         word,
         start: segment.start + index * wordDuration,
         end: segment.start + (index + 1) * wordDuration,
+        score: 1,
       }));
     };
 
@@ -317,7 +319,12 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
         regionWords.forEach((word, index) => {
           const start = regionStart + index * step;
           const end = regionStart + (index + 1) * step;
-          updated.push({ word, start, end: end < start ? start : end });
+          updated.push({
+            word,
+            start,
+            end: end < start ? start : end,
+            score: 1,
+          });
         });
       };
 
@@ -327,9 +334,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
         addRegion(prevIndex, match.oldIndex, nextIndex, match.newIndex);
         const matchedPrev = prevWords[match.oldIndex];
         updated.push({
+          ...matchedPrev,
           word: nextWordTexts[match.newIndex],
-          start: matchedPrev.start,
-          end: matchedPrev.end,
         });
         prevIndex = match.oldIndex + 1;
         nextIndex = match.newIndex + 1;
