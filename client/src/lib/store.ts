@@ -4,6 +4,7 @@ export interface Word {
   word: string;
   start: number;
   end: number;
+  speaker?: string;
   score?: number;
 }
 
@@ -236,6 +237,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
         word,
         start: segment.start + index * wordDuration,
         end: segment.start + (index + 1) * wordDuration,
+        speaker: segment.speaker,
         score: 1,
       }));
     };
@@ -323,6 +325,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
             word,
             start,
             end: end < start ? start : end,
+            speaker: segment.speaker,
             score: 1,
           });
         });
@@ -509,7 +512,20 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     if (!speakers.some((s) => s.name === oldName)) return;
     const newSpeakers = speakers.map((s) => (s.name === oldName ? { ...s, name: newName } : s));
     const newSegments = segments.map((s) =>
-      s.speaker === oldName ? { ...s, speaker: newName } : s,
+      s.speaker === oldName
+        ? {
+            ...s,
+            speaker: newName,
+            words: s.words.map((word) =>
+              word.speaker === oldName ? { ...word, speaker: newName } : word,
+            ),
+          }
+        : {
+            ...s,
+            words: s.words.map((word) =>
+              word.speaker === oldName ? { ...word, speaker: newName } : word,
+            ),
+          },
     );
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,
@@ -531,7 +547,20 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     if (!speakers.some((s) => s.name === toName)) return;
 
     const newSegments = segments.map((s) =>
-      s.speaker === fromName ? { ...s, speaker: toName } : s,
+      s.speaker === fromName
+        ? {
+            ...s,
+            speaker: toName,
+            words: s.words.map((word) =>
+              word.speaker === fromName ? { ...word, speaker: toName } : word,
+            ),
+          }
+        : {
+            ...s,
+            words: s.words.map((word) =>
+              word.speaker === fromName ? { ...word, speaker: toName } : word,
+            ),
+          },
     );
     const newSpeakers = speakers.filter((s) => s.name !== fromName);
     const nextHistory = pushHistory(history, historyIndex, {

@@ -133,6 +133,36 @@ describe("useTranscriptStore", () => {
     expect(segments.every((segment) => segment.speaker === "Interviewerin")).toBe(true);
   });
 
+  it("keeps word speakers when changing a segment speaker", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 0.5, speaker: "SPEAKER_00" },
+            { word: "Welt", start: 0.5, end: 1, speaker: "SPEAKER_01" },
+          ],
+        },
+      ],
+      speakers: [
+        { id: "s1", name: "SPEAKER_00", color: "red" },
+        { id: "s2", name: "SPEAKER_01", color: "blue" },
+      ],
+    });
+
+    useTranscriptStore.getState().updateSegmentSpeaker("seg-1", "SPEAKER_01");
+
+    const { segments } = useTranscriptStore.getState();
+    expect(segments[0].speaker).toBe("SPEAKER_01");
+    expect(segments[0].words[0].speaker).toBe("SPEAKER_00");
+    expect(segments[0].words[1].speaker).toBe("SPEAKER_01");
+  });
+
   it("updates segment speakers and keeps history", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
     const { updateSegmentSpeaker } = useTranscriptStore.getState();
