@@ -86,6 +86,11 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="mock-theme" />,
 }));
 
+vi.mock("@/lib/audioHandleStorage", () => ({
+  loadAudioHandle: vi.fn().mockResolvedValue(null),
+  queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
+}));
+
 const resetStore = () => {
   useTranscriptStore.setState({
     audioFile: null,

@@ -1,7 +1,13 @@
-import { FileAudio, FileText, Upload } from "lucide-react";
-import { useCallback, useRef } from "react";
+import { FileAudio, FileText, RotateCcw, Upload } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import {
+  clearAudioHandle,
+  loadAudioHandle,
+  requestAudioHandlePermission,
+  saveAudioHandle,
+} from "@/lib/audioHandleStorage";
 
 interface FileUploadProps {
   onAudioUpload: (file: File) => void;
@@ -18,16 +24,92 @@ export function FileUpload({
 }: FileUploadProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
+  const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+    loadAudioHandle()
+      .then((handle) => {
+        if (isMounted) {
+          setAudioHandle(handle);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load saved audio handle:", err);
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleAudioChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
+        clearAudioHandle()
+          .then(() => setAudioHandle(null))
+          .catch((err) => {
+            console.error("Failed to clear saved audio handle:", err);
+          });
         onAudioUpload(file);
       }
     },
     [onAudioUpload],
   );
+
+  const handleAudioPick = useCallback(async () => {
+    const picker = (
+      window as Window & {
+        showOpenFilePicker?: (options?: {
+          types?: Array<{
+            description?: string;
+            accept: Record<string, string[]>;
+          }>;
+          multiple?: boolean;
+          excludeAcceptAllOption?: boolean;
+        }) => Promise<FileSystemFileHandle[]>;
+      }
+    ).showOpenFilePicker;
+
+    if (!picker) {
+      audioInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const [handle] = await picker({
+        multiple: false,
+        types: [
+          {
+            description: "Audio files",
+            accept: {
+              "audio/*": [".mp3", ".wav", ".m4a", ".ogg", ".flac"],
+            },
+          },
+        ],
+      });
+      if (!handle) return;
+      const file = await handle.getFile();
+      await saveAudioHandle(handle);
+      setAudioHandle(handle);
+      onAudioUpload(file);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      console.error("Failed to pick audio file:", err);
+    }
+  }, [onAudioUpload]);
+
+  const handleRestoreAudio = useCallback(async () => {
+    if (!audioHandle) return;
+    const granted = await requestAudioHandlePermission(audioHandle);
+    if (!granted) return;
+    try {
+      const file = await audioHandle.getFile();
+      onAudioUpload(file);
+    } catch (err) {
+      console.error("Failed to restore audio file:", err);
+    }
+  }, [audioHandle, onAudioUpload]);
 
   const handleTranscriptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,12 +152,23 @@ export function FileUpload({
 
         <Button
           variant={audioFileName ? "secondary" : "default"}
-          onClick={() => audioInputRef.current?.click()}
+          onClick={handleAudioPick}
           data-testid="button-upload-audio"
         >
           <FileAudio className="h-4 w-4 mr-2" />
           {audioFileName || "Load Audio"}
         </Button>
+
+        {!audioFileName && audioHandle && (
+          <Button
+            variant="outline"
+            onClick={handleRestoreAudio}
+            data-testid="button-restore-audio"
+          >
+            <RotateCcw className="h-4 w-4 mr-2" />
+            Reopen Audio
+          </Button>
+        )}
 
         <Button
           variant={transcriptLoaded ? "secondary" : "outline"}

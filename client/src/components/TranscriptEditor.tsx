@@ -6,6 +6,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { ExportDialog } from "./ExportDialog";
 import { FileUpload } from "./FileUpload";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
@@ -55,6 +56,7 @@ export function TranscriptEditor() {
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const transcriptListRef = useRef<HTMLDivElement>(null);
+  const restoreAttemptedRef = useRef(false);
 
   const handleAudioUpload = useCallback(
     (file: File) => {
@@ -158,6 +160,30 @@ export function TranscriptEditor() {
     },
     [loadTranscript],
   );
+
+  useEffect(() => {
+    if (restoreAttemptedRef.current || audioFile) return;
+    restoreAttemptedRef.current = true;
+    let isMounted = true;
+
+    loadAudioHandle()
+      .then(async (handle) => {
+        if (!handle || !isMounted) return;
+        const granted = await queryAudioHandlePermission(handle);
+        if (!granted || !isMounted) return;
+        const file = await handle.getFile();
+        if (isMounted) {
+          handleAudioUpload(file);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to restore audio handle:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [audioFile, handleAudioUpload]);
 
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
