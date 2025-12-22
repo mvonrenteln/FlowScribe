@@ -1,4 +1,4 @@
-import { Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
+import { Check, Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,6 +26,8 @@ interface TranscriptSegmentProps {
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
   onSplit: (wordIndex: number) => void;
+  onConfirm: () => void;
+  showConfirmAction?: boolean;
   onMergeWithPrevious?: () => void;
   onMergeWithNext?: () => void;
   onDelete: () => void;
@@ -52,6 +54,8 @@ function TranscriptSegmentComponent({
   onTextChange,
   onSpeakerChange,
   onSplit,
+  onConfirm,
+  showConfirmAction = true,
   onMergeWithPrevious,
   onMergeWithNext,
   onDelete,
@@ -317,7 +321,21 @@ function TranscriptSegmentComponent({
           )}
         </div>
 
-        <div className="flex items-center gap-1 visibility-hidden group-hover:visible">
+        <div className="flex items-center gap-1">
+          {showConfirmAction && (
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={(e) => {
+                e.stopPropagation();
+                onConfirm();
+              }}
+              data-testid={`button-confirm-${segment.id}`}
+              aria-label="Confirm segment"
+            >
+              <Check className="h-4 w-4" />
+            </Button>
+          )}
           {selectedWordIndex !== null && selectedWordIndex > 0 && (
             <Button
               size="icon"
@@ -357,6 +375,10 @@ function TranscriptSegmentComponent({
               >
                 <Scissors className="h-4 w-4 mr-2" />
                 Split at current word
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={onConfirm}>
+                <Check className="h-4 w-4 mr-2" />
+                Confirm block
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {onMergeWithPrevious && (

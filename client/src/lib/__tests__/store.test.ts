@@ -175,6 +175,31 @@ describe("useTranscriptStore", () => {
     expect(canUndo()).toBe(true);
   });
 
+  it("confirms a segment by setting word scores to 1", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 0.5, score: 0.2 },
+            { word: "Welt", start: 0.5, end: 1, score: 0.4 },
+          ],
+        },
+      ],
+    });
+
+    useTranscriptStore.getState().confirmSegment("seg-1");
+
+    const { segments } = useTranscriptStore.getState();
+    expect(segments[0].words[0].score).toBe(1);
+    expect(segments[0].words[1].score).toBe(1);
+  });
+
   it("splits a segment at a valid word boundary", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 

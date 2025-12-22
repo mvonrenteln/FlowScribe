@@ -35,6 +35,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={onSeek}
       />,
@@ -63,6 +64,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -89,6 +91,7 @@ describe("TranscriptSegment", () => {
         onTextChange={onTextChange}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -117,6 +120,7 @@ describe("TranscriptSegment", () => {
         onTextChange={onTextChange}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -147,6 +151,7 @@ describe("TranscriptSegment", () => {
         onTextChange={onTextChange}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -175,6 +180,7 @@ describe("TranscriptSegment", () => {
         onTextChange={onTextChange}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -227,6 +233,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -252,6 +259,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -276,6 +284,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -285,6 +294,53 @@ describe("TranscriptSegment", () => {
     await userEvent.click(screen.getByText("Split at current word"));
 
     expect(onSplit).not.toHaveBeenCalled();
+  });
+
+  it("confirms the segment from the menu", async () => {
+    const onConfirm = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={onConfirm}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-seg-1"));
+    await userEvent.click(screen.getByText("Confirm block"));
+
+    expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("confirms the segment via the quick action button", async () => {
+    const onConfirm = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={onConfirm}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-confirm-seg-1"));
+
+    expect(onConfirm).toHaveBeenCalled();
   });
 
   it("highlights low confidence words when enabled", () => {
@@ -308,6 +364,7 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,

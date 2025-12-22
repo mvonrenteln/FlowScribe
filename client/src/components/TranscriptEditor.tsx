@@ -40,6 +40,7 @@ export function TranscriptEditor() {
     clearSeekRequest,
     updateSegmentText,
     updateSegmentSpeaker,
+    confirmSegment,
     splitSegment,
     mergeSegments,
     updateSegmentTiming,
@@ -639,6 +640,7 @@ export function TranscriptEditor() {
           onTextChange: (text: string) => updateSegmentText(segment.id, text),
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
+          onConfirm: () => confirmSegment(segment.id),
           onMergeWithPrevious,
           onMergeWithNext,
           onDelete: () => deleteSegment(segment.id),
@@ -651,6 +653,7 @@ export function TranscriptEditor() {
       setSelectedSegmentId,
       updateSegmentSpeaker,
       updateSegmentText,
+      confirmSegment,
       splitSegment,
       deleteSegment,
     ],
@@ -897,6 +900,7 @@ export function TranscriptEditor() {
                       onTextChange={handlers.onTextChange}
                       onSpeakerChange={handlers.onSpeakerChange}
                       onSplit={handlers.onSplit}
+                      onConfirm={handlers.onConfirm}
                       onMergeWithPrevious={handlers.onMergeWithPrevious}
                       onMergeWithNext={handlers.onMergeWithNext}
                       onDelete={handlers.onDelete}

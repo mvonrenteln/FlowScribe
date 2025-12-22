@@ -59,6 +59,7 @@ interface TranscriptState {
 
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
+  confirmSegment: (id: string) => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -369,6 +370,24 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const segment = segments.find((s) => s.id === id);
     if (!segment || segment.speaker === speaker) return;
     const newSegments = segments.map((s) => (s.id === id ? { ...s, speaker } : s));
+    const nextHistory = pushHistory(history, historyIndex, {
+      segments: newSegments,
+      speakers,
+      selectedSegmentId,
+    });
+    set({
+      segments: newSegments,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  confirmSegment: (id) => {
+    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const segment = segments.find((s) => s.id === id);
+    if (!segment) return;
+    const updatedWords = segment.words.map((word) => ({ ...word, score: 1 }));
+    const newSegments = segments.map((s) => (s.id === id ? { ...s, words: updatedWords } : s));
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
