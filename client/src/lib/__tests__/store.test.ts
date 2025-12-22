@@ -198,6 +198,7 @@ describe("useTranscriptStore", () => {
     const { segments } = useTranscriptStore.getState();
     expect(segments[0].words[0].score).toBe(1);
     expect(segments[0].words[1].score).toBe(1);
+    expect(segments[0].confirmed).toBe(true);
   });
 
   it("splits a segment at a valid word boundary", () => {

@@ -15,6 +15,7 @@ export interface Segment {
   end: number;
   text: string;
   words: Word[];
+  confirmed?: boolean;
 }
 
 export interface Speaker {
@@ -387,7 +388,9 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const segment = segments.find((s) => s.id === id);
     if (!segment) return;
     const updatedWords = segment.words.map((word) => ({ ...word, score: 1 }));
-    const newSegments = segments.map((s) => (s.id === id ? { ...s, words: updatedWords } : s));
+    const newSegments = segments.map((s) =>
+      s.id === id ? { ...s, words: updatedWords, confirmed: true } : s,
+    );
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,
       speakers,

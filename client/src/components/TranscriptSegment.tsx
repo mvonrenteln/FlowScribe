@@ -1,4 +1,4 @@
-import { Check, Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
+import { Check, CheckCircle2, Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -182,6 +182,7 @@ function TranscriptSegmentComponent({
   const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
   const canSplitAtCurrentWord = resolvedSplitWordIndex > 0;
+  const isConfirmed = segment.confirmed === true;
 
   const isLowConfidence = (word: Word) => {
     if (!highlightLowConfidence) return false;
@@ -248,6 +249,11 @@ function TranscriptSegmentComponent({
             <span className="text-xs font-mono tabular-nums text-muted-foreground">
               {formatTimestamp(segment.start)} - {formatTimestamp(segment.end)}
             </span>
+            {isConfirmed && (
+              <span className="text-xs font-semibold text-emerald-600/90 bg-emerald-600/10 rounded px-1.5 py-0.5">
+                Confirmed
+              </span>
+            )}
           </div>
 
           {!isEditing ? (
@@ -328,12 +334,15 @@ function TranscriptSegmentComponent({
               variant="ghost"
               onClick={(e) => {
                 e.stopPropagation();
-                onConfirm();
+                if (!isConfirmed) {
+                  onConfirm();
+                }
               }}
               data-testid={`button-confirm-${segment.id}`}
-              aria-label="Confirm segment"
+              aria-label={isConfirmed ? "Segment confirmed" : "Confirm segment"}
+              disabled={isConfirmed}
             >
-              <Check className="h-4 w-4" />
+              {isConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <Check className="h-4 w-4" />}
             </Button>
           )}
           {selectedWordIndex !== null && selectedWordIndex > 0 && (
@@ -376,9 +385,15 @@ function TranscriptSegmentComponent({
                 <Scissors className="h-4 w-4 mr-2" />
                 Split at current word
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={onConfirm}>
+              <DropdownMenuItem
+                onClick={() => {
+                  if (isConfirmed) return;
+                  onConfirm();
+                }}
+                disabled={isConfirmed}
+              >
                 <Check className="h-4 w-4 mr-2" />
-                Confirm block
+                {isConfirmed ? "Confirmed" : "Confirm block"}
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               {onMergeWithPrevious && (

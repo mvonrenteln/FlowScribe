@@ -343,6 +343,28 @@ describe("TranscriptSegment", () => {
     expect(onConfirm).toHaveBeenCalled();
   });
 
+  it("shows the confirmed badge and icon when a segment is confirmed", () => {
+    const confirmedSegment: Segment = { ...segment, confirmed: true };
+    render(
+      <TranscriptSegment
+        segment={confirmedSegment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Confirmed")).toBeInTheDocument();
+    expect(screen.getByLabelText("Segment confirmed")).toBeDisabled();
+  });
+
   it("highlights low confidence words when enabled", () => {
     const scoredSegment: Segment = {
       ...segment,
