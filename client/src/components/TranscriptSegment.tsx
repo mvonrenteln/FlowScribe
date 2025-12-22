@@ -20,6 +20,8 @@ interface TranscriptSegmentProps {
   isActive: boolean;
   activeWordIndex?: number;
   splitWordIndex?: number;
+  highlightLowConfidence?: boolean;
+  lowConfidenceThreshold?: number | null;
   onSelect: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
@@ -44,6 +46,8 @@ function TranscriptSegmentComponent({
   isActive,
   activeWordIndex,
   splitWordIndex,
+  highlightLowConfidence = false,
+  lowConfidenceThreshold = null,
   onSelect,
   onTextChange,
   onSpeakerChange,
@@ -175,6 +179,13 @@ function TranscriptSegmentComponent({
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
   const canSplitAtCurrentWord = resolvedSplitWordIndex > 0;
 
+  const isLowConfidence = (word: Word) => {
+    if (!highlightLowConfidence) return false;
+    if (lowConfidenceThreshold === null) return false;
+    if (typeof word.score !== "number") return false;
+    return word.score <= lowConfidenceThreshold;
+  };
+
   return (
     <div
       className={cn(
@@ -253,8 +264,15 @@ function TranscriptSegmentComponent({
                     "cursor-pointer transition-colors",
                     index === resolvedActiveWordIndex && "bg-primary/20 underline",
                     index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                    isLowConfidence(word) &&
+                      "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
                   )}
                   data-testid={`word-${segment.id}-${index}`}
+                  title={
+                    isLowConfidence(word) && typeof word.score === "number"
+                      ? `Score: ${word.score.toFixed(2)}`
+                      : undefined
+                  }
                   role="button"
                   tabIndex={0}
                 >
@@ -373,6 +391,8 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.isSelected === next.isSelected &&
     prev.isActive === next.isActive &&
     prev.activeWordIndex === next.activeWordIndex &&
+    prev.highlightLowConfidence === next.highlightLowConfidence &&
+    prev.lowConfidenceThreshold === next.lowConfidenceThreshold &&
     prev.onSelect === next.onSelect &&
     prev.onTextChange === next.onTextChange &&
     prev.onSpeakerChange === next.onSpeakerChange &&

@@ -286,4 +286,37 @@ describe("TranscriptSegment", () => {
 
     expect(onSplit).not.toHaveBeenCalled();
   });
+
+  it("highlights low confidence words when enabled", () => {
+    const scoredSegment: Segment = {
+      ...segment,
+      words: [
+        { word: "Hallo", start: 0, end: 1, score: 0.15 },
+        { word: "Welt", start: 1, end: 2, score: 0.8 },
+      ],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={scoredSegment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        highlightLowConfidence={true}
+        lowConfidenceThreshold={0.3}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const lowWord = screen.getByTestId("word-seg-1-0");
+    const highWord = screen.getByTestId("word-seg-1-1");
+
+    expect(lowWord.className).toContain("decoration-dotted");
+    expect(highWord.className).not.toContain("decoration-dotted");
+  });
 });

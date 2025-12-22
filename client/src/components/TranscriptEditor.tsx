@@ -2,8 +2,10 @@ import { Download, Keyboard, PanelLeft, PanelLeftClose, Redo2, Undo2 } from "luc
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Slider } from "@/components/ui/slider";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
@@ -55,6 +57,9 @@ export function TranscriptEditor() {
   const [showExport, setShowExport] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
+  const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
+  const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
+  const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -433,6 +438,19 @@ export function TranscriptEditor() {
     return filteredSegments.some((segment) => segment.id === activeSegment.id);
   }, [activeSegment, activeSpeakerName, filteredSegments]);
 
+  const autoConfidenceThreshold = useMemo(() => {
+    const scores = segments
+      .flatMap((segment) => segment.words)
+      .map((word) => word.score)
+      .filter((score): score is number => typeof score === "number");
+    if (scores.length === 0) return null;
+    scores.sort((a, b) => a - b);
+    const index = Math.floor(scores.length * 0.1);
+    const percentile = scores[Math.min(index, scores.length - 1)];
+    return Math.min(0.4, percentile);
+  }, [segments]);
+  const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
+
   const getSplitWordIndex = useCallback(() => {
     if (!activeSegment) return null;
     const { words } = activeSegment;
@@ -664,6 +682,56 @@ export function TranscriptEditor() {
             Export
           </Button>
           <Separator orientation="vertical" className="h-6" />
+          <Popover open={confidencePopoverOpen} onOpenChange={setConfidencePopoverOpen}>
+            <PopoverTrigger asChild>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  setHighlightLowConfidence((prev) => !prev);
+                  setConfidencePopoverOpen(true);
+                }}
+                aria-pressed={highlightLowConfidence}
+                aria-label="Toggle low confidence highlight"
+                data-testid="button-toggle-confidence"
+                className="px-2"
+              >
+                <span className="text-sm underline decoration-dotted underline-offset-2">A</span>
+              </Button>
+            </PopoverTrigger>
+            <PopoverContent className="w-64" align="end">
+              <div className="space-y-3">
+                <div className="text-xs text-muted-foreground">
+                  Low confidence threshold
+                </div>
+                <Slider
+                  value={[lowConfidenceThreshold ?? 0.4]}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  disabled={lowConfidenceThreshold === null}
+                  onValueChange={(value) => {
+                    setManualConfidenceThreshold(value[0] ?? 0.4);
+                    setHighlightLowConfidence(true);
+                  }}
+                />
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>
+                    {lowConfidenceThreshold === null
+                      ? "No scores"
+                      : `Now: ${lowConfidenceThreshold.toFixed(2)}`}
+                  </span>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => setManualConfidenceThreshold(null)}
+                  >
+                    Auto
+                  </Button>
+                </div>
+              </div>
+            </PopoverContent>
+          </Popover>
           <ThemeToggle />
         </div>
       </header>
@@ -759,6 +827,8 @@ export function TranscriptEditor() {
                       isActive={activeSegmentId === segment.id}
                       activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
                       splitWordIndex={resolvedSplitWordIndex ?? undefined}
+                      highlightLowConfidence={highlightLowConfidence}
+                      lowConfidenceThreshold={lowConfidenceThreshold}
                       onSelect={handlers.onSelect}
                       onTextChange={handlers.onTextChange}
                       onSpeakerChange={handlers.onSpeakerChange}
