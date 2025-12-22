@@ -145,4 +145,36 @@ describe("SpeakerSidebar", () => {
     expect(onRenameSpeaker).not.toHaveBeenCalled();
     expect(screen.queryByTestId("input-rename-s1")).toBeNull();
   });
+
+  it("toggles the low confidence filter and updates threshold", async () => {
+    const onToggleLowConfidenceFilter = vi.fn();
+    const onLowConfidenceThresholdChange = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Hallo",
+            words: [{ word: "Hallo", start: 0, end: 1, score: 0.2 }],
+          },
+        ]}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={vi.fn()}
+        lowConfidenceFilterActive={true}
+        onToggleLowConfidenceFilter={onToggleLowConfidenceFilter}
+        lowConfidenceThreshold={0.3}
+        onLowConfidenceThresholdChange={onLowConfidenceThresholdChange}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-filter-low-confidence"));
+    expect(onToggleLowConfidenceFilter).toHaveBeenCalled();
+
+    expect(screen.getByRole("slider")).toBeInTheDocument();
+  });
 });

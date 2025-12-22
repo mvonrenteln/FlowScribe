@@ -9,6 +9,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Slider } from "@/components/ui/slider";
 import type { Segment, Speaker } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +22,10 @@ interface SpeakerSidebarProps {
   onSpeakerSelect?: (speakerId: string) => void;
   onClearFilter?: () => void;
   selectedSpeakerId?: string;
+  lowConfidenceFilterActive?: boolean;
+  onToggleLowConfidenceFilter?: () => void;
+  lowConfidenceThreshold?: number | null;
+  onLowConfidenceThresholdChange?: (value: number | null) => void;
 }
 
 export function SpeakerSidebar({
@@ -32,6 +37,10 @@ export function SpeakerSidebar({
   onSpeakerSelect,
   onClearFilter,
   selectedSpeakerId,
+  lowConfidenceFilterActive = false,
+  onToggleLowConfidenceFilter,
+  lowConfidenceThreshold = null,
+  onLowConfidenceThresholdChange,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -57,6 +66,15 @@ export function SpeakerSidebar({
     const secs = Math.floor(total % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
+
+  const lowConfidenceCount =
+    lowConfidenceThreshold === null
+      ? 0
+      : segments.filter((segment) =>
+          segment.words.some(
+            (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
+          ),
+        ).length;
 
   const handleStartEdit = (speaker: Speaker) => {
     setEditingId(speaker.id);
@@ -244,6 +262,60 @@ export function SpeakerSidebar({
               </div>
             </div>
           ))}
+          <div className="pt-3 mt-3 border-t">
+            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Quality
+            </div>
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                lowConfidenceFilterActive && "bg-accent",
+                lowConfidenceThreshold === null && "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (lowConfidenceThreshold === null) return;
+                onToggleLowConfidenceFilter?.();
+              }}
+              data-testid="button-filter-low-confidence"
+            >
+              <span>Low score</span>
+              <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
+            </button>
+            {lowConfidenceFilterActive && (
+              <div className="mt-3 space-y-2 px-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Threshold</span>
+                  <span>
+                    {lowConfidenceThreshold === null
+                      ? "No scores"
+                      : lowConfidenceThreshold.toFixed(2)}
+                  </span>
+                </div>
+                <Slider
+                  value={[lowConfidenceThreshold ?? 0.4]}
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  disabled={lowConfidenceThreshold === null}
+                  onValueChange={(value) => {
+                    onLowConfidenceThresholdChange?.(value[0] ?? 0.4);
+                  }}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onLowConfidenceThresholdChange?.(null)}
+                    disabled={lowConfidenceThreshold === null}
+                  >
+                    Auto
+                  </Button>
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       </ScrollArea>
 

@@ -60,6 +60,7 @@ export function TranscriptEditor() {
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
   const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
+  const [filterLowConfidence, setFilterLowConfidence] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -221,12 +222,37 @@ export function TranscriptEditor() {
     requestSeek(Math.min(duration, currentTime + 5));
   }, [currentTime, duration, requestSeek]);
 
+  const autoConfidenceThreshold = useMemo(() => {
+    const scores = segments
+      .flatMap((segment) => segment.words)
+      .map((word) => word.score)
+      .filter((score): score is number => typeof score === "number");
+    if (scores.length === 0) return null;
+    scores.sort((a, b) => a - b);
+    const index = Math.floor(scores.length * 0.1);
+    const percentile = scores[Math.min(index, scores.length - 1)];
+    return Math.min(0.4, percentile);
+  }, [segments]);
+  const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
+
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
     : undefined;
-  const filteredSegments = activeSpeakerName
-    ? segments.filter((s) => s.speaker === activeSpeakerName)
-    : segments;
+  const filteredSegments = useMemo(() => {
+    return segments.filter((segment) => {
+      if (activeSpeakerName && segment.speaker !== activeSpeakerName) {
+        return false;
+      }
+      if (filterLowConfidence) {
+        if (lowConfidenceThreshold === null) return false;
+        const hasLowScore = segment.words.some(
+          (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
+        );
+        if (!hasLowScore) return false;
+      }
+      return true;
+    });
+  }, [activeSpeakerName, filterLowConfidence, lowConfidenceThreshold, segments]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -438,19 +464,6 @@ export function TranscriptEditor() {
     return filteredSegments.some((segment) => segment.id === activeSegment.id);
   }, [activeSegment, activeSpeakerName, filteredSegments]);
 
-  const autoConfidenceThreshold = useMemo(() => {
-    const scores = segments
-      .flatMap((segment) => segment.words)
-      .map((word) => word.score)
-      .filter((score): score is number => typeof score === "number");
-    if (scores.length === 0) return null;
-    scores.sort((a, b) => a - b);
-    const index = Math.floor(scores.length * 0.1);
-    const percentile = scores[Math.min(index, scores.length - 1)];
-    return Math.min(0.4, percentile);
-  }, [segments]);
-  const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
-
   const getSplitWordIndex = useCallback(() => {
     if (!activeSegment) return null;
     const { words } = activeSegment;
@@ -568,6 +581,32 @@ export function TranscriptEditor() {
     window.addEventListener("keydown", handleGlobalArrowNav, { capture: true });
     return () => window.removeEventListener("keydown", handleGlobalArrowNav, { capture: true });
   }, [selectNextSegment, selectPreviousSegment]);
+
+  useEffect(() => {
+    if (!filterLowConfidence || !isPlaying) return;
+    if (lowConfidenceThreshold === null) return;
+    if (filteredSegments.length === 0) return;
+    const activeFiltered = filteredSegments.find(
+      (segment) => currentTime >= segment.start && currentTime <= segment.end,
+    );
+    if (activeFiltered) return;
+    const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
+    if (nextSegment) {
+      setSelectedSegmentId(nextSegment.id);
+      requestSeek(nextSegment.start);
+      return;
+    }
+    setIsPlaying(false);
+  }, [
+    currentTime,
+    filterLowConfidence,
+    filteredSegments,
+    isPlaying,
+    lowConfidenceThreshold,
+    requestSeek,
+    setIsPlaying,
+    setSelectedSegmentId,
+  ]);
 
   const segmentHandlers = useMemo(
     () =>
@@ -743,18 +782,27 @@ export function TranscriptEditor() {
             !sidebarOpen && "w-0 overflow-hidden border-0",
           )}
         >
-          <SpeakerSidebar
-            speakers={speakers}
-            segments={segments}
-            onRenameSpeaker={handleRenameSpeaker}
-            onAddSpeaker={addSpeaker}
-            onMergeSpeakers={mergeSpeakers}
-            onSpeakerSelect={(id) =>
-              setFilterSpeakerId((current) => (current === id ? undefined : id))
-            }
-            onClearFilter={() => setFilterSpeakerId(undefined)}
-            selectedSpeakerId={filterSpeakerId}
-          />
+            <SpeakerSidebar
+              speakers={speakers}
+              segments={segments}
+              onRenameSpeaker={handleRenameSpeaker}
+              onAddSpeaker={addSpeaker}
+              onMergeSpeakers={mergeSpeakers}
+              onSpeakerSelect={(id) =>
+                setFilterSpeakerId((current) => (current === id ? undefined : id))
+              }
+              onClearFilter={() => setFilterSpeakerId(undefined)}
+              selectedSpeakerId={filterSpeakerId}
+              lowConfidenceFilterActive={filterLowConfidence}
+              onToggleLowConfidenceFilter={() =>
+                setFilterLowConfidence((current) => !current)
+              }
+              lowConfidenceThreshold={lowConfidenceThreshold}
+              onLowConfidenceThresholdChange={(value) => {
+                setManualConfidenceThreshold(value);
+                setHighlightLowConfidence(true);
+              }}
+            />
         </aside>
 
         <main className="flex-1 flex flex-col overflow-hidden">
@@ -804,6 +852,22 @@ export function TranscriptEditor() {
                       <p className="text-sm">
                         Upload an audio file and its Whisper or WhisperX JSON transcript to get
                         started.
+                      </p>
+                    </>
+                  ) : filterLowConfidence && activeSpeakerName ? (
+                    <>
+                      <p className="text-lg font-medium mb-2">
+                        No low-score segments for this speaker
+                      </p>
+                      <p className="text-sm">
+                        Adjust the threshold or clear filters to see more segments.
+                      </p>
+                    </>
+                  ) : filterLowConfidence ? (
+                    <>
+                      <p className="text-lg font-medium mb-2">No low-score segments</p>
+                      <p className="text-sm">
+                        Adjust the threshold or clear filters to see more segments.
                       </p>
                     </>
                   ) : (
