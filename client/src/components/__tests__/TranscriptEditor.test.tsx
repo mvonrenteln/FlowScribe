@@ -188,9 +188,9 @@ describe("TranscriptEditor", () => {
           id: "segment-1",
           speaker: "SPEAKER_00",
           start: 0,
-          end: 1,
+          end: 0.9,
           text: "Hallo",
-          words: [{ word: "Hallo", start: 0, end: 1 }],
+          words: [{ word: "Hallo", start: 0, end: 0.9 }],
         },
       ],
       speakers: [
@@ -257,9 +257,9 @@ describe("TranscriptEditor", () => {
           id: "segment-1",
           speaker: "SPEAKER_00",
           start: 0,
-          end: 1,
+          end: 0.9,
           text: "Hallo",
-          words: [{ word: "Hallo", start: 0, end: 1 }],
+          words: [{ word: "Hallo", start: 0, end: 0.9 }],
         },
         {
           id: "segment-2",
@@ -382,17 +382,145 @@ describe("TranscriptEditor", () => {
 
     await act(async () => {});
 
-    const segmentCard = screen.getByTestId("segment-segment-1");
-    fireEvent.keyDown(segmentCard, { key: "ArrowDown" });
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    });
 
-    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    });
     expect(useTranscriptStore.getState().currentTime).toBe(2);
 
-    const nextSegmentCard = screen.getByTestId("segment-segment-2");
-    fireEvent.keyDown(nextSegmentCard, { key: "ArrowUp" });
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowUp", bubbles: true }));
+    });
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
     expect(useTranscriptStore.getState().currentTime).toBe(0);
+  });
+
+  it("updates selection within the active speaker filter as time changes", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Welt",
+          words: [{ word: "Welt", start: 1, end: 2 }],
+        },
+        {
+          id: "segment-3",
+          speaker: "SPEAKER_01",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      speakers: [
+        { id: "speaker-0", name: "SPEAKER_00", color: "red" },
+        { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    const speaker = useTranscriptStore
+      .getState()
+      .speakers.find((item) => item.name === "SPEAKER_00");
+    if (!speaker) {
+      throw new Error("Expected SPEAKER_00 to exist.");
+    }
+
+    const speakerCard = await screen.findByTestId(`speaker-card-${speaker.id}`);
+    await userEvent.click(speakerCard);
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("segment-segment-3")).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      useTranscriptStore.setState({ currentTime: 1.5 });
+    });
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    });
+
+  });
+
+  it("keeps selection on visible segments when active segment is filtered out", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Welt",
+          words: [{ word: "Welt", start: 1, end: 2 }],
+        },
+        {
+          id: "segment-3",
+          speaker: "SPEAKER_01",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      speakers: [
+        { id: "speaker-0", name: "SPEAKER_00", color: "red" },
+        { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    const speaker = useTranscriptStore
+      .getState()
+      .speakers.find((item) => item.name === "SPEAKER_00");
+    if (!speaker) {
+      throw new Error("Expected SPEAKER_00 to exist.");
+    }
+
+    await userEvent.click(await screen.findByTestId(`speaker-card-${speaker.id}`));
+
+    await waitFor(() => {
+      expect(screen.queryByTestId("segment-segment-3")).not.toBeInTheDocument();
+    });
+
+    await act(async () => {
+      useTranscriptStore.setState({ currentTime: 2.5 });
+    });
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+    });
   });
 
   it("toggles play/pause when space is pressed on an empty text block", async () => {
@@ -448,8 +576,9 @@ describe("TranscriptEditor", () => {
 
     render(<TranscriptEditor />);
 
-    const segmentCard = screen.getByTestId("segment-segment-1");
-    fireEvent.keyDown(segmentCard, { key: "ArrowDown" });
+    await act(async () => {
+      window.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+    });
 
     expect(useTranscriptStore.getState().seekRequestTime).toBe(2);
   });

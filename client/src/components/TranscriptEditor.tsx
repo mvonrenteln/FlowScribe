@@ -185,35 +185,42 @@ export function TranscriptEditor() {
     requestSeek(Math.min(duration, currentTime + 5));
   }, [currentTime, duration, requestSeek]);
 
+  const activeSpeakerName = filterSpeakerId
+    ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
+    : undefined;
+  const filteredSegments = activeSpeakerName
+    ? segments.filter((s) => s.speaker === activeSpeakerName)
+    : segments;
+
   const getSelectedSegmentIndex = useCallback(() => {
-    return segments.findIndex((s) => s.id === selectedSegmentId);
-  }, [segments, selectedSegmentId]);
+    return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
+  }, [filteredSegments, selectedSegmentId]);
 
   const selectPreviousSegment = useCallback(() => {
     const currentIndex = getSelectedSegmentIndex();
     if (currentIndex > 0) {
-      const segment = segments[currentIndex - 1];
+      const segment = filteredSegments[currentIndex - 1];
       setSelectedSegmentId(segment.id);
       handleSeek(segment.start);
-    } else if (currentIndex === -1 && segments.length > 0) {
-      const segment = segments[segments.length - 1];
+    } else if (currentIndex === -1 && filteredSegments.length > 0) {
+      const segment = filteredSegments[filteredSegments.length - 1];
       setSelectedSegmentId(segment.id);
       handleSeek(segment.start);
     }
-  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId, handleSeek]);
+  }, [getSelectedSegmentIndex, filteredSegments, setSelectedSegmentId, handleSeek]);
 
   const selectNextSegment = useCallback(() => {
     const currentIndex = getSelectedSegmentIndex();
-    if (currentIndex < segments.length - 1) {
-      const segment = segments[currentIndex + 1];
+    if (currentIndex < filteredSegments.length - 1) {
+      const segment = filteredSegments[currentIndex + 1];
       setSelectedSegmentId(segment.id);
       handleSeek(segment.start);
-    } else if (currentIndex === -1 && segments.length > 0) {
-      const segment = segments[0];
+    } else if (currentIndex === -1 && filteredSegments.length > 0) {
+      const segment = filteredSegments[0];
       setSelectedSegmentId(segment.id);
       handleSeek(segment.start);
     }
-  }, [getSelectedSegmentIndex, segments, setSelectedSegmentId, handleSeek]);
+  }, [getSelectedSegmentIndex, filteredSegments, setSelectedSegmentId, handleSeek]);
 
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
@@ -334,6 +341,11 @@ export function TranscriptEditor() {
   );
 
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
+  const isActiveSegmentVisible = useMemo(() => {
+    if (!activeSegment) return false;
+    if (!activeSpeakerName) return true;
+    return filteredSegments.some((segment) => segment.id === activeSegment.id);
+  }, [activeSegment, activeSpeakerName, filteredSegments]);
 
   const getSplitWordIndex = useCallback(() => {
     if (!activeSegment) return null;
@@ -361,11 +373,11 @@ export function TranscriptEditor() {
   }, [activeSegment, currentTime]);
 
   useEffect(() => {
-    if (!activeSegment) return;
+    if (!activeSegment || !isActiveSegmentVisible) return;
     if (activeSegment.id !== selectedSegmentId) {
       setSelectedSegmentId(activeSegment.id);
     }
-  }, [activeSegment, selectedSegmentId, setSelectedSegmentId]);
+  }, [activeSegment, isActiveSegmentVisible, selectedSegmentId, setSelectedSegmentId]);
 
   useEffect(() => {
     if (!activeSegment) return;
@@ -409,13 +421,6 @@ export function TranscriptEditor() {
     window.addEventListener("keydown", handleGlobalArrowNav, { capture: true });
     return () => window.removeEventListener("keydown", handleGlobalArrowNav, { capture: true });
   }, [selectNextSegment, selectPreviousSegment]);
-
-  const activeSpeakerName = filterSpeakerId
-    ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
-    : undefined;
-  const filteredSegments = activeSpeakerName
-    ? segments.filter((s) => s.speaker === activeSpeakerName)
-    : segments;
 
   const segmentHandlers = useMemo(
     () =>
