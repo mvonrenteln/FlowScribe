@@ -45,6 +45,8 @@ export function WaveformPlayer({
   const zoomLevelRef = useRef(zoomLevel);
   const frameRequestRef = useRef<number | null>(null);
   const pendingTimeRef = useRef<number | null>(null);
+  const currentTimeRef = useRef(_currentTime);
+  const initialSeekAppliedRef = useRef(false);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -120,6 +122,10 @@ export function WaveformPlayer({
   }, [zoomLevel]);
 
   useEffect(() => {
+    currentTimeRef.current = _currentTime;
+  }, [_currentTime]);
+
+  useEffect(() => {
     return () => {
       if (frameRequestRef.current !== null) {
         cancelAnimationFrame(frameRequestRef.current);
@@ -132,6 +138,7 @@ export function WaveformPlayer({
 
     setIsLoading(true);
     setIsReady(false);
+    initialSeekAppliedRef.current = false;
 
     const regions = RegionsPlugin.create();
     regionsRef.current = regions;
@@ -184,7 +191,13 @@ export function WaveformPlayer({
       } else {
         ws.zoom(zoomLevelRef.current);
       }
-      onDurationChange(ws.getDuration());
+      const duration = ws.getDuration();
+      onDurationChange(duration);
+      if (!initialSeekAppliedRef.current && currentTimeRef.current > 0 && duration > 0) {
+        const clampedTime = Math.max(0, Math.min(duration, currentTimeRef.current));
+        ws.setTime(clampedTime);
+        initialSeekAppliedRef.current = true;
+      }
     });
 
     ws.on("timeupdate", (time) => {

@@ -84,8 +84,65 @@ const SPEAKER_COLORS = [
 ];
 
 const MAX_HISTORY = 100;
+const STORAGE_KEY = "flowscribe:transcript-state";
+const PERSIST_THROTTLE_MS = 500;
+
+type PersistedTranscriptState = {
+  segments: Segment[];
+  speakers: Speaker[];
+  selectedSegmentId: string | null;
+  currentTime: number;
+  isWhisperXFormat: boolean;
+};
+
+const canUseLocalStorage = () => {
+  if (typeof window === "undefined") return false;
+  try {
+    return Boolean(window.localStorage);
+  } catch {
+    return false;
+  }
+};
+
+const readPersistedState = (): PersistedTranscriptState | null => {
+  if (!canUseLocalStorage()) return null;
+  const raw = window.localStorage.getItem(STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as PersistedTranscriptState;
+    if (!Array.isArray(parsed.segments) || !Array.isArray(parsed.speakers)) {
+      return null;
+    }
+    const selectedSegmentId =
+      parsed.selectedSegmentId && parsed.segments.some((s) => s.id === parsed.selectedSegmentId)
+        ? parsed.selectedSegmentId
+        : parsed.segments[0]?.id ?? null;
+    return {
+      segments: parsed.segments,
+      speakers: parsed.speakers,
+      selectedSegmentId,
+      currentTime: Number.isFinite(parsed.currentTime) ? parsed.currentTime : 0,
+      isWhisperXFormat: Boolean(parsed.isWhisperXFormat),
+    };
+  } catch {
+    return null;
+  }
+};
 
 const generateId = () => crypto.randomUUID();
+
+const persistedState = readPersistedState();
+const initialHistory =
+  persistedState?.segments.length && persistedState.speakers.length
+    ? [
+        {
+          segments: persistedState.segments,
+          speakers: persistedState.speakers,
+          selectedSegmentId: persistedState.selectedSegmentId,
+        },
+      ]
+    : [];
+const initialHistoryIndex = initialHistory.length > 0 ? 0 : -1;
 
 const pushHistory = (history: HistoryState[], historyIndex: number, state: HistoryState) => {
   const newHistory = history.slice(0, historyIndex + 1);
@@ -103,16 +160,16 @@ const pushHistory = (history: HistoryState[], historyIndex: number, state: Histo
 export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   audioFile: null,
   audioUrl: null,
-  segments: [],
-  speakers: [],
-  selectedSegmentId: null,
-  currentTime: 0,
+  segments: persistedState?.segments ?? [],
+  speakers: persistedState?.speakers ?? [],
+  selectedSegmentId: persistedState?.selectedSegmentId ?? null,
+  currentTime: persistedState?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
   seekRequestTime: null,
-  history: [],
-  historyIndex: -1,
-  isWhisperXFormat: false,
+  history: initialHistory,
+  historyIndex: initialHistoryIndex,
+  isWhisperXFormat: persistedState?.isWhisperXFormat ?? false,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -417,3 +474,39 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   canUndo: () => get().historyIndex > 0,
   canRedo: () => get().historyIndex < get().history.length - 1,
 }));
+
+if (canUseLocalStorage()) {
+  let pendingPersist: PersistedTranscriptState | null = null;
+  let persistTimeout: ReturnType<typeof setTimeout> | null = null;
+  let lastSerialized = persistedState ? JSON.stringify(persistedState) : "";
+
+  const schedulePersist = (state: PersistedTranscriptState) => {
+    pendingPersist = state;
+    if (persistTimeout) return;
+    persistTimeout = setTimeout(() => {
+      if (!pendingPersist) return;
+      try {
+        const serialized = JSON.stringify(pendingPersist);
+        if (serialized !== lastSerialized) {
+          window.localStorage.setItem(STORAGE_KEY, serialized);
+          lastSerialized = serialized;
+        }
+      } catch {
+        // Ignore persistence failures (quota, serialization).
+      } finally {
+        pendingPersist = null;
+        persistTimeout = null;
+      }
+    }, PERSIST_THROTTLE_MS);
+  };
+
+  useTranscriptStore.subscribe((state) => {
+    schedulePersist({
+      segments: state.segments,
+      speakers: state.speakers,
+      selectedSegmentId: state.selectedSegmentId,
+      currentTime: state.currentTime,
+      isWhisperXFormat: state.isWhisperXFormat,
+    });
+  });
+}

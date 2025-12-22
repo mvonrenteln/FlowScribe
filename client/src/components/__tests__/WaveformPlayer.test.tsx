@@ -163,6 +163,18 @@ describe("WaveformPlayer", () => {
     fireEvent.click(screen.getByTestId("button-zoom-in"));
   });
 
+  it("seeks to the provided currentTime after the audio is ready", async () => {
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" currentTime={42} />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    await waitFor(() => {
+      expect(waveSurferMock.instance.setTime).toHaveBeenCalledWith(42);
+    });
+  });
+
   it("forwards seek interactions to onSeek", () => {
     const onSeek = vi.fn();
 

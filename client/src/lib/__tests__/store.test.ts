@@ -48,6 +48,7 @@ const resetStore = () => {
 describe("useTranscriptStore", () => {
   beforeEach(() => {
     resetStore();
+    window.localStorage.clear();
   });
 
   it("loads transcripts and generates speakers", () => {
@@ -125,6 +126,7 @@ describe("useTranscriptStore", () => {
     expect(currentTime).toBeCloseTo(segments[1].start, 5);
     expect(seekRequestTime).toBeCloseTo(segments[1].start, 5);
   });
+
 
   it("does not split a segment when the word index is invalid", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
