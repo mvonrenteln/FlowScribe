@@ -57,6 +57,10 @@ export function TranscriptEditor() {
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
+  const isTranscriptEditing = useCallback(
+    () => document.body?.dataset.transcriptEditing === "true",
+    [],
+  );
 
   const handleAudioUpload = useCallback(
     (file: File) => {
@@ -193,8 +197,9 @@ export function TranscriptEditor() {
   );
 
   const handlePlayPause = useCallback(() => {
+    if (isTranscriptEditing()) return;
     setIsPlaying(!isPlaying);
-  }, [isPlaying, setIsPlaying]);
+  }, [isPlaying, isTranscriptEditing, setIsPlaying]);
 
   const handleSeek = useCallback(
     (time: number) => {
@@ -251,6 +256,7 @@ export function TranscriptEditor() {
 
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
+      if (isTranscriptEditing()) return;
       if (event.key !== " ") return;
       const target = event.target as HTMLElement | null;
       if (target) {
@@ -264,22 +270,64 @@ export function TranscriptEditor() {
 
     window.addEventListener("keydown", handleGlobalSpace, { capture: true });
     return () => window.removeEventListener("keydown", handleGlobalSpace, { capture: true });
-  }, [handlePlayPause]);
-  useHotkeys("j", handleSkipBack, { enableOnFormTags: false });
-  useHotkeys("l", handleSkipForward, { enableOnFormTags: false });
-  useHotkeys("left", () => handleSeek(Math.max(0, currentTime - 1)), { enableOnFormTags: false });
-  useHotkeys("right", () => handleSeek(Math.min(duration, currentTime + 1)), {
-    enableOnFormTags: false,
-  });
-  useHotkeys("home", () => handleSeek(0), { enableOnFormTags: false });
-  useHotkeys("end", () => handleSeek(duration), { enableOnFormTags: false });
+  }, [handlePlayPause, isTranscriptEditing]);
+  useHotkeys(
+    "j",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSkipBack();
+    },
+    { enableOnFormTags: false },
+  );
+  useHotkeys(
+    "l",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSkipForward();
+    },
+    { enableOnFormTags: false },
+  );
+  useHotkeys(
+    "left",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSeek(Math.max(0, currentTime - 1));
+    },
+    { enableOnFormTags: false },
+  );
+  useHotkeys(
+    "right",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSeek(Math.min(duration, currentTime + 1));
+    },
+    { enableOnFormTags: false },
+  );
+  useHotkeys(
+    "home",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSeek(0);
+    },
+    { enableOnFormTags: false },
+  );
+  useHotkeys(
+    "end",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSeek(duration);
+    },
+    { enableOnFormTags: false },
+  );
   useHotkeys("escape", () => {
+    if (isTranscriptEditing()) return;
     setSelectedSegmentId(null);
     setFilterSpeakerId(undefined);
   });
   useHotkeys(
     "mod+z",
     () => {
+      if (isTranscriptEditing()) return;
       if (canUndo()) undo();
     },
     { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true },
@@ -287,6 +335,7 @@ export function TranscriptEditor() {
   useHotkeys(
     "mod+shift+z",
     () => {
+      if (isTranscriptEditing()) return;
       if (canRedo()) redo();
     },
     { enableOnFormTags: true, enableOnContentEditable: true, preventDefault: true },
@@ -294,6 +343,7 @@ export function TranscriptEditor() {
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
+      if (isTranscriptEditing()) return;
       const target = event.target as HTMLElement | null;
       if (!target) return;
       const isEditable = target.isContentEditable;
@@ -313,12 +363,19 @@ export function TranscriptEditor() {
 
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [canUndo, undo]);
-  useHotkeys("mod+e", () => setShowExport(true));
-  useHotkeys("shift+/", () => setShowShortcuts(true));
+  }, [canUndo, isTranscriptEditing, undo]);
+  useHotkeys("mod+e", () => {
+    if (isTranscriptEditing()) return;
+    setShowExport(true);
+  });
+  useHotkeys("shift+/", () => {
+    if (isTranscriptEditing()) return;
+    setShowShortcuts(true);
+  });
   useHotkeys(
     "enter",
     () => {
+      if (isTranscriptEditing()) return;
       if (!selectedSegmentId) return;
       const segment = segments.find((s) => s.id === selectedSegmentId);
       if (!segment) return;
@@ -331,6 +388,7 @@ export function TranscriptEditor() {
   useHotkeys(
     "m",
     () => {
+      if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
         const index = getSelectedSegmentIndex();
         if (index < segments.length - 1) {
@@ -347,6 +405,7 @@ export function TranscriptEditor() {
   useHotkeys(
     "delete",
     () => {
+      if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
         deleteSegment(selectedSegmentId);
         setSelectedSegmentId(null);
@@ -358,6 +417,7 @@ export function TranscriptEditor() {
   useHotkeys(
     "1,2,3,4,5,6,7,8,9",
     (event) => {
+      if (isTranscriptEditing()) return;
       const speakerIndex = Number(event.key) - 1;
       if (!Number.isInteger(speakerIndex)) return;
       if (selectedSegmentId && speakers[speakerIndex]) {
@@ -414,11 +474,18 @@ export function TranscriptEditor() {
   const splitWordIndex = getSplitWordIndex();
   const canSplitAtCurrentWord = splitWordIndex !== null;
 
-  useHotkeys("s", handleSplitAtCurrentWord, {
-    enableOnFormTags: false,
-    enableOnContentEditable: false,
-    preventDefault: true,
-  });
+  useHotkeys(
+    "s",
+    () => {
+      if (isTranscriptEditing()) return;
+      handleSplitAtCurrentWord();
+    },
+    {
+      enableOnFormTags: false,
+      enableOnContentEditable: false,
+      preventDefault: true,
+    },
+  );
   const activeSegmentId = activeSegment?.id ?? null;
   const activeWordIndex = useMemo(() => {
     if (!activeSegment) return -1;
@@ -456,6 +523,7 @@ export function TranscriptEditor() {
 
   useEffect(() => {
     const handleGlobalArrowNav = (event: KeyboardEvent) => {
+      if (isTranscriptEditing()) return;
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
       const target = event.target as HTMLElement | null;
       if (target) {

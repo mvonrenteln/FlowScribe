@@ -224,7 +224,18 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment || segment.text === text) return;
-    const newSegments = segments.map((s) => (s.id === id ? { ...s, text } : s));
+    const normalizedText = text.trim();
+    const wordsArray = normalizedText.split(/\s+/).filter((word) => word.length > 0);
+    const segDuration = segment.end - segment.start;
+    const wordDuration = wordsArray.length > 0 ? segDuration / wordsArray.length : 0;
+    const words = wordsArray.map((word, index) => ({
+      word,
+      start: segment.start + index * wordDuration,
+      end: segment.start + (index + 1) * wordDuration,
+    }));
+    const newSegments = segments.map((s) =>
+      s.id === id ? { ...s, text: normalizedText, words } : s,
+    );
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,
       speakers,

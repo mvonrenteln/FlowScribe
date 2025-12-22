@@ -255,6 +255,41 @@ describe("TranscriptEditor", () => {
     expect(second?.text).toBe("Welt Heute");
   });
 
+  it("ignores hotkeys while editing transcript text", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 3,
+          text: "Hallo Welt Heute",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 2 },
+            { word: "Heute", start: 2, end: 3 },
+          ],
+        },
+      ],
+      currentTime: 1.2,
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("s");
+    if (!handler) {
+      throw new Error("Expected split hotkey to be registered.");
+    }
+
+    document.body.dataset.transcriptEditing = "true";
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "s" }));
+    });
+    delete document.body.dataset.transcriptEditing;
+
+    expect(useTranscriptStore.getState().segments).toHaveLength(1);
+  });
+
   it("keeps playback position when splitting while playing", () => {
     useTranscriptStore.setState({
       segments: [

@@ -68,6 +68,7 @@ describe("useTranscriptStore", () => {
 
     const { segments, historyIndex, canUndo } = useTranscriptStore.getState();
     expect(segments[0].text).toBe("Hallo zusammen");
+    expect(segments[0].words.map((word) => word.word)).toEqual(["Hallo", "zusammen"]);
     expect(historyIndex).toBe(1);
     expect(canUndo()).toBe(true);
   });

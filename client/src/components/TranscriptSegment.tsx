@@ -1,5 +1,5 @@
 import { Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
-import { memo, useCallback, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,6 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { Textarea } from "@/components/ui/textarea";
 import type { Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -53,36 +54,67 @@ function TranscriptSegmentComponent({
   onSeek,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
+  const [draftText, setDraftText] = useState(segment.text);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
-  const textRef = useRef<HTMLDivElement>(null);
+  const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   const speaker = speakers.find((s) => s.name === segment.speaker);
   const speakerColor = speaker?.color || "hsl(217, 91%, 48%)";
 
-  const handleBlur = useCallback(() => {
-    setIsEditing(false);
-    if (textRef.current) {
-      onTextChange(textRef.current.innerText);
+  useEffect(() => {
+    if (!isEditing) {
+      setDraftText(segment.text);
     }
-  }, [onTextChange]);
+  }, [isEditing, segment.text]);
 
-  const handleKeyDown = useCallback(
-    (e: React.KeyboardEvent) => {
-      if (!isEditing && e.key === " ") {
-        e.preventDefault();
+  useEffect(() => {
+    if (isEditing) {
+      editInputRef.current?.focus();
+    }
+  }, [isEditing]);
+
+  useEffect(() => {
+    if (!isEditing) return;
+    const body = document.body;
+    const previousValue = body.dataset.transcriptEditing;
+    body.dataset.transcriptEditing = "true";
+    return () => {
+      if (previousValue === undefined) {
+        delete body.dataset.transcriptEditing;
+      } else {
+        body.dataset.transcriptEditing = previousValue;
       }
+    };
+  }, [isEditing]);
+
+  const handleStartEdit = useCallback(() => {
+    setDraftText(segment.text);
+    setIsEditing(true);
+  }, [segment.text]);
+
+  const handleSaveEdit = useCallback(() => {
+    setIsEditing(false);
+    onTextChange(draftText);
+  }, [draftText, onTextChange]);
+
+  const handleCancelEdit = useCallback(() => {
+    setIsEditing(false);
+    setDraftText(segment.text);
+  }, [segment.text]);
+
+  const handleEditKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
-        handleBlur();
+        handleSaveEdit();
+        return;
       }
       if (e.key === "Escape") {
-        setIsEditing(false);
-        if (textRef.current) {
-          textRef.current.innerText = segment.text;
-        }
+        e.preventDefault();
+        handleCancelEdit();
       }
     },
-    [handleBlur, segment.text, isEditing],
+    [handleCancelEdit, handleSaveEdit],
   );
 
   const handleWordAction = useCallback(
@@ -121,6 +153,7 @@ function TranscriptSegmentComponent({
 
   const handleSelectKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (isEditing) return;
       if (event.key === " ") {
         event.preventDefault();
         return;
@@ -130,8 +163,13 @@ function TranscriptSegmentComponent({
         onSelect();
       }
     },
-    [onSelect],
+    [isEditing, onSelect],
   );
+
+  const handleSegmentClick = useCallback(() => {
+    if (isEditing) return;
+    onSelect();
+  }, [isEditing, onSelect]);
 
   const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
@@ -145,7 +183,7 @@ function TranscriptSegmentComponent({
         isActive && "bg-accent/50",
         !isSelected && !isActive && "hover-elevate",
       )}
-      onClick={onSelect}
+      onClick={handleSegmentClick}
       onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
@@ -197,42 +235,68 @@ function TranscriptSegmentComponent({
             </span>
           </div>
 
-          <div
-            ref={textRef}
-            contentEditable={isEditing}
-            suppressContentEditableWarning
-            onDoubleClick={() => setIsEditing(true)}
-            onBlur={handleBlur}
-            onKeyDown={handleKeyDown}
-            className={cn(
-              "text-base leading-relaxed outline-none",
-              isEditing && "bg-background rounded px-2 py-1 ring-1 ring-ring",
-            )}
-            data-testid={`text-segment-${segment.id}`}
-            role="textbox"
-            aria-readonly={!isEditing}
-            tabIndex={0}
-          >
-            {!isEditing
-              ? segment.words.map((word, index) => (
-                  <span
-                    key={`${segment.id}-${word.start}-${word.end}`}
-                    onClick={(e) => handleWordClick(word, index, e)}
-                    onKeyDown={(event) => handleWordKeyDown(word, index, event)}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      index === resolvedActiveWordIndex && "bg-primary/20 underline",
-                      index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                    )}
-                    data-testid={`word-${segment.id}-${index}`}
-                    role="button"
-                    tabIndex={0}
-                  >
-                    {word.word}{" "}
-                  </span>
-                ))
-              : segment.text}
-          </div>
+          {!isEditing ? (
+            <div
+              onDoubleClick={handleStartEdit}
+              className="text-base leading-relaxed outline-none"
+              data-testid={`text-segment-${segment.id}`}
+              role="textbox"
+              aria-readonly
+              tabIndex={0}
+            >
+              {segment.words.map((word, index) => (
+                <span
+                  key={`${segment.id}-${word.start}-${word.end}`}
+                  onClick={(e) => handleWordClick(word, index, e)}
+                  onKeyDown={(event) => handleWordKeyDown(word, index, event)}
+                  className={cn(
+                    "cursor-pointer transition-colors",
+                    index === resolvedActiveWordIndex && "bg-primary/20 underline",
+                    index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                  )}
+                  data-testid={`word-${segment.id}-${index}`}
+                  role="button"
+                  tabIndex={0}
+                >
+                  {word.word}{" "}
+                </span>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Textarea
+                ref={editInputRef}
+                value={draftText}
+                onChange={(event) => setDraftText(event.target.value)}
+                onKeyDown={handleEditKeyDown}
+                className="text-base leading-relaxed"
+                data-testid={`textarea-segment-${segment.id}`}
+              />
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleSaveEdit();
+                  }}
+                  data-testid={`button-save-segment-${segment.id}`}
+                >
+                  Save
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleCancelEdit();
+                  }}
+                  data-testid={`button-cancel-segment-${segment.id}`}
+                >
+                  Cancel
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1 visibility-hidden group-hover:visible">

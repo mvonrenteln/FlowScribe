@@ -77,7 +77,7 @@ describe("TranscriptSegment", () => {
     expect(onSplit).toHaveBeenCalledWith(1);
   });
 
-  it("saves edited text on blur", () => {
+  it("saves edited text on Enter", async () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
@@ -96,16 +96,16 @@ describe("TranscriptSegment", () => {
 
     const textBlock = screen.getByTestId("text-segment-seg-1");
     fireEvent.doubleClick(textBlock);
-    Object.defineProperty(textBlock, "innerText", {
-      value: "Hallo zusammen",
-      writable: true,
-    });
-    fireEvent.blur(textBlock);
+
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Hallo zusammen");
+    fireEvent.keyDown(textarea, { key: "Enter" });
 
     expect(onTextChange).toHaveBeenCalledWith("Hallo zusammen");
   });
 
-  it("saves edited text on Enter and cancels on Escape", () => {
+  it("cancels edits on Escape", async () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
@@ -124,23 +124,73 @@ describe("TranscriptSegment", () => {
 
     const textBlock = screen.getByTestId("text-segment-seg-1");
     fireEvent.doubleClick(textBlock);
-    Object.defineProperty(textBlock, "innerText", {
-      value: "Hallo zusammen",
-      writable: true,
-    });
-    fireEvent.keyDown(textBlock, { key: "Enter" });
 
-    expect(onTextChange).toHaveBeenCalledWith("Hallo zusammen");
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Andere Worte");
+    fireEvent.keyDown(textarea, { key: "Escape" });
 
+    expect(onTextChange).not.toHaveBeenCalled();
+    expect(screen.getByText("Hallo")).toBeInTheDocument();
+    expect(screen.getByText("Welt")).toBeInTheDocument();
+  });
+
+  it("saves edited text via the save button", async () => {
+    const onTextChange = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const textBlock = screen.getByTestId("text-segment-seg-1");
     fireEvent.doubleClick(textBlock);
-    Object.defineProperty(textBlock, "innerText", {
-      value: "Andere Worte",
-      writable: true,
-    });
-    fireEvent.keyDown(textBlock, { key: "Escape" });
 
-    expect(onTextChange).toHaveBeenCalledTimes(1);
-    expect(textBlock).toHaveTextContent(segment.text);
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Neue Worte");
+    await userEvent.click(screen.getByTestId("button-save-segment-seg-1"));
+
+    expect(onTextChange).toHaveBeenCalledWith("Neue Worte");
+  });
+
+  it("cancels edits via the cancel button", async () => {
+    const onTextChange = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const textBlock = screen.getByTestId("text-segment-seg-1");
+    fireEvent.doubleClick(textBlock);
+
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    await userEvent.clear(textarea);
+    await userEvent.type(textarea, "Andere Worte");
+    await userEvent.click(screen.getByTestId("button-cancel-segment-seg-1"));
+
+    expect(onTextChange).not.toHaveBeenCalled();
+    expect(screen.getByText("Hallo")).toBeInTheDocument();
+    expect(screen.getByText("Welt")).toBeInTheDocument();
   });
 
   it("seeks when activating word with keyboard", () => {
