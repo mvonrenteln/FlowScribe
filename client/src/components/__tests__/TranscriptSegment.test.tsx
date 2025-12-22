@@ -161,7 +161,7 @@ describe("TranscriptSegment", () => {
     );
 
     const word = screen.getByTestId("word-seg-1-0");
-    fireEvent.keyDown(word, { key: " " });
+    fireEvent.keyDown(word, { key: "Enter" });
 
     expect(onSeek).toHaveBeenCalledWith(0);
   });

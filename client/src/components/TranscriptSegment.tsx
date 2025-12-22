@@ -66,6 +66,9 @@ function TranscriptSegmentComponent({
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
+      if (!isEditing && e.key === " ") {
+        e.preventDefault();
+      }
       if (e.key === "Enter" && !e.shiftKey) {
         e.preventDefault();
         handleBlur();
@@ -77,7 +80,7 @@ function TranscriptSegmentComponent({
         }
       }
     },
-    [handleBlur, segment.text],
+    [handleBlur, segment.text, isEditing],
   );
 
   const handleWordAction = useCallback(
@@ -101,7 +104,11 @@ function TranscriptSegmentComponent({
 
   const handleWordKeyDown = useCallback(
     (word: Word, index: number, event: React.KeyboardEvent<HTMLSpanElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
+      if (event.key === " ") {
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Enter") {
         event.preventDefault();
         event.stopPropagation();
         handleWordAction(word, index, event.shiftKey);
@@ -112,7 +119,11 @@ function TranscriptSegmentComponent({
 
   const handleSelectKeyDown = useCallback(
     (event: React.KeyboardEvent<HTMLDivElement>) => {
-      if (event.key === "Enter" || event.key === " ") {
+      if (event.key === " ") {
+        event.preventDefault();
+        return;
+      }
+      if (event.key === "Enter") {
         event.preventDefault();
         onSelect();
       }

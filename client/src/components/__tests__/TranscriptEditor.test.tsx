@@ -1,4 +1,4 @@
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranscriptEditor } from "@/components/TranscriptEditor";
@@ -207,7 +207,9 @@ describe("TranscriptEditor", () => {
       throw new Error("Expected numeric hotkeys to be registered.");
     }
 
-    handler(new KeyboardEvent("keydown", { key: "2" }));
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "2" }));
+    });
 
     const updatedSegment = useTranscriptStore.getState().segments[0];
     expect(updatedSegment.speaker).toBe("SPEAKER_01");
@@ -250,25 +252,170 @@ describe("TranscriptEditor", () => {
     });
   });
 
-  it("seeks when clicking a segment", async () => {
+  it("seeks to a clicked segment while paused", async () => {
+    mockTranscriptData = {
+      segments: [
+        {
+          speaker: "SPEAKER_00",
+          start: 4,
+          end: 5,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 4, end: 5 }],
+        },
+      ],
+    };
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("mock-upload"));
+
+    const [segment] = useTranscriptStore.getState().segments;
+    if (!segment) {
+      throw new Error("Expected a segment to exist.");
+    }
+
+    const segmentCard = await screen.findByTestId(`segment-${segment.id}`);
+    await userEvent.click(segmentCard);
+
+    const state = useTranscriptStore.getState();
+    expect(state.currentTime).toBe(segment.start);
+    expect(state.seekRequestTime).toBe(segment.start);
+  });
+
+  it("updates the selected segment when currentTime changes while paused", async () => {
     useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
           speaker: "SPEAKER_00",
-          start: 5,
-          end: 6,
+          start: 0,
+          end: 1,
           text: "Hallo",
-          words: [{ word: "Hallo", start: 5, end: 6 }],
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
         },
       ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
     });
 
     render(<TranscriptEditor />);
 
-    await userEvent.click(screen.getByTestId("segment-segment-1"));
+    act(() => {
+      useTranscriptStore.setState({ currentTime: 2.5 });
+    });
 
-    expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    });
+  });
+
+  it("moves selection with arrow keys while paused", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    await act(async () => {});
+
+    const segmentCard = screen.getByTestId("segment-segment-1");
+    fireEvent.keyDown(segmentCard, { key: "ArrowDown" });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    expect(useTranscriptStore.getState().currentTime).toBe(2);
+
+    const nextSegmentCard = screen.getByTestId("segment-segment-2");
+    fireEvent.keyDown(nextSegmentCard, { key: "ArrowUp" });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+    expect(useTranscriptStore.getState().currentTime).toBe(0);
+  });
+
+  it("toggles play/pause when space is pressed on an empty text block", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "",
+          words: [],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    const textBlock = await screen.findByTestId("text-segment-segment-1");
+    textBlock.focus();
+
+    fireEvent.keyDown(textBlock, { key: " " });
+
+    expect(useTranscriptStore.getState().isPlaying).toBe(true);
+  });
+
+  it("sets seekRequestTime when navigating with arrow keys", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    const segmentCard = screen.getByTestId("segment-segment-1");
+    fireEvent.keyDown(segmentCard, { key: "ArrowDown" });
+
+    expect(useTranscriptStore.getState().seekRequestTime).toBe(2);
   });
 });
