@@ -73,6 +73,38 @@ describe("useTranscriptStore", () => {
     expect(canUndo()).toBe(true);
   });
 
+  it("keeps existing timestamps when replacing a word with multiple words", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 3,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 3 },
+          ],
+        },
+      ],
+    });
+
+    const { updateSegmentText } = useTranscriptStore.getState();
+    updateSegmentText("seg-1", "Hallo schoene neue");
+
+    const { segments } = useTranscriptStore.getState();
+    expect(segments[0].words.map((word) => word.word)).toEqual([
+      "Hallo",
+      "schoene",
+      "neue",
+    ]);
+    expect(segments[0].words[0]).toEqual({ word: "Hallo", start: 0, end: 1 });
+    expect(segments[0].words[1]?.start).toBe(1);
+    expect(segments[0].words[2]?.end).toBe(3);
+  });
+
   it("merges adjacent segments", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 

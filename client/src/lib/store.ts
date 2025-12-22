@@ -225,14 +225,121 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const segment = segments.find((s) => s.id === id);
     if (!segment || segment.text === text) return;
     const normalizedText = text.trim();
-    const wordsArray = normalizedText.split(/\s+/).filter((word) => word.length > 0);
-    const segDuration = segment.end - segment.start;
-    const wordDuration = wordsArray.length > 0 ? segDuration / wordsArray.length : 0;
-    const words = wordsArray.map((word, index) => ({
-      word,
-      start: segment.start + index * wordDuration,
-      end: segment.start + (index + 1) * wordDuration,
-    }));
+    const nextWordTexts = normalizedText.split(/\s+/).filter((word) => word.length > 0);
+    const prevWords = segment.words;
+
+    const buildDefaultWords = () => {
+      const segDuration = segment.end - segment.start;
+      const wordDuration = nextWordTexts.length > 0 ? segDuration / nextWordTexts.length : 0;
+      return nextWordTexts.map((word, index) => ({
+        word,
+        start: segment.start + index * wordDuration,
+        end: segment.start + (index + 1) * wordDuration,
+      }));
+    };
+
+    const findMatches = (prevText: string[], nextText: string[]) => {
+      const rows = prevText.length + 1;
+      const cols = nextText.length + 1;
+      const table = Array.from({ length: rows }, () => Array(cols).fill(0));
+      for (let i = prevText.length - 1; i >= 0; i -= 1) {
+        for (let j = nextText.length - 1; j >= 0; j -= 1) {
+          if (prevText[i] === nextText[j]) {
+            table[i][j] = table[i + 1][j + 1] + 1;
+          } else {
+            table[i][j] = Math.max(table[i + 1][j], table[i][j + 1]);
+          }
+        }
+      }
+
+      const matches: Array<{ oldIndex: number; newIndex: number }> = [];
+      let i = 0;
+      let j = 0;
+      while (i < prevText.length && j < nextText.length) {
+        if (prevText[i] === nextText[j]) {
+          matches.push({ oldIndex: i, newIndex: j });
+          i += 1;
+          j += 1;
+        } else if (table[i + 1][j] >= table[i][j + 1]) {
+          i += 1;
+        } else {
+          j += 1;
+        }
+      }
+      return matches;
+    };
+
+    const buildWordsWithPreservedTiming = () => {
+      if (prevWords.length === 0 || nextWordTexts.length === 0) {
+        return buildDefaultWords();
+      }
+
+      const prevText = prevWords.map((word) => word.word);
+      const matches = findMatches(prevText, nextWordTexts);
+      const updated: typeof prevWords = [];
+
+      const addRegion = (
+        oldStart: number,
+        oldEnd: number,
+        newStart: number,
+        newEnd: number,
+      ) => {
+        const regionWords = nextWordTexts.slice(newStart, newEnd);
+        if (regionWords.length === 0) return;
+
+        let regionStart = segment.start;
+        let regionEnd = segment.end;
+
+        if (oldEnd > oldStart) {
+          regionStart = prevWords[oldStart].start;
+          regionEnd = prevWords[oldEnd - 1].end;
+        } else {
+          const prevWord = oldStart > 0 ? prevWords[oldStart - 1] : null;
+          const nextWord = oldEnd < prevWords.length ? prevWords[oldEnd] : null;
+          if (prevWord && nextWord) {
+            regionStart = prevWord.end;
+            regionEnd = nextWord.start;
+          } else if (prevWord) {
+            regionStart = prevWord.end;
+            regionEnd = segment.end;
+          } else if (nextWord) {
+            regionStart = segment.start;
+            regionEnd = nextWord.start;
+          }
+        }
+
+        if (regionEnd < regionStart) {
+          regionEnd = regionStart;
+        }
+
+        const duration = regionEnd - regionStart;
+        const step = regionWords.length > 0 ? duration / regionWords.length : 0;
+        regionWords.forEach((word, index) => {
+          const start = regionStart + index * step;
+          const end = regionStart + (index + 1) * step;
+          updated.push({ word, start, end: end < start ? start : end });
+        });
+      };
+
+      let prevIndex = 0;
+      let nextIndex = 0;
+      matches.forEach((match) => {
+        addRegion(prevIndex, match.oldIndex, nextIndex, match.newIndex);
+        const matchedPrev = prevWords[match.oldIndex];
+        updated.push({
+          word: nextWordTexts[match.newIndex],
+          start: matchedPrev.start,
+          end: matchedPrev.end,
+        });
+        prevIndex = match.oldIndex + 1;
+        nextIndex = match.newIndex + 1;
+      });
+      addRegion(prevIndex, prevWords.length, nextIndex, nextWordTexts.length);
+
+      return updated;
+    };
+
+    const words = buildWordsWithPreservedTiming();
     const newSegments = segments.map((s) =>
       s.id === id ? { ...s, text: normalizedText, words } : s,
     );
