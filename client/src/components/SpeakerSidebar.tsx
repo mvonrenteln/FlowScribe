@@ -26,6 +26,8 @@ interface SpeakerSidebarProps {
   onToggleLowConfidenceFilter?: () => void;
   lowConfidenceThreshold?: number | null;
   onLowConfidenceThresholdChange?: (value: number | null) => void;
+  bookmarkFilterActive?: boolean;
+  onToggleBookmarkFilter?: () => void;
 }
 
 export function SpeakerSidebar({
@@ -41,6 +43,8 @@ export function SpeakerSidebar({
   onToggleLowConfidenceFilter,
   lowConfidenceThreshold = null,
   onLowConfidenceThresholdChange,
+  bookmarkFilterActive = false,
+  onToggleBookmarkFilter,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -75,6 +79,7 @@ export function SpeakerSidebar({
             (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
           ),
         ).length;
+  const bookmarkCount = segments.filter((segment) => segment.bookmarked).length;
 
   const handleStartEdit = (speaker: Speaker) => {
     setEditingId(speaker.id);
@@ -315,6 +320,28 @@ export function SpeakerSidebar({
                 </div>
               </div>
             )}
+          </div>
+          <div className="pt-3 mt-3 border-t">
+            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Bookmarks
+            </div>
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                bookmarkFilterActive && "bg-accent",
+                bookmarkCount === 0 && "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (bookmarkCount === 0) return;
+                onToggleBookmarkFilter?.();
+              }}
+              data-testid="button-filter-bookmarks"
+            >
+              <span>Bookmarked</span>
+              <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
+            </button>
           </div>
         </div>
       </ScrollArea>

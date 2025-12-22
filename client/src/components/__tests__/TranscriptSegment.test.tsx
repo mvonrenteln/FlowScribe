@@ -36,6 +36,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={onSeek}
       />,
@@ -65,6 +66,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -92,6 +94,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -121,6 +124,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -152,6 +156,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -211,6 +216,8 @@ describe("TranscriptSegment", () => {
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={onSeek}
       />,
@@ -234,6 +241,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -260,6 +268,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -285,6 +294,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={onSplit}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -309,6 +319,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={onConfirm}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -333,6 +344,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={onConfirm}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -341,6 +353,30 @@ describe("TranscriptSegment", () => {
     await userEvent.click(screen.getByTestId("button-confirm-seg-1"));
 
     expect(onConfirm).toHaveBeenCalled();
+  });
+
+  it("toggles bookmark via the quick action button", async () => {
+    const onToggleBookmark = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={onToggleBookmark}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-bookmark-seg-1"));
+
+    expect(onToggleBookmark).toHaveBeenCalled();
   });
 
   it("shows the confirmed badge and icon when a segment is confirmed", () => {
@@ -356,6 +392,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,
@@ -387,6 +424,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,

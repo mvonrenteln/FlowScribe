@@ -46,6 +46,10 @@ export default function TranscriptSegmentExample() {
         onTextChange={(text) => setSegment({ ...segment, text })}
         onSpeakerChange={(speaker) => setSegment({ ...segment, speaker })}
         onSplit={(wordIndex) => console.log("Split at word:", wordIndex)}
+        onConfirm={() => setSegment({ ...segment, confirmed: true })}
+        onToggleBookmark={() =>
+          setSegment((current) => ({ ...current, bookmarked: !current.bookmarked }))
+        }
         onMergeWithNext={() => console.log("Merge with next")}
         onDelete={() => console.log("Delete segment")}
         onSeek={(time) => console.log("Seek to:", time)}

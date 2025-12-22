@@ -41,6 +41,7 @@ export function TranscriptEditor() {
     updateSegmentText,
     updateSegmentSpeaker,
     confirmSegment,
+    toggleSegmentBookmark,
     splitSegment,
     mergeSegments,
     updateSegmentTiming,
@@ -62,6 +63,7 @@ export function TranscriptEditor() {
   const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [filterLowConfidence, setFilterLowConfidence] = useState(false);
+  const [filterBookmarked, setFilterBookmarked] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -251,9 +253,12 @@ export function TranscriptEditor() {
         );
         if (!hasLowScore) return false;
       }
+      if (filterBookmarked && !segment.bookmarked) {
+        return false;
+      }
       return true;
     });
-  }, [activeSpeakerName, filterLowConfidence, lowConfidenceThreshold, segments]);
+  }, [activeSpeakerName, filterBookmarked, filterLowConfidence, lowConfidenceThreshold, segments]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -641,6 +646,7 @@ export function TranscriptEditor() {
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
           onConfirm: () => confirmSegment(segment.id),
+          onToggleBookmark: () => toggleSegmentBookmark(segment.id),
           onMergeWithPrevious,
           onMergeWithNext,
           onDelete: () => deleteSegment(segment.id),
@@ -654,6 +660,7 @@ export function TranscriptEditor() {
       updateSegmentSpeaker,
       updateSegmentText,
       confirmSegment,
+      toggleSegmentBookmark,
       splitSegment,
       deleteSegment,
     ],
@@ -805,6 +812,8 @@ export function TranscriptEditor() {
                 setManualConfidenceThreshold(value);
                 setHighlightLowConfidence(true);
               }}
+              bookmarkFilterActive={filterBookmarked}
+              onToggleBookmarkFilter={() => setFilterBookmarked((current) => !current)}
             />
         </aside>
 
@@ -901,6 +910,7 @@ export function TranscriptEditor() {
                       onSpeakerChange={handlers.onSpeakerChange}
                       onSplit={handlers.onSplit}
                       onConfirm={handlers.onConfirm}
+                      onToggleBookmark={handlers.onToggleBookmark}
                       onMergeWithPrevious={handlers.onMergeWithPrevious}
                       onMergeWithNext={handlers.onMergeWithNext}
                       onDelete={handlers.onDelete}

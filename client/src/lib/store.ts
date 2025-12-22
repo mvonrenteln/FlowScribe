@@ -16,6 +16,7 @@ export interface Segment {
   text: string;
   words: Word[];
   confirmed?: boolean;
+  bookmarked?: boolean;
 }
 
 export interface Speaker {
@@ -61,6 +62,7 @@ interface TranscriptState {
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
   confirmSegment: (id: string) => void;
+  toggleSegmentBookmark: (id: string) => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -390,6 +392,25 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const updatedWords = segment.words.map((word) => ({ ...word, score: 1 }));
     const newSegments = segments.map((s) =>
       s.id === id ? { ...s, words: updatedWords, confirmed: true } : s,
+    );
+    const nextHistory = pushHistory(history, historyIndex, {
+      segments: newSegments,
+      speakers,
+      selectedSegmentId,
+    });
+    set({
+      segments: newSegments,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  toggleSegmentBookmark: (id) => {
+    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const segment = segments.find((s) => s.id === id);
+    if (!segment) return;
+    const newSegments = segments.map((s) =>
+      s.id === id ? { ...s, bookmarked: !s.bookmarked } : s,
     );
     const nextHistory = pushHistory(history, historyIndex, {
       segments: newSegments,

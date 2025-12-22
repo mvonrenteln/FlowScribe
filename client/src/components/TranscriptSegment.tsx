@@ -1,4 +1,14 @@
-import { Check, CheckCircle2, Merge, MoreVertical, Scissors, Trash2, User } from "lucide-react";
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  CheckCircle2,
+  Merge,
+  MoreVertical,
+  Scissors,
+  Trash2,
+  User,
+} from "lucide-react";
 import { memo, useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,6 +37,7 @@ interface TranscriptSegmentProps {
   onSpeakerChange: (speaker: string) => void;
   onSplit: (wordIndex: number) => void;
   onConfirm: () => void;
+  onToggleBookmark: () => void;
   showConfirmAction?: boolean;
   onMergeWithPrevious?: () => void;
   onMergeWithNext?: () => void;
@@ -55,6 +66,7 @@ function TranscriptSegmentComponent({
   onSpeakerChange,
   onSplit,
   onConfirm,
+  onToggleBookmark,
   showConfirmAction = true,
   onMergeWithPrevious,
   onMergeWithNext,
@@ -183,6 +195,7 @@ function TranscriptSegmentComponent({
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
   const canSplitAtCurrentWord = resolvedSplitWordIndex > 0;
   const isConfirmed = segment.confirmed === true;
+  const isBookmarked = segment.bookmarked === true;
 
   const isLowConfidence = (word: Word) => {
     if (!highlightLowConfidence) return false;
@@ -345,6 +358,22 @@ function TranscriptSegmentComponent({
               {isConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <Check className="h-4 w-4" />}
             </Button>
           )}
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(e) => {
+              e.stopPropagation();
+              onToggleBookmark();
+            }}
+            data-testid={`button-bookmark-${segment.id}`}
+            aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+          >
+            {isBookmarked ? (
+              <BookmarkCheck className="h-4 w-4" />
+            ) : (
+              <Bookmark className="h-4 w-4" />
+            )}
+          </Button>
           {selectedWordIndex !== null && selectedWordIndex > 0 && (
             <Button
               size="icon"
@@ -434,6 +463,9 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onTextChange === next.onTextChange &&
     prev.onSpeakerChange === next.onSpeakerChange &&
     prev.onSplit === next.onSplit &&
+    prev.onConfirm === next.onConfirm &&
+    prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.showConfirmAction === next.showConfirmAction &&
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&
     prev.onDelete === next.onDelete &&

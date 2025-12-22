@@ -201,6 +201,34 @@ describe("useTranscriptStore", () => {
     expect(segments[0].confirmed).toBe(true);
   });
 
+  it("toggles a segment bookmark", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 0.5 },
+            { word: "Welt", start: 0.5, end: 1 },
+          ],
+        },
+      ],
+    });
+
+    useTranscriptStore.getState().toggleSegmentBookmark("seg-1");
+
+    let state = useTranscriptStore.getState();
+    expect(state.segments[0].bookmarked).toBe(true);
+
+    useTranscriptStore.getState().toggleSegmentBookmark("seg-1");
+    state = useTranscriptStore.getState();
+    expect(state.segments[0].bookmarked).toBe(false);
+  });
+
   it("splits a segment at a valid word boundary", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 
