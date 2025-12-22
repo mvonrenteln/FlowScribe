@@ -17,6 +17,8 @@ interface PlaybackControlsProps {
   isPlaying: boolean;
   currentTime: number;
   duration: number;
+  playbackRate: number;
+  onPlaybackRateChange: (rate: number) => void;
   onPlayPause: () => void;
   onSeek: (time: number) => void;
   onSkipBack: () => void;
@@ -37,6 +39,8 @@ export function PlaybackControls({
   isPlaying,
   currentTime,
   duration,
+  playbackRate,
+  onPlaybackRateChange,
   onPlayPause,
   onSeek,
   onSkipBack,
@@ -46,6 +50,13 @@ export function PlaybackControls({
   disabled = false,
 }: PlaybackControlsProps) {
   const [isMuted, setIsMuted] = useState(false);
+  const speedSteps = [0.5, 0.75, 1, 1.25, 1.5, 2];
+  const handleSpeedChange = () => {
+    const currentIndex = speedSteps.findIndex((value) => value >= playbackRate - 0.01);
+    const nextIndex = currentIndex >= 0 ? currentIndex + 1 : speedSteps.findIndex((v) => v > 1);
+    const nextRate = speedSteps[nextIndex] ?? speedSteps[0];
+    onPlaybackRateChange(nextRate);
+  };
 
   return (
     <div className="flex items-center gap-2">
@@ -122,6 +133,18 @@ export function PlaybackControls({
       >
         {formatTime(currentTime)} / {formatTime(duration)}
       </span>
+
+      <Button
+        size="sm"
+        variant="ghost"
+        onClick={handleSpeedChange}
+        disabled={disabled}
+        data-testid="button-playback-speed"
+        aria-label="Playback speed"
+        className="min-w-[48px]"
+      >
+        {playbackRate.toFixed(2)}x
+      </Button>
 
       <Button
         size="icon"

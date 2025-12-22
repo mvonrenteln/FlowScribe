@@ -64,6 +64,7 @@ export function TranscriptEditor() {
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [filterLowConfidence, setFilterLowConfidence] = useState(false);
   const [filterBookmarked, setFilterBookmarked] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -832,6 +833,7 @@ export function TranscriptEditor() {
               speakers={speakers}
               currentTime={currentTime}
               isPlaying={isPlaying}
+              playbackRate={playbackRate}
               showSpeakerRegions={isWhisperXFormat}
               onTimeUpdate={setCurrentTime}
               onPlayPause={setIsPlaying}
@@ -844,6 +846,8 @@ export function TranscriptEditor() {
               isPlaying={isPlaying}
               currentTime={currentTime}
               duration={duration}
+              playbackRate={playbackRate}
+              onPlaybackRateChange={setPlaybackRate}
               onPlayPause={handlePlayPause}
               onSeek={handleSeek}
               onSkipBack={handleSkipBack}

@@ -4,6 +4,7 @@ import { PlaybackControls } from "../PlaybackControls";
 export default function PlaybackControlsExample() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(45.5);
+  const [playbackRate, setPlaybackRate] = useState(1);
   const duration = 180;
 
   return (
@@ -12,6 +13,8 @@ export default function PlaybackControlsExample() {
         isPlaying={isPlaying}
         currentTime={currentTime}
         duration={duration}
+        playbackRate={playbackRate}
+        onPlaybackRateChange={setPlaybackRate}
         onPlayPause={() => setIsPlaying(!isPlaying)}
         onSeek={(time) => setCurrentTime(time)}
         onSkipBack={() => setCurrentTime(Math.max(0, currentTime - 5))}

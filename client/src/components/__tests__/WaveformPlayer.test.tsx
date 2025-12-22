@@ -21,6 +21,7 @@ const waveSurferMock = vi.hoisted(() => {
     play: vi.fn(),
     pause: vi.fn(),
     setTime: vi.fn(),
+    setPlaybackRate: vi.fn(),
   };
 
   return {
@@ -83,6 +84,7 @@ const baseProps = {
   speakers: [],
   currentTime: 0,
   isPlaying: false,
+  playbackRate: 1,
   showSpeakerRegions: false,
   onTimeUpdate: vi.fn(),
   onPlayPause: vi.fn(),
@@ -207,5 +209,17 @@ describe("WaveformPlayer", () => {
     });
 
     expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+  });
+
+  it("updates playback rate when ready", async () => {
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" playbackRate={1.5} />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    await waitFor(() => {
+      expect(waveSurferMock.instance.setPlaybackRate).toHaveBeenCalledWith(1.5);
+    });
   });
 });

@@ -11,6 +11,8 @@ describe("PlaybackControls", () => {
         isPlaying={false}
         currentTime={1}
         duration={10}
+        playbackRate={1}
+        onPlaybackRateChange={vi.fn()}
         onPlayPause={vi.fn()}
         onSeek={vi.fn()}
         onSkipBack={vi.fn()}
@@ -32,6 +34,8 @@ describe("PlaybackControls", () => {
         isPlaying={false}
         currentTime={1}
         duration={10}
+        playbackRate={1}
+        onPlaybackRateChange={vi.fn()}
         onPlayPause={vi.fn()}
         onSeek={vi.fn()}
         onSkipBack={vi.fn()}
@@ -47,5 +51,28 @@ describe("PlaybackControls", () => {
     await userEvent.click(splitButton);
 
     expect(onSplitAtCurrentWord).not.toHaveBeenCalled();
+  });
+
+  it("cycles playback speed when clicked", async () => {
+    const onPlaybackRateChange = vi.fn();
+    render(
+      <PlaybackControls
+        isPlaying={false}
+        currentTime={1}
+        duration={10}
+        playbackRate={1}
+        onPlaybackRateChange={onPlaybackRateChange}
+        onPlayPause={vi.fn()}
+        onSeek={vi.fn()}
+        onSkipBack={vi.fn()}
+        onSkipForward={vi.fn()}
+        onSplitAtCurrentWord={vi.fn()}
+        canSplitAtCurrentWord={false}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-playback-speed"));
+
+    expect(onPlaybackRateChange).toHaveBeenCalledWith(1.25);
   });
 });

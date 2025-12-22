@@ -13,6 +13,7 @@ interface WaveformPlayerProps {
   speakers: Speaker[];
   currentTime: number;
   isPlaying: boolean;
+  playbackRate: number;
   showSpeakerRegions: boolean;
   onTimeUpdate: (time: number) => void;
   onPlayPause: (playing: boolean) => void;
@@ -27,6 +28,7 @@ export function WaveformPlayer({
   speakers,
   currentTime: _currentTime,
   isPlaying,
+  playbackRate,
   showSpeakerRegions,
   onTimeUpdate,
   onPlayPause,
@@ -297,6 +299,12 @@ export function WaveformPlayer({
       ws.pause();
     }
   }, [isPlaying, isReady]);
+
+  useEffect(() => {
+    const ws = wavesurferRef.current;
+    if (!ws || !isReady) return;
+    ws.setPlaybackRate(playbackRate);
+  }, [isReady, playbackRate]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;
