@@ -200,7 +200,6 @@ export function WaveformPlayer({
     };
 
     ws.on("seeking", handleSeekEvent);
-    ws.on("seek", handleSeekEvent);
     ws.on("interaction", handleSeekEvent);
 
     return () => {

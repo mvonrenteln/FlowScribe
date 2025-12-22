@@ -80,7 +80,7 @@ function TranscriptSegmentComponent({
         }
       }
     },
-    [handleBlur, segment.text],
+    [handleBlur, segment.text, isEditing],
   );
 
   const handleWordAction = useCallback(

@@ -356,7 +356,7 @@ export function TranscriptEditor() {
     requestAnimationFrame(() => {
       target.scrollIntoView({ block: "center", behavior: "smooth" });
     });
-  }, [activeSegment, isPlaying]);
+  }, [activeSegment]);
 
   useEffect(() => {
     if (!selectedSegmentId || isPlaying) return;
