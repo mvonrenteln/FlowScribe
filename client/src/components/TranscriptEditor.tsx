@@ -1,12 +1,4 @@
-import {
-  Clock,
-  Download,
-  Keyboard,
-  PanelLeft,
-  PanelLeftClose,
-  Redo2,
-  Undo2,
-} from "lucide-react";
+import { Clock, Download, Keyboard, PanelLeft, PanelLeftClose, Redo2, Undo2 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
@@ -23,7 +15,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
-import { type FileReference, buildFileReference } from "@/lib/fileReference";
+import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";

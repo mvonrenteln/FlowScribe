@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type FileReference, buildSessionKey, isSameFileReference } from "@/lib/fileReference";
+import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
 
 export interface Word {
   word: string;
@@ -333,9 +333,7 @@ const normalizeLexiconEntriesFromGlobal = (state: PersistedGlobalState | null) =
       .filter((entry) => entry && typeof entry.term === "string")
       .map((entry) => ({
         term: String(entry.term),
-        variants: Array.isArray(entry.variants)
-          ? entry.variants.map(String).filter(Boolean)
-          : [],
+        variants: Array.isArray(entry.variants) ? entry.variants.map(String).filter(Boolean) : [],
         falsePositives: Array.isArray(entry.falsePositives)
           ? entry.falsePositives.map(String).filter(Boolean)
           : [],
@@ -374,13 +372,11 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
   return Array.from(seen.values());
 };
 
-const legacyState = readLegacyState();
 const sessionsState = readSessionsState(null);
 const globalState = readGlobalState(null);
 let sessionsCache = sessionsState.sessions;
 let activeSessionKeyCache = sessionsState.activeSessionKey;
 let lastRecentSerialized = JSON.stringify(buildRecentSessions(sessionsCache));
-
 
 const activeSession =
   sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
@@ -442,7 +438,9 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   setAudioReference: (reference) => {
     const state = get();
     const sessionKey =
-      state.transcriptRef === null ? state.sessionKey : buildSessionKey(reference, state.transcriptRef);
+      state.transcriptRef === null
+        ? state.sessionKey
+        : buildSessionKey(reference, state.transcriptRef);
     const session = sessionsCache[sessionKey];
     const shouldPromoteCurrent = !session && state.segments.length > 0;
     if (shouldPromoteCurrent) {
@@ -477,15 +475,16 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
         session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
-      history: session?.segments.length || shouldPromoteCurrent
-        ? [
-            {
-              segments: session?.segments ?? state.segments,
-              speakers: session?.speakers ?? state.speakers,
-              selectedSegmentId,
-            },
-          ]
-        : [],
+      history:
+        session?.segments.length || shouldPromoteCurrent
+          ? [
+              {
+                segments: session?.segments ?? state.segments,
+                speakers: session?.speakers ?? state.speakers,
+                selectedSegmentId,
+              },
+            ]
+          : [],
       historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
     });
   },
@@ -527,15 +526,16 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
         session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
-      history: session?.segments.length || shouldPromoteCurrent
-        ? [
-            {
-              segments: session?.segments ?? state.segments,
-              speakers: session?.speakers ?? state.speakers,
-              selectedSegmentId,
-            },
-          ]
-        : [],
+      history:
+        session?.segments.length || shouldPromoteCurrent
+          ? [
+              {
+                segments: session?.segments ?? state.segments,
+                speakers: session?.speakers ?? state.speakers,
+                selectedSegmentId,
+              },
+            ]
+          : [],
       historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
     });
   },
@@ -1144,7 +1144,10 @@ if (canUseLocalStorage()) {
   let pendingSessions: PersistedSessionsState | null = null;
   let pendingGlobal: PersistedGlobalState | null = null;
 
-  const schedulePersist = (sessionsState: PersistedSessionsState, globalState: PersistedGlobalState) => {
+  const schedulePersist = (
+    sessionsState: PersistedSessionsState,
+    globalState: PersistedGlobalState,
+  ) => {
     pendingSessions = sessionsState;
     pendingGlobal = globalState;
     if (persistTimeout) return;
