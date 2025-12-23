@@ -289,6 +289,9 @@ function TranscriptSegmentComponent({
           {!isEditing ? (
             <div
               onDoubleClick={handleStartEdit}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
               className="text-base leading-relaxed outline-none"
               data-testid={`text-segment-${segment.id}`}
               role="textbox"
