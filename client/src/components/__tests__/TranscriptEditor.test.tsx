@@ -261,6 +261,139 @@ describe("TranscriptEditor", () => {
     expect(second?.text).toBe("Welt Heute");
   });
 
+  it("starts editing the selected segment with the e hotkey", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 2,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 2 },
+          ],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("e");
+    if (!handler) {
+      throw new Error("Expected edit hotkey to be registered.");
+    }
+
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "e" }));
+    });
+
+    expect(await screen.findByTestId("textarea-segment-segment-1")).toBeInTheDocument();
+  });
+
+  it("merges with the previous segment using the p hotkey", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Welt",
+          words: [{ word: "Welt", start: 1, end: 2 }],
+        },
+      ],
+      selectedSegmentId: "segment-2",
+      currentTime: 1.2,
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("p");
+    if (!handler) {
+      throw new Error("Expected merge-previous hotkey to be registered.");
+    }
+
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "p" }));
+    });
+
+    const mergedSegments = useTranscriptStore.getState().segments;
+    expect(mergedSegments).toHaveLength(1);
+    expect(mergedSegments[0]?.text).toBe("Hallo Welt");
+  });
+
+  it("toggles the bookmark with the b hotkey", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+          bookmarked: false,
+        },
+      ],
+      selectedSegmentId: "segment-1",
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("b");
+    if (!handler) {
+      throw new Error("Expected bookmark hotkey to be registered.");
+    }
+
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "b" }));
+    });
+
+    expect(useTranscriptStore.getState().segments[0]?.bookmarked).toBe(true);
+  });
+
+  it("confirms the selected segment with the c hotkey", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1, score: 0.2 }],
+        },
+      ],
+      selectedSegmentId: "segment-1",
+    });
+
+    render(<TranscriptEditor />);
+
+    const handler = hotkeyHandlers.get("c");
+    if (!handler) {
+      throw new Error("Expected confirm hotkey to be registered.");
+    }
+
+    act(() => {
+      handler(new KeyboardEvent("keydown", { key: "c" }));
+    });
+
+    const updatedSegment = useTranscriptStore.getState().segments[0];
+    expect(updatedSegment?.confirmed).toBe(true);
+    expect(updatedSegment?.words[0]?.score).toBe(1);
+  });
+
   it("ignores hotkeys while editing transcript text", () => {
     useTranscriptStore.setState({
       segments: [

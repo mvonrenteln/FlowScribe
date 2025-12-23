@@ -72,6 +72,7 @@ export function TranscriptEditor() {
   const [filterLexicon, setFilterLexicon] = useState(false);
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
+  const [editRequestId, setEditRequestId] = useState<string | null>(null);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -497,6 +498,34 @@ export function TranscriptEditor() {
   );
 
   useHotkeys(
+    "e",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (selectedSegmentId) {
+        setEditRequestId(selectedSegmentId);
+      }
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
+
+  useHotkeys(
+    "p",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (selectedSegmentId) {
+        const index = getSelectedSegmentIndex();
+        if (index > 0) {
+          const mergedId = mergeSegments(segments[index - 1].id, selectedSegmentId);
+          if (mergedId) {
+            setSelectedSegmentId(mergedId);
+          }
+        }
+      }
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
+
+  useHotkeys(
     "m",
     () => {
       if (isTranscriptEditing()) return;
@@ -508,6 +537,28 @@ export function TranscriptEditor() {
             setSelectedSegmentId(mergedId);
           }
         }
+      }
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
+
+  useHotkeys(
+    "b",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (selectedSegmentId) {
+        toggleSegmentBookmark(selectedSegmentId);
+      }
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
+
+  useHotkeys(
+    "c",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (selectedSegmentId) {
+        confirmSegment(selectedSegmentId);
       }
     },
     { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
@@ -1003,6 +1054,10 @@ export function TranscriptEditor() {
                       lowConfidenceThreshold={lowConfidenceThreshold}
                       lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
                       showLexiconMatches={lexiconEntries.length > 0}
+                      editRequested={editRequestId === segment.id}
+                      onEditRequestHandled={
+                        editRequestId === segment.id ? () => setEditRequestId(null) : undefined
+                      }
                       onSelect={handlers.onSelect}
                       onTextChange={handlers.onTextChange}
                       onSpeakerChange={handlers.onSpeakerChange}

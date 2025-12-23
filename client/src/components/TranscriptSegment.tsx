@@ -35,6 +35,8 @@ interface TranscriptSegmentProps {
   lowConfidenceThreshold?: number | null;
   lexiconMatches?: Map<number, { term: string; score: number }>;
   showLexiconMatches?: boolean;
+  editRequested?: boolean;
+  onEditRequestHandled?: () => void;
   onSelect: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
@@ -66,6 +68,8 @@ function TranscriptSegmentComponent({
   lowConfidenceThreshold = null,
   lexiconMatches,
   showLexiconMatches = false,
+  editRequested = false,
+  onEditRequestHandled,
   onSelect,
   onTextChange,
   onSpeakerChange,
@@ -116,6 +120,14 @@ function TranscriptSegmentComponent({
     setDraftText(segment.text);
     setIsEditing(true);
   }, [segment.text]);
+
+  useEffect(() => {
+    if (!editRequested) return;
+    if (!isEditing) {
+      handleStartEdit();
+    }
+    onEditRequestHandled?.();
+  }, [editRequested, handleStartEdit, isEditing, onEditRequestHandled]);
 
   const handleSaveEdit = useCallback(() => {
     setIsEditing(false);
@@ -518,6 +530,8 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.lowConfidenceThreshold === next.lowConfidenceThreshold &&
     prev.lexiconMatches === next.lexiconMatches &&
     prev.showLexiconMatches === next.showLexiconMatches &&
+    prev.editRequested === next.editRequested &&
+    prev.onEditRequestHandled === next.onEditRequestHandled &&
     prev.onSelect === next.onSelect &&
     prev.onTextChange === next.onTextChange &&
     prev.onSpeakerChange === next.onSpeakerChange &&
