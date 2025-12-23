@@ -14,7 +14,11 @@ vi.mock("react-hotkeys-hook", () => ({
 }));
 
 vi.mock("@/components/FileUpload", () => ({
-  FileUpload: ({ onTranscriptUpload }: { onTranscriptUpload: (data: unknown) => void }) => (
+  FileUpload: ({
+    onTranscriptUpload,
+  }: {
+    onTranscriptUpload: (data: unknown, fileName?: string) => void;
+  }) => (
     <button
       type="button"
       data-testid="mock-upload"

@@ -75,6 +75,7 @@ export function TranscriptEditor() {
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [editRequestId, setEditRequestId] = useState<string | null>(null);
+  const [transcriptFileName, setTranscriptFileName] = useState<string | undefined>();
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -92,7 +93,7 @@ export function TranscriptEditor() {
   );
 
   const handleTranscriptUpload = useCallback(
-    (data: unknown) => {
+    (data: unknown, fileName?: string) => {
       interface WhisperSegment {
         timestamp: [number, number];
         text: string;
@@ -180,6 +181,7 @@ export function TranscriptEditor() {
 
       if (processedSegments.length > 0) {
         loadTranscript({ segments: processedSegments, isWhisperXFormat: detectedWhisperXFormat });
+        setTranscriptFileName(fileName);
       }
     },
     [loadTranscript],
@@ -841,12 +843,18 @@ export function TranscriptEditor() {
           </Button>
           <Separator orientation="vertical" className="h-6" />
           <h1 className="text-sm font-semibold tracking-tight">TranscriptEditor</h1>
-          {audioFile && (
-            <span className="text-xs text-muted-foreground ml-2">{audioFile.name}</span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">
+          <FileUpload
+            onAudioUpload={handleAudioUpload}
+            onTranscriptUpload={handleTranscriptUpload}
+            audioFileName={audioFile?.name}
+            transcriptFileName={transcriptFileName}
+            transcriptLoaded={segments.length > 0}
+            variant="inline"
+          />
+          <Separator orientation="vertical" className="h-6" />
           <Button
             size="icon"
             variant="ghost"
@@ -993,13 +1001,6 @@ export function TranscriptEditor() {
 
         <main className="flex-1 flex flex-col overflow-hidden">
           <div className="p-4 space-y-4 border-b bg-card">
-            <FileUpload
-              onAudioUpload={handleAudioUpload}
-              onTranscriptUpload={handleTranscriptUpload}
-              audioFileName={audioFile?.name}
-              transcriptLoaded={segments.length > 0}
-            />
-
             <WaveformPlayer
               audioUrl={audioUrl}
               segments={segments}

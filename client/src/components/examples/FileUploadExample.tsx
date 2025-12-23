@@ -3,6 +3,7 @@ import { FileUpload } from "../FileUpload";
 
 export default function FileUploadExample() {
   const [audioFileName, setAudioFileName] = useState<string | undefined>();
+  const [transcriptFileName, setTranscriptFileName] = useState<string | undefined>();
   const [transcriptLoaded, setTranscriptLoaded] = useState(false);
 
   return (
@@ -11,11 +12,13 @@ export default function FileUploadExample() {
         console.log("Audio uploaded:", file.name);
         setAudioFileName(file.name);
       }}
-      onTranscriptUpload={(data) => {
+      onTranscriptUpload={(data, fileName) => {
         console.log("Transcript loaded:", data);
+        setTranscriptFileName(fileName);
         setTranscriptLoaded(true);
       }}
       audioFileName={audioFileName}
+      transcriptFileName={transcriptFileName}
       transcriptLoaded={transcriptLoaded}
     />
   );

@@ -11,20 +11,27 @@ import {
 
 interface FileUploadProps {
   onAudioUpload: (file: File) => void;
-  onTranscriptUpload: (data: unknown) => void;
+  onTranscriptUpload: (data: unknown, fileName?: string) => void;
   audioFileName?: string;
+  transcriptFileName?: string;
   transcriptLoaded?: boolean;
+  variant?: "card" | "inline";
 }
 
 export function FileUpload({
   onAudioUpload,
   onTranscriptUpload,
   audioFileName,
+  transcriptFileName,
   transcriptLoaded,
+  variant = "card",
 }: FileUploadProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
   const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
+  const [localTranscriptFileName, setLocalTranscriptFileName] = useState<string | undefined>(
+    transcriptFileName,
+  );
 
   useEffect(() => {
     let isMounted = true;
@@ -41,6 +48,12 @@ export function FileUpload({
       isMounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (transcriptFileName) {
+      setLocalTranscriptFileName(transcriptFileName);
+    }
+  }, [transcriptFileName]);
 
   const handleAudioChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -119,7 +132,8 @@ export function FileUpload({
         reader.onload = (event) => {
           try {
             const data = JSON.parse(event.target?.result as string);
-            onTranscriptUpload(data);
+            onTranscriptUpload(data, file.name);
+            setLocalTranscriptFileName(file.name);
           } catch (err) {
             console.error("Failed to parse transcript JSON:", err);
           }
@@ -130,9 +144,8 @@ export function FileUpload({
     [onTranscriptUpload],
   );
 
-  return (
-    <Card className="p-4">
-      <div className="flex flex-wrap items-center gap-3">
+  const content = (
+    <div className="flex flex-wrap items-center gap-3">
         <input
           ref={audioInputRef}
           type="file"
@@ -172,16 +185,22 @@ export function FileUpload({
           data-testid="button-upload-transcript"
         >
           <FileText className="h-4 w-4 mr-2" />
-          {transcriptLoaded ? "Transcript Loaded" : "Load Transcript"}
+          {localTranscriptFileName ||
+            (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
         </Button>
 
-        {!audioFileName && !transcriptLoaded && (
+        {variant === "card" && !audioFileName && !transcriptLoaded && (
           <span className="text-sm text-muted-foreground">
             <Upload className="h-4 w-4 inline mr-1" />
             Drop files or click to upload
           </span>
         )}
       </div>
-    </Card>
   );
+
+  if (variant === "inline") {
+    return <div className="flex items-center">{content}</div>;
+  }
+
+  return <Card className="p-4">{content}</Card>;
 }

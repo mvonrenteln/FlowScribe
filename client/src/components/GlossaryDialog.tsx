@@ -220,7 +220,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                   <div
                     key={entry.term}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded-md border px-2 py-1",
+                      "flex items-start justify-between gap-2 rounded-md border px-2 py-1",
                       selectedTerm === entry.term && "bg-accent",
                     )}
                     role="button"
@@ -238,10 +238,10 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                       }
                     }}
                   >
-                    <div className="min-w-0">
+                    <div className="min-w-0 flex-1">
                       <div className="text-sm">{entry.term}</div>
                       {entry.variants.length > 0 && (
-                        <div className="text-xs text-muted-foreground truncate">
+                        <div className="text-xs text-muted-foreground whitespace-normal break-words">
                           Variants: {entry.variants.join(", ")}
                         </div>
                       )}
