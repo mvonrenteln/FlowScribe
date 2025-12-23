@@ -28,6 +28,7 @@ export interface Speaker {
 export interface LexiconEntry {
   term: string;
   variants: string[];
+  falsePositives: string[];
 }
 
 interface HistoryState {
@@ -73,9 +74,14 @@ interface TranscriptState {
   confirmSegment: (id: string) => void;
   toggleSegmentBookmark: (id: string) => void;
   setLexiconEntries: (entries: LexiconEntry[]) => void;
-  addLexiconEntry: (term: string, variants?: string[]) => void;
+  addLexiconEntry: (term: string, variants?: string[], falsePositives?: string[]) => void;
   removeLexiconEntry: (term: string) => void;
-  updateLexiconEntry: (previousTerm: string, term: string, variants?: string[]) => void;
+  updateLexiconEntry: (
+    previousTerm: string,
+    term: string,
+    variants?: string[],
+    falsePositives?: string[],
+  ) => void;
   setLexiconThreshold: (value: number) => void;
   setLexiconHighlightUnderline: (value: boolean) => void;
   setLexiconHighlightBackground: (value: boolean) => void;
@@ -152,12 +158,15 @@ const readPersistedState = (): PersistedTranscriptState | null => {
             variants: Array.isArray(entry.variants)
               ? entry.variants.map(String).filter(Boolean)
               : [],
+            falsePositives: Array.isArray(entry.falsePositives)
+              ? entry.falsePositives.map(String).filter(Boolean)
+              : [],
           }))
       : Array.isArray(parsed.lexiconTerms)
         ? parsed.lexiconTerms
             .map((term) => (typeof term === "string" ? term : String(term ?? "")))
             .filter(Boolean)
-            .map((term) => ({ term, variants: [] }))
+            .map((term) => ({ term, variants: [], falsePositives: [] }))
         : [];
 
     return {
@@ -196,6 +205,7 @@ const normalizeLexiconEntry = (entry: LexiconEntry): LexiconEntry | null => {
   return {
     term,
     variants: normalizeLexiconVariants(entry.variants ?? []),
+    falsePositives: normalizeLexiconVariants(entry.falsePositives ?? []),
   };
 };
 const uniqueEntries = (entries: LexiconEntry[]) => {
@@ -213,7 +223,15 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
       ...existing.variants,
       ...normalized.variants,
     ]);
-    seen.set(key, { term: existing.term, variants: mergedVariants });
+    const mergedFalsePositives = normalizeLexiconVariants([
+      ...existing.falsePositives,
+      ...normalized.falsePositives,
+    ]);
+    seen.set(key, {
+      term: existing.term,
+      variants: mergedVariants,
+      falsePositives: mergedFalsePositives,
+    });
   });
   return Array.from(seen.values());
 };
@@ -508,10 +526,10 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     set({ lexiconEntries: uniqueEntries(entries) });
   },
 
-  addLexiconEntry: (term, variants = []) => {
+  addLexiconEntry: (term, variants = [], falsePositives = []) => {
     const cleaned = term.trim();
     if (!cleaned) return;
-    const entry: LexiconEntry = { term: cleaned, variants };
+    const entry: LexiconEntry = { term: cleaned, variants, falsePositives };
     const { lexiconEntries } = get();
     const next = uniqueEntries([...lexiconEntries, entry]);
     set({ lexiconEntries: next });
@@ -526,7 +544,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     set({ lexiconEntries: next });
   },
 
-  updateLexiconEntry: (previousTerm, term, variants = []) => {
+  updateLexiconEntry: (previousTerm, term, variants = [], falsePositives = []) => {
     const normalizedPrevious = normalizeLexiconTerm(previousTerm);
     const cleaned = term.trim();
     if (!cleaned) return;
@@ -534,7 +552,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const remaining = lexiconEntries.filter(
       (entry) => normalizeLexiconTerm(entry.term) !== normalizedPrevious,
     );
-    const next = uniqueEntries([...remaining, { term: cleaned, variants }]);
+    const next = uniqueEntries([...remaining, { term: cleaned, variants, falsePositives }]);
     set({ lexiconEntries: next });
   },
 

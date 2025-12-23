@@ -43,23 +43,30 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   );
   const [newTerm, setNewTerm] = useState("");
   const [newVariants, setNewVariants] = useState("");
+  const [newFalsePositives, setNewFalsePositives] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   const selectedEntry = selectedTerm
     ? lexiconEntries.find((entry) => entry.term === selectedTerm)
     : undefined;
-  const handleAdd = () => {
-    const variants = newVariants
+  const parseList = (value: string) =>
+    value
       .split(",")
       .map((variant) => variant.trim())
       .filter(Boolean);
+  const stripFalsePositiveLabel = (value: string) =>
+    value.replace(/^false positives?:/i, "").trim();
+  const handleAdd = () => {
+    const variants = parseList(newVariants);
+    const falsePositives = parseList(newFalsePositives);
     if (selectedTerm) {
-      updateLexiconEntry(selectedTerm, newTerm, variants);
+      updateLexiconEntry(selectedTerm, newTerm, variants, falsePositives);
     } else {
-      addLexiconEntry(newTerm, variants);
+      addLexiconEntry(newTerm, variants, falsePositives);
     }
     setNewTerm("");
     setNewVariants("");
+    setNewFalsePositives("");
     setSelectedTerm(null);
   };
 
@@ -72,7 +79,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
         .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => {
-          const [termPart, variantsPart] = line.split("|");
+          const [termPart, variantsPart, falsePositivesPart] = line.split("|");
           const term = termPart?.trim() ?? "";
           const variants = variantsPart
             ? variantsPart
@@ -80,7 +87,13 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                 .map((variant) => variant.trim())
                 .filter(Boolean)
             : [];
-          return { term, variants };
+          const falsePositives = falsePositivesPart
+            ? stripFalsePositiveLabel(falsePositivesPart)
+                .split(",")
+                .map((variant) => variant.trim())
+                .filter(Boolean)
+            : [];
+          return { term, variants, falsePositives };
         });
       setLexiconEntries(entries);
     };
@@ -89,11 +102,15 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
 
   const handleExport = () => {
     const content = lexiconEntries
-      .map((entry) =>
-        entry.variants.length > 0
-          ? `${entry.term} | ${entry.variants.join(", ")}`
-          : entry.term,
-      )
+      .map((entry) => {
+        const variantsPart =
+          entry.variants.length > 0 ? ` | ${entry.variants.join(", ")}` : "";
+        const falsePositivesPart =
+          entry.falsePositives.length > 0
+            ? ` | false positives: ${entry.falsePositives.join(", ")}`
+            : "";
+        return `${entry.term}${variantsPart}${falsePositivesPart}`;
+      })
       .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
@@ -191,6 +208,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                     setSelectedTerm(null);
                     setNewTerm("");
                     setNewVariants("");
+                    setNewFalsePositives("");
                   }}
                 >
                   Cancel
@@ -208,6 +226,18 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
               }}
               placeholder="Common mistakes (comma-separated)..."
               data-testid="input-lexicon-variants"
+            />
+            <Input
+              value={newFalsePositives}
+              onChange={(event) => setNewFalsePositives(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleAdd();
+                }
+              }}
+              placeholder="Common false positives (comma-separated)..."
+              data-testid="input-lexicon-false-positives"
             />
           </div>
 
@@ -229,12 +259,14 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                       setSelectedTerm(entry.term);
                       setNewTerm(entry.term);
                       setNewVariants(entry.variants.join(", "));
+                      setNewFalsePositives(entry.falsePositives.join(", "));
                     }}
                     onKeyDown={(event) => {
                       if (event.key === "Enter") {
                         setSelectedTerm(entry.term);
                         setNewTerm(entry.term);
                         setNewVariants(entry.variants.join(", "));
+                        setNewFalsePositives(entry.falsePositives.join(", "));
                       }
                     }}
                   >
@@ -243,6 +275,11 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                       {entry.variants.length > 0 && (
                         <div className="text-xs text-muted-foreground whitespace-normal break-words">
                           Variants: {entry.variants.join(", ")}
+                        </div>
+                      )}
+                      {entry.falsePositives.length > 0 && (
+                        <div className="text-xs text-muted-foreground whitespace-normal break-words">
+                          False positives: {entry.falsePositives.join(", ")}
                         </div>
                       )}
                     </div>
@@ -256,6 +293,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
                           setSelectedTerm(null);
                           setNewTerm("");
                           setNewVariants("");
+                          setNewFalsePositives("");
                         }
                       }}
                       aria-label={`Remove ${entry.term}`}
@@ -298,7 +336,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
             </Button>
           </div>
           <div className="text-xs text-muted-foreground">
-            Import/Export format: Term | variant 1, variant 2
+            Import/Export format: Term | variant 1, variant 2 | false positives: fp1, fp2
           </div>
         </div>
 

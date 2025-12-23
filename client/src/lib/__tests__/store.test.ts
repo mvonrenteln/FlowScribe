@@ -238,7 +238,9 @@ describe("useTranscriptStore", () => {
     addLexiconEntry("  ");
 
     let state = useTranscriptStore.getState();
-    expect(state.lexiconEntries).toEqual([{ term: "Zwergenb\u00e4r", variants: [] }]);
+    expect(state.lexiconEntries).toEqual([
+      { term: "Zwergenb\u00e4r", variants: [], falsePositives: [] },
+    ]);
 
     removeLexiconEntry("ZWErgenb\u00e4r");
     state = useTranscriptStore.getState();
@@ -253,11 +255,11 @@ describe("useTranscriptStore", () => {
 
     useTranscriptStore
       .getState()
-      .updateLexiconEntry("Glymbar", "Glymbar", ["Glimmer", "Klimbar"]);
+      .updateLexiconEntry("Glymbar", "Glymbar", ["Glimmer", "Klimbar"], ["Glimmer"]);
 
     const { lexiconEntries } = useTranscriptStore.getState();
     expect(lexiconEntries).toEqual([
-      { term: "Glymbar", variants: ["Glimmer", "Klimbar"] },
+      { term: "Glymbar", variants: ["Glimmer", "Klimbar"], falsePositives: ["Glimmer"] },
     ]);
   });
 

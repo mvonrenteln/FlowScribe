@@ -825,7 +825,7 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [{ term: "Zwergenb\u00e4r", variants: [] }],
+      lexiconEntries: [{ term: "Zwergenb\u00e4r", variants: [], falsePositives: [] }],
       lexiconThreshold: 0.8,
     });
 
@@ -858,7 +858,9 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klümper"] }],
+      lexiconEntries: [
+        { term: "Glymbar", variants: ["Glimmer", "Klümper"], falsePositives: [] },
+      ],
       lexiconThreshold: 0.8,
     });
 
@@ -868,6 +870,35 @@ describe("TranscriptEditor", () => {
 
     expect(screen.getByText("Glimmer")).toBeInTheDocument();
     expect(screen.queryByText("Andere")).not.toBeInTheDocument();
+  });
+
+  it("ignores glossary false positives in the filter", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Glimmer",
+          words: [{ word: "Glimmer", start: 0, end: 1 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconEntries: [
+        {
+          term: "Glymbar",
+          variants: ["Glimmer"],
+          falsePositives: ["Glimmer"],
+        },
+      ],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    const glossaryButton = screen.getByTestId("button-filter-glossary");
+    expect(glossaryButton.textContent).toContain("0");
   });
 
   it("filters segments using the glossary low-score filter", async () => {
@@ -891,7 +922,7 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [{ term: "Zwergenbear", variants: [] }],
+      lexiconEntries: [{ term: "Zwergenbear", variants: [], falsePositives: [] }],
       lexiconThreshold: 0.8,
     });
 

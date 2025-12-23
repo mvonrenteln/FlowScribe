@@ -263,6 +263,12 @@ export function TranscriptEditor() {
               normalized: normalizeToken(variant),
             }))
             .filter((variant) => variant.normalized.length > 0),
+          falsePositives: entry.falsePositives
+            .map((value) => ({
+              value,
+              normalized: normalizeToken(value),
+            }))
+            .filter((value) => value.normalized.length > 0),
         }))
         .filter((entry) => entry.normalized.length > 0),
     [lexiconEntries],
@@ -276,10 +282,30 @@ export function TranscriptEditor() {
       const wordMatches = new Map<number, { term: string; score: number }>();
       segment.words.forEach((word, index) => {
         const normalizedWord = normalizeToken(word.word);
+        const rawWord = word.word.trim().toLowerCase();
         if (!normalizedWord) return;
         let bestScore = 0;
         let bestTerm = "";
         lexiconEntriesNormalized.forEach((entry) => {
+          if (
+            entry.falsePositives.some(
+              (value) =>
+                value.normalized === normalizedWord ||
+                value.value.trim().toLowerCase() === rawWord,
+            )
+          ) {
+            return;
+          }
+          let bestFalsePositiveScore = 0;
+          entry.falsePositives.forEach((value) => {
+            const score = similarityScore(normalizedWord, value.normalized);
+            if (score > bestFalsePositiveScore) {
+              bestFalsePositiveScore = score;
+            }
+          });
+          if (bestFalsePositiveScore >= lexiconThreshold) {
+            return;
+          }
           const score = similarityScore(normalizedWord, entry.normalized);
           if (score > bestScore) {
             bestScore = score;
