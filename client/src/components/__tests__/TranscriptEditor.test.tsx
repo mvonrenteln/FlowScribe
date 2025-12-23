@@ -68,7 +68,7 @@ const resetStore = () => {
     history: [],
     historyIndex: -1,
     isWhisperXFormat: false,
-    lexiconTerms: [],
+    lexiconEntries: [],
     lexiconThreshold: 0.82,
   });
 };
@@ -819,7 +819,7 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconTerms: ["Zwergenb\u00e4r"],
+      lexiconEntries: [{ term: "Zwergenb\u00e4r", variants: [] }],
       lexiconThreshold: 0.8,
     });
 
@@ -829,6 +829,39 @@ describe("TranscriptEditor", () => {
 
     expect(screen.queryByText("Ritter")).not.toBeInTheDocument();
     expect(screen.getByText("Zwergenbar")).toBeInTheDocument();
+  });
+
+  it("matches glossary variants in the filter", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Glimmer",
+          words: [{ word: "Glimmer", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Andere",
+          words: [{ word: "Andere", start: 1, end: 2 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klümper"] }],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary"));
+
+    expect(screen.getByText("Glimmer")).toBeInTheDocument();
+    expect(screen.queryByText("Andere")).not.toBeInTheDocument();
   });
 
   it("filters segments using the glossary low-score filter", async () => {
@@ -852,7 +885,7 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconTerms: ["Zwergenbear"],
+      lexiconEntries: [{ term: "Zwergenbear", variants: [] }],
       lexiconThreshold: 0.8,
     });
 

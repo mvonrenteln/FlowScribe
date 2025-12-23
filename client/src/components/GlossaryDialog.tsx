@@ -1,4 +1,4 @@
-import { Download, Plus, Upload, X } from "lucide-react";
+import { Check, Download, Plus, Upload, X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { useTranscriptStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 interface GlossaryDialogProps {
   open: boolean;
@@ -20,39 +21,72 @@ interface GlossaryDialogProps {
 }
 
 export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
-  const lexiconTerms = useTranscriptStore((state) => state.lexiconTerms);
+  const lexiconEntries = useTranscriptStore((state) => state.lexiconEntries);
   const lexiconThreshold = useTranscriptStore((state) => state.lexiconThreshold);
-  const addLexiconTerm = useTranscriptStore((state) => state.addLexiconTerm);
-  const removeLexiconTerm = useTranscriptStore((state) => state.removeLexiconTerm);
-  const setLexiconTerms = useTranscriptStore((state) => state.setLexiconTerms);
+  const addLexiconEntry = useTranscriptStore((state) => state.addLexiconEntry);
+  const removeLexiconEntry = useTranscriptStore((state) => state.removeLexiconEntry);
+  const setLexiconEntries = useTranscriptStore((state) => state.setLexiconEntries);
+  const updateLexiconEntry = useTranscriptStore((state) => state.updateLexiconEntry);
   const setLexiconThreshold = useTranscriptStore((state) => state.setLexiconThreshold);
   const [newTerm, setNewTerm] = useState("");
+  const [newVariants, setNewVariants] = useState("");
+  const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  const selectedEntry = selectedTerm
+    ? lexiconEntries.find((entry) => entry.term === selectedTerm)
+    : undefined;
   const handleAdd = () => {
-    addLexiconTerm(newTerm);
+    const variants = newVariants
+      .split(",")
+      .map((variant) => variant.trim())
+      .filter(Boolean);
+    if (selectedTerm) {
+      updateLexiconEntry(selectedTerm, newTerm, variants);
+    } else {
+      addLexiconEntry(newTerm, variants);
+    }
     setNewTerm("");
+    setNewVariants("");
+    setSelectedTerm(null);
   };
 
   const handleImport = (file: File) => {
     const reader = new FileReader();
     reader.onload = () => {
       const content = String(reader.result ?? "");
-      const terms = content
+      const entries = content
         .split(/\r?\n/)
         .map((line) => line.trim())
-        .filter(Boolean);
-      setLexiconTerms(terms);
+        .filter(Boolean)
+        .map((line) => {
+          const [termPart, variantsPart] = line.split("|");
+          const term = termPart?.trim() ?? "";
+          const variants = variantsPart
+            ? variantsPart
+                .split(",")
+                .map((variant) => variant.trim())
+                .filter(Boolean)
+            : [];
+          return { term, variants };
+        });
+      setLexiconEntries(entries);
     };
     reader.readAsText(file);
   };
 
   const handleExport = () => {
-    const content = lexiconTerms.join("\n");
+    const content = lexiconEntries
+      .map((entry) =>
+        entry.variants.length > 0
+          ? `${entry.term} | ${entry.variants.join(", ")}`
+          : entry.term,
+      )
+      .join("\n");
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
     anchor.href = url;
-    anchor.download = "lexicon.txt";
+    anchor.download = "glossary.txt";
     document.body.appendChild(anchor);
     anchor.click();
     document.body.removeChild(anchor);
@@ -65,7 +99,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
         <DialogHeader>
           <DialogTitle>Glossary</DialogTitle>
           <DialogDescription>
-            Manage terms that should be highlighted and used for fuzzy matching.
+            Manage terms and common mistakes for highlighting and fuzzy matching.
           </DialogDescription>
         </DialogHeader>
 
@@ -82,41 +116,108 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
             <div className="text-xs text-muted-foreground">{lexiconThreshold.toFixed(2)}</div>
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2">
+              <Input
+                value={newTerm}
+                onChange={(event) => setNewTerm(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    handleAdd();
+                  }
+                }}
+                placeholder="Add term..."
+                data-testid="input-lexicon-term"
+              />
+              <Button onClick={handleAdd} disabled={!newTerm.trim()}>
+                {selectedTerm ? (
+                  <>
+                    <Check className="h-4 w-4 mr-2" />
+                    Save
+                  </>
+                ) : (
+                  <>
+                    <Plus className="h-4 w-4 mr-2" />
+                    Add
+                  </>
+                )}
+              </Button>
+              {selectedTerm && (
+                <Button
+                  variant="ghost"
+                  onClick={() => {
+                    setSelectedTerm(null);
+                    setNewTerm("");
+                    setNewVariants("");
+                  }}
+                >
+                  Cancel
+                </Button>
+              )}
+            </div>
             <Input
-              value={newTerm}
-              onChange={(event) => setNewTerm(event.target.value)}
+              value={newVariants}
+              onChange={(event) => setNewVariants(event.target.value)}
               onKeyDown={(event) => {
                 if (event.key === "Enter") {
                   event.preventDefault();
                   handleAdd();
                 }
               }}
-              placeholder="Add term..."
-              data-testid="input-lexicon-term"
+              placeholder="Common mistakes (comma-separated)..."
+              data-testid="input-lexicon-variants"
             />
-            <Button onClick={handleAdd} disabled={!newTerm.trim()}>
-              <Plus className="h-4 w-4 mr-2" />
-              Add
-            </Button>
           </div>
 
           <ScrollArea className="h-40 rounded-md border">
             <div className="p-2 space-y-2">
-              {lexiconTerms.length === 0 ? (
+              {lexiconEntries.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No terms yet.</div>
               ) : (
-                lexiconTerms.map((term) => (
+                lexiconEntries.map((entry) => (
                   <div
-                    key={term}
-                    className="flex items-center justify-between gap-2 rounded-md border px-2 py-1"
+                    key={entry.term}
+                    className={cn(
+                      "flex items-center justify-between gap-2 rounded-md border px-2 py-1",
+                      selectedTerm === entry.term && "bg-accent",
+                    )}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => {
+                      setSelectedTerm(entry.term);
+                      setNewTerm(entry.term);
+                      setNewVariants(entry.variants.join(", "));
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        setSelectedTerm(entry.term);
+                        setNewTerm(entry.term);
+                        setNewVariants(entry.variants.join(", "));
+                      }
+                    }}
                   >
-                    <span className="text-sm">{term}</span>
+                    <div className="min-w-0">
+                      <div className="text-sm">{entry.term}</div>
+                      {entry.variants.length > 0 && (
+                        <div className="text-xs text-muted-foreground truncate">
+                          Variants: {entry.variants.join(", ")}
+                        </div>
+                      )}
+                    </div>
                     <Button
                       size="icon"
                       variant="ghost"
-                      onClick={() => removeLexiconTerm(term)}
-                      aria-label={`Remove ${term}`}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        removeLexiconEntry(entry.term);
+                        if (selectedTerm === entry.term) {
+                          setSelectedTerm(null);
+                          setNewTerm("");
+                          setNewVariants("");
+                        }
+                      }}
+                      aria-label={`Remove ${entry.term}`}
                     >
                       <X className="h-4 w-4" />
                     </Button>
@@ -146,10 +247,17 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
               <Upload className="h-4 w-4 mr-2" />
               Import
             </Button>
-            <Button variant="outline" onClick={handleExport} disabled={lexiconTerms.length === 0}>
+            <Button
+              variant="outline"
+              onClick={handleExport}
+              disabled={lexiconEntries.length === 0}
+            >
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>
+          </div>
+          <div className="text-xs text-muted-foreground">
+            Import/Export format: Term | variant 1, variant 2
           </div>
         </div>
 

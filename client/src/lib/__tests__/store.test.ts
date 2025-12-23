@@ -14,7 +14,7 @@ const baseState = {
   history: [],
   historyIndex: -1,
   isWhisperXFormat: false,
-  lexiconTerms: [],
+  lexiconEntries: [],
   lexiconThreshold: 0.82,
 };
 
@@ -228,22 +228,35 @@ describe("useTranscriptStore", () => {
   });
 
   it("manages lexicon terms and threshold", () => {
-    const { addLexiconTerm, removeLexiconTerm, setLexiconThreshold } =
+    const { addLexiconEntry, removeLexiconEntry, setLexiconThreshold } =
       useTranscriptStore.getState();
 
-    addLexiconTerm("Zwergenb\u00e4r");
-    addLexiconTerm("zwergenb\u00e4r");
-    addLexiconTerm("  ");
+    addLexiconEntry("Zwergenb\u00e4r");
+    addLexiconEntry("zwergenb\u00e4r");
+    addLexiconEntry("  ");
 
     let state = useTranscriptStore.getState();
-    expect(state.lexiconTerms).toEqual(["Zwergenb\u00e4r"]);
+    expect(state.lexiconEntries).toEqual([{ term: "Zwergenb\u00e4r", variants: [] }]);
 
-    removeLexiconTerm("ZWErgenb\u00e4r");
+    removeLexiconEntry("ZWErgenb\u00e4r");
     state = useTranscriptStore.getState();
-    expect(state.lexiconTerms).toEqual([]);
+    expect(state.lexiconEntries).toEqual([]);
 
     setLexiconThreshold(0.9);
     expect(useTranscriptStore.getState().lexiconThreshold).toBeCloseTo(0.9);
+  });
+
+  it("updates a lexicon entry and its variants", () => {
+    useTranscriptStore.getState().addLexiconEntry("Glymbar", ["Glimmer"]);
+
+    useTranscriptStore
+      .getState()
+      .updateLexiconEntry("Glymbar", "Glymbar", ["Glimmer", "Klimbar"]);
+
+    const { lexiconEntries } = useTranscriptStore.getState();
+    expect(lexiconEntries).toEqual([
+      { term: "Glymbar", variants: ["Glimmer", "Klimbar"] },
+    ]);
   });
 
   it("splits a segment at a valid word boundary", () => {

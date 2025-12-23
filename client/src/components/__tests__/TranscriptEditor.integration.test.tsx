@@ -109,7 +109,7 @@ const resetStore = () => {
     history: [],
     historyIndex: -1,
     isWhisperXFormat: false,
-    lexiconTerms: [],
+    lexiconEntries: [],
     lexiconThreshold: 0.82,
   });
 };

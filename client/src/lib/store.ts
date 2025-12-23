@@ -25,6 +25,11 @@ export interface Speaker {
   color: string;
 }
 
+export interface LexiconEntry {
+  term: string;
+  variants: string[];
+}
+
 interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
@@ -44,7 +49,7 @@ interface TranscriptState {
   history: HistoryState[];
   historyIndex: number;
   isWhisperXFormat: boolean;
-  lexiconTerms: string[];
+  lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
 
   setAudioFile: (file: File | null) => void;
@@ -65,9 +70,10 @@ interface TranscriptState {
   updateSegmentSpeaker: (id: string, speaker: string) => void;
   confirmSegment: (id: string) => void;
   toggleSegmentBookmark: (id: string) => void;
-  setLexiconTerms: (terms: string[]) => void;
-  addLexiconTerm: (term: string) => void;
-  removeLexiconTerm: (term: string) => void;
+  setLexiconEntries: (entries: LexiconEntry[]) => void;
+  addLexiconEntry: (term: string, variants?: string[]) => void;
+  removeLexiconEntry: (term: string) => void;
+  updateLexiconEntry: (previousTerm: string, term: string, variants?: string[]) => void;
   setLexiconThreshold: (value: number) => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
@@ -105,7 +111,8 @@ type PersistedTranscriptState = {
   selectedSegmentId: string | null;
   currentTime: number;
   isWhisperXFormat: boolean;
-  lexiconTerms: string[];
+  lexiconEntries?: LexiconEntry[];
+  lexiconTerms?: string[];
   lexiconThreshold: number;
 };
 
@@ -131,13 +138,29 @@ const readPersistedState = (): PersistedTranscriptState | null => {
       parsed.selectedSegmentId && parsed.segments.some((s) => s.id === parsed.selectedSegmentId)
         ? parsed.selectedSegmentId
         : (parsed.segments[0]?.id ?? null);
+    const lexiconEntries = Array.isArray(parsed.lexiconEntries)
+      ? parsed.lexiconEntries
+          .filter((entry) => entry && typeof entry.term === "string")
+          .map((entry) => ({
+            term: String(entry.term),
+            variants: Array.isArray(entry.variants)
+              ? entry.variants.map(String).filter(Boolean)
+              : [],
+          }))
+      : Array.isArray(parsed.lexiconTerms)
+        ? parsed.lexiconTerms
+            .map((term) => (typeof term === "string" ? term : String(term ?? "")))
+            .filter(Boolean)
+            .map((term) => ({ term, variants: [] }))
+        : [];
+
     return {
       segments: parsed.segments,
       speakers: parsed.speakers,
       selectedSegmentId,
       currentTime: Number.isFinite(parsed.currentTime) ? parsed.currentTime : 0,
       isWhisperXFormat: Boolean(parsed.isWhisperXFormat),
-      lexiconTerms: Array.isArray(parsed.lexiconTerms) ? parsed.lexiconTerms : [],
+      lexiconEntries,
       lexiconThreshold:
         typeof parsed.lexiconThreshold === "number" ? parsed.lexiconThreshold : 0.82,
     };
@@ -148,14 +171,43 @@ const readPersistedState = (): PersistedTranscriptState | null => {
 
 const generateId = () => crypto.randomUUID();
 const normalizeLexiconTerm = (value: string) => value.trim().toLowerCase();
-const uniqueTerms = (terms: string[]) => {
+const normalizeLexiconVariants = (variants: string[]) => {
   const seen = new Set<string>();
-  return terms.filter((term) => {
-    const normalized = normalizeLexiconTerm(term);
-    if (!normalized || seen.has(normalized)) return false;
-    seen.add(normalized);
-    return true;
+  return variants
+    .map((variant) => variant.trim())
+    .filter((variant) => {
+      const normalized = normalizeLexiconTerm(variant);
+      if (!normalized || seen.has(normalized)) return false;
+      seen.add(normalized);
+      return true;
+    });
+};
+const normalizeLexiconEntry = (entry: LexiconEntry): LexiconEntry | null => {
+  const term = entry.term.trim();
+  if (!term) return null;
+  return {
+    term,
+    variants: normalizeLexiconVariants(entry.variants ?? []),
+  };
+};
+const uniqueEntries = (entries: LexiconEntry[]) => {
+  const seen = new Map<string, LexiconEntry>();
+  entries.forEach((entry) => {
+    const normalized = normalizeLexiconEntry(entry);
+    if (!normalized) return;
+    const key = normalizeLexiconTerm(normalized.term);
+    const existing = seen.get(key);
+    if (!existing) {
+      seen.set(key, normalized);
+      return;
+    }
+    const mergedVariants = normalizeLexiconVariants([
+      ...existing.variants,
+      ...normalized.variants,
+    ]);
+    seen.set(key, { term: existing.term, variants: mergedVariants });
   });
+  return Array.from(seen.values());
 };
 
 const persistedState = readPersistedState();
@@ -197,7 +249,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   history: initialHistory,
   historyIndex: initialHistoryIndex,
   isWhisperXFormat: persistedState?.isWhisperXFormat ?? false,
-  lexiconTerms: persistedState?.lexiconTerms ?? [],
+  lexiconEntries: persistedState?.lexiconEntries ?? [],
   lexiconThreshold: persistedState?.lexiconThreshold ?? 0.82,
 
   setAudioFile: (file) => set({ audioFile: file }),
@@ -442,24 +494,38 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     });
   },
 
-  setLexiconTerms: (terms) => {
-    const cleanedTerms = uniqueTerms(terms.map((term) => term.trim()).filter(Boolean));
-    set({ lexiconTerms: cleanedTerms });
+  setLexiconEntries: (entries) => {
+    set({ lexiconEntries: uniqueEntries(entries) });
   },
 
-  addLexiconTerm: (term) => {
+  addLexiconEntry: (term, variants = []) => {
     const cleaned = term.trim();
     if (!cleaned) return;
-    const { lexiconTerms } = get();
-    const next = uniqueTerms([...lexiconTerms, cleaned]);
-    set({ lexiconTerms: next });
+    const entry: LexiconEntry = { term: cleaned, variants };
+    const { lexiconEntries } = get();
+    const next = uniqueEntries([...lexiconEntries, entry]);
+    set({ lexiconEntries: next });
   },
 
-  removeLexiconTerm: (term) => {
+  removeLexiconEntry: (term) => {
     const normalized = normalizeLexiconTerm(term);
-    const { lexiconTerms } = get();
-    const next = lexiconTerms.filter((item) => normalizeLexiconTerm(item) !== normalized);
-    set({ lexiconTerms: next });
+    const { lexiconEntries } = get();
+    const next = lexiconEntries.filter(
+      (item) => normalizeLexiconTerm(item.term) !== normalized,
+    );
+    set({ lexiconEntries: next });
+  },
+
+  updateLexiconEntry: (previousTerm, term, variants = []) => {
+    const normalizedPrevious = normalizeLexiconTerm(previousTerm);
+    const cleaned = term.trim();
+    if (!cleaned) return;
+    const { lexiconEntries } = get();
+    const remaining = lexiconEntries.filter(
+      (entry) => normalizeLexiconTerm(entry.term) !== normalizedPrevious,
+    );
+    const next = uniqueEntries([...remaining, { term: cleaned, variants }]);
+    set({ lexiconEntries: next });
   },
 
   setLexiconThreshold: (value) => {
@@ -746,7 +812,7 @@ if (canUseLocalStorage()) {
       selectedSegmentId: state.selectedSegmentId,
       currentTime: state.currentTime,
       isWhisperXFormat: state.isWhisperXFormat,
-      lexiconTerms: state.lexiconTerms,
+      lexiconEntries: state.lexiconEntries,
       lexiconThreshold: state.lexiconThreshold,
     });
   });

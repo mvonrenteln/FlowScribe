@@ -31,7 +31,7 @@ export function TranscriptEditor() {
     isPlaying,
     duration,
     isWhisperXFormat,
-    lexiconTerms,
+    lexiconEntries,
     lexiconThreshold,
     setAudioFile,
     setAudioUrl,
@@ -247,16 +247,25 @@ export function TranscriptEditor() {
   }, [segments]);
   const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
 
-  const lexiconEntries = useMemo(
+  const lexiconEntriesNormalized = useMemo(
     () =>
-      lexiconTerms
-        .map((term) => ({ term, normalized: normalizeToken(term) }))
+      lexiconEntries
+        .map((entry) => ({
+          term: entry.term,
+          normalized: normalizeToken(entry.term),
+          variants: entry.variants
+            .map((variant) => ({
+              value: variant,
+              normalized: normalizeToken(variant),
+            }))
+            .filter((variant) => variant.normalized.length > 0),
+        }))
         .filter((entry) => entry.normalized.length > 0),
-    [lexiconTerms],
+    [lexiconEntries],
   );
 
   const lexiconMatchesBySegment = useMemo(() => {
-    if (lexiconEntries.length === 0)
+    if (lexiconEntriesNormalized.length === 0)
       return new Map<string, Map<number, { term: string; score: number }>>();
     const matches = new Map<string, Map<number, { term: string; score: number }>>();
     segments.forEach((segment) => {
@@ -266,12 +275,19 @@ export function TranscriptEditor() {
         if (!normalizedWord) return;
         let bestScore = 0;
         let bestTerm = "";
-        lexiconEntries.forEach((entry) => {
+        lexiconEntriesNormalized.forEach((entry) => {
           const score = similarityScore(normalizedWord, entry.normalized);
           if (score > bestScore) {
             bestScore = score;
             bestTerm = entry.term;
           }
+          entry.variants.forEach((variant) => {
+            const variantScore = similarityScore(normalizedWord, variant.normalized);
+            if (variantScore > bestScore) {
+              bestScore = variantScore;
+              bestTerm = entry.term;
+            }
+          });
         });
         if (bestScore >= lexiconThreshold) {
           wordMatches.set(index, { term: bestTerm, score: bestScore });
@@ -282,7 +298,7 @@ export function TranscriptEditor() {
       }
     });
     return matches;
-  }, [lexiconEntries, lexiconThreshold, segments]);
+  }, [lexiconEntriesNormalized, lexiconThreshold, segments]);
 
   const { lexiconMatchCount, lexiconLowScoreMatchCount } = useMemo(() => {
     let totalMatches = 0;
@@ -1053,7 +1069,7 @@ export function TranscriptEditor() {
                       highlightLowConfidence={highlightLowConfidence}
                       lowConfidenceThreshold={lowConfidenceThreshold}
                       lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
-                      showLexiconMatches={lexiconEntries.length > 0}
+                      showLexiconMatches={lexiconEntriesNormalized.length > 0}
                       editRequested={editRequestId === segment.id}
                       onEditRequestHandled={
                         editRequestId === segment.id ? () => setEditRequestId(null) : undefined
