@@ -441,10 +441,10 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   setAudioUrl: (url) => set({ audioUrl: url }),
   setAudioReference: (reference) => {
     const state = get();
-    const sessionKey = buildSessionKey(reference, state.transcriptRef);
+    const sessionKey =
+      state.transcriptRef === null ? state.sessionKey : buildSessionKey(reference, state.transcriptRef);
     const session = sessionsCache[sessionKey];
-    const shouldPromoteCurrent =
-      !session && state.segments.length > 0 && state.transcriptRef !== null;
+    const shouldPromoteCurrent = !session && state.segments.length > 0;
     if (shouldPromoteCurrent) {
       sessionsCache = {
         ...sessionsCache,
@@ -491,10 +491,10 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   },
   setTranscriptReference: (reference) => {
     const state = get();
-    const sessionKey = buildSessionKey(state.audioRef, reference);
+    const sessionKey =
+      state.audioRef === null ? state.sessionKey : buildSessionKey(state.audioRef, reference);
     const session = sessionsCache[sessionKey];
-    const shouldPromoteCurrent =
-      !session && state.segments.length > 0 && state.audioRef !== null;
+    const shouldPromoteCurrent = !session && state.segments.length > 0;
     if (shouldPromoteCurrent) {
       sessionsCache = {
         ...sessionsCache,
