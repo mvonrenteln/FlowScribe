@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { type FileReference, buildSessionKey } from "@/lib/fileReference";
 
 export interface Word {
   word: string;
@@ -40,6 +41,9 @@ interface HistoryState {
 interface TranscriptState {
   audioFile: File | null;
   audioUrl: string | null;
+  audioRef: FileReference | null;
+  transcriptRef: FileReference | null;
+  sessionKey: string;
   segments: Segment[];
   speakers: Speaker[];
   selectedSegmentId: string | null;
@@ -57,10 +61,13 @@ interface TranscriptState {
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
+  setAudioReference: (reference: FileReference | null) => void;
+  setTranscriptReference: (reference: FileReference | null) => void;
   loadTranscript: (data: {
     segments: Segment[];
     speakers?: Speaker[];
     isWhisperXFormat?: boolean;
+    reference?: FileReference | null;
   }) => void;
   setSelectedSegmentId: (id: string | null) => void;
   setCurrentTime: (time: number) => void;
@@ -113,7 +120,9 @@ const SPEAKER_COLORS = [
 ];
 
 const MAX_HISTORY = 100;
-const STORAGE_KEY = "flowscribe:transcript-state";
+const LEGACY_STORAGE_KEY = "flowscribe:transcript-state";
+const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
+const GLOBAL_STORAGE_KEY = "flowscribe:global";
 const PERSIST_THROTTLE_MS = 500;
 
 type PersistedTranscriptState = {
@@ -129,6 +138,30 @@ type PersistedTranscriptState = {
   lexiconHighlightBackground?: boolean;
 };
 
+type PersistedSession = {
+  audioRef: FileReference | null;
+  transcriptRef: FileReference | null;
+  segments: Segment[];
+  speakers: Speaker[];
+  selectedSegmentId: string | null;
+  currentTime: number;
+  isWhisperXFormat: boolean;
+  updatedAt?: number;
+};
+
+type PersistedSessionsState = {
+  sessions: Record<string, PersistedSession>;
+  activeSessionKey: string | null;
+};
+
+type PersistedGlobalState = {
+  lexiconEntries?: LexiconEntry[];
+  lexiconTerms?: string[];
+  lexiconThreshold?: number;
+  lexiconHighlightUnderline?: boolean;
+  lexiconHighlightBackground?: boolean;
+};
+
 const canUseLocalStorage = () => {
   if (typeof window === "undefined") return false;
   try {
@@ -138,9 +171,9 @@ const canUseLocalStorage = () => {
   }
 };
 
-const readPersistedState = (): PersistedTranscriptState | null => {
+const readLegacyState = (): PersistedTranscriptState | null => {
   if (!canUseLocalStorage()) return null;
-  const raw = window.localStorage.getItem(STORAGE_KEY);
+  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
   if (!raw) return null;
   try {
     const parsed = JSON.parse(raw) as PersistedTranscriptState;
@@ -187,6 +220,71 @@ const readPersistedState = (): PersistedTranscriptState | null => {
   }
 };
 
+const readSessionsState = (
+  legacyState: PersistedTranscriptState | null,
+): PersistedSessionsState => {
+  if (!canUseLocalStorage()) {
+    return { sessions: {}, activeSessionKey: null };
+  }
+  const raw = window.localStorage.getItem(SESSIONS_STORAGE_KEY);
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as PersistedSessionsState;
+      if (parsed && typeof parsed === "object" && parsed.sessions) {
+        const sessions = parsed.sessions ?? {};
+        let activeSessionKey = parsed.activeSessionKey ?? null;
+        if (!activeSessionKey) {
+          const keys = Object.keys(sessions);
+          if (keys.length > 0) {
+            activeSessionKey = keys.reduce((bestKey, key) => {
+              const bestTime = sessions[bestKey]?.updatedAt ?? 0;
+              const nextTime = sessions[key]?.updatedAt ?? 0;
+              return nextTime > bestTime ? key : bestKey;
+            }, keys[0]);
+          }
+        }
+        return {
+          sessions,
+          activeSessionKey,
+        };
+      }
+    } catch {
+      // ignore malformed storage
+    }
+  }
+  if (!legacyState) {
+    return { sessions: {}, activeSessionKey: null };
+  }
+  const legacyKey = buildSessionKey(null, null);
+  return {
+    sessions: {
+      [legacyKey]: {
+        audioRef: null,
+        transcriptRef: null,
+        segments: legacyState.segments,
+        speakers: legacyState.speakers,
+        selectedSegmentId: legacyState.selectedSegmentId,
+        currentTime: legacyState.currentTime,
+        isWhisperXFormat: legacyState.isWhisperXFormat,
+      },
+    },
+    activeSessionKey: legacyKey,
+  };
+};
+
+const readGlobalState = (
+  legacyState: PersistedTranscriptState | null,
+): PersistedGlobalState | null => {
+  if (!canUseLocalStorage()) return null;
+  const raw = window.localStorage.getItem(GLOBAL_STORAGE_KEY);
+  if (!raw) return legacyState;
+  try {
+    return JSON.parse(raw) as PersistedGlobalState;
+  } catch {
+    return legacyState;
+  }
+};
+
 const generateId = () => crypto.randomUUID();
 const normalizeLexiconTerm = (value: string) => value.trim().toLowerCase();
 const normalizeLexiconVariants = (variants: string[]) => {
@@ -208,6 +306,29 @@ const normalizeLexiconEntry = (entry: LexiconEntry): LexiconEntry | null => {
     variants: normalizeLexiconVariants(entry.variants ?? []),
     falsePositives: normalizeLexiconVariants(entry.falsePositives ?? []),
   };
+};
+const normalizeLexiconEntriesFromGlobal = (state: PersistedGlobalState | null) => {
+  if (!state) return [];
+  if (Array.isArray(state.lexiconEntries)) {
+    return state.lexiconEntries
+      .filter((entry) => entry && typeof entry.term === "string")
+      .map((entry) => ({
+        term: String(entry.term),
+        variants: Array.isArray(entry.variants)
+          ? entry.variants.map(String).filter(Boolean)
+          : [],
+        falsePositives: Array.isArray(entry.falsePositives)
+          ? entry.falsePositives.map(String).filter(Boolean)
+          : [],
+      }));
+  }
+  if (Array.isArray(state.lexiconTerms)) {
+    return state.lexiconTerms
+      .map((term) => (typeof term === "string" ? term : String(term ?? "")))
+      .filter(Boolean)
+      .map((term) => ({ term, variants: [], falsePositives: [] }));
+  }
+  return [];
 };
 const uniqueEntries = (entries: LexiconEntry[]) => {
   const seen = new Map<string, LexiconEntry>();
@@ -234,14 +355,28 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
   return Array.from(seen.values());
 };
 
-const persistedState = readPersistedState();
+const legacyState = readLegacyState();
+const sessionsState = readSessionsState(null);
+const globalState = readGlobalState(null);
+let sessionsCache = sessionsState.sessions;
+let activeSessionKeyCache = sessionsState.activeSessionKey;
+
+
+const activeSession =
+  sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
+    ? sessionsState.sessions[sessionsState.activeSessionKey]
+    : null;
+const activeSessionKey =
+  sessionsState.activeSessionKey ??
+  (activeSession ? buildSessionKey(activeSession.audioRef, activeSession.transcriptRef) : null);
+
 const initialHistory =
-  persistedState?.segments.length && persistedState.speakers.length
+  activeSession?.segments.length && activeSession.speakers.length
     ? [
         {
-          segments: persistedState.segments,
-          speakers: persistedState.speakers,
-          selectedSegmentId: persistedState.selectedSegmentId,
+          segments: activeSession.segments,
+          speakers: activeSession.speakers,
+          selectedSegmentId: activeSession.selectedSegmentId,
         },
       ]
     : [];
@@ -263,23 +398,126 @@ const pushHistory = (history: HistoryState[], historyIndex: number, state: Histo
 export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   audioFile: null,
   audioUrl: null,
-  segments: persistedState?.segments ?? [],
-  speakers: persistedState?.speakers ?? [],
-  selectedSegmentId: persistedState?.selectedSegmentId ?? null,
-  currentTime: persistedState?.currentTime ?? 0,
+  audioRef: activeSession?.audioRef ?? null,
+  transcriptRef: activeSession?.transcriptRef ?? null,
+  sessionKey: activeSessionKey ?? buildSessionKey(null, null),
+  segments: activeSession?.segments ?? [],
+  speakers: activeSession?.speakers ?? [],
+  selectedSegmentId: activeSession?.selectedSegmentId ?? null,
+  currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
   seekRequestTime: null,
   history: initialHistory,
   historyIndex: initialHistoryIndex,
-  isWhisperXFormat: persistedState?.isWhisperXFormat ?? false,
-  lexiconEntries: persistedState?.lexiconEntries ?? [],
-  lexiconThreshold: persistedState?.lexiconThreshold ?? 0.82,
-  lexiconHighlightUnderline: persistedState?.lexiconHighlightUnderline ?? false,
-  lexiconHighlightBackground: persistedState?.lexiconHighlightBackground ?? false,
+  isWhisperXFormat: activeSession?.isWhisperXFormat ?? false,
+  lexiconEntries: normalizeLexiconEntriesFromGlobal(globalState),
+  lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
+  lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
+  lexiconHighlightBackground: Boolean(globalState?.lexiconHighlightBackground),
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
+  setAudioReference: (reference) => {
+    const state = get();
+    const sessionKey = buildSessionKey(reference, state.transcriptRef);
+    const session = sessionsCache[sessionKey];
+    const shouldPromoteCurrent =
+      !session && state.segments.length > 0 && state.transcriptRef !== null;
+    if (shouldPromoteCurrent) {
+      sessionsCache = {
+        ...sessionsCache,
+        [sessionKey]: {
+          audioRef: reference,
+          transcriptRef: state.transcriptRef,
+          segments: state.segments,
+          speakers: state.speakers,
+          selectedSegmentId: state.selectedSegmentId,
+          currentTime: state.currentTime,
+          isWhisperXFormat: state.isWhisperXFormat,
+          updatedAt: Date.now(),
+        },
+      };
+    }
+    const selectedSegmentId =
+      session?.selectedSegmentId &&
+      session.segments.some((segment) => segment.id === session.selectedSegmentId)
+        ? session.selectedSegmentId
+        : shouldPromoteCurrent
+          ? state.selectedSegmentId
+          : (session?.segments[0]?.id ?? null);
+    set({
+      audioRef: reference,
+      transcriptRef: state.transcriptRef,
+      sessionKey,
+      segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
+      speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      selectedSegmentId,
+      currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
+      isWhisperXFormat:
+        session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
+      history: session?.segments.length || shouldPromoteCurrent
+        ? [
+            {
+              segments: session?.segments ?? state.segments,
+              speakers: session?.speakers ?? state.speakers,
+              selectedSegmentId,
+            },
+          ]
+        : [],
+      historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+    });
+  },
+  setTranscriptReference: (reference) => {
+    const state = get();
+    const sessionKey = buildSessionKey(state.audioRef, reference);
+    const session = sessionsCache[sessionKey];
+    const shouldPromoteCurrent =
+      !session && state.segments.length > 0 && state.audioRef !== null;
+    if (shouldPromoteCurrent) {
+      sessionsCache = {
+        ...sessionsCache,
+        [sessionKey]: {
+          audioRef: state.audioRef,
+          transcriptRef: reference,
+          segments: state.segments,
+          speakers: state.speakers,
+          selectedSegmentId: state.selectedSegmentId,
+          currentTime: state.currentTime,
+          isWhisperXFormat: state.isWhisperXFormat,
+          updatedAt: Date.now(),
+        },
+      };
+    }
+    const selectedSegmentId =
+      session?.selectedSegmentId &&
+      session.segments.some((segment) => segment.id === session.selectedSegmentId)
+        ? session.selectedSegmentId
+        : shouldPromoteCurrent
+          ? state.selectedSegmentId
+          : (session?.segments[0]?.id ?? null);
+    set({
+      audioRef: state.audioRef,
+      transcriptRef: reference,
+      sessionKey,
+      segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
+      speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      selectedSegmentId,
+      currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
+      isWhisperXFormat:
+        session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
+      history: session?.segments.length || shouldPromoteCurrent
+        ? [
+            {
+              segments: session?.segments ?? state.segments,
+              speakers: session?.speakers ?? state.speakers,
+              selectedSegmentId,
+            },
+          ]
+        : [],
+      historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+    });
+  },
 
   loadTranscript: (data) => {
     const uniqueSpeakers = Array.from(new Set(data.segments.map((s) => s.speaker)));
@@ -298,6 +536,33 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
 
     const selectedSegmentId = segments[0]?.id ?? null;
 
+    const sessionKey = buildSessionKey(get().audioRef, data.reference ?? get().transcriptRef);
+    const session = sessionsCache[sessionKey];
+    const selectedFromSession =
+      session?.selectedSegmentId &&
+      session.segments.some((segment) => segment.id === session.selectedSegmentId)
+        ? session.selectedSegmentId
+        : (session?.segments[0]?.id ?? null);
+    if (session && session.segments.length > 0) {
+      set({
+        segments: session.segments,
+        speakers: session.speakers,
+        selectedSegmentId: selectedFromSession,
+        currentTime: session.currentTime ?? 0,
+        isWhisperXFormat: session.isWhisperXFormat ?? false,
+        history: [
+          {
+            segments: session.segments,
+            speakers: session.speakers,
+            selectedSegmentId: selectedFromSession,
+          },
+        ],
+        historyIndex: 0,
+        transcriptRef: data.reference ?? get().transcriptRef,
+        sessionKey,
+      });
+      return;
+    }
     set({
       segments,
       speakers,
@@ -305,6 +570,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       isWhisperXFormat: data.isWhisperXFormat || false,
       history: [{ segments, speakers, selectedSegmentId }],
       historyIndex: 0,
+      transcriptRef: data.reference ?? get().transcriptRef,
+      sessionKey,
     });
   },
 
@@ -820,41 +1087,60 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
 }));
 
 if (canUseLocalStorage()) {
-  let pendingPersist: PersistedTranscriptState | null = null;
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
-  let lastSerialized = persistedState ? JSON.stringify(persistedState) : "";
+  let pendingSessions: PersistedSessionsState | null = null;
+  let pendingGlobal: PersistedGlobalState | null = null;
 
-  const schedulePersist = (state: PersistedTranscriptState) => {
-    pendingPersist = state;
+  const schedulePersist = (sessionsState: PersistedSessionsState, globalState: PersistedGlobalState) => {
+    pendingSessions = sessionsState;
+    pendingGlobal = globalState;
     if (persistTimeout) return;
     persistTimeout = setTimeout(() => {
-      if (!pendingPersist) return;
       try {
-        const serialized = JSON.stringify(pendingPersist);
-        if (serialized !== lastSerialized) {
-          window.localStorage.setItem(STORAGE_KEY, serialized);
-          lastSerialized = serialized;
+        if (pendingSessions) {
+          window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(pendingSessions));
+        }
+        if (pendingGlobal) {
+          window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(pendingGlobal));
         }
       } catch {
         // Ignore persistence failures (quota, serialization).
       } finally {
-        pendingPersist = null;
+        pendingSessions = null;
+        pendingGlobal = null;
         persistTimeout = null;
       }
     }, PERSIST_THROTTLE_MS);
   };
 
   useTranscriptStore.subscribe((state) => {
-    schedulePersist({
-      segments: state.segments,
-      speakers: state.speakers,
-      selectedSegmentId: state.selectedSegmentId,
-      currentTime: state.currentTime,
-      isWhisperXFormat: state.isWhisperXFormat,
-      lexiconEntries: state.lexiconEntries,
-      lexiconThreshold: state.lexiconThreshold,
-      lexiconHighlightUnderline: state.lexiconHighlightUnderline,
-      lexiconHighlightBackground: state.lexiconHighlightBackground,
-    });
+    const sessionKey = state.sessionKey;
+    sessionsCache = {
+      ...sessionsCache,
+      [sessionKey]: {
+        audioRef: state.audioRef,
+        transcriptRef: state.transcriptRef,
+        segments: state.segments,
+        speakers: state.speakers,
+        selectedSegmentId: state.selectedSegmentId,
+        currentTime: state.currentTime,
+        isWhisperXFormat: state.isWhisperXFormat,
+        updatedAt: Date.now(),
+      },
+    };
+    activeSessionKeyCache = sessionKey;
+
+    schedulePersist(
+      {
+        sessions: sessionsCache,
+        activeSessionKey: activeSessionKeyCache,
+      },
+      {
+        lexiconEntries: state.lexiconEntries,
+        lexiconThreshold: state.lexiconThreshold,
+        lexiconHighlightUnderline: state.lexiconHighlightUnderline,
+        lexiconHighlightBackground: state.lexiconHighlightBackground,
+      },
+    );
   });
 }

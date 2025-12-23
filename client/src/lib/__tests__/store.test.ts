@@ -4,6 +4,9 @@ import { type Segment, useTranscriptStore } from "@/lib/store";
 const baseState = {
   audioFile: null,
   audioUrl: null,
+  audioRef: null,
+  transcriptRef: null,
+  sessionKey: "audio:none|transcript:none",
   segments: [],
   speakers: [],
   selectedSegmentId: null,

@@ -12,9 +12,9 @@ export default function FileUploadExample() {
         console.log("Audio uploaded:", file.name);
         setAudioFileName(file.name);
       }}
-      onTranscriptUpload={(data, fileName) => {
+      onTranscriptUpload={(data, reference) => {
         console.log("Transcript loaded:", data);
-        setTranscriptFileName(fileName);
+        setTranscriptFileName(reference?.name);
         setTranscriptLoaded(true);
       }}
       audioFileName={audioFileName}

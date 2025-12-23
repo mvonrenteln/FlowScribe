@@ -8,10 +8,11 @@ import {
   requestAudioHandlePermission,
   saveAudioHandle,
 } from "@/lib/audioHandleStorage";
+import { buildFileReference, type FileReference } from "@/lib/fileReference";
 
 interface FileUploadProps {
   onAudioUpload: (file: File) => void;
-  onTranscriptUpload: (data: unknown, fileName?: string) => void;
+  onTranscriptUpload: (data: unknown, reference?: FileReference | null) => void;
   audioFileName?: string;
   transcriptFileName?: string;
   transcriptLoaded?: boolean;
@@ -50,9 +51,7 @@ export function FileUpload({
   }, []);
 
   useEffect(() => {
-    if (transcriptFileName) {
-      setLocalTranscriptFileName(transcriptFileName);
-    }
+    setLocalTranscriptFileName(transcriptFileName);
   }, [transcriptFileName]);
 
   const handleAudioChange = useCallback(
@@ -132,7 +131,7 @@ export function FileUpload({
         reader.onload = (event) => {
           try {
             const data = JSON.parse(event.target?.result as string);
-            onTranscriptUpload(data, file.name);
+            onTranscriptUpload(data, buildFileReference(file));
             setLocalTranscriptFileName(file.name);
           } catch (err) {
             console.error("Failed to parse transcript JSON:", err);

@@ -7,6 +7,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
+import { type FileReference, buildFileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -24,6 +25,7 @@ export function TranscriptEditor() {
   const {
     audioFile,
     audioUrl,
+    transcriptRef,
     segments,
     speakers,
     selectedSegmentId,
@@ -37,6 +39,7 @@ export function TranscriptEditor() {
     lexiconHighlightBackground,
     setAudioFile,
     setAudioUrl,
+    setAudioReference,
     loadTranscript,
     setSelectedSegmentId,
     setCurrentTime,
@@ -76,7 +79,6 @@ export function TranscriptEditor() {
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [editRequestId, setEditRequestId] = useState<string | null>(null);
-  const [transcriptFileName, setTranscriptFileName] = useState<string | undefined>();
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
   const isTranscriptEditing = useCallback(
@@ -89,12 +91,13 @@ export function TranscriptEditor() {
       setAudioFile(file);
       const url = URL.createObjectURL(file);
       setAudioUrl(url);
+      setAudioReference(buildFileReference(file));
     },
-    [setAudioFile, setAudioUrl],
+    [setAudioFile, setAudioReference, setAudioUrl],
   );
 
   const handleTranscriptUpload = useCallback(
-    (data: unknown, fileName?: string) => {
+    (data: unknown, reference?: FileReference | null) => {
       interface WhisperSegment {
         timestamp: [number, number];
         text: string;
@@ -181,8 +184,11 @@ export function TranscriptEditor() {
       }
 
       if (processedSegments.length > 0) {
-        loadTranscript({ segments: processedSegments, isWhisperXFormat: detectedWhisperXFormat });
-        setTranscriptFileName(fileName);
+        loadTranscript({
+          segments: processedSegments,
+          isWhisperXFormat: detectedWhisperXFormat,
+          reference: reference ?? null,
+        });
       }
     },
     [loadTranscript],
@@ -878,7 +884,7 @@ export function TranscriptEditor() {
             onAudioUpload={handleAudioUpload}
             onTranscriptUpload={handleTranscriptUpload}
             audioFileName={audioFile?.name}
-            transcriptFileName={transcriptFileName}
+            transcriptFileName={transcriptRef?.name}
             transcriptLoaded={segments.length > 0}
             variant="inline"
           />

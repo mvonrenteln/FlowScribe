@@ -17,7 +17,7 @@ vi.mock("@/components/FileUpload", () => ({
   FileUpload: ({
     onTranscriptUpload,
   }: {
-    onTranscriptUpload: (data: unknown, fileName?: string) => void;
+    onTranscriptUpload: (data: unknown, reference?: { name: string }) => void;
   }) => (
     <button
       type="button"
@@ -62,6 +62,9 @@ const resetStore = () => {
   useTranscriptStore.setState({
     audioFile: null,
     audioUrl: null,
+    audioRef: null,
+    transcriptRef: null,
+    sessionKey: "audio:none|transcript:none",
     segments: [],
     speakers: [],
     selectedSegmentId: null,
