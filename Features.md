@@ -1,33 +1,152 @@
-## Functional and Quality Requirements (Revised)
+# FlowScribe Features
 
-### Core Functionality (Version 1.0) - _Single Audio/Transcript Focus_
+This document outlines the core capabilities of FlowScribe and how they support an end‑to‑end transcription workflow. It is intentionally product‑focused and user‑friendly, with deeper technical details referenced where relevant.
 
-|ID|Requirement Category|Description|
-|---|---|---|
-|**F1.0**|**Import & I/O**|The application must load **one** audio file and its corresponding WhisperX JSON Transcript file (initially, multiple versions allowed for selection).|
-|**F1.1**|**Visual Output**|Simultaneous, synchronized display of the **single audio waveform** and the transcript text.|
-|**F1.2**|**Diarization Visualization**|Speaker assignment must be visualized via distinctively colored segments (regions/blocks) on the waveform.|
-|**F1.3**|**Text Format**|Initial output format of the transcript must include **Speaker Tags** (e.g., `[Speaker Name] Text...`).|
-|**F1.4**|**Initial Segmentation**|The initial block assignment (Diarization) uses the **Sentence/Block-level** time stamps provided by WhisperX.|
-|**F1.5**|**Speaker Assignment**|The user must be able to change the speaker assignment for any selected segment at any time.|
-|**F1.6**|**Transcript Editing**|The full text of the transcript must be directly editable by the user.|
-|**F1.7**|**Version Management**|The user must be able to select the correct version when multiple WhisperX transcripts are loaded for the single audio file.|
-|**F1.8**|**Metadata Management**|The user must be able to edit (rename) and add new speaker names for the current project.|
-|**F1.9**|**Export Format**|The final, edited transcript must be exportable in a standard text format including speaker tags and time stamps.|
-### Segment Manipulation Tools (Waveform & Text Flow)
+![Full editor overview](docs/screenshots/overview-editor.png)
 
-| ID       | Tool Function         | Description                                                                                                                                      | Interaction Granularity |
-| -------- | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------- |
-| **M1.0** | **Segment Selection** | Users must be able to select a segment (block) by clicking the text or the segment region in the waveform.                                       | Segment/Word            |
-| **M1.1** | **Split Segment**     | Users must be able to **split** an existing segment into two new segments at a precise location, editable down to the **Word-level** time stamp. | Word                    |
-| **M1.2** | **Merge Segments**    | Users must be able to **merge** two or more consecutive segments into a single new segment.                                                      | Segment                 |
-| **M1.3** | **Adjust Boundaries** | Users must be able to adjust segment start/end times by drag-and-drop on the waveform boundaries.                                                | Waveform/Segment        |
-| **M1.4** | **Delete Segment**    | Users must be able to delete an entire segment/block.                                                                                            | Segment                 |
-### Quality and Workflow Requirements
+## Quick Overview
 
-|ID|Requirement Type|Description|
-|---|---|---|
-|**Q1.0**|**Usability (UX)**|The application must prioritize **simplicity, intuitive interaction, and ease of use**.|
-|**Q1.1**|**Workflow**|The workflow must be seamless, allowing the user to work fluently between the **Waveform level** and the **Transcript Text level** without changing modes.|
-|**Q1.2**|**Accessibility**|All core functional interactions must be accessible and executable via **text-based keyboard shortcuts** (Pro-User Focus).|
-|**Q1.3**|**Speaker Persistence**|**Speaker names** are **not** to be saved or reused automatically across different projects. They are local to the current project/session.|
+- Load audio + Whisper/WhisperX transcripts
+- Synchronized waveform, minimap, and transcript text
+- Word‑level editing and timing
+- Speaker‑aware visualization and management
+- Review tools (confidence, glossary, bookmarks)
+- Export to JSON, SRT, and TXT
+
+---
+
+## Start Here
+
+FlowScribe helps you load one audio file and its matching Whisper/WhisperX transcript, then edit and review everything in one place. You see the waveform and transcript side‑by‑side, with speaker segments highlighted so you always know who said what.
+
+![File upload and transcript alignment](docs/screenshots/upload-waveform-transcript-alignment.png)
+
+## Editing & Playback
+
+FlowScribe is designed for continuous editing while listening. Playback, navigation, and text changes stay in sync.
+
+- **Word‑level highlighting** during playback
+- **Inline editing** (double‑click to edit; Enter to save, Esc to cancel)
+- **Split/merge segments** at word boundaries
+- **Keyboard‑first workflow** with global play/pause, seek, and navigation
+- **Playback rate control** for faster review
+
+![Inline editing with word highlight](docs/screenshots/inline-editing-word-highlight.png)
+
+---
+
+## Speaker & Segmentation Tools
+
+Speaker structure remains clear as you edit and reorganize content.
+
+- **Speaker regions** shown on the waveform
+- **Rename / merge speakers** while preserving assignments
+- **Speaker‑specific filters** for focused review
+- **Segment boundary editing** (WhisperX only)
+- **Per‑segment speaker assignment** with fast dropdown selection
+
+![Speaker regions on waveform](docs/screenshots/speaker-regions-waveform.png)
+
+---
+
+## Review & Quality Assurance
+
+Built‑in review tools help find risky or uncertain content quickly.
+
+- **Low‑confidence filtering** with adjustable threshold
+- **Glossary matching** for domain‑specific terms
+- **Uncertain glossary matches** as a dedicated review filter
+- **Bookmarks** for manual review later
+- **Confirmations** to mark verified segments
+- **Clear‑all filters** to return to the full transcript
+
+![Review sidebar with filters](docs/screenshots/review-sidebar-filters.png)
+
+---
+
+## Glossary Workflow
+The glossary workflow keeps terminology consistent end‑to‑end: define terms, focus the review, then resolve matches in context.
+
+### Define Your Terms
+Glossary terms help identify mistakes and keep terminology consistent.
+
+- **Glossary terms** with common mistakes
+- **Common false positives** per term (ignored during matching)
+- **Exact‑match variants** (no fuzzy matching on variants)
+- **Import / export** as plain text (`term | variants | false positives`)
+
+![Glossary dialog](docs/screenshots/glossary-dialog.png)
+
+For the step‑by‑step workflow (filters, apply/ignore), see `docs/usage.md`.
+
+---
+
+## Persistence & Session Recovery
+
+FlowScribe stores lightweight session data to reduce rework.
+
+- **Local storage persistence** for transcript state and all settings
+- **Audio handle restore** (when available in browser) to reopen audio without re‑upload
+
+![Session restore](docs/screenshots/session-restore.png)
+
+## Segment Flow (Waveform + Text)
+
+Move quickly between waveform and transcript. Select a block by clicking either the text or the region, then refine it with precise controls.
+
+- **Select segments** directly from text or waveform
+- **Split at word boundaries** for clean edits
+- **Merge adjacent segments** when passages belong together
+- **Adjust timing boundaries** by dragging region edges (WhisperX)
+- **Delete segments** you no longer need
+- **Undo / redo** for safe editing
+
+![Split and merge controls](docs/screenshots/split-merge-controls.png)
+
+---
+
+## Keyboard Shortcuts (High‑Impact)
+
+FlowScribe supports a keyboard‑first workflow. Common actions remain global and consistent.
+
+- Play/pause, seek, and navigation
+- Split at current word
+- Merge with next / previous
+- Toggle filters and review actions
+- Confirm and bookmark segments
+
+![Keyboard shortcuts modal](docs/screenshots/keyboard-shortcuts-modal.png)
+
+Full list: `docs/shortcuts.md`.
+
+## Workflow & Usability
+
+FlowScribe is built to feel smooth and predictable, even in long sessions.
+
+- **Simple, intuitive UI** that stays out of your way
+- **Seamless switching** between waveform and transcript without mode changes
+- **Keyboard‑first control** for all core actions
+- **Speaker names are session‑local** so each project stays clean
+
+---
+
+## Export Formats
+
+FlowScribe supports multiple export formats for downstream workflows.
+
+- **JSON** (the original WhisperX Format with your changes, structured with timing and speaker data)
+- **SRT** (subtitle friendly)
+- **Plain text** (human‑readable)
+
+![Export dialog](docs/screenshots/export-dialog.png)
+
+---
+
+## Review Controls (In‑Line)
+
+Each transcript segment offers quick actions for review without leaving the text:
+
+- **Confirm** to mark a segment as verified
+- **Bookmark** to flag it for later follow‑up
+
+![Segment header actions](docs/screenshots/segment-actions-confirm-bookmark.png)
