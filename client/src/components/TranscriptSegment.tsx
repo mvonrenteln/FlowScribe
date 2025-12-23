@@ -45,6 +45,7 @@ interface TranscriptSegmentProps {
   onSplit: (wordIndex: number) => void;
   onConfirm: () => void;
   onToggleBookmark: () => void;
+  onIgnoreLexiconMatch?: (term: string, value: string) => void;
   showConfirmAction?: boolean;
   onMergeWithPrevious?: () => void;
   onMergeWithNext?: () => void;
@@ -80,6 +81,7 @@ function TranscriptSegmentComponent({
   onSplit,
   onConfirm,
   onToggleBookmark,
+  onIgnoreLexiconMatch,
   showConfirmAction = true,
   onMergeWithPrevious,
   onMergeWithNext,
@@ -342,18 +344,31 @@ function TranscriptSegmentComponent({
                             Match: {lexiconMatch.term} ({lexiconMatch.score.toFixed(2)})
                           </div>
                           {lexiconMatch.score < 1 && (
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              data-testid={`button-apply-glossary-${segment.id}-${index}`}
-                              onClick={(event) => {
-                                event.stopPropagation();
-                                nextText[index] = lexiconMatch.term;
-                                onTextChange(nextText.join(" "));
-                              }}
-                            >
-                              Apply
-                            </Button>
+                            <>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                data-testid={`button-apply-glossary-${segment.id}-${index}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  nextText[index] = lexiconMatch.term;
+                                  onTextChange(nextText.join(" "));
+                                }}
+                              >
+                                Apply
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                data-testid={`button-ignore-glossary-${segment.id}-${index}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onIgnoreLexiconMatch?.(lexiconMatch.term, word.word);
+                                }}
+                              >
+                                Ignore
+                              </Button>
+                            </>
                           )}
                         </TooltipContent>
                       </Tooltip>
@@ -561,6 +576,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onSplit === next.onSplit &&
     prev.onConfirm === next.onConfirm &&
     prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.onIgnoreLexiconMatch === next.onIgnoreLexiconMatch &&
     prev.showConfirmAction === next.showConfirmAction &&
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&

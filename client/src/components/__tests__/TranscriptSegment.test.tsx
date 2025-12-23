@@ -502,4 +502,40 @@ describe("TranscriptSegment", () => {
 
     expect(onTextChange).toHaveBeenCalledWith("Hallo Welt");
   });
+
+  it("adds a false positive from the glossary tooltip", async () => {
+    const onIgnoreLexiconMatch = vi.fn();
+    const lexiconMatch = new Map<number, { term: string; score: number }>();
+    lexiconMatch.set(1, { term: "Welt", score: 0.9 });
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        lexiconMatches={lexiconMatch}
+        showLexiconMatches={true}
+        lexiconHighlightUnderline={true}
+        lexiconHighlightBackground={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreLexiconMatch={onIgnoreLexiconMatch}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    await userEvent.hover(matchWord);
+
+    const ignoreButton = await screen.findAllByTestId("button-ignore-glossary-seg-1-1");
+    await userEvent.click(ignoreButton[0]);
+
+    expect(onIgnoreLexiconMatch).toHaveBeenCalledWith("Welt", "Welt");
+  });
 });

@@ -263,6 +263,16 @@ describe("useTranscriptStore", () => {
     ]);
   });
 
+  it("adds lexicon false positives", () => {
+    useTranscriptStore.getState().addLexiconEntry("Glymbar", ["Glimmer"]);
+    useTranscriptStore.getState().addLexiconFalsePositive("Glymbar", "Glimmer");
+
+    const { lexiconEntries } = useTranscriptStore.getState();
+    expect(lexiconEntries).toEqual([
+      { term: "Glymbar", variants: ["Glimmer"], falsePositives: ["Glimmer"] },
+    ]);
+  });
+
   it("splits a segment at a valid word boundary", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 

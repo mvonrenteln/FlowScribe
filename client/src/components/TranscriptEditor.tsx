@@ -52,6 +52,7 @@ export function TranscriptEditor() {
     mergeSegments,
     updateSegmentTiming,
     deleteSegment,
+    addLexiconFalsePositive,
     renameSpeaker,
     addSpeaker,
     mergeSpeakers,
@@ -263,7 +264,7 @@ export function TranscriptEditor() {
               normalized: normalizeToken(variant),
             }))
             .filter((variant) => variant.normalized.length > 0),
-          falsePositives: entry.falsePositives
+          falsePositives: (entry.falsePositives ?? [])
             .map((value) => ({
               value,
               normalized: normalizeToken(value),
@@ -831,6 +832,8 @@ export function TranscriptEditor() {
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
           onConfirm: () => confirmSegment(segment.id),
           onToggleBookmark: () => toggleSegmentBookmark(segment.id),
+          onIgnoreLexiconMatch: (term: string, value: string) =>
+            addLexiconFalsePositive(term, value),
           onMergeWithPrevious,
           onMergeWithNext,
           onDelete: () => deleteSegment(segment.id),
@@ -841,6 +844,7 @@ export function TranscriptEditor() {
       handleSeek,
       handleSplitSegment,
       mergeSegments,
+      addLexiconFalsePositive,
       setSelectedSegmentId,
       updateSegmentSpeaker,
       updateSegmentText,
@@ -1123,6 +1127,7 @@ export function TranscriptEditor() {
                       onSplit={handlers.onSplit}
                       onConfirm={handlers.onConfirm}
                       onToggleBookmark={handlers.onToggleBookmark}
+                      onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
                       onMergeWithPrevious={handlers.onMergeWithPrevious}
                       onMergeWithNext={handlers.onMergeWithNext}
                       onDelete={handlers.onDelete}

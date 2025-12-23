@@ -82,6 +82,7 @@ interface TranscriptState {
     variants?: string[],
     falsePositives?: string[],
   ) => void;
+  addLexiconFalsePositive: (term: string, value: string) => void;
   setLexiconThreshold: (value: number) => void;
   setLexiconHighlightUnderline: (value: boolean) => void;
   setLexiconHighlightBackground: (value: boolean) => void;
@@ -553,6 +554,21 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
       (entry) => normalizeLexiconTerm(entry.term) !== normalizedPrevious,
     );
     const next = uniqueEntries([...remaining, { term: cleaned, variants, falsePositives }]);
+    set({ lexiconEntries: next });
+  },
+  addLexiconFalsePositive: (term, value) => {
+    const cleaned = value.trim();
+    if (!cleaned) return;
+    const normalizedTerm = normalizeLexiconTerm(term);
+    const { lexiconEntries } = get();
+    const next = lexiconEntries.map((entry) => {
+      if (normalizeLexiconTerm(entry.term) !== normalizedTerm) return entry;
+      const falsePositives = normalizeLexiconVariants([
+        ...(entry.falsePositives ?? []),
+        cleaned,
+      ]);
+      return { ...entry, falsePositives };
+    });
     set({ lexiconEntries: next });
   },
 
