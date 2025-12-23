@@ -313,9 +313,8 @@ export function TranscriptEditor() {
             bestTerm = entry.term;
           }
           entry.variants.forEach((variant) => {
-            const variantScore = similarityScore(normalizedWord, variant.normalized);
-            if (variantScore > bestScore) {
-              bestScore = variantScore;
+            if (variant.normalized === normalizedWord && 1 > bestScore) {
+              bestScore = 1;
               bestTerm = entry.term;
             }
           });
