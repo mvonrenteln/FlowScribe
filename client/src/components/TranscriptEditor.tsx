@@ -871,7 +871,7 @@ export function TranscriptEditor() {
             )}
           </Button>
           <Separator orientation="vertical" className="h-6" />
-          <h1 className="text-sm font-semibold tracking-tight">TranscriptEditor</h1>
+          <h1 className="text-sm font-semibold tracking-tight">FlowScribe</h1>
         </div>
 
         <div className="flex items-center gap-2">
