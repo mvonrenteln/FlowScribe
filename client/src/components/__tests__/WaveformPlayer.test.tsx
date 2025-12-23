@@ -165,6 +165,45 @@ describe("WaveformPlayer", () => {
     fireEvent.click(screen.getByTestId("button-zoom-in"));
   });
 
+  it("renders regions when speaker colors use space-separated hsl syntax", async () => {
+    render(
+      <WaveformPlayer
+        {...baseProps}
+        audioUrl="audio.mp3"
+        showSpeakerRegions
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "Speaker 1",
+            start: 0,
+            end: 2,
+            text: "Hello",
+            words: [],
+          },
+        ]}
+        speakers={[
+          {
+            id: "spk-1",
+            name: "Speaker 1",
+            color: "hsl(200 50% 40%)",
+          },
+        ]}
+      />,
+    );
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    await waitFor(() => {
+      expect(regionsMock.instance.addRegion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          color: "hsl(200 50% 40% / 0.2)",
+        }),
+      );
+    });
+  });
+
   it("seeks to the provided currentTime after the audio is ready", async () => {
     render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" currentTime={42} />);
 

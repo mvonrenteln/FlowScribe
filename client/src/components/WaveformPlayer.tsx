@@ -81,6 +81,22 @@ export function WaveformPlayer({
     };
   }, []);
 
+  const withAlpha = useCallback((color: string, alpha: number) => {
+    const trimmed = color.trim();
+    if (trimmed.startsWith("hsla(")) return trimmed;
+    if (trimmed.startsWith("hsl(")) {
+      const inner = trimmed.slice(4, -1).trim();
+      if (inner.includes("/")) {
+        return `hsl(${inner.replace(/\s*\/\s*.+$/, ` / ${alpha}`)})`;
+      }
+      if (inner.includes(",")) {
+        return `hsla(${inner}, ${alpha})`;
+      }
+      return `hsl(${inner} / ${alpha})`;
+    }
+    return color;
+  }, []);
+
   const scheduleTimeUpdate = useCallback(
     (time: number) => {
       pendingTimeRef.current = time;
@@ -264,7 +280,7 @@ export function WaveformPlayer({
         id: segment.id,
         start: segment.start,
         end: segment.end,
-        color: color.replace(")", ", 0.2)").replace("hsl", "hsla"),
+        color: withAlpha(color, 0.2),
         drag: false,
         resize: true,
       });
@@ -287,7 +303,14 @@ export function WaveformPlayer({
         }
       });
     });
-  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange]);
+  }, [
+    segments,
+    isReady,
+    showSpeakerRegions,
+    getSpeakerColor,
+    onSegmentBoundaryChange,
+    withAlpha,
+  ]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;
