@@ -1,7 +1,23 @@
-import { Download, Keyboard, PanelLeft, PanelLeftClose, Redo2, Undo2 } from "lucide-react";
+import {
+  Clock,
+  Download,
+  Keyboard,
+  PanelLeft,
+  PanelLeftClose,
+  Redo2,
+  Undo2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
@@ -37,9 +53,11 @@ export function TranscriptEditor() {
     lexiconThreshold,
     lexiconHighlightUnderline,
     lexiconHighlightBackground,
+    recentSessions,
     setAudioFile,
     setAudioUrl,
     setAudioReference,
+    activateSession,
     loadTranscript,
     setSelectedSegmentId,
     setCurrentTime,
@@ -888,6 +906,40 @@ export function TranscriptEditor() {
             transcriptLoaded={segments.length > 0}
             variant="inline"
           />
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                aria-label="Recent sessions"
+                data-testid="button-recent-sessions"
+              >
+                <Clock className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="w-64">
+              <DropdownMenuLabel>Recent sessions</DropdownMenuLabel>
+              <DropdownMenuSeparator />
+              {recentSessions.length === 0 ? (
+                <DropdownMenuItem disabled>No recent sessions</DropdownMenuItem>
+              ) : (
+                recentSessions.slice(0, 8).map((session) => (
+                  <DropdownMenuItem
+                    key={session.key}
+                    onClick={() => activateSession(session.key)}
+                    className="flex flex-col items-start gap-1"
+                  >
+                    <span className="text-xs text-muted-foreground">
+                      {session.audioName || "Unknown audio"}
+                    </span>
+                    <span className="text-sm">
+                      {session.transcriptName || "Untitled transcript"}
+                    </span>
+                  </DropdownMenuItem>
+                ))
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
           <Separator orientation="vertical" className="h-6" />
           <Button
             size="icon"

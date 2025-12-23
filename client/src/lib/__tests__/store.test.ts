@@ -21,6 +21,7 @@ const baseState = {
   lexiconThreshold: 0.82,
   lexiconHighlightUnderline: false,
   lexiconHighlightBackground: false,
+  recentSessions: [],
 };
 
 const sampleSegments: Segment[] = [

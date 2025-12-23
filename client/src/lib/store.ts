@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { type FileReference, buildSessionKey } from "@/lib/fileReference";
+import { type FileReference, buildSessionKey, isSameFileReference } from "@/lib/fileReference";
 
 export interface Word {
   word: string;
@@ -44,6 +44,12 @@ interface TranscriptState {
   audioRef: FileReference | null;
   transcriptRef: FileReference | null;
   sessionKey: string;
+  recentSessions: Array<{
+    key: string;
+    audioName?: string;
+    transcriptName?: string;
+    updatedAt?: number;
+  }>;
   segments: Segment[];
   speakers: Speaker[];
   selectedSegmentId: string | null;
@@ -63,6 +69,7 @@ interface TranscriptState {
   setAudioUrl: (url: string | null) => void;
   setAudioReference: (reference: FileReference | null) => void;
   setTranscriptReference: (reference: FileReference | null) => void;
+  activateSession: (key: string) => void;
   loadTranscript: (data: {
     segments: Segment[];
     speakers?: Speaker[];
@@ -285,6 +292,18 @@ const readGlobalState = (
   }
 };
 
+const buildRecentSessions = (sessions: Record<string, PersistedSession>) => {
+  return Object.entries(sessions)
+    .filter(([, session]) => session.segments.length > 0)
+    .map(([key, session]) => ({
+      key,
+      audioName: session.audioRef?.name,
+      transcriptName: session.transcriptRef?.name,
+      updatedAt: session.updatedAt ?? 0,
+    }))
+    .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
+};
+
 const generateId = () => crypto.randomUUID();
 const normalizeLexiconTerm = (value: string) => value.trim().toLowerCase();
 const normalizeLexiconVariants = (variants: string[]) => {
@@ -360,6 +379,7 @@ const sessionsState = readSessionsState(null);
 const globalState = readGlobalState(null);
 let sessionsCache = sessionsState.sessions;
 let activeSessionKeyCache = sessionsState.activeSessionKey;
+let lastRecentSerialized = JSON.stringify(buildRecentSessions(sessionsCache));
 
 
 const activeSession =
@@ -401,6 +421,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   audioRef: activeSession?.audioRef ?? null,
   transcriptRef: activeSession?.transcriptRef ?? null,
   sessionKey: activeSessionKey ?? buildSessionKey(null, null),
+  recentSessions: buildRecentSessions(sessionsCache),
   segments: activeSession?.segments ?? [],
   speakers: activeSession?.speakers ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
@@ -516,6 +537,38 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
           ]
         : [],
       historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+    });
+  },
+  activateSession: (key) => {
+    const session = sessionsCache[key];
+    if (!session) return;
+    const selectedSegmentId =
+      session.selectedSegmentId &&
+      session.segments.some((segment) => segment.id === session.selectedSegmentId)
+        ? session.selectedSegmentId
+        : (session.segments[0]?.id ?? null);
+    const state = get();
+    const shouldClearAudio = !isSameFileReference(state.audioRef, session.audioRef);
+    set({
+      audioRef: session.audioRef,
+      transcriptRef: session.transcriptRef,
+      sessionKey: key,
+      segments: session.segments,
+      speakers: session.speakers,
+      selectedSegmentId,
+      currentTime: session.currentTime ?? 0,
+      isWhisperXFormat: session.isWhisperXFormat ?? false,
+      history: [
+        {
+          segments: session.segments,
+          speakers: session.speakers,
+          selectedSegmentId,
+        },
+      ],
+      historyIndex: 0,
+      audioFile: shouldClearAudio ? null : state.audioFile,
+      audioUrl: shouldClearAudio ? null : state.audioUrl,
+      seekRequestTime: null,
     });
   },
 
@@ -1129,6 +1182,13 @@ if (canUseLocalStorage()) {
       },
     };
     activeSessionKeyCache = sessionKey;
+
+    const recentSessions = buildRecentSessions(sessionsCache);
+    const recentSerialized = JSON.stringify(recentSessions);
+    if (recentSerialized !== lastRecentSerialized) {
+      lastRecentSerialized = recentSerialized;
+      useTranscriptStore.setState({ recentSessions });
+    }
 
     schedulePersist(
       {
