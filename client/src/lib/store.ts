@@ -51,6 +51,8 @@ interface TranscriptState {
   isWhisperXFormat: boolean;
   lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
+  lexiconHighlightUnderline: boolean;
+  lexiconHighlightBackground: boolean;
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -75,6 +77,8 @@ interface TranscriptState {
   removeLexiconEntry: (term: string) => void;
   updateLexiconEntry: (previousTerm: string, term: string, variants?: string[]) => void;
   setLexiconThreshold: (value: number) => void;
+  setLexiconHighlightUnderline: (value: boolean) => void;
+  setLexiconHighlightBackground: (value: boolean) => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -114,6 +118,8 @@ type PersistedTranscriptState = {
   lexiconEntries?: LexiconEntry[];
   lexiconTerms?: string[];
   lexiconThreshold: number;
+  lexiconHighlightUnderline?: boolean;
+  lexiconHighlightBackground?: boolean;
 };
 
 const canUseLocalStorage = () => {
@@ -163,6 +169,8 @@ const readPersistedState = (): PersistedTranscriptState | null => {
       lexiconEntries,
       lexiconThreshold:
         typeof parsed.lexiconThreshold === "number" ? parsed.lexiconThreshold : 0.82,
+      lexiconHighlightUnderline: Boolean(parsed.lexiconHighlightUnderline),
+      lexiconHighlightBackground: Boolean(parsed.lexiconHighlightBackground),
     };
   } catch {
     return null;
@@ -251,6 +259,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   isWhisperXFormat: persistedState?.isWhisperXFormat ?? false,
   lexiconEntries: persistedState?.lexiconEntries ?? [],
   lexiconThreshold: persistedState?.lexiconThreshold ?? 0.82,
+  lexiconHighlightUnderline: persistedState?.lexiconHighlightUnderline ?? false,
+  lexiconHighlightBackground: persistedState?.lexiconHighlightBackground ?? false,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -533,6 +543,9 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     set({ lexiconThreshold: clamped });
   },
 
+  setLexiconHighlightUnderline: (value) => set({ lexiconHighlightUnderline: value }),
+  setLexiconHighlightBackground: (value) => set({ lexiconHighlightBackground: value }),
+
   splitSegment: (id, wordIndex) => {
     const { segments, speakers, history, historyIndex } = get();
     const segmentIndex = segments.findIndex((s) => s.id === id);
@@ -814,6 +827,8 @@ if (canUseLocalStorage()) {
       isWhisperXFormat: state.isWhisperXFormat,
       lexiconEntries: state.lexiconEntries,
       lexiconThreshold: state.lexiconThreshold,
+      lexiconHighlightUnderline: state.lexiconHighlightUnderline,
+      lexiconHighlightBackground: state.lexiconHighlightBackground,
     });
   });
 }

@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -23,11 +24,23 @@ interface GlossaryDialogProps {
 export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   const lexiconEntries = useTranscriptStore((state) => state.lexiconEntries);
   const lexiconThreshold = useTranscriptStore((state) => state.lexiconThreshold);
+  const lexiconHighlightUnderline = useTranscriptStore(
+    (state) => state.lexiconHighlightUnderline,
+  );
+  const lexiconHighlightBackground = useTranscriptStore(
+    (state) => state.lexiconHighlightBackground,
+  );
   const addLexiconEntry = useTranscriptStore((state) => state.addLexiconEntry);
   const removeLexiconEntry = useTranscriptStore((state) => state.removeLexiconEntry);
   const setLexiconEntries = useTranscriptStore((state) => state.setLexiconEntries);
   const updateLexiconEntry = useTranscriptStore((state) => state.updateLexiconEntry);
   const setLexiconThreshold = useTranscriptStore((state) => state.setLexiconThreshold);
+  const setLexiconHighlightUnderline = useTranscriptStore(
+    (state) => state.setLexiconHighlightUnderline,
+  );
+  const setLexiconHighlightBackground = useTranscriptStore(
+    (state) => state.setLexiconHighlightBackground,
+  );
   const [newTerm, setNewTerm] = useState("");
   const [newVariants, setNewVariants] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
@@ -114,6 +127,34 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
               onValueChange={(value) => setLexiconThreshold(value[0] ?? 0.82)}
             />
             <div className="text-xs text-muted-foreground">{lexiconThreshold.toFixed(2)}</div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="text-xs text-muted-foreground">Highlighting (normal view)</div>
+            <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+              <div>
+                <div className="text-sm font-medium">Underline matches</div>
+                <div className="text-xs text-muted-foreground">
+                  Applies even to 100% matches.
+                </div>
+              </div>
+              <Switch
+                checked={lexiconHighlightUnderline}
+                onCheckedChange={setLexiconHighlightUnderline}
+              />
+            </div>
+            <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
+              <div>
+                <div className="text-sm font-medium">Highlight background</div>
+                <div className="text-xs text-muted-foreground">
+                  Only for uncertain matches.
+                </div>
+              </div>
+              <Switch
+                checked={lexiconHighlightBackground}
+                onCheckedChange={setLexiconHighlightBackground}
+              />
+            </div>
           </div>
 
           <div className="space-y-2">

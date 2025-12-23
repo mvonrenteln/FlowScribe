@@ -33,6 +33,8 @@ export function TranscriptEditor() {
     isWhisperXFormat,
     lexiconEntries,
     lexiconThreshold,
+    lexiconHighlightUnderline,
+    lexiconHighlightBackground,
     setAudioFile,
     setAudioUrl,
     loadTranscript,
@@ -299,6 +301,18 @@ export function TranscriptEditor() {
     });
     return matches;
   }, [lexiconEntriesNormalized, lexiconThreshold, segments]);
+
+  const lexiconHighlightEnabled = lexiconHighlightUnderline || lexiconHighlightBackground;
+  const forceLexiconHighlight = filterLexicon || filterLexiconLowScore;
+  const effectiveLexiconHighlightUnderline = forceLexiconHighlight
+    ? true
+    : lexiconHighlightUnderline;
+  const effectiveLexiconHighlightBackground = forceLexiconHighlight
+    ? true
+    : lexiconHighlightBackground;
+  const showLexiconMatches =
+    lexiconEntriesNormalized.length > 0 &&
+    (filterLexicon || filterLexiconLowScore || lexiconHighlightEnabled);
 
   const { lexiconMatchCount, lexiconLowScoreMatchCount } = useMemo(() => {
     let totalMatches = 0;
@@ -1069,7 +1083,9 @@ export function TranscriptEditor() {
                       highlightLowConfidence={highlightLowConfidence}
                       lowConfidenceThreshold={lowConfidenceThreshold}
                       lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
-                      showLexiconMatches={lexiconEntriesNormalized.length > 0}
+                      showLexiconMatches={showLexiconMatches}
+                      lexiconHighlightUnderline={effectiveLexiconHighlightUnderline}
+                      lexiconHighlightBackground={effectiveLexiconHighlightBackground}
                       editRequested={editRequestId === segment.id}
                       onEditRequestHandled={
                         editRequestId === segment.id ? () => setEditRequestId(null) : undefined

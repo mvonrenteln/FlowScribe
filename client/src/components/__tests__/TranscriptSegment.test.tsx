@@ -434,8 +434,8 @@ describe("TranscriptSegment", () => {
     const lowWord = screen.getByTestId("word-seg-1-0");
     const highWord = screen.getByTestId("word-seg-1-1");
 
-    expect(lowWord.className).toContain("decoration-dotted");
-    expect(highWord.className).not.toContain("decoration-dotted");
+    expect(lowWord.querySelector("span")?.className).toContain("decoration-dotted");
+    expect(highWord.querySelector("span")?.className).not.toContain("decoration-dotted");
   });
 
   it("highlights lexicon matches when provided", () => {
@@ -450,6 +450,8 @@ describe("TranscriptSegment", () => {
         isActive={false}
         lexiconMatches={lexiconMatch}
         showLexiconMatches={true}
+        lexiconHighlightUnderline={true}
+        lexiconHighlightBackground={true}
         onSelect={vi.fn()}
         onTextChange={vi.fn()}
         onSpeakerChange={vi.fn()}
@@ -479,6 +481,8 @@ describe("TranscriptSegment", () => {
         isActive={false}
         lexiconMatches={lexiconMatch}
         showLexiconMatches={true}
+        lexiconHighlightUnderline={true}
+        lexiconHighlightBackground={true}
         onSelect={vi.fn()}
         onTextChange={onTextChange}
         onSpeakerChange={vi.fn()}

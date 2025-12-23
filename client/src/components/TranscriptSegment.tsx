@@ -35,6 +35,8 @@ interface TranscriptSegmentProps {
   lowConfidenceThreshold?: number | null;
   lexiconMatches?: Map<number, { term: string; score: number }>;
   showLexiconMatches?: boolean;
+  lexiconHighlightUnderline?: boolean;
+  lexiconHighlightBackground?: boolean;
   editRequested?: boolean;
   onEditRequestHandled?: () => void;
   onSelect: () => void;
@@ -68,6 +70,8 @@ function TranscriptSegmentComponent({
   lowConfidenceThreshold = null,
   lexiconMatches,
   showLexiconMatches = false,
+  lexiconHighlightUnderline = false,
+  lexiconHighlightBackground = false,
   editRequested = false,
   onEditRequestHandled,
   onSelect,
@@ -303,6 +307,15 @@ function TranscriptSegmentComponent({
                 const isLexiconMatch = Boolean(lexiconMatch);
                 const nextText = segment.words.map((item) => item.word);
                 if (isLexiconMatch && lexiconMatch) {
+                  const shouldUnderline = lexiconHighlightUnderline;
+                  const shouldBackground =
+                    lexiconHighlightBackground && lexiconMatch.score < 1;
+                  const underlineClass = cn(
+                    isLowConfidence(word) &&
+                      "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
+                    shouldUnderline &&
+                      "underline decoration-dotted decoration-emerald-600 underline-offset-2",
+                  );
                   return (
                     <TooltipProvider key={`${segment.id}-${word.start}-${word.end}`}>
                       <Tooltip>
@@ -314,15 +327,14 @@ function TranscriptSegmentComponent({
                               "cursor-pointer transition-colors",
                               index === resolvedActiveWordIndex && "bg-primary/20 underline",
                               index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                              isLowConfidence(word) &&
-                                "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                              "bg-amber-100/70 text-amber-950 underline decoration-dotted decoration-amber-600",
+                              shouldBackground && "bg-amber-100/70 text-amber-950",
                             )}
                             data-testid={`word-${segment.id}-${index}`}
                             role="button"
                             tabIndex={0}
                           >
-                            {word.word}{" "}
+                            <span className={underlineClass}>{word.word}</span>
+                            <span className="no-underline"> </span>
                           </span>
                         </TooltipTrigger>
                         <TooltipContent className="flex items-center gap-2">
@@ -358,8 +370,6 @@ function TranscriptSegmentComponent({
                       "cursor-pointer transition-colors",
                       index === resolvedActiveWordIndex && "bg-primary/20 underline",
                       index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                      isLowConfidence(word) &&
-                        "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
                     )}
                     data-testid={`word-${segment.id}-${index}`}
                     title={
@@ -370,7 +380,15 @@ function TranscriptSegmentComponent({
                     role="button"
                     tabIndex={0}
                   >
-                    {word.word}{" "}
+                    <span
+                      className={cn(
+                        isLowConfidence(word) &&
+                          "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
+                      )}
+                    >
+                      {word.word}
+                    </span>
+                    <span className="no-underline"> </span>
                   </span>
                 );
               })}
@@ -533,6 +551,8 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.lowConfidenceThreshold === next.lowConfidenceThreshold &&
     prev.lexiconMatches === next.lexiconMatches &&
     prev.showLexiconMatches === next.showLexiconMatches &&
+    prev.lexiconHighlightUnderline === next.lexiconHighlightUnderline &&
+    prev.lexiconHighlightBackground === next.lexiconHighlightBackground &&
     prev.editRequested === next.editRequested &&
     prev.onEditRequestHandled === next.onEditRequestHandled &&
     prev.onSelect === next.onSelect &&
