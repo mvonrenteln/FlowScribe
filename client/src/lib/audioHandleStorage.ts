@@ -52,15 +52,23 @@ export const clearAudioHandle = async (): Promise<void> => {
 export const queryAudioHandlePermission = async (
   handle: FileSystemFileHandle,
 ): Promise<boolean> => {
-  if (!("queryPermission" in handle)) return true;
-  const result = await handle.queryPermission({ mode: "read" });
+  type PermissionDescriptor = { mode: "read" | "readwrite" };
+  const permissionHandle = handle as FileSystemFileHandle & {
+    queryPermission?: (descriptor: PermissionDescriptor) => Promise<PermissionState>;
+  };
+  if (!permissionHandle.queryPermission) return true;
+  const result = await permissionHandle.queryPermission({ mode: "read" });
   return result === "granted";
 };
 
 export const requestAudioHandlePermission = async (
   handle: FileSystemFileHandle,
 ): Promise<boolean> => {
-  if (!("requestPermission" in handle)) return true;
-  const result = await handle.requestPermission({ mode: "read" });
+  type PermissionDescriptor = { mode: "read" | "readwrite" };
+  const permissionHandle = handle as FileSystemFileHandle & {
+    requestPermission?: (descriptor: PermissionDescriptor) => Promise<PermissionState>;
+  };
+  if (!permissionHandle.requestPermission) return true;
+  const result = await permissionHandle.requestPermission({ mode: "read" });
   return result === "granted";
 };

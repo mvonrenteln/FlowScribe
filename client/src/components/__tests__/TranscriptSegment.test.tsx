@@ -186,6 +186,7 @@ describe("TranscriptSegment", () => {
         onSpeakerChange={vi.fn()}
         onSplit={vi.fn()}
         onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
         onDelete={vi.fn()}
         onSeek={vi.fn()}
       />,

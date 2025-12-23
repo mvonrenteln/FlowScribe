@@ -3,7 +3,7 @@ export const normalizeToken = (value: string): string => {
     .toLowerCase()
     .normalize("NFKD")
     .replace(/[\u0300-\u036f]/g, "")
-    .replace(/[^\p{L}\p{N}]+/gu, "");
+    .replace(/[^a-z0-9]+/gi, "");
 };
 
 export const levenshteinDistance = (a: string, b: string): number => {

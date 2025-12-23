@@ -661,7 +661,7 @@ export function TranscriptEditor() {
 
     window.addEventListener("keydown", handleGlobalArrowNav, { capture: true });
     return () => window.removeEventListener("keydown", handleGlobalArrowNav, { capture: true });
-  }, [selectNextSegment, selectPreviousSegment]);
+  }, [selectNextSegment, selectPreviousSegment, isTranscriptEditing]);
 
   useEffect(() => {
     if (!filterLowConfidence || !isPlaying) return;
@@ -730,13 +730,13 @@ export function TranscriptEditor() {
     [
       filteredSegments,
       handleSeek,
+      handleSplitSegment,
       mergeSegments,
       setSelectedSegmentId,
       updateSegmentSpeaker,
       updateSegmentText,
       confirmSegment,
       toggleSegmentBookmark,
-      splitSegment,
       deleteSegment,
     ],
   );

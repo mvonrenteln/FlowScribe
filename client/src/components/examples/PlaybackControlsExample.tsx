@@ -19,6 +19,8 @@ export default function PlaybackControlsExample() {
         onSeek={(time) => setCurrentTime(time)}
         onSkipBack={() => setCurrentTime(Math.max(0, currentTime - 5))}
         onSkipForward={() => setCurrentTime(Math.min(duration, currentTime + 5))}
+        canSplitAtCurrentWord={false}
+        onSplitAtCurrentWord={() => {}}
       />
     </div>
   );
