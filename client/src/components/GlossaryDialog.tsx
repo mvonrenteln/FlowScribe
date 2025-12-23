@@ -44,9 +44,6 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   const [newFalsePositives, setNewFalsePositives] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
-  const selectedEntry = selectedTerm
-    ? lexiconEntries.find((entry) => entry.term === selectedTerm)
-    : undefined;
   const parseList = (value: string) =>
     value
       .split(",")
