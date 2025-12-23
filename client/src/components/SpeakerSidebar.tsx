@@ -135,16 +135,6 @@ export function SpeakerSidebar({
       <div className="p-4 border-b">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">Speakers</h2>
-          {selectedSpeakerId && (
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onClearFilter?.()}
-              data-testid="button-clear-speaker-filter"
-            >
-              Clear
-            </Button>
-          )}
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {speakers.length} speaker{speakers.length !== 1 ? "s" : ""} detected
@@ -280,8 +270,18 @@ export function SpeakerSidebar({
             </div>
           ))}
           <div className="pt-3 mt-3 border-t">
-            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Quality
+            <div className="flex items-center justify-between px-1">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Review
+              </div>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => onClearFilter?.()}
+                data-testid="button-clear-filters"
+              >
+                Clear
+              </Button>
             </div>
             <button
               type="button"
@@ -297,7 +297,7 @@ export function SpeakerSidebar({
               }}
               data-testid="button-filter-low-confidence"
             >
-              <span>Low score</span>
+              <span>Low confidence score</span>
               <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
             </button>
             {lowConfidenceFilterActive && (
@@ -332,33 +332,6 @@ export function SpeakerSidebar({
                 </div>
               </div>
             )}
-          </div>
-          <div className="pt-3 mt-3 border-t">
-            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Bookmarks
-            </div>
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                bookmarkFilterActive && "bg-accent",
-                bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (bookmarkCount === 0 && !bookmarkFilterActive) return;
-                onToggleBookmarkFilter?.();
-              }}
-              data-testid="button-filter-bookmarks"
-            >
-              <span>Bookmarked</span>
-              <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
-            </button>
-          </div>
-          <div className="pt-3 mt-3 border-t">
-            <div className="px-1 text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-              Glossary
-            </div>
             <button
               type="button"
               className={cn(
@@ -394,6 +367,23 @@ export function SpeakerSidebar({
             >
               <span>Uncertain Glossary Matches</span>
               <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
+            </button>
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                bookmarkFilterActive && "bg-accent",
+                bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (bookmarkCount === 0 && !bookmarkFilterActive) return;
+                onToggleBookmarkFilter?.();
+              }}
+              data-testid="button-filter-bookmarks"
+            >
+              <span>Bookmarked</span>
+              <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
             </button>
           </div>
         </div>

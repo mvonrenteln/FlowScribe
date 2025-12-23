@@ -884,7 +884,13 @@ export function TranscriptEditor() {
             onSpeakerSelect={(id) =>
               setFilterSpeakerId((current) => (current === id ? undefined : id))
             }
-            onClearFilter={() => setFilterSpeakerId(undefined)}
+            onClearFilter={() => {
+              setFilterSpeakerId(undefined);
+              setFilterLowConfidence(false);
+              setFilterBookmarked(false);
+              setFilterLexicon(false);
+              setFilterLexiconLowScore(false);
+            }}
             selectedSpeakerId={filterSpeakerId}
             lowConfidenceFilterActive={filterLowConfidence}
             onToggleLowConfidenceFilter={() => setFilterLowConfidence((current) => !current)}

@@ -94,7 +94,7 @@ describe("SpeakerSidebar", () => {
     fireEvent.keyDown(speakerCard, { key: "Enter" });
     expect(onSpeakerSelect).toHaveBeenCalledWith("s1");
 
-    await userEvent.click(screen.getByTestId("button-clear-speaker-filter"));
+    await userEvent.click(screen.getByTestId("button-clear-filters"));
     expect(onClearFilter).toHaveBeenCalled();
   });
 
