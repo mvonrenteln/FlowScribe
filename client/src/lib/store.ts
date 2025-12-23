@@ -220,10 +220,7 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
       seen.set(key, normalized);
       return;
     }
-    const mergedVariants = normalizeLexiconVariants([
-      ...existing.variants,
-      ...normalized.variants,
-    ]);
+    const mergedVariants = normalizeLexiconVariants([...existing.variants, ...normalized.variants]);
     const mergedFalsePositives = normalizeLexiconVariants([
       ...existing.falsePositives,
       ...normalized.falsePositives,
@@ -539,9 +536,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   removeLexiconEntry: (term) => {
     const normalized = normalizeLexiconTerm(term);
     const { lexiconEntries } = get();
-    const next = lexiconEntries.filter(
-      (item) => normalizeLexiconTerm(item.term) !== normalized,
-    );
+    const next = lexiconEntries.filter((item) => normalizeLexiconTerm(item.term) !== normalized);
     set({ lexiconEntries: next });
   },
 
@@ -563,10 +558,7 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     const { lexiconEntries } = get();
     const next = lexiconEntries.map((entry) => {
       if (normalizeLexiconTerm(entry.term) !== normalizedTerm) return entry;
-      const falsePositives = normalizeLexiconVariants([
-        ...(entry.falsePositives ?? []),
-        cleaned,
-      ]);
+      const falsePositives = normalizeLexiconVariants([...(entry.falsePositives ?? []), cleaned]);
       return { ...entry, falsePositives };
     });
     set({ lexiconEntries: next });

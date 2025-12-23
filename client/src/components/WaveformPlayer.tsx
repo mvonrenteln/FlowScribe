@@ -303,14 +303,7 @@ export function WaveformPlayer({
         }
       });
     });
-  }, [
-    segments,
-    isReady,
-    showSpeakerRegions,
-    getSpeakerColor,
-    onSegmentBoundaryChange,
-    withAlpha,
-  ]);
+  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange, withAlpha]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;

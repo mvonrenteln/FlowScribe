@@ -858,9 +858,7 @@ describe("TranscriptEditor", () => {
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [
-        { term: "Glymbar", variants: ["Glimmer", "Klümper"], falsePositives: [] },
-      ],
+      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klümper"], falsePositives: [] }],
       lexiconThreshold: 0.8,
     });
 

@@ -310,8 +310,7 @@ function TranscriptSegmentComponent({
                 const nextText = segment.words.map((item) => item.word);
                 if (isLexiconMatch && lexiconMatch) {
                   const shouldUnderline = lexiconHighlightUnderline;
-                  const shouldBackground =
-                    lexiconHighlightBackground && lexiconMatch.score < 1;
+                  const shouldBackground = lexiconHighlightBackground && lexiconMatch.score < 1;
                   const underlineClass = cn(
                     isLowConfidence(word) &&
                       "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",

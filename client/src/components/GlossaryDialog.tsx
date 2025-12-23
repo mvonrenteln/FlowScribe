@@ -11,8 +11,8 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
+import { Switch } from "@/components/ui/switch";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -24,9 +24,7 @@ interface GlossaryDialogProps {
 export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   const lexiconEntries = useTranscriptStore((state) => state.lexiconEntries);
   const lexiconThreshold = useTranscriptStore((state) => state.lexiconThreshold);
-  const lexiconHighlightUnderline = useTranscriptStore(
-    (state) => state.lexiconHighlightUnderline,
-  );
+  const lexiconHighlightUnderline = useTranscriptStore((state) => state.lexiconHighlightUnderline);
   const lexiconHighlightBackground = useTranscriptStore(
     (state) => state.lexiconHighlightBackground,
   );
@@ -103,8 +101,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   const handleExport = () => {
     const content = lexiconEntries
       .map((entry) => {
-        const variantsPart =
-          entry.variants.length > 0 ? ` | ${entry.variants.join(", ")}` : "";
+        const variantsPart = entry.variants.length > 0 ? ` | ${entry.variants.join(", ")}` : "";
         const falsePositivesPart =
           entry.falsePositives.length > 0
             ? ` | false positives: ${entry.falsePositives.join(", ")}`
@@ -151,9 +148,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
             <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
               <div>
                 <div className="text-sm font-medium">Underline matches</div>
-                <div className="text-xs text-muted-foreground">
-                  Applies even to 100% matches.
-                </div>
+                <div className="text-xs text-muted-foreground">Applies even to 100% matches.</div>
               </div>
               <Switch
                 checked={lexiconHighlightUnderline}
@@ -163,9 +158,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
             <div className="flex items-center justify-between gap-2 rounded-md border px-3 py-2">
               <div>
                 <div className="text-sm font-medium">Highlight background</div>
-                <div className="text-xs text-muted-foreground">
-                  Only for uncertain matches.
-                </div>
+                <div className="text-xs text-muted-foreground">Only for uncertain matches.</div>
               </div>
               <Switch
                 checked={lexiconHighlightBackground}
@@ -326,11 +319,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
               <Upload className="h-4 w-4 mr-2" />
               Import
             </Button>
-            <Button
-              variant="outline"
-              onClick={handleExport}
-              disabled={lexiconEntries.length === 0}
-            >
+            <Button variant="outline" onClick={handleExport} disabled={lexiconEntries.length === 0}>
               <Download className="h-4 w-4 mr-2" />
               Export
             </Button>

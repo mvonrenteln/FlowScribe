@@ -291,8 +291,7 @@ export function TranscriptEditor() {
           if (
             entry.falsePositives.some(
               (value) =>
-                value.normalized === normalizedWord ||
-                value.value.trim().toLowerCase() === rawWord,
+                value.normalized === normalizedWord || value.value.trim().toLowerCase() === rawWord,
             )
           ) {
             return;

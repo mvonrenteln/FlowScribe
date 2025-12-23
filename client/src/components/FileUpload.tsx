@@ -146,56 +146,55 @@ export function FileUpload({
 
   const content = (
     <div className="flex flex-wrap items-center gap-3">
-        <input
-          ref={audioInputRef}
-          type="file"
-          accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
-          onChange={handleAudioChange}
-          className="hidden"
-          data-testid="input-audio-file"
-        />
-        <input
-          ref={transcriptInputRef}
-          type="file"
-          accept=".json"
-          onChange={handleTranscriptChange}
-          className="hidden"
-          data-testid="input-transcript-file"
-        />
+      <input
+        ref={audioInputRef}
+        type="file"
+        accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
+        onChange={handleAudioChange}
+        className="hidden"
+        data-testid="input-audio-file"
+      />
+      <input
+        ref={transcriptInputRef}
+        type="file"
+        accept=".json"
+        onChange={handleTranscriptChange}
+        className="hidden"
+        data-testid="input-transcript-file"
+      />
 
-        <Button
-          variant={audioFileName ? "secondary" : "default"}
-          onClick={handleAudioPick}
-          data-testid="button-upload-audio"
-        >
-          <FileAudio className="h-4 w-4 mr-2" />
-          {audioFileName || "Load Audio"}
+      <Button
+        variant={audioFileName ? "secondary" : "default"}
+        onClick={handleAudioPick}
+        data-testid="button-upload-audio"
+      >
+        <FileAudio className="h-4 w-4 mr-2" />
+        {audioFileName || "Load Audio"}
+      </Button>
+
+      {!audioFileName && audioHandle && (
+        <Button variant="outline" onClick={handleRestoreAudio} data-testid="button-restore-audio">
+          <RotateCcw className="h-4 w-4 mr-2" />
+          Reopen Audio
         </Button>
+      )}
 
-        {!audioFileName && audioHandle && (
-          <Button variant="outline" onClick={handleRestoreAudio} data-testid="button-restore-audio">
-            <RotateCcw className="h-4 w-4 mr-2" />
-            Reopen Audio
-          </Button>
-        )}
+      <Button
+        variant={transcriptLoaded ? "secondary" : "outline"}
+        onClick={() => transcriptInputRef.current?.click()}
+        data-testid="button-upload-transcript"
+      >
+        <FileText className="h-4 w-4 mr-2" />
+        {localTranscriptFileName || (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
+      </Button>
 
-        <Button
-          variant={transcriptLoaded ? "secondary" : "outline"}
-          onClick={() => transcriptInputRef.current?.click()}
-          data-testid="button-upload-transcript"
-        >
-          <FileText className="h-4 w-4 mr-2" />
-          {localTranscriptFileName ||
-            (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
-        </Button>
-
-        {variant === "card" && !audioFileName && !transcriptLoaded && (
-          <span className="text-sm text-muted-foreground">
-            <Upload className="h-4 w-4 inline mr-1" />
-            Drop files or click to upload
-          </span>
-        )}
-      </div>
+      {variant === "card" && !audioFileName && !transcriptLoaded && (
+        <span className="text-sm text-muted-foreground">
+          <Upload className="h-4 w-4 inline mr-1" />
+          Drop files or click to upload
+        </span>
+      )}
+    </div>
   );
 
   if (variant === "inline") {
