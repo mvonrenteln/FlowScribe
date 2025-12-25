@@ -38,6 +38,7 @@ import {
 } from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 import { CustomDictionariesDialog } from "./CustomDictionariesDialog";
 import { ExportDialog } from "./ExportDialog";
 import { FileUpload } from "./FileUpload";
@@ -446,49 +447,64 @@ export function TranscriptEditor() {
 
   const lexiconMatchesBySegment = useMemo(() => {
     if (lexiconEntriesNormalized.length === 0)
-      return new Map<string, Map<number, { term: string; score: number }>>();
-    const matches = new Map<string, Map<number, { term: string; score: number }>>();
+      return new Map<string, Map<number, { term: string; score: number; partIndex?: number }>>();
+    const matches = new Map<
+      string,
+      Map<number, { term: string; score: number; partIndex?: number }>
+    >();
     segments.forEach((segment) => {
-      const wordMatches = new Map<number, { term: string; score: number }>();
+      const wordMatches = new Map<number, { term: string; score: number; partIndex?: number }>();
       segment.words.forEach((word, index) => {
-        const normalizedWord = normalizeToken(word.word);
-        const rawWord = word.word.trim().toLowerCase();
-        if (!normalizedWord) return;
+        const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
+        const trailing = word.word.match(wordTrailingRegex)?.[0] ?? "";
+        const core = word.word.slice(leading.length, word.word.length - trailing.length);
+        if (!core) return;
+        const parts = core.includes("-") ? core.split("-").filter(Boolean) : [core];
+        if (parts.length === 0) return;
         let bestScore = 0;
         let bestTerm = "";
-        lexiconEntriesNormalized.forEach((entry) => {
-          if (
-            entry.falsePositives.some(
-              (value) =>
-                value.normalized === normalizedWord || value.value.trim().toLowerCase() === rawWord,
-            )
-          ) {
-            return;
-          }
-          let bestFalsePositiveScore = 0;
-          entry.falsePositives.forEach((value) => {
-            const score = similarityScore(normalizedWord, value.normalized);
-            if (score > bestFalsePositiveScore) {
-              bestFalsePositiveScore = score;
+        let bestPartIndex: number | undefined;
+        parts.forEach((part, partIndex) => {
+          const normalizedPart = normalizeToken(part);
+          const rawPart = part.trim().toLowerCase();
+          if (!normalizedPart) return;
+          lexiconEntriesNormalized.forEach((entry) => {
+            if (
+              entry.falsePositives.some(
+                (value) =>
+                  value.normalized === normalizedPart ||
+                  value.value.trim().toLowerCase() === rawPart,
+              )
+            ) {
+              return;
             }
-          });
-          if (bestFalsePositiveScore >= lexiconThreshold) {
-            return;
-          }
-          const score = similarityScore(normalizedWord, entry.normalized);
-          if (score > bestScore) {
-            bestScore = score;
-            bestTerm = entry.term;
-          }
-          entry.variants.forEach((variant) => {
-            if (variant.normalized === normalizedWord && 1 > bestScore) {
-              bestScore = 1;
+            let bestFalsePositiveScore = 0;
+            entry.falsePositives.forEach((value) => {
+              const score = similarityScore(normalizedPart, value.normalized);
+              if (score > bestFalsePositiveScore) {
+                bestFalsePositiveScore = score;
+              }
+            });
+            if (bestFalsePositiveScore >= lexiconThreshold) {
+              return;
+            }
+            const score = similarityScore(normalizedPart, entry.normalized);
+            if (score > bestScore) {
+              bestScore = score;
               bestTerm = entry.term;
+              bestPartIndex = parts.length > 1 ? partIndex : undefined;
             }
+            entry.variants.forEach((variant) => {
+              if (variant.normalized === normalizedPart && 1 > bestScore) {
+                bestScore = 1;
+                bestTerm = entry.term;
+                bestPartIndex = parts.length > 1 ? partIndex : undefined;
+              }
+            });
           });
         });
         if (bestScore >= lexiconThreshold) {
-          wordMatches.set(index, { term: bestTerm, score: bestScore });
+          wordMatches.set(index, { term: bestTerm, score: bestScore, partIndex: bestPartIndex });
         }
       });
       if (wordMatches.size > 0) {

@@ -36,7 +36,7 @@ interface TranscriptSegmentProps {
   splitWordIndex?: number;
   highlightLowConfidence?: boolean;
   lowConfidenceThreshold?: number | null;
-  lexiconMatches?: Map<number, { term: string; score: number }>;
+  lexiconMatches?: Map<number, { term: string; score: number; partIndex?: number }>;
   showLexiconMatches?: boolean;
   lexiconHighlightUnderline?: boolean;
   lexiconHighlightBackground?: boolean;
@@ -251,7 +251,7 @@ function TranscriptSegmentComponent({
     [onTextChange, segment.words],
   );
 
-  const getSpellcheckTarget = useCallback((value: string, partIndex?: number) => {
+  const getHyphenTarget = useCallback((value: string, partIndex?: number) => {
     if (partIndex === undefined) return value;
     const leading = value.match(wordLeadingRegex)?.[0] ?? "";
     const trailing = value.match(wordTrailingRegex)?.[0] ?? "";
@@ -362,18 +362,24 @@ function TranscriptSegmentComponent({
                 const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
                 const shouldBackground =
                   isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
-                const baseUnderlineClass = cn(
+                const lowConfidenceClass = cn(
                   isLowConfidence(word) &&
                     "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                  shouldUnderline &&
-                    "underline decoration-dotted decoration-emerald-600 underline-offset-2",
                 );
+                const lexiconUnderlineClass = shouldUnderline
+                  ? "underline decoration-dotted decoration-emerald-600 underline-offset-2"
+                  : "";
+                const lexiconBackgroundClass = shouldBackground
+                  ? "bg-amber-100/70 text-amber-950"
+                  : "";
                 const spellcheckUnderlineClass = isSpellcheckMatch ? "spellcheck-underline" : "";
                 const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
                 const trailing = word.word.match(wordTrailingRegex)?.[0] ?? "";
                 const core = word.word.slice(leading.length, word.word.length - trailing.length);
-                const spellcheckParts =
-                  spellcheckMatch?.partIndex !== undefined && core.includes("-")
+                const hyphenParts =
+                  (spellcheckMatch?.partIndex !== undefined ||
+                    lexiconMatch?.partIndex !== undefined) &&
+                  core.includes("-")
                     ? core.split("-")
                     : null;
                 const wordSpan = (
@@ -385,7 +391,6 @@ function TranscriptSegmentComponent({
                       "cursor-pointer transition-colors",
                       index === resolvedActiveWordIndex && "bg-primary/20 underline",
                       index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                      shouldBackground && "bg-amber-100/70 text-amber-950",
                     )}
                     data-testid={`word-${segment.id}-${index}`}
                     title={
@@ -396,27 +401,35 @@ function TranscriptSegmentComponent({
                     role="button"
                     tabIndex={0}
                   >
-                    {spellcheckParts ? (
-                      <span className={baseUnderlineClass}>
+                    {hyphenParts ? (
+                      <span className={lowConfidenceClass}>
                         {leading}
-                        {spellcheckParts.map((part, partIndex) => (
+                        {hyphenParts.map((part, partIndex) => (
                           <span key={`${segment.id}-${word.start}-${partIndex}`}>
                             <span
-                              className={
-                                partIndex === spellcheckMatch?.partIndex
-                                  ? spellcheckUnderlineClass
-                                  : undefined
-                              }
+                              className={cn(
+                                partIndex === lexiconMatch?.partIndex && lexiconUnderlineClass,
+                                partIndex === lexiconMatch?.partIndex && lexiconBackgroundClass,
+                                partIndex === spellcheckMatch?.partIndex &&
+                                  spellcheckUnderlineClass,
+                              )}
                             >
                               {part}
                             </span>
-                            {partIndex < spellcheckParts.length - 1 ? "-" : ""}
+                            {partIndex < hyphenParts.length - 1 ? "-" : ""}
                           </span>
                         ))}
                         {trailing}
                       </span>
                     ) : (
-                      <span className={cn(baseUnderlineClass, spellcheckUnderlineClass)}>
+                      <span
+                        className={cn(
+                          lowConfidenceClass,
+                          lexiconUnderlineClass,
+                          lexiconBackgroundClass,
+                          spellcheckUnderlineClass,
+                        )}
+                      >
                         {word.word}
                       </span>
                     )}
@@ -451,7 +464,11 @@ function TranscriptSegmentComponent({
                                   data-testid={`button-apply-glossary-${segment.id}-${index}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    applyWordReplacement(index, lexiconMatch.term);
+                                    applyWordReplacement(
+                                      index,
+                                      lexiconMatch.term,
+                                      lexiconMatch.partIndex,
+                                    );
                                   }}
                                 >
                                   Apply
@@ -462,7 +479,11 @@ function TranscriptSegmentComponent({
                                   data-testid={`button-ignore-glossary-${segment.id}-${index}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    onIgnoreLexiconMatch?.(lexiconMatch.term, word.word);
+                                    const target = getHyphenTarget(
+                                      word.word,
+                                      lexiconMatch.partIndex,
+                                    );
+                                    onIgnoreLexiconMatch?.(lexiconMatch.term, target);
                                   }}
                                 >
                                   Ignore
@@ -521,7 +542,7 @@ function TranscriptSegmentComponent({
                                   data-testid={`button-add-glossary-spellcheck-${segment.id}-${index}`}
                                   onClick={(event) => {
                                     event.stopPropagation();
-                                    const target = getSpellcheckTarget(
+                                    const target = getHyphenTarget(
                                       word.word,
                                       spellcheckMatch?.partIndex,
                                     );
@@ -539,7 +560,7 @@ function TranscriptSegmentComponent({
                                 data-testid={`button-ignore-spellcheck-${segment.id}-${index}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  const target = getSpellcheckTarget(
+                                  const target = getHyphenTarget(
                                     word.word,
                                     spellcheckMatch?.partIndex,
                                   );

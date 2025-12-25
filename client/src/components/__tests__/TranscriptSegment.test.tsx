@@ -464,7 +464,7 @@ describe("TranscriptSegment", () => {
     );
 
     const matchWord = screen.getByTestId("word-seg-1-1");
-    expect(matchWord.className).toContain("bg-amber-100");
+    expect(matchWord.querySelector("span")?.className).toContain("bg-amber-100/70");
     expect(matchWord).toHaveTextContent("Welt");
   });
 
@@ -537,6 +537,42 @@ describe("TranscriptSegment", () => {
     await userEvent.click(ignoreButton[0]);
 
     expect(onIgnoreLexiconMatch).toHaveBeenCalledWith("Welt", "Welt");
+  });
+
+  it("highlights only the matched lexicon part in a hyphenated word", () => {
+    const lexiconMatch = new Map<number, { term: string; score: number; partIndex?: number }>();
+    lexiconMatch.set(0, { term: "Geweihte", score: 0.9, partIndex: 1 });
+    const segmentWithHyphen: Segment = {
+      ...segment,
+      text: "Tsa-Geweihte",
+      words: [{ word: "Tsa-Geweihte", start: 0, end: 2 }],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={segmentWithHyphen}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        lexiconMatches={lexiconMatch}
+        showLexiconMatches={true}
+        lexiconHighlightUnderline={true}
+        lexiconHighlightBackground={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const wordElement = screen.getByTestId("word-seg-1-0");
+    const highlighted = wordElement.querySelectorAll(".decoration-emerald-600");
+    expect(highlighted.length).toBe(1);
+    expect(highlighted[0]?.textContent).toBe("Geweihte");
   });
 
   it("applies a spellcheck suggestion from the tooltip", async () => {
