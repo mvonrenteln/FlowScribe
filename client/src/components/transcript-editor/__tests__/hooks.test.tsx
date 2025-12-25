@@ -1,4 +1,5 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
+import type { MutableRefObject } from "react";
 import { describe, expect, it, vi } from "vitest";
 import type { Segment } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "../useFiltersAndLexicon";
@@ -194,7 +195,8 @@ describe("useScrollAndSelection", () => {
     container.appendChild(segment2);
 
     act(() => {
-      result.current.transcriptListRef.current = container;
+      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
     });
     rerender({
       segments,
@@ -233,7 +235,7 @@ describe("useScrollAndSelection", () => {
         if (typeof callback === "function") {
           callback();
         }
-        return 0 as ReturnType<typeof setTimeout>;
+        return 0 as unknown as ReturnType<typeof setTimeout>;
       });
     const rafSpy = vi
       .spyOn(globalThis, "requestAnimationFrame")
@@ -298,7 +300,8 @@ describe("useScrollAndSelection", () => {
     });
 
     act(() => {
-      result.current.transcriptListRef.current = container;
+      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
     });
     rerender({
       segments,
