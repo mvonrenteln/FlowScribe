@@ -1,6 +1,7 @@
 import {
   Bookmark,
   BookmarkCheck,
+  BookOpenText,
   Check,
   CheckCircle2,
   Merge,
@@ -21,6 +22,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { normalizeSpellcheckToken } from "@/lib/spellcheck";
 import type { Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
@@ -38,7 +40,7 @@ interface TranscriptSegmentProps {
   showLexiconMatches?: boolean;
   lexiconHighlightUnderline?: boolean;
   lexiconHighlightBackground?: boolean;
-  spellcheckMatches?: Map<number, { suggestions: string[] }>;
+  spellcheckMatches?: Map<number, { suggestions: string[]; partIndex?: number }>;
   showSpellcheckMatches?: boolean;
   editRequested?: boolean;
   onEditRequestHandled?: () => void;
@@ -50,6 +52,7 @@ interface TranscriptSegmentProps {
   onToggleBookmark: () => void;
   onIgnoreLexiconMatch?: (term: string, value: string) => void;
   onIgnoreSpellcheckMatch?: (value: string) => void;
+  onAddSpellcheckToGlossary?: (value: string) => void;
   showConfirmAction?: boolean;
   onMergeWithPrevious?: () => void;
   onMergeWithNext?: () => void;
@@ -89,6 +92,7 @@ function TranscriptSegmentComponent({
   onToggleBookmark,
   onIgnoreLexiconMatch,
   onIgnoreSpellcheckMatch,
+  onAddSpellcheckToGlossary,
   showConfirmAction = true,
   onMergeWithPrevious,
   onMergeWithNext,
@@ -223,16 +227,40 @@ function TranscriptSegmentComponent({
   }, [isEditing, onSelect]);
 
   const applyWordReplacement = useCallback(
-    (index: number, replacement: string) => {
+    (index: number, replacement: string, partIndex?: number) => {
       const nextText = segment.words.map((item) => item.word);
       const original = nextText[index] ?? "";
       const leading = original.match(wordLeadingRegex)?.[0] ?? "";
       const trailing = original.match(wordTrailingRegex)?.[0] ?? "";
-      nextText[index] = `${leading}${replacement}${trailing}`;
+      const core = original.slice(leading.length, original.length - trailing.length);
+      if (partIndex === undefined || !core.includes("-")) {
+        nextText[index] = `${leading}${replacement}${trailing}`;
+        onTextChange(nextText.join(" "));
+        return;
+      }
+      const parts = core.split("-");
+      if (partIndex < 0 || partIndex >= parts.length) {
+        nextText[index] = `${leading}${replacement}${trailing}`;
+        onTextChange(nextText.join(" "));
+        return;
+      }
+      parts[partIndex] = replacement;
+      nextText[index] = `${leading}${parts.join("-")}${trailing}`;
       onTextChange(nextText.join(" "));
     },
     [onTextChange, segment.words],
   );
+
+  const getSpellcheckTarget = useCallback((value: string, partIndex?: number) => {
+    if (partIndex === undefined) return value;
+    const leading = value.match(wordLeadingRegex)?.[0] ?? "";
+    const trailing = value.match(wordTrailingRegex)?.[0] ?? "";
+    const core = value.slice(leading.length, value.length - trailing.length);
+    if (!core.includes("-")) return value;
+    const parts = core.split("-");
+    const part = parts[partIndex];
+    return part ?? value;
+  }, []);
 
   const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
@@ -334,13 +362,20 @@ function TranscriptSegmentComponent({
                 const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
                 const shouldBackground =
                   isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
-                const underlineClass = cn(
+                const baseUnderlineClass = cn(
                   isLowConfidence(word) &&
                     "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
                   shouldUnderline &&
                     "underline decoration-dotted decoration-emerald-600 underline-offset-2",
-                  isSpellcheckMatch && "spellcheck-underline",
                 );
+                const spellcheckUnderlineClass = isSpellcheckMatch ? "spellcheck-underline" : "";
+                const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
+                const trailing = word.word.match(wordTrailingRegex)?.[0] ?? "";
+                const core = word.word.slice(leading.length, word.word.length - trailing.length);
+                const spellcheckParts =
+                  spellcheckMatch?.partIndex !== undefined && core.includes("-")
+                    ? core.split("-")
+                    : null;
                 const wordSpan = (
                   <span
                     key={`${segment.id}-${word.start}-${word.end}`}
@@ -361,7 +396,30 @@ function TranscriptSegmentComponent({
                     role="button"
                     tabIndex={0}
                   >
-                    <span className={underlineClass}>{word.word}</span>
+                    {spellcheckParts ? (
+                      <span className={baseUnderlineClass}>
+                        {leading}
+                        {spellcheckParts.map((part, partIndex) => (
+                          <span key={`${segment.id}-${word.start}-${partIndex}`}>
+                            <span
+                              className={
+                                partIndex === spellcheckMatch?.partIndex
+                                  ? spellcheckUnderlineClass
+                                  : undefined
+                              }
+                            >
+                              {part}
+                            </span>
+                            {partIndex < spellcheckParts.length - 1 ? "-" : ""}
+                          </span>
+                        ))}
+                        {trailing}
+                      </span>
+                    ) : (
+                      <span className={cn(baseUnderlineClass, spellcheckUnderlineClass)}>
+                        {word.word}
+                      </span>
+                    )}
                     <span className="no-underline"> </span>
                   </span>
                 );
@@ -427,7 +485,11 @@ function TranscriptSegmentComponent({
                                     data-suggestion={suggestion}
                                     onClick={(event) => {
                                       event.stopPropagation();
-                                      applyWordReplacement(index, suggestion);
+                                      applyWordReplacement(
+                                        index,
+                                        suggestion,
+                                        spellcheckMatch?.partIndex,
+                                      );
                                     }}
                                   >
                                     {suggestion}
@@ -452,13 +514,36 @@ function TranscriptSegmentComponent({
                                   {isExpanded ? "Less" : `More (${suggestions.length - 3})`}
                                 </Button>
                               )}
+                              {onAddSpellcheckToGlossary && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  data-testid={`button-add-glossary-spellcheck-${segment.id}-${index}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    const target = getSpellcheckTarget(
+                                      word.word,
+                                      spellcheckMatch?.partIndex,
+                                    );
+                                    const cleaned = normalizeSpellcheckToken(target).trim();
+                                    onAddSpellcheckToGlossary(cleaned || target);
+                                  }}
+                                >
+                                  <BookOpenText className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
+                                  Add to glossary
+                                </Button>
+                              )}
                               <Button
                                 size="sm"
                                 variant="ghost"
                                 data-testid={`button-ignore-spellcheck-${segment.id}-${index}`}
                                 onClick={(event) => {
                                   event.stopPropagation();
-                                  onIgnoreSpellcheckMatch?.(word.word);
+                                  const target = getSpellcheckTarget(
+                                    word.word,
+                                    spellcheckMatch?.partIndex,
+                                  );
+                                  onIgnoreSpellcheckMatch?.(target);
                                 }}
                               >
                                 Ignore
@@ -644,6 +729,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onToggleBookmark === next.onToggleBookmark &&
     prev.onIgnoreLexiconMatch === next.onIgnoreLexiconMatch &&
     prev.onIgnoreSpellcheckMatch === next.onIgnoreSpellcheckMatch &&
+    prev.onAddSpellcheckToGlossary === next.onAddSpellcheckToGlossary &&
     prev.showConfirmAction === next.showConfirmAction &&
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&

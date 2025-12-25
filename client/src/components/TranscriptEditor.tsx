@@ -31,9 +31,10 @@ import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleSt
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import {
-  getSpellcheckSuggestions,
+  getSpellcheckMatch,
   type LoadedSpellchecker,
   loadSpellcheckers,
+  normalizeSpellcheckTerm,
 } from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -92,6 +93,7 @@ export function TranscriptEditor() {
     updateSegmentTiming,
     deleteSegment,
     addLexiconFalsePositive,
+    addLexiconEntry,
     setSpellcheckEnabled,
     setSpellcheckLanguages,
     addSpellcheckIgnoreWord,
@@ -127,7 +129,7 @@ export function TranscriptEditor() {
   const restoreAttemptedRef = useRef(false);
   const [spellcheckers, setSpellcheckers] = useState<LoadedSpellchecker[]>([]);
   const [spellcheckMatchesBySegment, setSpellcheckMatchesBySegment] = useState<
-    Map<string, Map<number, { suggestions: string[] }>>
+    Map<string, Map<number, { suggestions: string[]; partIndex?: number }>>
   >(new Map());
   const [spellcheckMatchLimitReached, setSpellcheckMatchLimitReached] = useState(false);
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
@@ -519,12 +521,12 @@ export function TranscriptEditor() {
 
     const ignored = new Set(spellcheckIgnoreWords);
     lexiconEntries.forEach((entry) => {
-      const term = entry.term.trim().toLowerCase();
+      const term = normalizeSpellcheckTerm(entry.term);
       if (term) {
         ignored.add(term);
       }
       (entry.variants ?? []).forEach((variant) => {
-        const normalized = variant.trim().toLowerCase();
+        const normalized = normalizeSpellcheckTerm(variant);
         if (normalized) {
           ignored.add(normalized);
         }
@@ -563,14 +565,14 @@ export function TranscriptEditor() {
 
         while (wordIndex < words.length) {
           const word = words[wordIndex];
-          const suggestions = getSpellcheckSuggestions(
+          const match = getSpellcheckMatch(
             word.word,
             spellcheckers,
             spellcheckLanguageKey,
             ignored,
           );
-          if (suggestions !== null) {
-            wordMatches.set(wordIndex, { suggestions });
+          if (match) {
+            wordMatches.set(wordIndex, match);
             matchCount += 1;
             if (matchCount >= SPELLCHECK_MATCH_LIMIT) {
               if (wordMatches.size > 0) {
@@ -1658,6 +1660,7 @@ export function TranscriptEditor() {
                       onToggleBookmark={handlers.onToggleBookmark}
                       onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
                       onIgnoreSpellcheckMatch={(value) => addSpellcheckIgnoreWord(value)}
+                      onAddSpellcheckToGlossary={(value) => addLexiconEntry(value)}
                       onMergeWithPrevious={handlers.onMergeWithPrevious}
                       onMergeWithNext={handlers.onMergeWithNext}
                       onDelete={handlers.onDelete}

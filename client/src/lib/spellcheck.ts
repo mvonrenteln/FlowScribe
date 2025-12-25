@@ -14,6 +14,11 @@ export type LoadedSpellchecker = {
   checker: Spellchecker;
 };
 
+export type SpellcheckMatch = {
+  suggestions: string[];
+  partIndex?: number;
+};
+
 type DictionarySource = {
   aff: string;
   dic: string;
@@ -169,4 +174,30 @@ export const getSpellcheckSuggestions = (
   );
   suggestionCache.set(cacheKey, suggestions);
   return suggestions;
+};
+
+export const getSpellcheckMatch = (
+  word: string,
+  checkers: LoadedSpellchecker[],
+  languagesKey: string,
+  ignoredWords: Set<string>,
+): SpellcheckMatch | null => {
+  const token = normalizeSpellcheckToken(word);
+  if (!token) return null;
+  if (!token.includes("-")) {
+    const suggestions = getSpellcheckSuggestions(word, checkers, languagesKey, ignoredWords);
+    return suggestions ? { suggestions } : null;
+  }
+
+  const parts = token.split("-");
+  for (let index = 0; index < parts.length; index += 1) {
+    const part = parts[index];
+    if (!part) continue;
+    const suggestions = getSpellcheckSuggestions(part, checkers, languagesKey, ignoredWords);
+    if (suggestions) {
+      return { suggestions, partIndex: index };
+    }
+  }
+
+  return null;
 };

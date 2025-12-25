@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  getSpellcheckMatch,
   getSpellcheckSuggestions,
   type LoadedSpellchecker,
   loadSpellcheckers,
@@ -111,6 +112,53 @@ describe("getSpellcheckSuggestions", () => {
     expect(first).toEqual(["alpha"]);
     expect(second).toEqual(["alpha"]);
     expect(suggest).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("getSpellcheckMatch", () => {
+  it("returns null when both hyphenated parts are correct", () => {
+    const checkers = [makeChecker("de", (word) => word === "Fahrtenlesen" || word === "Probe")];
+    const result = getSpellcheckMatch(
+      "Fahrtenlesen-Probe",
+      checkers,
+      "de|custom:off|hyphen-ok",
+      new Set(),
+    );
+    expect(result).toBeNull();
+  });
+
+  it("returns the left part when only the left side is incorrect", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        (word) => word === "Probe",
+        () => ["Fährtenlesen"],
+      ),
+    ];
+    const result = getSpellcheckMatch(
+      "Fahrtenlesen-Probe",
+      checkers,
+      "de|custom:off|hyphen-left",
+      new Set(),
+    );
+    expect(result).toEqual({ suggestions: ["Fährtenlesen"], partIndex: 0 });
+  });
+
+  it("returns the right part when only the right side is incorrect", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        (word) => word === "Fahrtenlesen",
+        () => ["Proben"],
+      ),
+    ];
+    const result = getSpellcheckMatch(
+      "Fahrtenlesen-Probe",
+      checkers,
+      "de|custom:off|hyphen-right",
+      new Set(),
+    );
+    expect(result).toEqual({ suggestions: ["Proben"], partIndex: 1 });
   });
 });
 

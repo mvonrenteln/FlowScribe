@@ -113,7 +113,7 @@ vi.mock("@/lib/spellcheck", async () => {
         },
       },
     ]),
-    getSpellcheckSuggestions: (word: string) => (word === "Wrd" ? ["Word"] : null),
+    getSpellcheckMatch: (word: string) => (word === "Wrd" ? { suggestions: ["Word"] } : null),
   };
 });
 
