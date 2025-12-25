@@ -19,8 +19,10 @@ describe("useSpellcheck", () => {
   });
 
   afterEach(() => {
-    vi.runOnlyPendingTimers();
-    vi.useRealTimers();
+    if (vi.isFakeTimers()) {
+      vi.runOnlyPendingTimers();
+      vi.useRealTimers();
+    }
   });
 
   it("loads spellcheckers and collects matches", async () => {
@@ -35,6 +37,7 @@ describe("useSpellcheck", () => {
       },
     ];
 
+    loadSpellcheckersMock.mockResolvedValue([{}]);
     getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
 
     const { result } = renderHook(() =>
@@ -56,12 +59,16 @@ describe("useSpellcheck", () => {
       await vi.runAllTimersAsync();
     });
 
-    await waitFor(() => {
-      expect(loadSpellcheckersMock).toHaveBeenCalledWith(["en"], []);
-      expect(
-        result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)?.suggestions,
-      ).toEqual(["Word"]);
-    });
+    vi.useRealTimers();
+    await waitFor(
+      () => {
+        expect(loadSpellcheckersMock).toHaveBeenCalledWith(["en"], []);
+        expect(
+          result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)?.suggestions,
+        ).toEqual(["Word"]);
+      },
+      { timeout: 1000 },
+    );
   });
 
   it("resets matches when spellcheck is disabled", async () => {
@@ -108,8 +115,12 @@ describe("useSpellcheck", () => {
       lexiconEntries: [],
     });
 
-    await waitFor(() => {
-      expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
-    });
+    vi.useRealTimers();
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+      },
+      { timeout: 1000 },
+    );
   });
 });
