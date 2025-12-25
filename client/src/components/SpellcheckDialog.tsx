@@ -51,7 +51,6 @@ export function SpellcheckDialog({ open, onOpenChange }: SpellcheckDialogProps) 
     reader.readAsText(file);
   };
 
-
   const handleExport = () => {
     const content = sortedWords.join("\n");
     const blob = new Blob([content], { type: "text/plain" });
@@ -155,7 +154,6 @@ export function SpellcheckDialog({ open, onOpenChange }: SpellcheckDialogProps) 
           <div className="text-xs text-muted-foreground">
             Import/Export format: one word per line.
           </div>
-
         </div>
 
         <DialogFooter>

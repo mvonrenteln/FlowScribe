@@ -26,8 +26,7 @@ const suggestionCache = new Map<string, string[]>();
 const normalizeCacheKey = (languagesKey: string, token: string) =>
   `${languagesKey}::${token.toLowerCase()}`;
 
-export const normalizeSpellcheckToken = (value: string) =>
-  value.replace(wordEdgeRegex, "");
+export const normalizeSpellcheckToken = (value: string) => value.replace(wordEdgeRegex, "");
 
 export const normalizeSpellcheckTerm = (value: string) =>
   normalizeSpellcheckToken(value).toLowerCase();
@@ -63,7 +62,10 @@ export const loadSpellcheckers = async (
     !useCustomOnly || customDictionaries.length === 0
       ? null
       : (() => {
-          const extrasKey = customDictionaries.map((dictionary) => dictionary.id).sort().join("|");
+          const extrasKey = customDictionaries
+            .map((dictionary) => dictionary.id)
+            .sort()
+            .join("|");
           const cacheKey = `custom:${extrasKey}`;
           const cached = spellcheckerCache.get(cacheKey);
           if (cached) return cached;

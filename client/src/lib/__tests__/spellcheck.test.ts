@@ -1,6 +1,10 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { getSpellcheckSuggestions, loadSpellcheckers, type LoadedSpellchecker } from "@/lib/spellcheck";
+import {
+  getSpellcheckSuggestions,
+  type LoadedSpellchecker,
+  loadSpellcheckers,
+} from "@/lib/spellcheck";
 import type { SpellcheckCustomDictionary } from "@/lib/store";
 
 const makeChecker = (
@@ -39,39 +43,61 @@ const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
 
 describe("getSpellcheckSuggestions", () => {
   it("treats German lowercase words as correct when the capitalized form exists", () => {
-    const checkers = [
-      makeChecker("de", (word) => word === "Erkennen"),
-    ];
+    const checkers = [makeChecker("de", (word) => word === "Erkennen")];
     const result = getSpellcheckSuggestions("erkennen", checkers, "de|custom:off|", new Set());
     expect(result).toBeNull();
   });
 
   it("does not apply capitalization fallback for non-German dictionaries", () => {
     const checkers = [
-      makeChecker("en", (word) => word === "March", () => ["marches"]),
+      makeChecker(
+        "en",
+        (word) => word === "March",
+        () => ["marches"],
+      ),
     ];
     const result = getSpellcheckSuggestions("march", checkers, "en|custom:off|", new Set());
     expect(result).toEqual(["marches"]);
   });
 
   it("returns null for short tokens or tokens with digits", () => {
-    const checkers = [makeChecker("de", () => false, () => ["alpha"])];
+    const checkers = [
+      makeChecker(
+        "de",
+        () => false,
+        () => ["alpha"],
+      ),
+    ];
     expect(getSpellcheckSuggestions("a", checkers, "short", new Set())).toBeNull();
     expect(getSpellcheckSuggestions("42", checkers, "digits", new Set())).toBeNull();
   });
 
   it("skips tokens that are explicitly ignored", () => {
-    const checkers = [makeChecker("de", () => false, () => ["alpha"])];
+    const checkers = [
+      makeChecker(
+        "de",
+        () => false,
+        () => ["alpha"],
+      ),
+    ];
     const ignored = new Set(["skip"]);
     expect(getSpellcheckSuggestions("skip", checkers, "ignored", ignored)).toBeNull();
   });
 
   it("handles checker errors and trims duplicate suggestions", () => {
     const checkers = [
-      makeChecker("de", () => {
-        throw new Error("boom");
-      }, () => [" alpha ", ""]),
-      makeChecker("de", () => false, () => ["alpha", "beta "]),
+      makeChecker(
+        "de",
+        () => {
+          throw new Error("boom");
+        },
+        () => [" alpha ", ""],
+      ),
+      makeChecker(
+        "de",
+        () => false,
+        () => ["alpha", "beta "],
+      ),
     ];
     const result = getSpellcheckSuggestions("alfa", checkers, "errors", new Set());
     expect(result).toEqual(["alpha", "beta"]);

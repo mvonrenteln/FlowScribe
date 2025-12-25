@@ -28,9 +28,7 @@ export function CustomDictionariesDialog({ open, onOpenChange }: CustomDictionar
   const [customDicFile, setCustomDicFile] = useState<File | null>(null);
   const [customError, setCustomError] = useState<string | null>(null);
   const [pendingOxtBuffer, setPendingOxtBuffer] = useState<ArrayBuffer | null>(null);
-  const [pendingOxtCandidates, setPendingOxtCandidates] = useState<
-    Array<{ name: string }>
-  >([]);
+  const [pendingOxtCandidates, setPendingOxtCandidates] = useState<Array<{ name: string }>>([]);
   const [showManualImport, setShowManualImport] = useState(false);
   const customAffInputRef = useRef<HTMLInputElement>(null);
   const customDicInputRef = useRef<HTMLInputElement>(null);
@@ -196,10 +194,7 @@ export function CustomDictionariesDialog({ open, onOpenChange }: CustomDictionar
               }}
             />
             <Button onClick={() => customOxtInputRef.current?.click()}>Import .oxt</Button>
-            <Button
-              variant="outline"
-              onClick={() => setShowManualImport((prev) => !prev)}
-            >
+            <Button variant="outline" onClick={() => setShowManualImport((prev) => !prev)}>
               {showManualImport ? "Hide .aff/.dic import" : "Import .aff/.dic"}
             </Button>
           </div>

@@ -410,10 +410,7 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
 };
 
 const normalizeSpellcheckIgnoreWord = (value: string) =>
-  value
-    .replace(wordEdgeRegex, "")
-    .trim()
-    .toLowerCase();
+  value.replace(wordEdgeRegex, "").trim().toLowerCase();
 
 const normalizeSpellcheckIgnoreWords = (values: string[]) => {
   const seen = new Set<string>();
@@ -436,10 +433,7 @@ const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
   return unique;
 };
 
-const resolveSpellcheckSelection = (
-  languages: SpellcheckLanguage[],
-  customEnabled: boolean,
-) => {
+const resolveSpellcheckSelection = (languages: SpellcheckLanguage[], customEnabled: boolean) => {
   if (customEnabled) {
     return { languages: [], customEnabled: true };
   }

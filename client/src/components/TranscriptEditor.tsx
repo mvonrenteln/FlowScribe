@@ -29,8 +29,8 @@ import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import {
   getSpellcheckSuggestions,
-  loadSpellcheckers,
   type LoadedSpellchecker,
+  loadSpellcheckers,
 } from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -264,10 +264,7 @@ export function TranscriptEditor() {
     };
   }, [audioFile, handleAudioUpload]);
 
-  const effectiveSpellcheckLanguages = useMemo(
-    () => spellcheckLanguages,
-    [spellcheckLanguages],
-  );
+  const effectiveSpellcheckLanguages = useMemo(() => spellcheckLanguages, [spellcheckLanguages]);
   const spellcheckDebugEnabled = useMemo(() => {
     if (typeof window === "undefined") return false;
     try {
@@ -441,7 +438,10 @@ export function TranscriptEditor() {
 
   const spellcheckLanguageKey = useMemo(() => {
     const languageKey = effectiveSpellcheckLanguages.slice().sort().join(",");
-    const customKey = spellcheckCustomDictionaries.map((dictionary) => dictionary.id).sort().join("|");
+    const customKey = spellcheckCustomDictionaries
+      .map((dictionary) => dictionary.id)
+      .sort()
+      .join("|");
     const enabledKey = spellcheckCustomEnabled ? "custom:on" : "custom:off";
     return `${languageKey}|${enabledKey}|${customKey}`;
   }, [effectiveSpellcheckLanguages, spellcheckCustomDictionaries, spellcheckCustomEnabled]);
