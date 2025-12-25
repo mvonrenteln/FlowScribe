@@ -37,18 +37,23 @@ describe("useSpellcheck", () => {
     loadSpellcheckersMock.mockResolvedValue([{}]);
     getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
 
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
     const { result } = renderHook(() =>
       useSpellcheck({
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: Array.from(baseSpellcheckLanguages),
+        spellcheckLanguages,
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
+        spellcheckCustomDictionaries,
         loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
-        lexiconEntries: Array.from(baseLexiconEntries),
+        spellcheckIgnoreWords,
+        lexiconEntries,
       }),
     );
 
@@ -75,18 +80,23 @@ describe("useSpellcheck", () => {
       },
     ];
 
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
     const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
       initialProps: {
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: Array.from(baseSpellcheckLanguages),
+        spellcheckLanguages,
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
+        spellcheckCustomDictionaries,
         loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
-        lexiconEntries: Array.from(baseLexiconEntries),
+        spellcheckIgnoreWords,
+        lexiconEntries,
       },
     });
 
@@ -94,13 +104,13 @@ describe("useSpellcheck", () => {
       audioUrl: null,
       isWaveReady: true,
       spellcheckEnabled: false,
-      spellcheckLanguages: Array.from(baseSpellcheckLanguages),
+      spellcheckLanguages,
       spellcheckCustomEnabled: false,
-      spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
+      spellcheckCustomDictionaries,
       loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
       segments,
-      spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
-      lexiconEntries: Array.from(baseLexiconEntries),
+      spellcheckIgnoreWords,
+      lexiconEntries,
     });
 
     await waitFor(
