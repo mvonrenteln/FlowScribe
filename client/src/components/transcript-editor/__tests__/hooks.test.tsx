@@ -195,7 +195,8 @@ describe("useScrollAndSelection", () => {
     container.appendChild(segment2);
 
     act(() => {
-      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
       transcriptListRef.current = container;
     });
     rerender({
@@ -300,7 +301,8 @@ describe("useScrollAndSelection", () => {
     });
 
     act(() => {
-      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
       transcriptListRef.current = container;
     });
     rerender({
