@@ -24,6 +24,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 import { FileUpload } from "../FileUpload";
 import { ThemeToggle } from "../ThemeToggle";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
@@ -67,6 +68,8 @@ export function Toolbar({
   spellcheckDebugEnabled,
   effectiveSpellcheckLanguages,
   spellcheckerLanguages,
+  spellcheckHighlightActive,
+  glossaryHighlightActive,
   onShowGlossary,
 }: ToolbarProps) {
   return (
@@ -264,7 +267,11 @@ export function Toolbar({
                       onClick={() => onSpellcheckPopoverChange(true)}
                       aria-label="Spellcheck settings"
                       data-testid="button-spellcheck"
-                      className="px-2 gap-2"
+                      aria-pressed={spellcheckHighlightActive}
+                      className={cn(
+                        "px-2 gap-2",
+                        spellcheckHighlightActive && "bg-accent text-accent-foreground",
+                      )}
                     >
                       <SpellCheck className="h-4 w-4" aria-hidden="true" />
                       <span className="hidden sm:inline">Spellcheck</span>
@@ -373,7 +380,11 @@ export function Toolbar({
                   onClick={onShowGlossary}
                   aria-label="Glossary settings"
                   data-testid="button-glossary"
-                  className="px-2 gap-2"
+                  aria-pressed={glossaryHighlightActive}
+                  className={cn(
+                    "px-2 gap-2",
+                    glossaryHighlightActive && "bg-accent text-accent-foreground",
+                  )}
                 >
                   <BookOpenText className="h-4 w-4" aria-hidden="true" />
                   <span className="hidden sm:inline">Glossary</span>
