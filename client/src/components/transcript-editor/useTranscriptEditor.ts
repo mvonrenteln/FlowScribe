@@ -30,6 +30,7 @@ interface EmptyStateMessage {
 }
 
 const buildSegmentHandlers = (
+  segments: Segment[],
   filteredSegments: Segment[],
   mergeSegments: (id1: string, id2: string) => string | null,
   setSelectedSegmentId: (id: string | null) => void,
@@ -42,11 +43,23 @@ const buildSegmentHandlers = (
   addLexiconFalsePositive: (term: string, value: string) => void,
   deleteSegment: (id: string) => void,
 ) => {
+  const segmentIndexById = new Map(segments.map((segment, index) => [segment.id, index]));
+  const areAdjacent = (idA: string, idB: string) => {
+    const indexA = segmentIndexById.get(idA);
+    const indexB = segmentIndexById.get(idB);
+    if (indexA === undefined || indexB === undefined) return false;
+    return Math.abs(indexA - indexB) === 1;
+  };
+
   return filteredSegments.map((segment, index) => {
+    const previousSegment = filteredSegments[index - 1];
+    const nextSegment = filteredSegments[index + 1];
+
     const onMergeWithPrevious =
-      index > 0
+      index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
         ? () => {
-            const mergedId = mergeSegments(filteredSegments[index - 1].id, segment.id);
+            if (!areAdjacent(previousSegment.id, segment.id)) return;
+            const mergedId = mergeSegments(previousSegment.id, segment.id);
             if (mergedId) {
               setSelectedSegmentId(mergedId);
             }
@@ -54,9 +67,10 @@ const buildSegmentHandlers = (
         : undefined;
 
     const onMergeWithNext =
-      index < filteredSegments.length - 1
+      index < filteredSegments.length - 1 && nextSegment && areAdjacent(segment.id, nextSegment.id)
         ? () => {
-            const mergedId = mergeSegments(segment.id, filteredSegments[index + 1].id);
+            if (!areAdjacent(segment.id, nextSegment.id)) return;
+            const mergedId = mergeSegments(segment.id, nextSegment.id);
             if (mergedId) {
               setSelectedSegmentId(mergedId);
             }
@@ -1103,6 +1117,7 @@ export const useTranscriptEditor = () => {
   const segmentHandlers = useMemo(
     () =>
       buildSegmentHandlers(
+        segments,
         filteredSegments,
         mergeSegments,
         setSelectedSegmentId,
@@ -1116,6 +1131,7 @@ export const useTranscriptEditor = () => {
         deleteSegment,
       ),
     [
+      segments,
       addLexiconFalsePositive,
       confirmSegment,
       deleteSegment,

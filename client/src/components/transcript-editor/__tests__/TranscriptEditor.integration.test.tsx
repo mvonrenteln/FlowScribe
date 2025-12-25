@@ -293,4 +293,76 @@ describe("TranscriptEditor integration", () => {
     expect(screen.getByTestId("segment-segment-1")).toBeInTheDocument();
     expect(screen.queryByTestId("segment-segment-2")).toBeNull();
   });
+
+  it("only offers merges for adjacent segments when filtered", async () => {
+    useTranscriptStore.setState({
+      audioUrl: "audio.mp3",
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "Speaker A",
+          start: 0,
+          end: 1,
+          text: "First",
+          words: [{ word: "First", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "Speaker B",
+          start: 1,
+          end: 2,
+          text: "Second",
+          words: [{ word: "Second", start: 1, end: 2 }],
+        },
+        {
+          id: "segment-3",
+          speaker: "Speaker A",
+          start: 2,
+          end: 3,
+          text: "Third",
+          words: [{ word: "Third", start: 2, end: 3 }],
+        },
+        {
+          id: "segment-4",
+          speaker: "Speaker A",
+          start: 3,
+          end: 4,
+          text: "Fourth",
+          words: [{ word: "Fourth", start: 3, end: 4 }],
+        },
+      ],
+      speakers: [
+        { id: "speaker-a", name: "Speaker A", color: "red" },
+        { id: "speaker-b", name: "Speaker B", color: "blue" },
+      ],
+      selectedSegmentId: null,
+      currentTime: 0,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("speaker-card-speaker-a"));
+
+    expect(screen.getByTestId("segment-segment-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-segment-2")).toBeNull();
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-segment-1"));
+    expect(screen.getByText("Split at current word")).toBeInTheDocument();
+    expect(screen.queryByText("Merge with next")).toBeNull();
+
+    await userEvent.keyboard("{Escape}");
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-segment-3"));
+    const mergeWithNext = screen.getByText("Merge with next");
+    expect(mergeWithNext).toBeInTheDocument();
+
+    await userEvent.click(mergeWithNext);
+
+    await waitFor(() => {
+      const updatedSegments = useTranscriptStore.getState().segments;
+      expect(updatedSegments).toHaveLength(3);
+      expect(updatedSegments.some((segment) => segment.text === "Third Fourth")).toBe(true);
+    });
+  });
 });
