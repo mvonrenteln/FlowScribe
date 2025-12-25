@@ -532,6 +532,8 @@ export const useTranscriptEditor = () => {
     spellcheckDebugEnabled,
     effectiveSpellcheckLanguages,
     spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
+    spellcheckHighlightActive: showSpellcheckMatches,
+    glossaryHighlightActive: showLexiconMatches,
     onShowGlossary: () => setShowLexicon(true),
   };
 
