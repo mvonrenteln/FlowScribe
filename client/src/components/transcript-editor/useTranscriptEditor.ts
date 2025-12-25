@@ -1268,9 +1268,11 @@ export const useTranscriptEditor = () => {
     lowConfidenceFilterActive: filterLowConfidence,
     onToggleLowConfidenceFilter: () => setFilterLowConfidence((current) => !current),
     lowConfidenceThreshold,
-    onLowConfidenceThresholdChange: (value: number) => {
+    onLowConfidenceThresholdChange: (value: number | null) => {
       setManualConfidenceThreshold(value);
-      setHighlightLowConfidence(true);
+      if (value !== null) {
+        setHighlightLowConfidence(true);
+      }
     },
     bookmarkFilterActive: filterBookmarked,
     onToggleBookmarkFilter: () => setFilterBookmarked((current) => !current),
