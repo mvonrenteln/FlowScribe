@@ -12,7 +12,7 @@ export interface SpellcheckMatchMeta {
   partIndex?: number;
 }
 
-interface UseSpellcheckOptions {
+export interface UseSpellcheckOptions {
   audioUrl: string | null;
   isWaveReady: boolean;
   spellcheckEnabled: boolean;

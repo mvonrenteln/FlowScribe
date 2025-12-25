@@ -1,6 +1,6 @@
 import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
-import { useSpellcheck } from "../useSpellcheck";
+import { type UseSpellcheckOptions, useSpellcheck } from "../useSpellcheck";
 
 const loadSpellcheckersMock = vi.fn().mockResolvedValue([]);
 const getSpellcheckMatchMock = vi.fn();
@@ -76,7 +76,7 @@ describe("useSpellcheck", () => {
       },
     ];
 
-    const { result, rerender } = renderHook((props) => useSpellcheck(props), {
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
       initialProps: {
         audioUrl: null,
         isWaveReady: true,
