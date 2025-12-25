@@ -42,13 +42,13 @@ describe("useSpellcheck", () => {
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: baseSpellcheckLanguages,
+        spellcheckLanguages: Array.from(baseSpellcheckLanguages),
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+        spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
         loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
-        lexiconEntries: baseLexiconEntries,
+        spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
+        lexiconEntries: Array.from(baseLexiconEntries),
       }),
     );
 
@@ -80,13 +80,13 @@ describe("useSpellcheck", () => {
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: baseSpellcheckLanguages,
+        spellcheckLanguages: Array.from(baseSpellcheckLanguages),
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+        spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
         loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
-        lexiconEntries: baseLexiconEntries,
+        spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
+        lexiconEntries: Array.from(baseLexiconEntries),
       },
     });
 
@@ -94,13 +94,13 @@ describe("useSpellcheck", () => {
       audioUrl: null,
       isWaveReady: true,
       spellcheckEnabled: false,
-      spellcheckLanguages: baseSpellcheckLanguages,
+      spellcheckLanguages: Array.from(baseSpellcheckLanguages),
       spellcheckCustomEnabled: false,
-      spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+      spellcheckCustomDictionaries: Array.from(baseSpellcheckCustomDictionaries),
       loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
       segments,
-      spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
-      lexiconEntries: baseLexiconEntries,
+      spellcheckIgnoreWords: Array.from(baseSpellcheckIgnoreWords),
+      lexiconEntries: Array.from(baseLexiconEntries),
     });
 
     await waitFor(
