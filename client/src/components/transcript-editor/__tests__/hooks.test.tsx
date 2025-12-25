@@ -153,4 +153,174 @@ describe("useScrollAndSelection", () => {
       expect(setSelectedSegmentId).toHaveBeenCalledWith(activeSegment.id);
     });
   });
+
+  it("scrolls to the active segment when selection is stale", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const requestSeek = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 2.4,
+        selectedSegmentId: "segment-1",
+        isPlaying: false,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        requestSeek,
+        setIsPlaying,
+      },
+    });
+
+    const container = document.createElement("div");
+    const segment1 = document.createElement("div");
+    segment1.dataset.segmentId = "segment-1";
+    const segment2 = document.createElement("div");
+    segment2.dataset.segmentId = "segment-2";
+    container.appendChild(segment1);
+    container.appendChild(segment2);
+
+    act(() => {
+      result.current.transcriptListRef.current = container;
+    });
+    rerender({
+      segments,
+      currentTime: 2.4,
+      selectedSegmentId: "segment-1",
+      isPlaying: false,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      requestSeek,
+      setIsPlaying,
+    });
+
+    expect(scrollIntoView).toHaveBeenCalled();
+
+    const [firstInstance] = scrollIntoView.mock.instances as HTMLElement[];
+    expect(firstInstance?.dataset.segmentId).toBe("segment-2");
+
+    rafSpy.mockRestore();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  it("snaps to the target when smooth scrolling stalls", () => {
+    const setSelectedSegmentId = vi.fn();
+    const requestSeek = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const timeoutSpy = vi
+      .spyOn(globalThis, "setTimeout")
+      .mockImplementation((callback: TimerHandler) => {
+        if (typeof callback === "function") {
+          callback();
+        }
+        return 0 as ReturnType<typeof setTimeout>;
+      });
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 2.4,
+        selectedSegmentId: "segment-1",
+        isPlaying: false,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        requestSeek,
+        setIsPlaying,
+      },
+    });
+
+    const viewport = document.createElement("div");
+    const container = document.createElement("div");
+    viewport.appendChild(container);
+    Object.defineProperty(viewport, "clientHeight", { value: 200 });
+    Object.defineProperty(viewport, "scrollTop", { value: 0, writable: true });
+    const scrollTo = vi.fn((options: ScrollToOptions) => {
+      if (typeof options.top === "number") {
+        viewport.scrollTop = options.top;
+      }
+    });
+    viewport.scrollTo = scrollTo as typeof viewport.scrollTo;
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 200,
+      height: 200,
+      left: 0,
+      right: 0,
+      width: 100,
+      x: 0,
+      y: 0,
+      toJSON: () => "",
+    });
+
+    const segment = document.createElement("div");
+    segment.dataset.segmentId = "segment-2";
+    container.appendChild(segment);
+    vi.spyOn(segment, "getBoundingClientRect").mockReturnValue({
+      top: 800,
+      bottom: 820,
+      height: 20,
+      left: 0,
+      right: 100,
+      width: 100,
+      x: 0,
+      y: 800,
+      toJSON: () => "",
+    });
+
+    act(() => {
+      result.current.transcriptListRef.current = container;
+    });
+    rerender({
+      segments,
+      currentTime: 2.4,
+      selectedSegmentId: "segment-1",
+      isPlaying: false,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      requestSeek,
+      setIsPlaying,
+    });
+
+    expect(scrollIntoView).toHaveBeenCalled();
+
+    expect(scrollTo).toHaveBeenCalledWith({ top: 710, behavior: "auto" });
+
+    timeoutSpy.mockRestore();
+    rafSpy.mockRestore();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
 });
