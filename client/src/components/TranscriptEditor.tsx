@@ -1,4 +1,13 @@
-import { Clock, Download, Keyboard, PanelLeft, PanelLeftClose, Redo2, Undo2 } from "lucide-react";
+import {
+  Check,
+  Clock,
+  Download,
+  Keyboard,
+  PanelLeft,
+  PanelLeftClose,
+  Redo2,
+  Undo2,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import { Button } from "@/components/ui/button";
@@ -18,9 +27,14 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
-import { getSpellcheckSuggestions, loadSpellcheckers, type Spellchecker } from "@/lib/spellcheck";
+import {
+  getSpellcheckSuggestions,
+  loadSpellcheckers,
+  type LoadedSpellchecker,
+} from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { CustomDictionariesDialog } from "./CustomDictionariesDialog";
 import { ExportDialog } from "./ExportDialog";
 import { FileUpload } from "./FileUpload";
 import { GlossaryDialog } from "./GlossaryDialog";
@@ -52,6 +66,7 @@ export function TranscriptEditor() {
     spellcheckLanguages,
     spellcheckIgnoreWords,
     spellcheckCustomDictionaries,
+    spellcheckCustomEnabled,
     loadSpellcheckCustomDictionaries,
     recentSessions,
     setAudioFile,
@@ -77,6 +92,7 @@ export function TranscriptEditor() {
     setSpellcheckEnabled,
     setSpellcheckLanguages,
     addSpellcheckIgnoreWord,
+    setSpellcheckCustomEnabled,
     renameSpeaker,
     addSpeaker,
     mergeSpeakers,
@@ -90,6 +106,7 @@ export function TranscriptEditor() {
   const [showExport, setShowExport] = useState(false);
   const [showLexicon, setShowLexicon] = useState(false);
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
+  const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
@@ -105,7 +122,7 @@ export function TranscriptEditor() {
   const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
-  const [spellcheckers, setSpellcheckers] = useState<Spellchecker[]>([]);
+  const [spellcheckers, setSpellcheckers] = useState<LoadedSpellchecker[]>([]);
   const [spellcheckMatchesBySegment, setSpellcheckMatchesBySegment] = useState<
     Map<string, Map<number, { suggestions: string[] }>>
   >(new Map());
@@ -247,16 +264,35 @@ export function TranscriptEditor() {
     };
   }, [audioFile, handleAudioUpload]);
 
+  const effectiveSpellcheckLanguages = useMemo(
+    () => spellcheckLanguages,
+    [spellcheckLanguages],
+  );
+  const spellcheckDebugEnabled = useMemo(() => {
+    if (typeof window === "undefined") return false;
+    try {
+      return window.localStorage.getItem("spellcheckDebug") === "1";
+    } catch {
+      return false;
+    }
+  }, []);
+
   useEffect(() => {
     let isMounted = true;
-    if (!spellcheckEnabled || spellcheckLanguages.length === 0) {
+    if (
+      !spellcheckEnabled ||
+      (effectiveSpellcheckLanguages.length === 0 && !spellcheckCustomEnabled)
+    ) {
       setSpellcheckers([]);
       return () => {
         isMounted = false;
       };
     }
 
-    loadSpellcheckers(spellcheckLanguages, spellcheckCustomDictionaries)
+    loadSpellcheckers(
+      effectiveSpellcheckLanguages,
+      spellcheckCustomEnabled ? spellcheckCustomDictionaries : [],
+    )
       .then((loaded) => {
         if (isMounted) {
           setSpellcheckers(loaded);
@@ -269,7 +305,12 @@ export function TranscriptEditor() {
     return () => {
       isMounted = false;
     };
-  }, [spellcheckCustomDictionaries, spellcheckEnabled, spellcheckLanguages]);
+  }, [
+    spellcheckCustomDictionaries,
+    spellcheckCustomEnabled,
+    spellcheckEnabled,
+    effectiveSpellcheckLanguages,
+  ]);
 
   useEffect(() => {
     if (!spellcheckEnabled && filterSpellcheck) {
@@ -399,13 +440,11 @@ export function TranscriptEditor() {
   }, [lexiconEntriesNormalized, lexiconThreshold, segments]);
 
   const spellcheckLanguageKey = useMemo(() => {
-    const languageKey = spellcheckLanguages.slice().sort().join(",");
-    const customKey = spellcheckCustomDictionaries
-      .map((dictionary) => `${dictionary.language}:${dictionary.id}`)
-      .sort()
-      .join("|");
-    return `${languageKey}|${customKey}`;
-  }, [spellcheckCustomDictionaries, spellcheckLanguages]);
+    const languageKey = effectiveSpellcheckLanguages.slice().sort().join(",");
+    const customKey = spellcheckCustomDictionaries.map((dictionary) => dictionary.id).sort().join("|");
+    const enabledKey = spellcheckCustomEnabled ? "custom:on" : "custom:off";
+    return `${languageKey}|${enabledKey}|${customKey}`;
+  }, [effectiveSpellcheckLanguages, spellcheckCustomDictionaries, spellcheckCustomEnabled]);
 
   useEffect(() => {
     const runId = spellcheckRunIdRef.current + 1;
@@ -1276,35 +1315,47 @@ export function TranscriptEditor() {
                       <Button
                         size="sm"
                         variant={spellcheckLanguages.includes("de") ? "secondary" : "outline"}
-                        onClick={() => {
-                          if (spellcheckLanguages.includes("de")) {
-                            if (spellcheckLanguages.length === 1) return;
-                            setSpellcheckLanguages(
-                              spellcheckLanguages.filter((value) => value !== "de"),
-                            );
-                          } else {
-                            setSpellcheckLanguages([...spellcheckLanguages, "de"]);
-                          }
-                        }}
+                        onClick={() => setSpellcheckLanguages(["de"])}
                       >
                         DE
                       </Button>
                       <Button
                         size="sm"
                         variant={spellcheckLanguages.includes("en") ? "secondary" : "outline"}
-                        onClick={() => {
-                          if (spellcheckLanguages.includes("en")) {
-                            if (spellcheckLanguages.length === 1) return;
-                            setSpellcheckLanguages(
-                              spellcheckLanguages.filter((value) => value !== "en"),
-                            );
-                          } else {
-                            setSpellcheckLanguages([...spellcheckLanguages, "en"]);
-                          }
-                        }}
+                        onClick={() => setSpellcheckLanguages(["en"])}
                       >
                         EN
                       </Button>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            size="sm"
+                            variant={spellcheckCustomEnabled ? "secondary" : "outline"}
+                          >
+                            Custom
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuItem
+                            onClick={() => setSpellcheckCustomEnabled(true)}
+                            className={
+                              spellcheckCustomEnabled
+                                ? "border border-border font-medium"
+                                : "border border-muted-foreground/40 text-muted-foreground"
+                            }
+                          >
+                            {spellcheckCustomEnabled ? (
+                              <Check className="h-4 w-4 mr-2" />
+                            ) : (
+                              <span className="w-4 h-4 mr-2" />
+                            )}
+                            {spellcheckCustomEnabled ? "Activated" : "Deactivated"}
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => setShowCustomDictionariesDialog(true)}>
+                            Manage dictionaries
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     </div>
                   </div>
                   <Button size="sm" variant="ghost" onClick={() => setShowSpellcheckDialog(true)}>
@@ -1313,6 +1364,26 @@ export function TranscriptEditor() {
                   {!spellcheckEnabled && (
                     <div className="text-xs text-muted-foreground">
                       Enable spellcheck to highlight and filter spelling issues.
+                    </div>
+                  )}
+                  {spellcheckDebugEnabled && (
+                    <div className="rounded-md border border-dashed px-2 py-1 text-[11px] text-muted-foreground">
+                      <div>
+                        enabled: {spellcheckEnabled ? "on" : "off"} | custom:{" "}
+                        {spellcheckCustomEnabled ? "on" : "off"}
+                      </div>
+                      <div>
+                        languages:{" "}
+                        {effectiveSpellcheckLanguages.length > 0
+                          ? effectiveSpellcheckLanguages.join(",")
+                          : "none"}
+                      </div>
+                      <div>
+                        custom dicts: {spellcheckCustomDictionaries.length} | checkers:{" "}
+                        {spellcheckers.length > 0
+                          ? spellcheckers.map((checker) => checker.language).join(",")
+                          : "none"}
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1530,6 +1601,10 @@ export function TranscriptEditor() {
       />
       <GlossaryDialog open={showLexicon} onOpenChange={setShowLexicon} />
       <SpellcheckDialog open={showSpellcheckDialog} onOpenChange={setShowSpellcheckDialog} />
+      <CustomDictionariesDialog
+        open={showCustomDictionariesDialog}
+        onOpenChange={setShowCustomDictionariesDialog}
+      />
     </div>
   );
 }

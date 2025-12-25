@@ -5,6 +5,7 @@ import {
   removeSpellcheckDictionary,
   saveSpellcheckDictionary,
 } from "@/lib/spellcheckDictionaryStorage";
+import { wordEdgeRegex } from "@/lib/wordBoundaries";
 
 export interface Word {
   word: string;
@@ -42,7 +43,6 @@ export type SpellcheckLanguage = "de" | "en";
 export interface SpellcheckCustomDictionary {
   id: string;
   name: string;
-  language: SpellcheckLanguage;
   aff: string;
   dic: string;
 }
@@ -84,6 +84,7 @@ interface TranscriptState {
   spellcheckIgnoreWords: string[];
   spellcheckCustomDictionaries: SpellcheckCustomDictionary[];
   spellcheckCustomDictionariesLoaded: boolean;
+  spellcheckCustomEnabled: boolean;
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -126,8 +127,11 @@ interface TranscriptState {
   addSpellcheckIgnoreWord: (value: string) => void;
   removeSpellcheckIgnoreWord: (value: string) => void;
   clearSpellcheckIgnoreWords: () => void;
+  setSpellcheckCustomEnabled: (enabled: boolean) => void;
   loadSpellcheckCustomDictionaries: () => Promise<void>;
-  addSpellcheckCustomDictionary: (dictionary: Omit<SpellcheckCustomDictionary, "id">) => Promise<void>;
+  addSpellcheckCustomDictionary: (
+    dictionary: Omit<SpellcheckCustomDictionary, "id">,
+  ) => Promise<void>;
   removeSpellcheckCustomDictionary: (id: string) => Promise<void>;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
@@ -199,6 +203,7 @@ type PersistedGlobalState = {
   spellcheckEnabled?: boolean;
   spellcheckLanguages?: SpellcheckLanguage[];
   spellcheckIgnoreWords?: string[];
+  spellcheckCustomEnabled?: boolean;
 };
 
 const canUseLocalStorage = () => {
@@ -406,7 +411,7 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
 
 const normalizeSpellcheckIgnoreWord = (value: string) =>
   value
-    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .replace(wordEdgeRegex, "")
     .trim()
     .toLowerCase();
 
@@ -422,16 +427,37 @@ const normalizeSpellcheckIgnoreWords = (values: string[]) => {
 };
 
 const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
+  if (value == null) return ["de"];
   const raw = typeof value === "string" ? value.split(",") : Array.isArray(value) ? value : [];
   const next = raw
     .map((lang) => String(lang).trim())
     .filter((lang): lang is SpellcheckLanguage => lang === "de" || lang === "en");
   const unique = Array.from(new Set(next));
-  return unique.length > 0 ? unique : ["de", "en"];
+  return unique;
+};
+
+const resolveSpellcheckSelection = (
+  languages: SpellcheckLanguage[],
+  customEnabled: boolean,
+) => {
+  if (customEnabled) {
+    return { languages: [], customEnabled: true };
+  }
+  if (languages.includes("de")) {
+    return { languages: ["de"], customEnabled: false };
+  }
+  if (languages.includes("en")) {
+    return { languages: ["en"], customEnabled: false };
+  }
+  return { languages: ["de"], customEnabled: false };
 };
 
 const sessionsState = readSessionsState(null);
 const globalState = readGlobalState(null);
+const resolvedSpellcheckSelection = resolveSpellcheckSelection(
+  normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
+  Boolean(globalState?.spellcheckCustomEnabled),
+);
 let sessionsCache = sessionsState.sessions;
 let activeSessionKeyCache = sessionsState.activeSessionKey;
 let lastRecentSerialized = JSON.stringify(buildRecentSessions(sessionsCache));
@@ -491,10 +517,11 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
   lexiconHighlightBackground: Boolean(globalState?.lexiconHighlightBackground),
   spellcheckEnabled: Boolean(globalState?.spellcheckEnabled),
-  spellcheckLanguages: normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
+  spellcheckLanguages: resolvedSpellcheckSelection.languages,
   spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(globalState?.spellcheckIgnoreWords ?? []),
   spellcheckCustomDictionaries: [],
   spellcheckCustomDictionariesLoaded: false,
+  spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -955,8 +982,14 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   setLexiconHighlightUnderline: (value) => set({ lexiconHighlightUnderline: value }),
   setLexiconHighlightBackground: (value) => set({ lexiconHighlightBackground: value }),
   setSpellcheckEnabled: (enabled) => set({ spellcheckEnabled: enabled }),
-  setSpellcheckLanguages: (languages) =>
-    set({ spellcheckLanguages: normalizeSpellcheckLanguages(languages) }),
+  setSpellcheckLanguages: (languages) => {
+    const normalized = normalizeSpellcheckLanguages(languages);
+    const resolved = resolveSpellcheckSelection(normalized, false);
+    set({
+      spellcheckLanguages: resolved.languages,
+      spellcheckCustomEnabled: resolved.customEnabled,
+    });
+  },
   setSpellcheckIgnoreWords: (words) =>
     set({ spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(words) }),
   addSpellcheckIgnoreWord: (value) => {
@@ -975,6 +1008,14 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     });
   },
   clearSpellcheckIgnoreWords: () => set({ spellcheckIgnoreWords: [] }),
+  setSpellcheckCustomEnabled: (enabled) => {
+    const normalized = normalizeSpellcheckLanguages(get().spellcheckLanguages);
+    const resolved = resolveSpellcheckSelection(normalized, enabled);
+    set({
+      spellcheckLanguages: resolved.languages,
+      spellcheckCustomEnabled: resolved.customEnabled,
+    });
+  },
   loadSpellcheckCustomDictionaries: async () => {
     const { spellcheckCustomDictionariesLoaded } = get();
     if (spellcheckCustomDictionariesLoaded) return;
@@ -1329,6 +1370,7 @@ if (canUseLocalStorage()) {
         spellcheckEnabled: state.spellcheckEnabled,
         spellcheckLanguages: state.spellcheckLanguages,
         spellcheckIgnoreWords: state.spellcheckIgnoreWords,
+        spellcheckCustomEnabled: state.spellcheckCustomEnabled,
       },
     );
   });

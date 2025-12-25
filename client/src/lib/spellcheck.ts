@@ -1,11 +1,17 @@
 import nspell from "nspell";
 import type { SpellcheckCustomDictionary } from "@/lib/store";
+import { wordEdgeRegex } from "@/lib/wordBoundaries";
 
 export type SpellcheckLanguage = "en" | "de";
 
 export type Spellchecker = {
   correct: (word: string) => boolean;
   suggest: (word: string) => string[];
+};
+
+export type LoadedSpellchecker = {
+  language: SpellcheckLanguage | "custom";
+  checker: Spellchecker;
 };
 
 type DictionarySource = {
@@ -21,7 +27,7 @@ const normalizeCacheKey = (languagesKey: string, token: string) =>
   `${languagesKey}::${token.toLowerCase()}`;
 
 export const normalizeSpellcheckToken = (value: string) =>
-  value.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "");
+  value.replace(wordEdgeRegex, "");
 
 export const normalizeSpellcheckTerm = (value: string) =>
   normalizeSpellcheckToken(value).toLowerCase();
@@ -50,31 +56,71 @@ const loadDictionarySource = async (language: SpellcheckLanguage): Promise<Dicti
 export const loadSpellcheckers = async (
   languages: SpellcheckLanguage[],
   customDictionaries: SpellcheckCustomDictionary[],
-): Promise<Spellchecker[]> => {
+): Promise<LoadedSpellchecker[]> => {
   const unique = Array.from(new Set(languages));
-  const checkers = await Promise.all(
+  const useCustomOnly = unique.length === 0;
+  const customChecker =
+    !useCustomOnly || customDictionaries.length === 0
+      ? null
+      : (() => {
+          const extrasKey = customDictionaries.map((dictionary) => dictionary.id).sort().join("|");
+          const cacheKey = `custom:${extrasKey}`;
+          const cached = spellcheckerCache.get(cacheKey);
+          if (cached) return cached;
+          const checker = nspell(
+            customDictionaries.map((dictionary) => ({
+              aff: dictionary.aff,
+              dic: dictionary.dic,
+            })),
+          ) as Spellchecker;
+          spellcheckerCache.set(cacheKey, checker);
+          return checker;
+        })();
+
+  if (useCustomOnly) {
+    if (!customChecker) return [];
+    return [{ checker: customChecker, language: "custom" }];
+  }
+
+  const baseCheckers = await Promise.all(
     unique.map(async (language) => {
-      const extras = customDictionaries.filter((dictionary) => dictionary.language === language);
-      const extrasKey = extras.map((dictionary) => dictionary.id).sort().join("|");
-      const cacheKey = `${language}:${extrasKey}`;
+      const cacheKey = `base:${language}`;
       const cached = spellcheckerCache.get(cacheKey);
-      if (cached) return cached;
+      if (cached) {
+        return { checker: cached, language };
+      }
       const source = await loadDictionarySource(language);
-      const dictionaries = [
-        { aff: source.aff, dic: source.dic },
-        ...extras.map((dictionary) => ({ aff: dictionary.aff, dic: dictionary.dic })),
-      ];
-      const checker = nspell(dictionaries) as Spellchecker;
+      const checker = nspell(source.aff, source.dic) as Spellchecker;
       spellcheckerCache.set(cacheKey, checker);
-      return checker;
+      return { checker, language };
     }),
   );
-  return checkers;
+
+  return baseCheckers;
+};
+
+const capitalizeToken = (value: string) =>
+  value.length > 0 ? `${value[0].toUpperCase()}${value.slice(1)}` : value;
+
+const isGermanLowercase = (value: string) =>
+  value === value.toLowerCase() && value !== value.toUpperCase();
+
+const isCorrectForLanguage = (
+  checker: Spellchecker,
+  language: SpellcheckLanguage | "custom",
+  token: string,
+) => {
+  if (checker.correct(token)) return true;
+  if ((language === "de" || language === "custom") && isGermanLowercase(token)) {
+    const capitalized = capitalizeToken(token);
+    if (capitalized !== token && checker.correct(capitalized)) return true;
+  }
+  return false;
 };
 
 export const getSpellcheckSuggestions = (
   word: string,
-  checkers: Spellchecker[],
+  checkers: LoadedSpellchecker[],
   languagesKey: string,
   ignoredWords: Set<string>,
 ): string[] | null => {
@@ -82,15 +128,16 @@ export const getSpellcheckSuggestions = (
   const normalized = normalizeSpellcheckTerm(word);
   if (!normalized || ignoredWords.has(normalized)) return null;
 
+  const token = normalizeSpellcheckToken(word);
   const cacheKey = normalizeCacheKey(languagesKey, normalized);
   const cachedCorrect = correctCache.get(cacheKey);
   if (cachedCorrect === true) return null;
 
   const isCorrect =
     cachedCorrect ??
-    checkers.some((checker) => {
+    checkers.some(({ checker, language }) => {
       try {
-        return checker.correct(normalizeSpellcheckToken(word));
+        return isCorrectForLanguage(checker, language, token);
       } catch {
         return false;
       }
@@ -103,9 +150,9 @@ export const getSpellcheckSuggestions = (
   if (cachedSuggestions) return cachedSuggestions;
 
   const suggestionSet = new Set<string>();
-  checkers.forEach((checker) => {
+  checkers.forEach(({ checker }) => {
     try {
-      checker.suggest(word).forEach((suggestion) => {
+      checker.suggest(token).forEach((suggestion) => {
         const trimmed = suggestion.trim();
         if (!trimmed) return;
         suggestionSet.add(trimmed);

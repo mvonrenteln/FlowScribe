@@ -6,6 +6,17 @@ import { useTranscriptStore } from "@/lib/store";
 
 let mockTranscriptData: unknown;
 const hotkeyHandlers = new Map<string, (event: KeyboardEvent) => void>();
+const loadSpellcheckersMock = vi.hoisted(() =>
+  vi.fn().mockResolvedValue([
+    {
+      language: "de",
+      checker: {
+        correct: () => true,
+        suggest: () => [],
+      },
+    },
+  ]),
+);
 
 vi.mock("react-hotkeys-hook", () => ({
   useHotkeys: (keys: string, handler: (event: KeyboardEvent) => void) => {
@@ -57,6 +68,18 @@ vi.mock("@/components/SpellcheckDialog", () => ({
   SpellcheckDialog: () => null,
 }));
 
+vi.mock("@/components/CustomDictionariesDialog", () => ({
+  CustomDictionariesDialog: () => null,
+}));
+
+vi.mock("@/lib/spellcheck", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/spellcheck")>("@/lib/spellcheck");
+  return {
+    ...actual,
+    loadSpellcheckers: loadSpellcheckersMock,
+  };
+});
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   loadAudioHandle: vi.fn().mockResolvedValue(null),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
@@ -84,8 +107,11 @@ const resetStore = () => {
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
     spellcheckEnabled: false,
-    spellcheckLanguages: ["de", "en"],
+    spellcheckLanguages: ["de"],
     spellcheckIgnoreWords: [],
+    spellcheckCustomEnabled: false,
+    spellcheckCustomDictionaries: [],
+    spellcheckCustomDictionariesLoaded: false,
     recentSessions: [],
   });
 };
@@ -94,6 +120,7 @@ describe("TranscriptEditor", () => {
   beforeEach(() => {
     resetStore();
     hotkeyHandlers.clear();
+    loadSpellcheckersMock.mockClear();
   });
 
   it("loads whisper transcripts and renders segments", async () => {
@@ -941,5 +968,55 @@ describe("TranscriptEditor", () => {
 
     expect(screen.queryByTestId("segment-segment-1")).toBeInTheDocument();
     expect(screen.queryByTestId("segment-segment-2")).not.toBeInTheDocument();
+  });
+
+  it("keeps spellcheck selection exclusive when switching modes in the UI", async () => {
+    const customDictionary = {
+      id: "custom-1",
+      name: "Custom One",
+      aff: "SET UTF-8\n",
+      dic: "1\nglymbar\n",
+    };
+    useTranscriptStore.setState({
+      spellcheckEnabled: true,
+      spellcheckLanguages: ["de"],
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries: [customDictionary],
+      spellcheckCustomDictionariesLoaded: true,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-spellcheck"));
+    await userEvent.click(screen.getByRole("button", { name: "EN" }));
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().spellcheckLanguages).toEqual(["en"]);
+    });
+    expect(useTranscriptStore.getState().spellcheckCustomEnabled).toBe(false);
+    await waitFor(() => {
+      expect(loadSpellcheckersMock).toHaveBeenLastCalledWith(["en"], []);
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "Custom" }));
+    await userEvent.click(screen.getByRole("menuitem", { name: /activated/i }));
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().spellcheckCustomEnabled).toBe(true);
+    });
+    expect(useTranscriptStore.getState().spellcheckLanguages).toEqual([]);
+    await waitFor(() => {
+      expect(loadSpellcheckersMock).toHaveBeenLastCalledWith([], [customDictionary]);
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: "DE" }));
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().spellcheckLanguages).toEqual(["de"]);
+    });
+    expect(useTranscriptStore.getState().spellcheckCustomEnabled).toBe(false);
+    await waitFor(() => {
+      expect(loadSpellcheckersMock).toHaveBeenLastCalledWith(["de"], []);
+    });
   });
 });

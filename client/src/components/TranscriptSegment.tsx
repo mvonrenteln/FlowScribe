@@ -23,6 +23,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 
 interface TranscriptSegmentProps {
   segment: Segment;
@@ -225,8 +226,8 @@ function TranscriptSegmentComponent({
     (index: number, replacement: string) => {
       const nextText = segment.words.map((item) => item.word);
       const original = nextText[index] ?? "";
-      const leading = original.match(/^[^\p{L}\p{N}]+/gu)?.[0] ?? "";
-      const trailing = original.match(/[^\p{L}\p{N}]+$/gu)?.[0] ?? "";
+      const leading = original.match(wordLeadingRegex)?.[0] ?? "";
+      const trailing = original.match(wordTrailingRegex)?.[0] ?? "";
       nextText[index] = `${leading}${replacement}${trailing}`;
       onTextChange(nextText.join(" "));
     },

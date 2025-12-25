@@ -95,14 +95,21 @@ vi.mock("@/components/SpellcheckDialog", () => ({
   SpellcheckDialog: () => null,
 }));
 
+vi.mock("@/components/CustomDictionariesDialog", () => ({
+  CustomDictionariesDialog: () => null,
+}));
+
 vi.mock("@/lib/spellcheck", async () => {
   const actual = await vi.importActual<typeof import("@/lib/spellcheck")>("@/lib/spellcheck");
   return {
     ...actual,
     loadSpellcheckers: vi.fn().mockResolvedValue([
       {
-        correct: () => false,
-        suggest: () => ["Word"],
+        language: "en",
+        checker: {
+          correct: () => false,
+          suggest: () => ["Word"],
+        },
       },
     ]),
     getSpellcheckSuggestions: (word: string) => (word === "Wrd" ? ["Word"] : null),
@@ -136,8 +143,11 @@ const resetStore = () => {
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
     spellcheckEnabled: false,
-    spellcheckLanguages: ["de", "en"],
+    spellcheckLanguages: ["de"],
     spellcheckIgnoreWords: [],
+    spellcheckCustomEnabled: false,
+    spellcheckCustomDictionaries: [],
+    spellcheckCustomDictionariesLoaded: false,
     recentSessions: [],
   });
 };
