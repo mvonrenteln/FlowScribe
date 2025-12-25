@@ -163,6 +163,8 @@ const MAX_HISTORY = 100;
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 const GLOBAL_STORAGE_KEY = "flowscribe:global";
 const PERSIST_THROTTLE_MS = 500;
+const PLAYING_TIME_PERSIST_STEP = 1;
+const PAUSED_TIME_PERSIST_STEP = 0.25;
 
 type PersistedSession = {
   audioRef: FileReference | null;
@@ -1220,6 +1222,7 @@ if (canUseLocalStorage()) {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
   let pendingGlobal: PersistedGlobalState | null = null;
+  let lastGlobalSnapshot: PersistedGlobalState | null = null;
 
   const schedulePersist = (
     sessionsState: PersistedSessionsState,
@@ -1248,9 +1251,25 @@ if (canUseLocalStorage()) {
 
   useTranscriptStore.subscribe((state) => {
     const sessionKey = state.sessionKey;
-    sessionsCache = {
-      ...sessionsCache,
-      [sessionKey]: {
+    const previous = sessionsCache[sessionKey];
+    const sessionActivated = sessionKey !== activeSessionKeyCache;
+    const baseChanged =
+      !previous ||
+      previous.segments !== state.segments ||
+      previous.speakers !== state.speakers ||
+      !isSameFileReference(previous.audioRef, state.audioRef) ||
+      !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
+      previous.isWhisperXFormat !== state.isWhisperXFormat;
+    const shouldUpdateSelected =
+      !previous || previous.selectedSegmentId !== state.selectedSegmentId;
+    const timeDelta = previous ? Math.abs(state.currentTime - previous.currentTime) : Infinity;
+    const timeThreshold = state.isPlaying ? PLAYING_TIME_PERSIST_STEP : PAUSED_TIME_PERSIST_STEP;
+    const shouldUpdateTime = !previous || timeDelta >= timeThreshold;
+    const shouldTouchSession = baseChanged || sessionActivated || !previous;
+    const shouldUpdateEntry = shouldTouchSession || shouldUpdateSelected || shouldUpdateTime;
+
+    if (shouldUpdateEntry) {
+      const nextEntry: PersistedSession = previous ?? {
         audioRef: state.audioRef,
         transcriptRef: state.transcriptRef,
         segments: state.segments,
@@ -1259,32 +1278,69 @@ if (canUseLocalStorage()) {
         currentTime: state.currentTime,
         isWhisperXFormat: state.isWhisperXFormat,
         updatedAt: Date.now(),
-      },
-    };
-    activeSessionKeyCache = sessionKey;
-
-    const recentSessions = buildRecentSessions(sessionsCache);
-    const recentSerialized = JSON.stringify(recentSessions);
-    if (recentSerialized !== lastRecentSerialized) {
-      lastRecentSerialized = recentSerialized;
-      useTranscriptStore.setState({ recentSessions });
+      };
+      if (shouldTouchSession || !previous) {
+        nextEntry.audioRef = state.audioRef;
+        nextEntry.transcriptRef = state.transcriptRef;
+        nextEntry.segments = state.segments;
+        nextEntry.speakers = state.speakers;
+        nextEntry.isWhisperXFormat = state.isWhisperXFormat;
+        nextEntry.updatedAt = Date.now();
+      }
+      if (shouldUpdateSelected || !previous) {
+        nextEntry.selectedSegmentId = state.selectedSegmentId;
+      }
+      if (shouldUpdateTime || !previous) {
+        nextEntry.currentTime = state.currentTime;
+      }
+      sessionsCache[sessionKey] = nextEntry;
     }
 
-    schedulePersist(
-      {
-        sessions: sessionsCache,
-        activeSessionKey: activeSessionKeyCache,
-      },
-      {
-        lexiconEntries: state.lexiconEntries,
-        lexiconThreshold: state.lexiconThreshold,
-        lexiconHighlightUnderline: state.lexiconHighlightUnderline,
-        lexiconHighlightBackground: state.lexiconHighlightBackground,
-        spellcheckEnabled: state.spellcheckEnabled,
-        spellcheckLanguages: state.spellcheckLanguages,
-        spellcheckIgnoreWords: state.spellcheckIgnoreWords,
-        spellcheckCustomEnabled: state.spellcheckCustomEnabled,
-      },
-    );
+    activeSessionKeyCache = sessionKey;
+
+    if (shouldTouchSession) {
+      const recentSessions = buildRecentSessions(sessionsCache);
+      const recentSerialized = JSON.stringify(recentSessions);
+      if (recentSerialized !== lastRecentSerialized) {
+        lastRecentSerialized = recentSerialized;
+        useTranscriptStore.setState({ recentSessions });
+      }
+    }
+
+    const nextGlobalSnapshot: PersistedGlobalState = {
+      lexiconEntries: state.lexiconEntries,
+      lexiconThreshold: state.lexiconThreshold,
+      lexiconHighlightUnderline: state.lexiconHighlightUnderline,
+      lexiconHighlightBackground: state.lexiconHighlightBackground,
+      spellcheckEnabled: state.spellcheckEnabled,
+      spellcheckLanguages: state.spellcheckLanguages,
+      spellcheckIgnoreWords: state.spellcheckIgnoreWords,
+      spellcheckCustomEnabled: state.spellcheckCustomEnabled,
+    };
+    const globalChanged =
+      !lastGlobalSnapshot ||
+      lastGlobalSnapshot.lexiconEntries !== nextGlobalSnapshot.lexiconEntries ||
+      lastGlobalSnapshot.lexiconThreshold !== nextGlobalSnapshot.lexiconThreshold ||
+      lastGlobalSnapshot.lexiconHighlightUnderline !== nextGlobalSnapshot.lexiconHighlightUnderline ||
+      lastGlobalSnapshot.lexiconHighlightBackground !==
+        nextGlobalSnapshot.lexiconHighlightBackground ||
+      lastGlobalSnapshot.spellcheckEnabled !== nextGlobalSnapshot.spellcheckEnabled ||
+      lastGlobalSnapshot.spellcheckLanguages !== nextGlobalSnapshot.spellcheckLanguages ||
+      lastGlobalSnapshot.spellcheckIgnoreWords !== nextGlobalSnapshot.spellcheckIgnoreWords ||
+      lastGlobalSnapshot.spellcheckCustomEnabled !== nextGlobalSnapshot.spellcheckCustomEnabled;
+
+    if (shouldUpdateEntry || globalChanged || sessionActivated) {
+      schedulePersist(
+        {
+          sessions: sessionsCache,
+          activeSessionKey: activeSessionKeyCache,
+        },
+        nextGlobalSnapshot,
+      );
+    }
+
+    if (globalChanged) {
+      lastGlobalSnapshot = nextGlobalSnapshot;
+    }
   });
 }
