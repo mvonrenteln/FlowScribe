@@ -1,9 +1,14 @@
-import { act, renderHook, waitFor } from "@testing-library/react";
+import { renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { type UseSpellcheckOptions, useSpellcheck } from "../useSpellcheck";
 
 const loadSpellcheckersMock = vi.fn().mockResolvedValue([]);
 const getSpellcheckMatchMock = vi.fn();
+const baseSpellcheckLanguages = ["en"] as const;
+const baseSpellcheckCustomDictionaries = [] as const;
+const baseSpellcheckIgnoreWords = [] as const;
+const baseLexiconEntries = [] as const;
+const loadSpellcheckCustomDictionariesMock = vi.fn();
 
 vi.mock("@/lib/spellcheck", () => ({
   loadSpellcheckers: (...args: unknown[]) => loadSpellcheckersMock(...args),
@@ -13,16 +18,8 @@ vi.mock("@/lib/spellcheck", () => ({
 
 describe("useSpellcheck", () => {
   beforeEach(() => {
-    vi.useFakeTimers();
     loadSpellcheckersMock.mockClear();
     getSpellcheckMatchMock.mockReset();
-  });
-
-  afterEach(() => {
-    if (vi.isFakeTimers()) {
-      vi.runOnlyPendingTimers();
-      vi.useRealTimers();
-    }
   });
 
   it("loads spellcheckers and collects matches", async () => {
@@ -45,21 +42,16 @@ describe("useSpellcheck", () => {
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: ["en"],
+        spellcheckLanguages: baseSpellcheckLanguages,
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: [],
-        loadSpellcheckCustomDictionaries: vi.fn(),
+        spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: [],
-        lexiconEntries: [],
+        spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
+        lexiconEntries: baseLexiconEntries,
       }),
     );
 
-    await act(async () => {
-      await vi.runAllTimersAsync();
-    });
-
-    vi.useRealTimers();
     await waitFor(
       () => {
         expect(loadSpellcheckersMock).toHaveBeenCalledWith(["en"], []);
@@ -88,34 +80,29 @@ describe("useSpellcheck", () => {
         audioUrl: null,
         isWaveReady: true,
         spellcheckEnabled: true,
-        spellcheckLanguages: ["en"],
+        spellcheckLanguages: baseSpellcheckLanguages,
         spellcheckCustomEnabled: false,
-        spellcheckCustomDictionaries: [],
-        loadSpellcheckCustomDictionaries: vi.fn(),
+        spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
         segments,
-        spellcheckIgnoreWords: [],
-        lexiconEntries: [],
+        spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
+        lexiconEntries: baseLexiconEntries,
       },
-    });
-
-    await act(async () => {
-      await vi.runAllTimersAsync();
     });
 
     rerender({
       audioUrl: null,
       isWaveReady: true,
       spellcheckEnabled: false,
-      spellcheckLanguages: ["en"],
+      spellcheckLanguages: baseSpellcheckLanguages,
       spellcheckCustomEnabled: false,
-      spellcheckCustomDictionaries: [],
-      loadSpellcheckCustomDictionaries: vi.fn(),
+      spellcheckCustomDictionaries: baseSpellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
       segments,
-      spellcheckIgnoreWords: [],
-      lexiconEntries: [],
+      spellcheckIgnoreWords: baseSpellcheckIgnoreWords,
+      lexiconEntries: baseLexiconEntries,
     });
 
-    vi.useRealTimers();
     await waitFor(
       () => {
         expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
