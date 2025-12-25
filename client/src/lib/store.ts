@@ -387,7 +387,10 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
 };
 
 const normalizeSpellcheckIgnoreWord = (value: string) =>
-  value.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").trim().toLowerCase();
+  value
+    .replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "")
+    .trim()
+    .toLowerCase();
 
 const normalizeSpellcheckIgnoreWords = (values: string[]) => {
   const seen = new Set<string>();
@@ -401,12 +404,7 @@ const normalizeSpellcheckIgnoreWords = (values: string[]) => {
 };
 
 const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
-  const raw =
-    typeof value === "string"
-      ? value.split(",")
-      : Array.isArray(value)
-        ? value
-        : [];
+  const raw = typeof value === "string" ? value.split(",") : Array.isArray(value) ? value : [];
   const next = raw
     .map((lang) => String(lang).trim())
     .filter((lang): lang is SpellcheckLanguage => lang === "de" || lang === "en");

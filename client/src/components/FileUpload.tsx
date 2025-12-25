@@ -147,22 +147,22 @@ export function FileUpload({
   const content = (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-wrap items-center gap-3">
-      <input
-        ref={audioInputRef}
-        type="file"
-        accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
-        onChange={handleAudioChange}
-        className="hidden"
-        data-testid="input-audio-file"
-      />
-      <input
-        ref={transcriptInputRef}
-        type="file"
-        accept=".json"
-        onChange={handleTranscriptChange}
-        className="hidden"
-        data-testid="input-transcript-file"
-      />
+        <input
+          ref={audioInputRef}
+          type="file"
+          accept="audio/*,.mp3,.wav,.m4a,.ogg,.flac"
+          onChange={handleAudioChange}
+          className="hidden"
+          data-testid="input-audio-file"
+        />
+        <input
+          ref={transcriptInputRef}
+          type="file"
+          accept=".json"
+          onChange={handleTranscriptChange}
+          className="hidden"
+          data-testid="input-transcript-file"
+        />
 
         <Tooltip>
           <TooltipTrigger asChild>

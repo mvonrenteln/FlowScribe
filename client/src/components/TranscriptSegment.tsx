@@ -448,9 +448,7 @@ function TranscriptSegmentComponent({
                                     );
                                   }}
                                 >
-                                  {isExpanded
-                                    ? "Less"
-                                    : `More (${suggestions.length - 3})`}
+                                  {isExpanded ? "Less" : `More (${suggestions.length - 3})`}
                                 </Button>
                               )}
                               <Button

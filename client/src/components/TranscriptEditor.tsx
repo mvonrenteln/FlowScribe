@@ -18,11 +18,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
-import {
-  getSpellcheckSuggestions,
-  loadSpellcheckers,
-  type Spellchecker,
-} from "@/lib/spellcheck";
+import { getSpellcheckSuggestions, loadSpellcheckers, type Spellchecker } from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ExportDialog } from "./ExportDialog";
@@ -30,8 +26,8 @@ import { FileUpload } from "./FileUpload";
 import { GlossaryDialog } from "./GlossaryDialog";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { PlaybackControls } from "./PlaybackControls";
-import { SpellcheckDialog } from "./SpellcheckDialog";
 import { SpeakerSidebar } from "./SpeakerSidebar";
+import { SpellcheckDialog } from "./SpellcheckDialog";
 import { ThemeToggle } from "./ThemeToggle";
 import { TranscriptSegment } from "./TranscriptSegment";
 import { WaveformPlayer } from "./WaveformPlayer";
@@ -429,9 +425,7 @@ export function TranscriptEditor() {
     let processedSinceUpdate = 0;
     let cancelled = false;
 
-    const scheduleIdle = (
-      callback: (deadline?: { timeRemaining: () => number }) => void,
-    ) => {
+    const scheduleIdle = (callback: (deadline?: { timeRemaining: () => number }) => void) => {
       if (typeof window !== "undefined" && "requestIdleCallback" in window) {
         return window.requestIdleCallback(callback);
       }
@@ -1303,11 +1297,7 @@ export function TranscriptEditor() {
                       </Button>
                     </div>
                   </div>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => setShowSpellcheckDialog(true)}
-                  >
+                  <Button size="sm" variant="ghost" onClick={() => setShowSpellcheckDialog(true)}>
                     Manage ignore list
                   </Button>
                   {!spellcheckEnabled && (
