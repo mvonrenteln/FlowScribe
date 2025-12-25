@@ -1,4 +1,5 @@
 import nspell from "nspell";
+import type { SpellcheckCustomDictionary } from "@/lib/store";
 
 export type SpellcheckLanguage = "en" | "de";
 
@@ -12,7 +13,7 @@ type DictionarySource = {
   dic: string;
 };
 
-const spellcheckerCache = new Map<SpellcheckLanguage, Spellchecker>();
+const spellcheckerCache = new Map<string, Spellchecker>();
 const correctCache = new Map<string, boolean>();
 const suggestionCache = new Map<string, string[]>();
 
@@ -48,15 +49,23 @@ const loadDictionarySource = async (language: SpellcheckLanguage): Promise<Dicti
 
 export const loadSpellcheckers = async (
   languages: SpellcheckLanguage[],
+  customDictionaries: SpellcheckCustomDictionary[],
 ): Promise<Spellchecker[]> => {
   const unique = Array.from(new Set(languages));
   const checkers = await Promise.all(
     unique.map(async (language) => {
-      const cached = spellcheckerCache.get(language);
+      const extras = customDictionaries.filter((dictionary) => dictionary.language === language);
+      const extrasKey = extras.map((dictionary) => dictionary.id).sort().join("|");
+      const cacheKey = `${language}:${extrasKey}`;
+      const cached = spellcheckerCache.get(cacheKey);
       if (cached) return cached;
       const source = await loadDictionarySource(language);
-      const checker = nspell(source.aff, source.dic) as Spellchecker;
-      spellcheckerCache.set(language, checker);
+      const dictionaries = [
+        { aff: source.aff, dic: source.dic },
+        ...extras.map((dictionary) => ({ aff: dictionary.aff, dic: dictionary.dic })),
+      ];
+      const checker = nspell(dictionaries) as Spellchecker;
+      spellcheckerCache.set(cacheKey, checker);
       return checker;
     }),
   );

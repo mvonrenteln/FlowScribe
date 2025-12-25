@@ -51,6 +51,8 @@ export function TranscriptEditor() {
     spellcheckEnabled,
     spellcheckLanguages,
     spellcheckIgnoreWords,
+    spellcheckCustomDictionaries,
+    loadSpellcheckCustomDictionaries,
     recentSessions,
     setAudioFile,
     setAudioUrl,
@@ -254,7 +256,7 @@ export function TranscriptEditor() {
       };
     }
 
-    loadSpellcheckers(spellcheckLanguages)
+    loadSpellcheckers(spellcheckLanguages, spellcheckCustomDictionaries)
       .then((loaded) => {
         if (isMounted) {
           setSpellcheckers(loaded);
@@ -267,13 +269,17 @@ export function TranscriptEditor() {
     return () => {
       isMounted = false;
     };
-  }, [spellcheckEnabled, spellcheckLanguages]);
+  }, [spellcheckCustomDictionaries, spellcheckEnabled, spellcheckLanguages]);
 
   useEffect(() => {
     if (!spellcheckEnabled && filterSpellcheck) {
       setFilterSpellcheck(false);
     }
   }, [filterSpellcheck, spellcheckEnabled]);
+
+  useEffect(() => {
+    loadSpellcheckCustomDictionaries();
+  }, [loadSpellcheckCustomDictionaries]);
 
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
@@ -392,10 +398,14 @@ export function TranscriptEditor() {
     return matches;
   }, [lexiconEntriesNormalized, lexiconThreshold, segments]);
 
-  const spellcheckLanguageKey = useMemo(
-    () => spellcheckLanguages.slice().sort().join(","),
-    [spellcheckLanguages],
-  );
+  const spellcheckLanguageKey = useMemo(() => {
+    const languageKey = spellcheckLanguages.slice().sort().join(",");
+    const customKey = spellcheckCustomDictionaries
+      .map((dictionary) => `${dictionary.language}:${dictionary.id}`)
+      .sort()
+      .join("|");
+    return `${languageKey}|${customKey}`;
+  }, [spellcheckCustomDictionaries, spellcheckLanguages]);
 
   useEffect(() => {
     const runId = spellcheckRunIdRef.current + 1;

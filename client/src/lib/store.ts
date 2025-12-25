@@ -1,5 +1,10 @@
 import { create } from "zustand";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
+import {
+  loadSpellcheckDictionaries,
+  removeSpellcheckDictionary,
+  saveSpellcheckDictionary,
+} from "@/lib/spellcheckDictionaryStorage";
 
 export interface Word {
   word: string;
@@ -33,6 +38,14 @@ export interface LexiconEntry {
 }
 
 export type SpellcheckLanguage = "de" | "en";
+
+export interface SpellcheckCustomDictionary {
+  id: string;
+  name: string;
+  language: SpellcheckLanguage;
+  aff: string;
+  dic: string;
+}
 
 interface HistoryState {
   segments: Segment[];
@@ -69,6 +82,8 @@ interface TranscriptState {
   spellcheckEnabled: boolean;
   spellcheckLanguages: SpellcheckLanguage[];
   spellcheckIgnoreWords: string[];
+  spellcheckCustomDictionaries: SpellcheckCustomDictionary[];
+  spellcheckCustomDictionariesLoaded: boolean;
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -111,6 +126,9 @@ interface TranscriptState {
   addSpellcheckIgnoreWord: (value: string) => void;
   removeSpellcheckIgnoreWord: (value: string) => void;
   clearSpellcheckIgnoreWords: () => void;
+  loadSpellcheckCustomDictionaries: () => Promise<void>;
+  addSpellcheckCustomDictionary: (dictionary: Omit<SpellcheckCustomDictionary, "id">) => Promise<void>;
+  removeSpellcheckCustomDictionary: (id: string) => Promise<void>;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -475,6 +493,8 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   spellcheckEnabled: Boolean(globalState?.spellcheckEnabled),
   spellcheckLanguages: normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
   spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(globalState?.spellcheckIgnoreWords ?? []),
+  spellcheckCustomDictionaries: [],
+  spellcheckCustomDictionariesLoaded: false,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -955,6 +975,45 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
     });
   },
   clearSpellcheckIgnoreWords: () => set({ spellcheckIgnoreWords: [] }),
+  loadSpellcheckCustomDictionaries: async () => {
+    const { spellcheckCustomDictionariesLoaded } = get();
+    if (spellcheckCustomDictionariesLoaded) return;
+    try {
+      const dictionaries = await loadSpellcheckDictionaries();
+      set({
+        spellcheckCustomDictionaries: dictionaries,
+        spellcheckCustomDictionariesLoaded: true,
+      });
+    } catch (err) {
+      console.error("Failed to load spellcheck dictionaries:", err);
+      set({ spellcheckCustomDictionariesLoaded: true });
+    }
+  },
+  addSpellcheckCustomDictionary: async (dictionary) => {
+    const entry: SpellcheckCustomDictionary = { ...dictionary, id: generateId() };
+    try {
+      await saveSpellcheckDictionary(entry);
+    } catch (err) {
+      console.error("Failed to save spellcheck dictionary:", err);
+    }
+    const { spellcheckCustomDictionaries } = get();
+    set({
+      spellcheckCustomDictionaries: [...spellcheckCustomDictionaries, entry],
+    });
+  },
+  removeSpellcheckCustomDictionary: async (id) => {
+    try {
+      await removeSpellcheckDictionary(id);
+    } catch (err) {
+      console.error("Failed to remove spellcheck dictionary:", err);
+    }
+    const { spellcheckCustomDictionaries } = get();
+    set({
+      spellcheckCustomDictionaries: spellcheckCustomDictionaries.filter(
+        (dictionary) => dictionary.id !== id,
+      ),
+    });
+  },
 
   splitSegment: (id, wordIndex) => {
     const { segments, speakers, history, historyIndex } = get();
