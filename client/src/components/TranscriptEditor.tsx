@@ -14,9 +14,15 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
+import {
+  getSpellcheckSuggestions,
+  loadSpellcheckers,
+  type Spellchecker,
+} from "@/lib/spellcheck";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ExportDialog } from "./ExportDialog";
@@ -24,6 +30,7 @@ import { FileUpload } from "./FileUpload";
 import { GlossaryDialog } from "./GlossaryDialog";
 import { KeyboardShortcuts } from "./KeyboardShortcuts";
 import { PlaybackControls } from "./PlaybackControls";
+import { SpellcheckDialog } from "./SpellcheckDialog";
 import { SpeakerSidebar } from "./SpeakerSidebar";
 import { ThemeToggle } from "./ThemeToggle";
 import { TranscriptSegment } from "./TranscriptSegment";
@@ -45,6 +52,9 @@ export function TranscriptEditor() {
     lexiconThreshold,
     lexiconHighlightUnderline,
     lexiconHighlightBackground,
+    spellcheckEnabled,
+    spellcheckLanguages,
+    spellcheckIgnoreWords,
     recentSessions,
     setAudioFile,
     setAudioUrl,
@@ -66,6 +76,9 @@ export function TranscriptEditor() {
     updateSegmentTiming,
     deleteSegment,
     addLexiconFalsePositive,
+    setSpellcheckEnabled,
+    setSpellcheckLanguages,
+    addSpellcheckIgnoreWord,
     renameSpeaker,
     addSpeaker,
     mergeSpeakers,
@@ -78,6 +91,7 @@ export function TranscriptEditor() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [showExport, setShowExport] = useState(false);
   const [showLexicon, setShowLexicon] = useState(false);
+  const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
@@ -87,10 +101,17 @@ export function TranscriptEditor() {
   const [filterBookmarked, setFilterBookmarked] = useState(false);
   const [filterLexicon, setFilterLexicon] = useState(false);
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
+  const [filterSpellcheck, setFilterSpellcheck] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
   const [editRequestId, setEditRequestId] = useState<string | null>(null);
+  const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const restoreAttemptedRef = useRef(false);
+  const [spellcheckers, setSpellcheckers] = useState<Spellchecker[]>([]);
+  const [spellcheckMatchesBySegment, setSpellcheckMatchesBySegment] = useState<
+    Map<string, Map<number, { suggestions: string[] }>>
+  >(new Map());
+  const spellcheckRunIdRef = useRef(0);
   const isTranscriptEditing = useCallback(
     () => document.body?.dataset.transcriptEditing === "true",
     [],
@@ -228,6 +249,36 @@ export function TranscriptEditor() {
     };
   }, [audioFile, handleAudioUpload]);
 
+  useEffect(() => {
+    let isMounted = true;
+    if (!spellcheckEnabled || spellcheckLanguages.length === 0) {
+      setSpellcheckers([]);
+      return () => {
+        isMounted = false;
+      };
+    }
+
+    loadSpellcheckers(spellcheckLanguages)
+      .then((loaded) => {
+        if (isMounted) {
+          setSpellcheckers(loaded);
+        }
+      })
+      .catch((err) => {
+        console.error("Failed to load spellcheck dictionaries:", err);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [spellcheckEnabled, spellcheckLanguages]);
+
+  useEffect(() => {
+    if (!spellcheckEnabled && filterSpellcheck) {
+      setFilterSpellcheck(false);
+    }
+  }, [filterSpellcheck, spellcheckEnabled]);
+
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
       renameSpeaker(oldName, newName);
@@ -345,6 +396,114 @@ export function TranscriptEditor() {
     return matches;
   }, [lexiconEntriesNormalized, lexiconThreshold, segments]);
 
+  const spellcheckLanguageKey = useMemo(
+    () => spellcheckLanguages.slice().sort().join(","),
+    [spellcheckLanguages],
+  );
+
+  useEffect(() => {
+    const runId = spellcheckRunIdRef.current + 1;
+    spellcheckRunIdRef.current = runId;
+
+    if (!spellcheckEnabled || spellcheckers.length === 0 || segments.length === 0) {
+      setSpellcheckMatchesBySegment(new Map());
+      return;
+    }
+
+    const ignored = new Set(spellcheckIgnoreWords);
+    lexiconEntries.forEach((entry) => {
+      const term = entry.term.trim().toLowerCase();
+      if (term) {
+        ignored.add(term);
+      }
+      (entry.variants ?? []).forEach((variant) => {
+        const normalized = variant.trim().toLowerCase();
+        if (normalized) {
+          ignored.add(normalized);
+        }
+      });
+    });
+    const matches = new Map<string, Map<number, { suggestions: string[] }>>();
+    let segmentIndex = 0;
+    let wordIndex = 0;
+    let processedSinceUpdate = 0;
+    let cancelled = false;
+
+    const scheduleIdle = (
+      callback: (deadline?: { timeRemaining: () => number }) => void,
+    ) => {
+      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
+        return window.requestIdleCallback(callback);
+      }
+      return window.setTimeout(() => callback(), 0);
+    };
+
+    const processChunk = (deadline?: { timeRemaining: () => number }) => {
+      if (cancelled || spellcheckRunIdRef.current !== runId) return;
+      let timeRemaining = deadline?.timeRemaining?.() ?? 0;
+      let iterations = 0;
+
+      while (segmentIndex < segments.length && (iterations < 120 || timeRemaining > 4)) {
+        const segment = segments[segmentIndex];
+        const words = segment.words;
+        const wordMatches = matches.get(segment.id) ?? new Map<number, { suggestions: string[] }>();
+
+        while (wordIndex < words.length) {
+          const word = words[wordIndex];
+          const suggestions = getSpellcheckSuggestions(
+            word.word,
+            spellcheckers,
+            spellcheckLanguageKey,
+            ignored,
+          );
+          if (suggestions !== null) {
+            wordMatches.set(wordIndex, { suggestions });
+          }
+          wordIndex += 1;
+          iterations += 1;
+          processedSinceUpdate += 1;
+          timeRemaining = deadline?.timeRemaining?.() ?? 0;
+          if (iterations >= 120 && timeRemaining <= 4) break;
+        }
+
+        if (wordMatches.size > 0) {
+          matches.set(segment.id, wordMatches);
+        }
+
+        if (wordIndex >= words.length) {
+          segmentIndex += 1;
+          wordIndex = 0;
+        } else {
+          break;
+        }
+      }
+
+      if (processedSinceUpdate >= 240 || segmentIndex >= segments.length) {
+        setSpellcheckMatchesBySegment(new Map(matches));
+        processedSinceUpdate = 0;
+      }
+
+      if (segmentIndex < segments.length) {
+        scheduleIdle(processChunk);
+      } else if (matches.size === 0) {
+        setSpellcheckMatchesBySegment(new Map());
+      }
+    };
+
+    scheduleIdle(processChunk);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    lexiconEntries,
+    segments,
+    spellcheckEnabled,
+    spellcheckIgnoreWords,
+    spellcheckLanguageKey,
+    spellcheckers,
+  ]);
+
   const lexiconHighlightEnabled = lexiconHighlightUnderline || lexiconHighlightBackground;
   const forceLexiconHighlight = filterLexicon || filterLexiconLowScore;
   const effectiveLexiconHighlightUnderline = forceLexiconHighlight
@@ -356,6 +515,7 @@ export function TranscriptEditor() {
   const showLexiconMatches =
     lexiconEntriesNormalized.length > 0 &&
     (filterLexicon || filterLexiconLowScore || lexiconHighlightEnabled);
+  const showSpellcheckMatches = spellcheckEnabled || filterSpellcheck;
 
   const { lexiconMatchCount, lexiconLowScoreMatchCount } = useMemo(() => {
     let totalMatches = 0;
@@ -368,6 +528,14 @@ export function TranscriptEditor() {
     });
     return { lexiconMatchCount: totalMatches, lexiconLowScoreMatchCount: lowScoreMatches };
   }, [lexiconMatchesBySegment]);
+
+  const spellcheckMatchCount = useMemo(() => {
+    let totalMatches = 0;
+    spellcheckMatchesBySegment.forEach((matches) => {
+      totalMatches += matches.size;
+    });
+    return totalMatches;
+  }, [spellcheckMatchesBySegment]);
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
@@ -396,6 +564,9 @@ export function TranscriptEditor() {
         const hasLowMatch = Array.from(matches.values()).some((match) => match.score < 1);
         if (!hasLowMatch) return false;
       }
+      if (filterSpellcheck) {
+        if (!spellcheckMatchesBySegment.has(segment.id)) return false;
+      }
       return true;
     });
   }, [
@@ -404,9 +575,11 @@ export function TranscriptEditor() {
     filterLexicon,
     filterLexiconLowScore,
     filterLowConfidence,
+    filterSpellcheck,
     lexiconMatchesBySegment,
     lowConfidenceThreshold,
     segments,
+    spellcheckMatchesBySegment,
   ]);
 
   const getSelectedSegmentIndex = useCallback(() => {
@@ -871,168 +1044,307 @@ export function TranscriptEditor() {
   return (
     <div className="flex flex-col h-screen bg-background">
       <header className="flex items-center justify-between gap-4 h-14 px-4 border-b bg-card">
-        <div className="flex items-center gap-2">
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            data-testid="button-toggle-sidebar"
-            aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
-          >
-            {sidebarOpen ? (
-              <PanelLeftClose className="h-4 w-4" />
-            ) : (
-              <PanelLeft className="h-4 w-4" />
-            )}
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <h1 className="text-sm font-semibold tracking-tight">FlowScribe</h1>
-        </div>
+        <TooltipProvider delayDuration={200}>
+          <div className="flex items-center gap-2">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setSidebarOpen(!sidebarOpen)}
+                  data-testid="button-toggle-sidebar"
+                  aria-label={sidebarOpen ? "Close sidebar" : "Open sidebar"}
+                >
+                  {sidebarOpen ? (
+                    <PanelLeftClose className="h-4 w-4" />
+                  ) : (
+                    <PanelLeft className="h-4 w-4" />
+                  )}
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Toggle sidebar</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="h-6" />
+            <h1 className="text-sm font-semibold tracking-tight">FlowScribe</h1>
+          </div>
 
-        <div className="flex items-center gap-2">
-          <FileUpload
-            onAudioUpload={handleAudioUpload}
-            onTranscriptUpload={handleTranscriptUpload}
-            audioFileName={audioFile?.name}
-            transcriptFileName={transcriptRef?.name}
-            transcriptLoaded={segments.length > 0}
-            variant="inline"
-          />
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button
-                size="icon"
-                variant="ghost"
-                aria-label="Recent sessions"
-                data-testid="button-recent-sessions"
-              >
-                <Clock className="h-4 w-4" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="w-64">
-              <DropdownMenuLabel>Recent sessions</DropdownMenuLabel>
-              <DropdownMenuSeparator />
-              {recentSessions.length === 0 ? (
-                <DropdownMenuItem disabled>No recent sessions</DropdownMenuItem>
-              ) : (
-                recentSessions.slice(0, 8).map((session) => (
-                  <DropdownMenuItem
-                    key={session.key}
-                    onClick={() => activateSession(session.key)}
-                    className="flex flex-col items-start gap-1"
-                  >
-                    <span className="text-xs text-muted-foreground">
-                      {session.audioName || "Unknown audio"}
-                    </span>
-                    <span className="text-sm">
-                      {session.transcriptName || "Untitled transcript"}
-                    </span>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuContent>
-          </DropdownMenu>
-          <Separator orientation="vertical" className="h-6" />
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={undo}
-            disabled={!canUndo()}
-            data-testid="button-undo"
-            aria-label="Undo"
-          >
-            <Undo2 className="h-4 w-4" />
-          </Button>
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={redo}
-            disabled={!canRedo()}
-            data-testid="button-redo"
-            aria-label="Redo"
-          >
-            <Redo2 className="h-4 w-4" />
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Button
-            size="icon"
-            variant="ghost"
-            onClick={() => setShowShortcuts(true)}
-            data-testid="button-show-shortcuts"
-            aria-label="Keyboard shortcuts"
-          >
-            <Keyboard className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="default"
-            onClick={() => setShowExport(true)}
-            disabled={segments.length === 0}
-            data-testid="button-export"
-          >
-            <Download className="h-4 w-4 mr-2" />
-            Export
-          </Button>
-          <Separator orientation="vertical" className="h-6" />
-          <Popover open={confidencePopoverOpen} onOpenChange={setConfidencePopoverOpen}>
-            <PopoverTrigger asChild>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => {
-                  setHighlightLowConfidence((prev) => !prev);
-                  setConfidencePopoverOpen(true);
-                }}
-                aria-pressed={highlightLowConfidence}
-                aria-label="Toggle low confidence highlight"
-                data-testid="button-toggle-confidence"
-                className="px-2"
-              >
-                <span className="text-sm underline decoration-dotted underline-offset-2">A</span>
-              </Button>
-            </PopoverTrigger>
-            <PopoverContent className="w-64" align="end">
-              <div className="space-y-3">
-                <div className="text-xs text-muted-foreground">Low confidence threshold</div>
-                <Slider
-                  value={[lowConfidenceThreshold ?? 0.4]}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  disabled={lowConfidenceThreshold === null}
-                  onValueChange={(value) => {
-                    setManualConfidenceThreshold(value[0] ?? 0.4);
-                    setHighlightLowConfidence(true);
-                  }}
-                />
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
+          <div className="flex items-center gap-2">
+            <FileUpload
+              onAudioUpload={handleAudioUpload}
+              onTranscriptUpload={handleTranscriptUpload}
+              audioFileName={audioFile?.name}
+              transcriptFileName={transcriptRef?.name}
+              transcriptLoaded={segments.length > 0}
+              variant="inline"
+            />
+            <DropdownMenu>
+              <Tooltip>
+                <TooltipTrigger asChild>
                   <span>
-                    {lowConfidenceThreshold === null
-                      ? "No scores"
-                      : `Now: ${lowConfidenceThreshold.toFixed(2)}`}
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        aria-label="Recent sessions"
+                        data-testid="button-recent-sessions"
+                      >
+                        <Clock className="h-4 w-4" />
+                      </Button>
+                    </DropdownMenuTrigger>
                   </span>
+                </TooltipTrigger>
+                <TooltipContent>Recent sessions</TooltipContent>
+              </Tooltip>
+              <DropdownMenuContent align="end" className="w-64">
+                <DropdownMenuLabel>Recent sessions</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {recentSessions.length === 0 ? (
+                  <DropdownMenuItem disabled>No recent sessions</DropdownMenuItem>
+                ) : (
+                  recentSessions.slice(0, 8).map((session) => (
+                    <DropdownMenuItem
+                      key={session.key}
+                      onClick={() => activateSession(session.key)}
+                      className="flex flex-col items-start gap-1"
+                    >
+                      <span className="text-xs text-muted-foreground">
+                        {session.audioName || "Unknown audio"}
+                      </span>
+                      <span className="text-sm">
+                        {session.transcriptName || "Untitled transcript"}
+                      </span>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuContent>
+            </DropdownMenu>
+            <Separator orientation="vertical" className="h-6" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={undo}
+                  disabled={!canUndo()}
+                  data-testid="button-undo"
+                  aria-label="Undo"
+                >
+                  <Undo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Undo (Ctrl+Z)</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={redo}
+                  disabled={!canRedo()}
+                  data-testid="button-redo"
+                  aria-label="Redo"
+                >
+                  <Redo2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="h-6" />
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  onClick={() => setShowShortcuts(true)}
+                  data-testid="button-show-shortcuts"
+                  aria-label="Keyboard shortcuts"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Keyboard shortcuts</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="default"
+                  onClick={() => setShowExport(true)}
+                  disabled={segments.length === 0}
+                  data-testid="button-export"
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Export transcript</TooltipContent>
+            </Tooltip>
+            <Separator orientation="vertical" className="h-6" />
+            <Popover open={confidencePopoverOpen} onOpenChange={setConfidencePopoverOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => {
+                        setHighlightLowConfidence((prev) => !prev);
+                        setConfidencePopoverOpen(true);
+                      }}
+                      aria-pressed={highlightLowConfidence}
+                      aria-label="Toggle low confidence highlight"
+                      data-testid="button-toggle-confidence"
+                      className="px-2"
+                    >
+                      <span className="text-sm underline decoration-dotted underline-offset-2">
+                        A
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Low confidence highlight</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-64" align="end">
+                <div className="space-y-3">
+                  <div className="text-xs text-muted-foreground">Low confidence threshold</div>
+                  <Slider
+                    value={[lowConfidenceThreshold ?? 0.4]}
+                    min={0}
+                    max={1}
+                    step={0.05}
+                    disabled={lowConfidenceThreshold === null}
+                    onValueChange={(value) => {
+                      setManualConfidenceThreshold(value[0] ?? 0.4);
+                      setHighlightLowConfidence(true);
+                    }}
+                  />
+                  <div className="flex items-center justify-between text-xs text-muted-foreground">
+                    <span>
+                      {lowConfidenceThreshold === null
+                        ? "No scores"
+                        : `Now: ${lowConfidenceThreshold.toFixed(2)}`}
+                    </span>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setManualConfidenceThreshold(null)}
+                    >
+                      Auto
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
+            <Popover open={spellcheckPopoverOpen} onOpenChange={setSpellcheckPopoverOpen}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <PopoverTrigger asChild>
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setSpellcheckPopoverOpen(true)}
+                      aria-label="Spellcheck settings"
+                      data-testid="button-spellcheck"
+                      className="px-2"
+                    >
+                      <span className="text-sm underline decoration-dotted underline-offset-2">
+                        Aa
+                      </span>
+                    </Button>
+                  </PopoverTrigger>
+                </TooltipTrigger>
+                <TooltipContent>Spellcheck settings</TooltipContent>
+              </Tooltip>
+              <PopoverContent className="w-72" align="end">
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="text-sm font-medium">Spellcheck</div>
+                    <Button
+                      size="sm"
+                      variant={spellcheckEnabled ? "secondary" : "outline"}
+                      onClick={() => setSpellcheckEnabled(!spellcheckEnabled)}
+                    >
+                      {spellcheckEnabled ? "On" : "Off"}
+                    </Button>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="text-xs text-muted-foreground">Languages</div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant={spellcheckLanguages.includes("de") ? "secondary" : "outline"}
+                        onClick={() => {
+                          if (spellcheckLanguages.includes("de")) {
+                            if (spellcheckLanguages.length === 1) return;
+                            setSpellcheckLanguages(
+                              spellcheckLanguages.filter((value) => value !== "de"),
+                            );
+                          } else {
+                            setSpellcheckLanguages([...spellcheckLanguages, "de"]);
+                          }
+                        }}
+                      >
+                        DE
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant={spellcheckLanguages.includes("en") ? "secondary" : "outline"}
+                        onClick={() => {
+                          if (spellcheckLanguages.includes("en")) {
+                            if (spellcheckLanguages.length === 1) return;
+                            setSpellcheckLanguages(
+                              spellcheckLanguages.filter((value) => value !== "en"),
+                            );
+                          } else {
+                            setSpellcheckLanguages([...spellcheckLanguages, "en"]);
+                          }
+                        }}
+                      >
+                        EN
+                      </Button>
+                    </div>
+                  </div>
                   <Button
                     size="sm"
                     variant="ghost"
-                    onClick={() => setManualConfidenceThreshold(null)}
+                    onClick={() => setShowSpellcheckDialog(true)}
                   >
-                    Auto
+                    Manage ignore list
                   </Button>
+                  {!spellcheckEnabled && (
+                    <div className="text-xs text-muted-foreground">
+                      Enable spellcheck to highlight and filter spelling issues.
+                    </div>
+                  )}
                 </div>
-              </div>
-            </PopoverContent>
-          </Popover>
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={() => setShowLexicon(true)}
-            aria-label="Glossary settings"
-            data-testid="button-glossary"
-            className="px-2"
-          >
-            <span className="text-sm underline decoration-dotted underline-offset-2">ABC~</span>
-          </Button>
-          <ThemeToggle />
-        </div>
+              </PopoverContent>
+            </Popover>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => setShowLexicon(true)}
+                  aria-label="Glossary settings"
+                  data-testid="button-glossary"
+                  className="px-2"
+                >
+                  <span className="text-sm underline decoration-dotted underline-offset-2">
+                    ABC~
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Glossary settings</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <span>
+                  <ThemeToggle />
+                </span>
+              </TooltipTrigger>
+              <TooltipContent>Toggle theme</TooltipContent>
+            </Tooltip>
+          </div>
+        </TooltipProvider>
       </header>
 
       <div className="flex flex-1 overflow-hidden">
@@ -1057,6 +1369,7 @@ export function TranscriptEditor() {
               setFilterBookmarked(false);
               setFilterLexicon(false);
               setFilterLexiconLowScore(false);
+              setFilterSpellcheck(false);
             }}
             selectedSpeakerId={filterSpeakerId}
             lowConfidenceFilterActive={filterLowConfidence}
@@ -1074,6 +1387,10 @@ export function TranscriptEditor() {
             lexiconLowScoreMatchCount={lexiconLowScoreMatchCount}
             lexiconLowScoreFilterActive={filterLexiconLowScore}
             onToggleLexiconLowScoreFilter={() => setFilterLexiconLowScore((current) => !current)}
+            spellcheckMatchCount={spellcheckMatchCount}
+            spellcheckFilterActive={filterSpellcheck}
+            onToggleSpellcheckFilter={() => setFilterSpellcheck((current) => !current)}
+            spellcheckEnabled={spellcheckEnabled}
           />
         </aside>
 
@@ -1122,6 +1439,18 @@ export function TranscriptEditor() {
                         started.
                       </p>
                     </>
+                  ) : filterSpellcheck && activeSpeakerName ? (
+                    <>
+                      <p className="text-lg font-medium mb-2">
+                        No spelling issues for this speaker
+                      </p>
+                      <p className="text-sm">Clear filters to see all segments.</p>
+                    </>
+                  ) : filterSpellcheck ? (
+                    <>
+                      <p className="text-lg font-medium mb-2">No spelling issues</p>
+                      <p className="text-sm">Clear filters to see all segments.</p>
+                    </>
                   ) : filterLowConfidence && activeSpeakerName ? (
                     <>
                       <p className="text-lg font-medium mb-2">
@@ -1165,6 +1494,8 @@ export function TranscriptEditor() {
                       showLexiconMatches={showLexiconMatches}
                       lexiconHighlightUnderline={effectiveLexiconHighlightUnderline}
                       lexiconHighlightBackground={effectiveLexiconHighlightBackground}
+                      spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
+                      showSpellcheckMatches={showSpellcheckMatches}
                       editRequested={editRequestId === segment.id}
                       onEditRequestHandled={
                         editRequestId === segment.id ? () => setEditRequestId(null) : undefined
@@ -1176,6 +1507,7 @@ export function TranscriptEditor() {
                       onConfirm={handlers.onConfirm}
                       onToggleBookmark={handlers.onToggleBookmark}
                       onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
+                      onIgnoreSpellcheckMatch={(value) => addSpellcheckIgnoreWord(value)}
                       onMergeWithPrevious={handlers.onMergeWithPrevious}
                       onMergeWithNext={handlers.onMergeWithNext}
                       onDelete={handlers.onDelete}
@@ -1197,6 +1529,7 @@ export function TranscriptEditor() {
         fileName={audioFile?.name?.replace(/\.[^/.]+$/, "") || "transcript"}
       />
       <GlossaryDialog open={showLexicon} onOpenChange={setShowLexicon} />
+      <SpellcheckDialog open={showSpellcheckDialog} onOpenChange={setShowSpellcheckDialog} />
     </div>
   );
 }

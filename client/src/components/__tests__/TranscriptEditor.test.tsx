@@ -53,6 +53,10 @@ vi.mock("@/components/GlossaryDialog", () => ({
   GlossaryDialog: () => null,
 }));
 
+vi.mock("@/components/SpellcheckDialog", () => ({
+  SpellcheckDialog: () => null,
+}));
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   loadAudioHandle: vi.fn().mockResolvedValue(null),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
@@ -79,6 +83,9 @@ const resetStore = () => {
     lexiconThreshold: 0.82,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    spellcheckEnabled: false,
+    spellcheckLanguages: ["de", "en"],
+    spellcheckIgnoreWords: [],
     recentSessions: [],
   });
 };

@@ -37,6 +37,8 @@ interface TranscriptSegmentProps {
   showLexiconMatches?: boolean;
   lexiconHighlightUnderline?: boolean;
   lexiconHighlightBackground?: boolean;
+  spellcheckMatches?: Map<number, { suggestions: string[] }>;
+  showSpellcheckMatches?: boolean;
   editRequested?: boolean;
   onEditRequestHandled?: () => void;
   onSelect: () => void;
@@ -46,6 +48,7 @@ interface TranscriptSegmentProps {
   onConfirm: () => void;
   onToggleBookmark: () => void;
   onIgnoreLexiconMatch?: (term: string, value: string) => void;
+  onIgnoreSpellcheckMatch?: (value: string) => void;
   showConfirmAction?: boolean;
   onMergeWithPrevious?: () => void;
   onMergeWithNext?: () => void;
@@ -73,6 +76,8 @@ function TranscriptSegmentComponent({
   showLexiconMatches = false,
   lexiconHighlightUnderline = false,
   lexiconHighlightBackground = false,
+  spellcheckMatches,
+  showSpellcheckMatches = false,
   editRequested = false,
   onEditRequestHandled,
   onSelect,
@@ -82,6 +87,7 @@ function TranscriptSegmentComponent({
   onConfirm,
   onToggleBookmark,
   onIgnoreLexiconMatch,
+  onIgnoreSpellcheckMatch,
   showConfirmAction = true,
   onMergeWithPrevious,
   onMergeWithNext,
@@ -91,6 +97,7 @@ function TranscriptSegmentComponent({
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [spellcheckExpandedIndex, setSpellcheckExpandedIndex] = useState<number | null>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   const speaker = speakers.find((s) => s.name === segment.speaker);
@@ -214,6 +221,18 @@ function TranscriptSegmentComponent({
     onSelect();
   }, [isEditing, onSelect]);
 
+  const applyWordReplacement = useCallback(
+    (index: number, replacement: string) => {
+      const nextText = segment.words.map((item) => item.word);
+      const original = nextText[index] ?? "";
+      const leading = original.match(/^[^\p{L}\p{N}]+/gu)?.[0] ?? "";
+      const trailing = original.match(/[^\p{L}\p{N}]+$/gu)?.[0] ?? "";
+      nextText[index] = `${leading}${replacement}${trailing}`;
+      onTextChange(nextText.join(" "));
+    },
+    [onTextChange, segment.words],
+  );
+
   const resolvedActiveWordIndex = isActive ? (activeWordIndex ?? -1) : -1;
   const resolvedSplitWordIndex = isActive ? (splitWordIndex ?? -1) : -1;
   const canSplitAtCurrentWord = resolvedSplitWordIndex > 0;
@@ -306,76 +325,22 @@ function TranscriptSegmentComponent({
             >
               {segment.words.map((word, index) => {
                 const lexiconMatch = showLexiconMatches ? lexiconMatches?.get(index) : undefined;
+                const spellcheckMatch = showSpellcheckMatches
+                  ? spellcheckMatches?.get(index)
+                  : undefined;
                 const isLexiconMatch = Boolean(lexiconMatch);
-                const nextText = segment.words.map((item) => item.word);
-                if (isLexiconMatch && lexiconMatch) {
-                  const shouldUnderline = lexiconHighlightUnderline;
-                  const shouldBackground = lexiconHighlightBackground && lexiconMatch.score < 1;
-                  const underlineClass = cn(
-                    isLowConfidence(word) &&
-                      "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                    shouldUnderline &&
-                      "underline decoration-dotted decoration-emerald-600 underline-offset-2",
-                  );
-                  return (
-                    <TooltipProvider key={`${segment.id}-${word.start}-${word.end}`}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span
-                            onClick={(e) => handleWordClick(word, index, e)}
-                            onKeyDown={(event) => handleWordKeyDown(word, index, event)}
-                            className={cn(
-                              "cursor-pointer transition-colors",
-                              index === resolvedActiveWordIndex && "bg-primary/20 underline",
-                              index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                              shouldBackground && "bg-amber-100/70 text-amber-950",
-                            )}
-                            data-testid={`word-${segment.id}-${index}`}
-                            role="button"
-                            tabIndex={0}
-                          >
-                            <span className={underlineClass}>{word.word}</span>
-                            <span className="no-underline"> </span>
-                          </span>
-                        </TooltipTrigger>
-                        <TooltipContent className="flex items-center gap-2">
-                          <div className="text-xs">
-                            Match: {lexiconMatch.term} ({lexiconMatch.score.toFixed(2)})
-                          </div>
-                          {lexiconMatch.score < 1 && (
-                            <>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                data-testid={`button-apply-glossary-${segment.id}-${index}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  nextText[index] = lexiconMatch.term;
-                                  onTextChange(nextText.join(" "));
-                                }}
-                              >
-                                Apply
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                data-testid={`button-ignore-glossary-${segment.id}-${index}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  onIgnoreLexiconMatch?.(lexiconMatch.term, word.word);
-                                }}
-                              >
-                                Ignore
-                              </Button>
-                            </>
-                          )}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  );
-                }
-
-                return (
+                const isSpellcheckMatch = Boolean(spellcheckMatch);
+                const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
+                const shouldBackground =
+                  isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
+                const underlineClass = cn(
+                  isLowConfidence(word) &&
+                    "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
+                  shouldUnderline &&
+                    "underline decoration-dotted decoration-emerald-600 underline-offset-2",
+                  isSpellcheckMatch && "spellcheck-underline",
+                );
+                const wordSpan = (
                   <span
                     key={`${segment.id}-${word.start}-${word.end}`}
                     onClick={(e) => handleWordClick(word, index, e)}
@@ -384,6 +349,7 @@ function TranscriptSegmentComponent({
                       "cursor-pointer transition-colors",
                       index === resolvedActiveWordIndex && "bg-primary/20 underline",
                       index === selectedWordIndex && "bg-accent ring-1 ring-ring",
+                      shouldBackground && "bg-amber-100/70 text-amber-950",
                     )}
                     data-testid={`word-${segment.id}-${index}`}
                     title={
@@ -394,16 +360,116 @@ function TranscriptSegmentComponent({
                     role="button"
                     tabIndex={0}
                   >
-                    <span
-                      className={cn(
-                        isLowConfidence(word) &&
-                          "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                      )}
-                    >
-                      {word.word}
-                    </span>
+                    <span className={underlineClass}>{word.word}</span>
                     <span className="no-underline"> </span>
                   </span>
+                );
+
+                if (!isLexiconMatch && !isSpellcheckMatch) {
+                  return wordSpan;
+                }
+
+                const suggestions = spellcheckMatch?.suggestions ?? [];
+                const isExpanded = spellcheckExpandedIndex === index;
+                const visibleSuggestions = isExpanded ? suggestions : suggestions.slice(0, 3);
+                const showMore = suggestions.length > 3;
+
+                return (
+                  <TooltipProvider key={`${segment.id}-${word.start}-${word.end}`}>
+                    <Tooltip>
+                      <TooltipTrigger asChild>{wordSpan}</TooltipTrigger>
+                      <TooltipContent className="flex flex-col gap-2">
+                        {isLexiconMatch && lexiconMatch && (
+                          <div className="flex flex-wrap items-center gap-2">
+                            <div className="text-xs">
+                              Match: {lexiconMatch.term} ({lexiconMatch.score.toFixed(2)})
+                            </div>
+                            {lexiconMatch.score < 1 && (
+                              <>
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  data-testid={`button-apply-glossary-${segment.id}-${index}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    applyWordReplacement(index, lexiconMatch.term);
+                                  }}
+                                >
+                                  Apply
+                                </Button>
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  data-testid={`button-ignore-glossary-${segment.id}-${index}`}
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    onIgnoreLexiconMatch?.(lexiconMatch.term, word.word);
+                                  }}
+                                >
+                                  Ignore
+                                </Button>
+                              </>
+                            )}
+                          </div>
+                        )}
+                        {isSpellcheckMatch && (
+                          <div className="flex flex-col gap-2">
+                            <div className="text-xs text-muted-foreground">Spelling</div>
+                            <div className="flex flex-wrap items-center gap-2">
+                              {visibleSuggestions.length > 0 ? (
+                                visibleSuggestions.map((suggestion) => (
+                                  <Button
+                                    key={suggestion}
+                                    size="sm"
+                                    variant="outline"
+                                    data-testid={`button-apply-spellcheck-${segment.id}-${index}`}
+                                    data-suggestion={suggestion}
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      applyWordReplacement(index, suggestion);
+                                    }}
+                                  >
+                                    {suggestion}
+                                  </Button>
+                                ))
+                              ) : (
+                                <span className="text-xs text-muted-foreground">
+                                  No suggestions
+                                </span>
+                              )}
+                              {showMore && (
+                                <Button
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={(event) => {
+                                    event.stopPropagation();
+                                    setSpellcheckExpandedIndex((current) =>
+                                      current === index ? null : index,
+                                    );
+                                  }}
+                                >
+                                  {isExpanded
+                                    ? "Less"
+                                    : `More (${suggestions.length - 3})`}
+                                </Button>
+                              )}
+                              <Button
+                                size="sm"
+                                variant="ghost"
+                                data-testid={`button-ignore-spellcheck-${segment.id}-${index}`}
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  onIgnoreSpellcheckMatch?.(word.word);
+                                }}
+                              >
+                                Ignore
+                              </Button>
+                            </div>
+                          </div>
+                        )}
+                      </TooltipContent>
+                    </Tooltip>
+                  </TooltipProvider>
                 );
               })}
             </div>
@@ -567,6 +633,8 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.showLexiconMatches === next.showLexiconMatches &&
     prev.lexiconHighlightUnderline === next.lexiconHighlightUnderline &&
     prev.lexiconHighlightBackground === next.lexiconHighlightBackground &&
+    prev.spellcheckMatches === next.spellcheckMatches &&
+    prev.showSpellcheckMatches === next.showSpellcheckMatches &&
     prev.editRequested === next.editRequested &&
     prev.onEditRequestHandled === next.onEditRequestHandled &&
     prev.onSelect === next.onSelect &&
@@ -576,6 +644,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onConfirm === next.onConfirm &&
     prev.onToggleBookmark === next.onToggleBookmark &&
     prev.onIgnoreLexiconMatch === next.onIgnoreLexiconMatch &&
+    prev.onIgnoreSpellcheckMatch === next.onIgnoreSpellcheckMatch &&
     prev.showConfirmAction === next.showConfirmAction &&
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&

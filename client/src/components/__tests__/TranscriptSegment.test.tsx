@@ -538,4 +538,48 @@ describe("TranscriptSegment", () => {
 
     expect(onIgnoreLexiconMatch).toHaveBeenCalledWith("Welt", "Welt");
   });
+
+  it("applies a spellcheck suggestion from the tooltip", async () => {
+    const onTextChange = vi.fn();
+    const onIgnoreSpellcheckMatch = vi.fn();
+    const spellcheckMatch = new Map<number, { suggestions: string[] }>();
+    spellcheckMatch.set(1, { suggestions: ["World", "Welt", "Word", "Worlt"] });
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        spellcheckMatches={spellcheckMatch}
+        showSpellcheckMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    await userEvent.hover(matchWord);
+
+    const applyButtons = await screen.findAllByTestId("button-apply-spellcheck-seg-1-1");
+    const worldButton = applyButtons.find((button) => button.textContent === "World");
+    expect(worldButton).toBeTruthy();
+    if (worldButton) {
+      await userEvent.click(worldButton);
+    }
+
+    expect(onTextChange).toHaveBeenCalledWith("Hallo World");
+
+    const ignoreButton = await screen.findAllByTestId("button-ignore-spellcheck-seg-1-1");
+    await userEvent.click(ignoreButton[0]);
+
+    expect(onIgnoreSpellcheckMatch).toHaveBeenCalledWith("Welt");
+  });
 });

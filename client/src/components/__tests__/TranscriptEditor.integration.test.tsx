@@ -1,4 +1,5 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { TranscriptEditor } from "@/components/TranscriptEditor";
 import { useTranscriptStore } from "@/lib/store";
@@ -90,6 +91,24 @@ vi.mock("@/components/GlossaryDialog", () => ({
   GlossaryDialog: () => null,
 }));
 
+vi.mock("@/components/SpellcheckDialog", () => ({
+  SpellcheckDialog: () => null,
+}));
+
+vi.mock("@/lib/spellcheck", async () => {
+  const actual = await vi.importActual<typeof import("@/lib/spellcheck")>("@/lib/spellcheck");
+  return {
+    ...actual,
+    loadSpellcheckers: vi.fn().mockResolvedValue([
+      {
+        correct: () => false,
+        suggest: () => ["Word"],
+      },
+    ]),
+    getSpellcheckSuggestions: (word: string) => (word === "Wrd" ? ["Word"] : null),
+  };
+});
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   loadAudioHandle: vi.fn().mockResolvedValue(null),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
@@ -116,6 +135,9 @@ const resetStore = () => {
     lexiconThreshold: 0.82,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    spellcheckEnabled: false,
+    spellcheckLanguages: ["de", "en"],
+    spellcheckIgnoreWords: [],
     recentSessions: [],
   });
 };
@@ -214,5 +236,46 @@ describe("TranscriptEditor integration", () => {
     });
 
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
+  it("filters segments with spellcheck issues", async () => {
+    useTranscriptStore.setState({
+      audioUrl: "audio.mp3",
+      spellcheckEnabled: true,
+      spellcheckLanguages: ["en"],
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Wrd",
+          words: [{ word: "Wrd", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Word",
+          words: [{ word: "Word", start: 2, end: 3 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      selectedSegmentId: "segment-1",
+      currentTime: 0,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("button-filter-spellcheck").textContent).toContain("1");
+    });
+
+    await userEvent.click(screen.getByTestId("button-filter-spellcheck"));
+
+    expect(screen.getByTestId("segment-segment-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-segment-2")).toBeNull();
   });
 });

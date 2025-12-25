@@ -203,4 +203,24 @@ describe("SpeakerSidebar", () => {
     await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
     expect(onToggleLexiconLowScoreFilter).toHaveBeenCalled();
   });
+
+  it("toggles the spellcheck filter", async () => {
+    const onToggleSpellcheckFilter = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segments}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={vi.fn()}
+        spellcheckEnabled={true}
+        spellcheckMatchCount={3}
+        spellcheckFilterActive={false}
+        onToggleSpellcheckFilter={onToggleSpellcheckFilter}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-filter-spellcheck"));
+    expect(onToggleSpellcheckFilter).toHaveBeenCalled();
+  });
 });

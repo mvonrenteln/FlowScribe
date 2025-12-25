@@ -21,6 +21,9 @@ const baseState = {
   lexiconThreshold: 0.82,
   lexiconHighlightUnderline: false,
   lexiconHighlightBackground: false,
+  spellcheckEnabled: false,
+  spellcheckLanguages: ["de", "en"],
+  spellcheckIgnoreWords: [],
   recentSessions: [],
 };
 

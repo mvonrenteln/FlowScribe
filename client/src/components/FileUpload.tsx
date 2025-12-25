@@ -2,6 +2,7 @@ import { FileAudio, FileText, RotateCcw, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
   clearAudioHandle,
   loadAudioHandle,
@@ -144,7 +145,8 @@ export function FileUpload({
   );
 
   const content = (
-    <div className="flex flex-wrap items-center gap-3">
+    <TooltipProvider delayDuration={200}>
+      <div className="flex flex-wrap items-center gap-3">
       <input
         ref={audioInputRef}
         type="file"
@@ -162,38 +164,59 @@ export function FileUpload({
         data-testid="input-transcript-file"
       />
 
-      <Button
-        variant={audioFileName ? "secondary" : "default"}
-        onClick={handleAudioPick}
-        data-testid="button-upload-audio"
-      >
-        <FileAudio className="h-4 w-4 mr-2" />
-        {audioFileName || "Load Audio"}
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={audioFileName ? "secondary" : "default"}
+              onClick={handleAudioPick}
+              data-testid="button-upload-audio"
+            >
+              <FileAudio className="h-4 w-4 mr-2" />
+              {audioFileName || "Load Audio"}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Load audio file</TooltipContent>
+        </Tooltip>
 
-      {!audioFileName && audioHandle && (
-        <Button variant="outline" onClick={handleRestoreAudio} data-testid="button-restore-audio">
-          <RotateCcw className="h-4 w-4 mr-2" />
-          Reopen Audio
-        </Button>
-      )}
+        {!audioFileName && audioHandle && (
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="outline"
+                onClick={handleRestoreAudio}
+                data-testid="button-restore-audio"
+              >
+                <RotateCcw className="h-4 w-4 mr-2" />
+                Reopen Audio
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Reopen last audio file</TooltipContent>
+          </Tooltip>
+        )}
 
-      <Button
-        variant={transcriptLoaded ? "secondary" : "outline"}
-        onClick={() => transcriptInputRef.current?.click()}
-        data-testid="button-upload-transcript"
-      >
-        <FileText className="h-4 w-4 mr-2" />
-        {localTranscriptFileName || (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
-      </Button>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              variant={transcriptLoaded ? "secondary" : "outline"}
+              onClick={() => transcriptInputRef.current?.click()}
+              data-testid="button-upload-transcript"
+            >
+              <FileText className="h-4 w-4 mr-2" />
+              {localTranscriptFileName ||
+                (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Load transcript JSON</TooltipContent>
+        </Tooltip>
 
-      {variant === "card" && !audioFileName && !transcriptLoaded && (
-        <span className="text-sm text-muted-foreground">
-          <Upload className="h-4 w-4 inline mr-1" />
-          Drop files or click to upload
-        </span>
-      )}
-    </div>
+        {variant === "card" && !audioFileName && !transcriptLoaded && (
+          <span className="text-sm text-muted-foreground">
+            <Upload className="h-4 w-4 inline mr-1" />
+            Drop files or click to upload
+          </span>
+        )}
+      </div>
+    </TooltipProvider>
   );
 
   if (variant === "inline") {

@@ -32,6 +32,8 @@ export interface LexiconEntry {
   falsePositives: string[];
 }
 
+export type SpellcheckLanguage = "de" | "en";
+
 interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
@@ -64,6 +66,9 @@ interface TranscriptState {
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
   lexiconHighlightBackground: boolean;
+  spellcheckEnabled: boolean;
+  spellcheckLanguages: SpellcheckLanguage[];
+  spellcheckIgnoreWords: string[];
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -100,6 +105,12 @@ interface TranscriptState {
   setLexiconThreshold: (value: number) => void;
   setLexiconHighlightUnderline: (value: boolean) => void;
   setLexiconHighlightBackground: (value: boolean) => void;
+  setSpellcheckEnabled: (enabled: boolean) => void;
+  setSpellcheckLanguages: (languages: SpellcheckLanguage[]) => void;
+  setSpellcheckIgnoreWords: (words: string[]) => void;
+  addSpellcheckIgnoreWord: (value: string) => void;
+  removeSpellcheckIgnoreWord: (value: string) => void;
+  clearSpellcheckIgnoreWords: () => void;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -167,6 +178,9 @@ type PersistedGlobalState = {
   lexiconThreshold?: number;
   lexiconHighlightUnderline?: boolean;
   lexiconHighlightBackground?: boolean;
+  spellcheckEnabled?: boolean;
+  spellcheckLanguages?: SpellcheckLanguage[];
+  spellcheckIgnoreWords?: string[];
 };
 
 const canUseLocalStorage = () => {
@@ -372,6 +386,34 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
   return Array.from(seen.values());
 };
 
+const normalizeSpellcheckIgnoreWord = (value: string) =>
+  value.replace(/^[^\p{L}\p{N}]+|[^\p{L}\p{N}]+$/gu, "").trim().toLowerCase();
+
+const normalizeSpellcheckIgnoreWords = (values: string[]) => {
+  const seen = new Set<string>();
+  return values
+    .map((value) => normalizeSpellcheckIgnoreWord(value))
+    .filter((value) => {
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+};
+
+const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
+  const raw =
+    typeof value === "string"
+      ? value.split(",")
+      : Array.isArray(value)
+        ? value
+        : [];
+  const next = raw
+    .map((lang) => String(lang).trim())
+    .filter((lang): lang is SpellcheckLanguage => lang === "de" || lang === "en");
+  const unique = Array.from(new Set(next));
+  return unique.length > 0 ? unique : ["de", "en"];
+};
+
 const sessionsState = readSessionsState(null);
 const globalState = readGlobalState(null);
 let sessionsCache = sessionsState.sessions;
@@ -432,6 +474,9 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
   lexiconHighlightBackground: Boolean(globalState?.lexiconHighlightBackground),
+  spellcheckEnabled: Boolean(globalState?.spellcheckEnabled),
+  spellcheckLanguages: normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
+  spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(globalState?.spellcheckIgnoreWords ?? []),
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -891,6 +936,27 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
 
   setLexiconHighlightUnderline: (value) => set({ lexiconHighlightUnderline: value }),
   setLexiconHighlightBackground: (value) => set({ lexiconHighlightBackground: value }),
+  setSpellcheckEnabled: (enabled) => set({ spellcheckEnabled: enabled }),
+  setSpellcheckLanguages: (languages) =>
+    set({ spellcheckLanguages: normalizeSpellcheckLanguages(languages) }),
+  setSpellcheckIgnoreWords: (words) =>
+    set({ spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(words) }),
+  addSpellcheckIgnoreWord: (value) => {
+    const cleaned = normalizeSpellcheckIgnoreWord(value);
+    if (!cleaned) return;
+    const { spellcheckIgnoreWords } = get();
+    if (spellcheckIgnoreWords.includes(cleaned)) return;
+    set({ spellcheckIgnoreWords: [...spellcheckIgnoreWords, cleaned] });
+  },
+  removeSpellcheckIgnoreWord: (value) => {
+    const cleaned = normalizeSpellcheckIgnoreWord(value);
+    if (!cleaned) return;
+    const { spellcheckIgnoreWords } = get();
+    set({
+      spellcheckIgnoreWords: spellcheckIgnoreWords.filter((word) => word !== cleaned),
+    });
+  },
+  clearSpellcheckIgnoreWords: () => set({ spellcheckIgnoreWords: [] }),
 
   splitSegment: (id, wordIndex) => {
     const { segments, speakers, history, historyIndex } = get();
@@ -1203,6 +1269,9 @@ if (canUseLocalStorage()) {
         lexiconThreshold: state.lexiconThreshold,
         lexiconHighlightUnderline: state.lexiconHighlightUnderline,
         lexiconHighlightBackground: state.lexiconHighlightBackground,
+        spellcheckEnabled: state.spellcheckEnabled,
+        spellcheckLanguages: state.spellcheckLanguages,
+        spellcheckIgnoreWords: state.spellcheckIgnoreWords,
       },
     );
   });
