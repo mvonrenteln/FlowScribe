@@ -1,4 +1,5 @@
 import {
+  BookOpenText,
   Check,
   Clock,
   Download,
@@ -6,6 +7,8 @@ import {
   PanelLeft,
   PanelLeftClose,
   Redo2,
+  ScanText,
+  SpellCheck,
   Undo2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -1243,11 +1246,12 @@ export function TranscriptEditor() {
                       aria-pressed={highlightLowConfidence}
                       aria-label="Toggle low confidence highlight"
                       data-testid="button-toggle-confidence"
-                      className="px-2"
+                      className={cn(
+                        "px-2",
+                        highlightLowConfidence && "bg-accent text-accent-foreground",
+                      )}
                     >
-                      <span className="text-sm underline decoration-dotted underline-offset-2">
-                        A
-                      </span>
+                      <ScanText className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
@@ -1296,9 +1300,7 @@ export function TranscriptEditor() {
                       data-testid="button-spellcheck"
                       className="px-2"
                     >
-                      <span className="text-sm underline decoration-dotted underline-offset-2">
-                        Aa
-                      </span>
+                      <SpellCheck className="h-4 w-4" aria-hidden="true" />
                     </Button>
                   </PopoverTrigger>
                 </TooltipTrigger>
@@ -1406,9 +1408,7 @@ export function TranscriptEditor() {
                   data-testid="button-glossary"
                   className="px-2"
                 >
-                  <span className="text-sm underline decoration-dotted underline-offset-2">
-                    ABC~
-                  </span>
+                  <BookOpenText className="h-4 w-4" aria-hidden="true" />
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Glossary settings</TooltipContent>
