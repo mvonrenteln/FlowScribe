@@ -20,6 +20,7 @@ interface WaveformPlayerProps {
   onDurationChange: (duration: number) => void;
   onSeek: (time: number) => void;
   onSegmentBoundaryChange?: (segmentId: string, start: number, end: number) => void;
+  onReady?: () => void;
 }
 
 export function WaveformPlayer({
@@ -35,6 +36,7 @@ export function WaveformPlayer({
   onDurationChange,
   onSeek,
   onSegmentBoundaryChange,
+  onReady,
 }: WaveformPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const wavesurferRef = useRef<WaveSurfer | null>(null);
@@ -201,6 +203,7 @@ export function WaveformPlayer({
       setIsLoading(false);
       setIsReady(true);
       hasAudioRef.current = true;
+      onReady?.();
       const containerWidth = containerRef.current?.clientWidth || ws.getWrapper()?.clientWidth || 0;
       if (containerWidth > 0) {
         const targetZoom = Math.max(MIN_ZOOM, Math.min(MAX_ZOOM, containerWidth / 240));
@@ -254,6 +257,7 @@ export function WaveformPlayer({
     onDurationChange,
     onPlayPause,
     onSeek,
+    onReady,
     applyWaveColors,
     getWaveColors,
     scheduleTimeUpdate,

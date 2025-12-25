@@ -1,5 +1,11 @@
 import { create } from "zustand";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
+import {
+  loadSpellcheckDictionaries,
+  removeSpellcheckDictionary,
+  saveSpellcheckDictionary,
+} from "@/lib/spellcheckDictionaryStorage";
+import { wordEdgeRegex } from "@/lib/wordBoundaries";
 
 export interface Word {
   word: string;
@@ -30,6 +36,15 @@ export interface LexiconEntry {
   term: string;
   variants: string[];
   falsePositives: string[];
+}
+
+export type SpellcheckLanguage = "de" | "en";
+
+export interface SpellcheckCustomDictionary {
+  id: string;
+  name: string;
+  aff: string;
+  dic: string;
 }
 
 interface HistoryState {
@@ -64,6 +79,12 @@ interface TranscriptState {
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
   lexiconHighlightBackground: boolean;
+  spellcheckEnabled: boolean;
+  spellcheckLanguages: SpellcheckLanguage[];
+  spellcheckIgnoreWords: string[];
+  spellcheckCustomDictionaries: SpellcheckCustomDictionary[];
+  spellcheckCustomDictionariesLoaded: boolean;
+  spellcheckCustomEnabled: boolean;
 
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
@@ -100,6 +121,18 @@ interface TranscriptState {
   setLexiconThreshold: (value: number) => void;
   setLexiconHighlightUnderline: (value: boolean) => void;
   setLexiconHighlightBackground: (value: boolean) => void;
+  setSpellcheckEnabled: (enabled: boolean) => void;
+  setSpellcheckLanguages: (languages: SpellcheckLanguage[]) => void;
+  setSpellcheckIgnoreWords: (words: string[]) => void;
+  addSpellcheckIgnoreWord: (value: string) => void;
+  removeSpellcheckIgnoreWord: (value: string) => void;
+  clearSpellcheckIgnoreWords: () => void;
+  setSpellcheckCustomEnabled: (enabled: boolean) => void;
+  loadSpellcheckCustomDictionaries: () => Promise<void>;
+  addSpellcheckCustomDictionary: (
+    dictionary: Omit<SpellcheckCustomDictionary, "id">,
+  ) => Promise<void>;
+  removeSpellcheckCustomDictionary: (id: string) => Promise<void>;
   splitSegment: (id: string, wordIndex: number) => void;
   mergeSegments: (id1: string, id2: string) => string | null;
   updateSegmentTiming: (id: string, start: number, end: number) => void;
@@ -127,23 +160,11 @@ const SPEAKER_COLORS = [
 ];
 
 const MAX_HISTORY = 100;
-const LEGACY_STORAGE_KEY = "flowscribe:transcript-state";
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 const GLOBAL_STORAGE_KEY = "flowscribe:global";
 const PERSIST_THROTTLE_MS = 500;
-
-type PersistedTranscriptState = {
-  segments: Segment[];
-  speakers: Speaker[];
-  selectedSegmentId: string | null;
-  currentTime: number;
-  isWhisperXFormat: boolean;
-  lexiconEntries?: LexiconEntry[];
-  lexiconTerms?: string[];
-  lexiconThreshold: number;
-  lexiconHighlightUnderline?: boolean;
-  lexiconHighlightBackground?: boolean;
-};
+const PLAYING_TIME_PERSIST_STEP = 1;
+const PAUSED_TIME_PERSIST_STEP = 0.25;
 
 type PersistedSession = {
   audioRef: FileReference | null;
@@ -167,6 +188,10 @@ type PersistedGlobalState = {
   lexiconThreshold?: number;
   lexiconHighlightUnderline?: boolean;
   lexiconHighlightBackground?: boolean;
+  spellcheckEnabled?: boolean;
+  spellcheckLanguages?: SpellcheckLanguage[];
+  spellcheckIgnoreWords?: string[];
+  spellcheckCustomEnabled?: boolean;
 };
 
 const canUseLocalStorage = () => {
@@ -178,58 +203,7 @@ const canUseLocalStorage = () => {
   }
 };
 
-const readLegacyState = (): PersistedTranscriptState | null => {
-  if (!canUseLocalStorage()) return null;
-  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as PersistedTranscriptState;
-    if (!Array.isArray(parsed.segments) || !Array.isArray(parsed.speakers)) {
-      return null;
-    }
-    const selectedSegmentId =
-      parsed.selectedSegmentId && parsed.segments.some((s) => s.id === parsed.selectedSegmentId)
-        ? parsed.selectedSegmentId
-        : (parsed.segments[0]?.id ?? null);
-    const lexiconEntries = Array.isArray(parsed.lexiconEntries)
-      ? parsed.lexiconEntries
-          .filter((entry) => entry && typeof entry.term === "string")
-          .map((entry) => ({
-            term: String(entry.term),
-            variants: Array.isArray(entry.variants)
-              ? entry.variants.map(String).filter(Boolean)
-              : [],
-            falsePositives: Array.isArray(entry.falsePositives)
-              ? entry.falsePositives.map(String).filter(Boolean)
-              : [],
-          }))
-      : Array.isArray(parsed.lexiconTerms)
-        ? parsed.lexiconTerms
-            .map((term) => (typeof term === "string" ? term : String(term ?? "")))
-            .filter(Boolean)
-            .map((term) => ({ term, variants: [], falsePositives: [] }))
-        : [];
-
-    return {
-      segments: parsed.segments,
-      speakers: parsed.speakers,
-      selectedSegmentId,
-      currentTime: Number.isFinite(parsed.currentTime) ? parsed.currentTime : 0,
-      isWhisperXFormat: Boolean(parsed.isWhisperXFormat),
-      lexiconEntries,
-      lexiconThreshold:
-        typeof parsed.lexiconThreshold === "number" ? parsed.lexiconThreshold : 0.82,
-      lexiconHighlightUnderline: Boolean(parsed.lexiconHighlightUnderline),
-      lexiconHighlightBackground: Boolean(parsed.lexiconHighlightBackground),
-    };
-  } catch {
-    return null;
-  }
-};
-
-const readSessionsState = (
-  legacyState: PersistedTranscriptState | null,
-): PersistedSessionsState => {
+const readSessionsState = (): PersistedSessionsState => {
   if (!canUseLocalStorage()) {
     return { sessions: {}, activeSessionKey: null };
   }
@@ -259,36 +233,17 @@ const readSessionsState = (
       // ignore malformed storage
     }
   }
-  if (!legacyState) {
-    return { sessions: {}, activeSessionKey: null };
-  }
-  const legacyKey = buildSessionKey(null, null);
-  return {
-    sessions: {
-      [legacyKey]: {
-        audioRef: null,
-        transcriptRef: null,
-        segments: legacyState.segments,
-        speakers: legacyState.speakers,
-        selectedSegmentId: legacyState.selectedSegmentId,
-        currentTime: legacyState.currentTime,
-        isWhisperXFormat: legacyState.isWhisperXFormat,
-      },
-    },
-    activeSessionKey: legacyKey,
-  };
+  return { sessions: {}, activeSessionKey: null };
 };
 
-const readGlobalState = (
-  legacyState: PersistedTranscriptState | null,
-): PersistedGlobalState | null => {
+const readGlobalState = (): PersistedGlobalState | null => {
   if (!canUseLocalStorage()) return null;
   const raw = window.localStorage.getItem(GLOBAL_STORAGE_KEY);
-  if (!raw) return legacyState;
+  if (!raw) return null;
   try {
     return JSON.parse(raw) as PersistedGlobalState;
   } catch {
-    return legacyState;
+    return null;
   }
 };
 
@@ -372,8 +327,52 @@ const uniqueEntries = (entries: LexiconEntry[]) => {
   return Array.from(seen.values());
 };
 
-const sessionsState = readSessionsState(null);
-const globalState = readGlobalState(null);
+const normalizeSpellcheckIgnoreWord = (value: string) =>
+  value.replace(wordEdgeRegex, "").trim().toLowerCase();
+
+const normalizeSpellcheckIgnoreWords = (values: string[]) => {
+  const seen = new Set<string>();
+  return values
+    .map((value) => normalizeSpellcheckIgnoreWord(value))
+    .filter((value) => {
+      if (!value || seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+};
+
+const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
+  if (value == null) return ["de"];
+  const raw = typeof value === "string" ? value.split(",") : Array.isArray(value) ? value : [];
+  const next = raw
+    .map((lang) => String(lang).trim())
+    .filter((lang): lang is SpellcheckLanguage => lang === "de" || lang === "en");
+  const unique = Array.from(new Set(next));
+  return unique;
+};
+
+const resolveSpellcheckSelection = (
+  languages: SpellcheckLanguage[],
+  customEnabled: boolean,
+): { languages: SpellcheckLanguage[]; customEnabled: boolean } => {
+  if (customEnabled) {
+    return { languages: [], customEnabled: true };
+  }
+  if (languages.includes("de")) {
+    return { languages: ["de"], customEnabled: false };
+  }
+  if (languages.includes("en")) {
+    return { languages: ["en"], customEnabled: false };
+  }
+  return { languages: ["de"], customEnabled: false };
+};
+
+const sessionsState = readSessionsState();
+const globalState = readGlobalState();
+const resolvedSpellcheckSelection = resolveSpellcheckSelection(
+  normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
+  Boolean(globalState?.spellcheckCustomEnabled),
+);
 let sessionsCache = sessionsState.sessions;
 let activeSessionKeyCache = sessionsState.activeSessionKey;
 let lastRecentSerialized = JSON.stringify(buildRecentSessions(sessionsCache));
@@ -432,6 +431,12 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
   lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
   lexiconHighlightBackground: Boolean(globalState?.lexiconHighlightBackground),
+  spellcheckEnabled: Boolean(globalState?.spellcheckEnabled),
+  spellcheckLanguages: resolvedSpellcheckSelection.languages,
+  spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(globalState?.spellcheckIgnoreWords ?? []),
+  spellcheckCustomDictionaries: [],
+  spellcheckCustomDictionariesLoaded: false,
+  spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
 
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
@@ -891,6 +896,80 @@ export const useTranscriptStore = create<TranscriptState>((set, get) => ({
 
   setLexiconHighlightUnderline: (value) => set({ lexiconHighlightUnderline: value }),
   setLexiconHighlightBackground: (value) => set({ lexiconHighlightBackground: value }),
+  setSpellcheckEnabled: (enabled) => set({ spellcheckEnabled: enabled }),
+  setSpellcheckLanguages: (languages) => {
+    const normalized = normalizeSpellcheckLanguages(languages);
+    const resolved = resolveSpellcheckSelection(normalized, false);
+    set({
+      spellcheckLanguages: resolved.languages,
+      spellcheckCustomEnabled: resolved.customEnabled,
+    });
+  },
+  setSpellcheckIgnoreWords: (words) =>
+    set({ spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(words) }),
+  addSpellcheckIgnoreWord: (value) => {
+    const cleaned = normalizeSpellcheckIgnoreWord(value);
+    if (!cleaned) return;
+    const { spellcheckIgnoreWords } = get();
+    if (spellcheckIgnoreWords.includes(cleaned)) return;
+    set({ spellcheckIgnoreWords: [...spellcheckIgnoreWords, cleaned] });
+  },
+  removeSpellcheckIgnoreWord: (value) => {
+    const cleaned = normalizeSpellcheckIgnoreWord(value);
+    if (!cleaned) return;
+    const { spellcheckIgnoreWords } = get();
+    set({
+      spellcheckIgnoreWords: spellcheckIgnoreWords.filter((word) => word !== cleaned),
+    });
+  },
+  clearSpellcheckIgnoreWords: () => set({ spellcheckIgnoreWords: [] }),
+  setSpellcheckCustomEnabled: (enabled) => {
+    const normalized = normalizeSpellcheckLanguages(get().spellcheckLanguages);
+    const resolved = resolveSpellcheckSelection(normalized, enabled);
+    set({
+      spellcheckLanguages: resolved.languages,
+      spellcheckCustomEnabled: resolved.customEnabled,
+    });
+  },
+  loadSpellcheckCustomDictionaries: async () => {
+    const { spellcheckCustomDictionariesLoaded } = get();
+    if (spellcheckCustomDictionariesLoaded) return;
+    try {
+      const dictionaries = await loadSpellcheckDictionaries();
+      set({
+        spellcheckCustomDictionaries: dictionaries,
+        spellcheckCustomDictionariesLoaded: true,
+      });
+    } catch (err) {
+      console.error("Failed to load spellcheck dictionaries:", err);
+      set({ spellcheckCustomDictionariesLoaded: true });
+    }
+  },
+  addSpellcheckCustomDictionary: async (dictionary) => {
+    const entry: SpellcheckCustomDictionary = { ...dictionary, id: generateId() };
+    try {
+      await saveSpellcheckDictionary(entry);
+    } catch (err) {
+      console.error("Failed to save spellcheck dictionary:", err);
+    }
+    const { spellcheckCustomDictionaries } = get();
+    set({
+      spellcheckCustomDictionaries: [...spellcheckCustomDictionaries, entry],
+    });
+  },
+  removeSpellcheckCustomDictionary: async (id) => {
+    try {
+      await removeSpellcheckDictionary(id);
+    } catch (err) {
+      console.error("Failed to remove spellcheck dictionary:", err);
+    }
+    const { spellcheckCustomDictionaries } = get();
+    set({
+      spellcheckCustomDictionaries: spellcheckCustomDictionaries.filter(
+        (dictionary) => dictionary.id !== id,
+      ),
+    });
+  },
 
   splitSegment: (id, wordIndex) => {
     const { segments, speakers, history, historyIndex } = get();
@@ -1143,6 +1222,7 @@ if (canUseLocalStorage()) {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
   let pendingGlobal: PersistedGlobalState | null = null;
+  let lastGlobalSnapshot: PersistedGlobalState | null = null;
 
   const schedulePersist = (
     sessionsState: PersistedSessionsState,
@@ -1171,9 +1251,25 @@ if (canUseLocalStorage()) {
 
   useTranscriptStore.subscribe((state) => {
     const sessionKey = state.sessionKey;
-    sessionsCache = {
-      ...sessionsCache,
-      [sessionKey]: {
+    const previous = sessionsCache[sessionKey];
+    const sessionActivated = sessionKey !== activeSessionKeyCache;
+    const baseChanged =
+      !previous ||
+      previous.segments !== state.segments ||
+      previous.speakers !== state.speakers ||
+      !isSameFileReference(previous.audioRef, state.audioRef) ||
+      !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
+      previous.isWhisperXFormat !== state.isWhisperXFormat;
+    const shouldUpdateSelected =
+      !previous || previous.selectedSegmentId !== state.selectedSegmentId;
+    const timeDelta = previous ? Math.abs(state.currentTime - previous.currentTime) : Infinity;
+    const timeThreshold = state.isPlaying ? PLAYING_TIME_PERSIST_STEP : PAUSED_TIME_PERSIST_STEP;
+    const shouldUpdateTime = !previous || timeDelta >= timeThreshold;
+    const shouldTouchSession = baseChanged || sessionActivated || !previous;
+    const shouldUpdateEntry = shouldTouchSession || shouldUpdateSelected || shouldUpdateTime;
+
+    if (shouldUpdateEntry) {
+      const nextEntry: PersistedSession = previous ?? {
         audioRef: state.audioRef,
         transcriptRef: state.transcriptRef,
         segments: state.segments,
@@ -1182,28 +1278,70 @@ if (canUseLocalStorage()) {
         currentTime: state.currentTime,
         isWhisperXFormat: state.isWhisperXFormat,
         updatedAt: Date.now(),
-      },
-    };
-    activeSessionKeyCache = sessionKey;
-
-    const recentSessions = buildRecentSessions(sessionsCache);
-    const recentSerialized = JSON.stringify(recentSessions);
-    if (recentSerialized !== lastRecentSerialized) {
-      lastRecentSerialized = recentSerialized;
-      useTranscriptStore.setState({ recentSessions });
+      };
+      if (shouldTouchSession || !previous) {
+        nextEntry.audioRef = state.audioRef;
+        nextEntry.transcriptRef = state.transcriptRef;
+        nextEntry.segments = state.segments;
+        nextEntry.speakers = state.speakers;
+        nextEntry.isWhisperXFormat = state.isWhisperXFormat;
+        nextEntry.updatedAt = Date.now();
+      }
+      if (shouldUpdateSelected || !previous) {
+        nextEntry.selectedSegmentId = state.selectedSegmentId;
+      }
+      if (shouldUpdateTime || !previous) {
+        nextEntry.currentTime = state.currentTime;
+      }
+      sessionsCache[sessionKey] = nextEntry;
     }
 
-    schedulePersist(
-      {
-        sessions: sessionsCache,
-        activeSessionKey: activeSessionKeyCache,
-      },
-      {
-        lexiconEntries: state.lexiconEntries,
-        lexiconThreshold: state.lexiconThreshold,
-        lexiconHighlightUnderline: state.lexiconHighlightUnderline,
-        lexiconHighlightBackground: state.lexiconHighlightBackground,
-      },
-    );
+    activeSessionKeyCache = sessionKey;
+
+    if (shouldTouchSession) {
+      const recentSessions = buildRecentSessions(sessionsCache);
+      const recentSerialized = JSON.stringify(recentSessions);
+      if (recentSerialized !== lastRecentSerialized) {
+        lastRecentSerialized = recentSerialized;
+        useTranscriptStore.setState({ recentSessions });
+      }
+    }
+
+    const nextGlobalSnapshot: PersistedGlobalState = {
+      lexiconEntries: state.lexiconEntries,
+      lexiconThreshold: state.lexiconThreshold,
+      lexiconHighlightUnderline: state.lexiconHighlightUnderline,
+      lexiconHighlightBackground: state.lexiconHighlightBackground,
+      spellcheckEnabled: state.spellcheckEnabled,
+      spellcheckLanguages: state.spellcheckLanguages,
+      spellcheckIgnoreWords: state.spellcheckIgnoreWords,
+      spellcheckCustomEnabled: state.spellcheckCustomEnabled,
+    };
+    const globalChanged =
+      !lastGlobalSnapshot ||
+      lastGlobalSnapshot.lexiconEntries !== nextGlobalSnapshot.lexiconEntries ||
+      lastGlobalSnapshot.lexiconThreshold !== nextGlobalSnapshot.lexiconThreshold ||
+      lastGlobalSnapshot.lexiconHighlightUnderline !==
+        nextGlobalSnapshot.lexiconHighlightUnderline ||
+      lastGlobalSnapshot.lexiconHighlightBackground !==
+        nextGlobalSnapshot.lexiconHighlightBackground ||
+      lastGlobalSnapshot.spellcheckEnabled !== nextGlobalSnapshot.spellcheckEnabled ||
+      lastGlobalSnapshot.spellcheckLanguages !== nextGlobalSnapshot.spellcheckLanguages ||
+      lastGlobalSnapshot.spellcheckIgnoreWords !== nextGlobalSnapshot.spellcheckIgnoreWords ||
+      lastGlobalSnapshot.spellcheckCustomEnabled !== nextGlobalSnapshot.spellcheckCustomEnabled;
+
+    if (shouldUpdateEntry || globalChanged || sessionActivated) {
+      schedulePersist(
+        {
+          sessions: sessionsCache,
+          activeSessionKey: activeSessionKeyCache,
+        },
+        nextGlobalSnapshot,
+      );
+    }
+
+    if (globalChanged) {
+      lastGlobalSnapshot = nextGlobalSnapshot;
+    }
   });
 }

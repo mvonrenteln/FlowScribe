@@ -34,6 +34,11 @@ interface SpeakerSidebarProps {
   lexiconLowScoreMatchCount?: number;
   lexiconLowScoreFilterActive?: boolean;
   onToggleLexiconLowScoreFilter?: () => void;
+  spellcheckFilterActive?: boolean;
+  onToggleSpellcheckFilter?: () => void;
+  spellcheckMatchCount?: number;
+  spellcheckMatchLimitReached?: boolean;
+  spellcheckEnabled?: boolean;
 }
 
 export function SpeakerSidebar({
@@ -57,6 +62,11 @@ export function SpeakerSidebar({
   lexiconLowScoreMatchCount = 0,
   lexiconLowScoreFilterActive = false,
   onToggleLexiconLowScoreFilter,
+  spellcheckFilterActive = false,
+  onToggleSpellcheckFilter,
+  spellcheckMatchCount = 0,
+  spellcheckMatchLimitReached = false,
+  spellcheckEnabled = false,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -92,6 +102,8 @@ export function SpeakerSidebar({
           ),
         ).length;
   const bookmarkCount = segments.filter((segment) => segment.bookmarked).length;
+  const spellcheckCount = spellcheckMatchCount ?? 0;
+  const spellcheckCountLabel = spellcheckMatchLimitReached ? "1000+" : `${spellcheckCount}`;
 
   const handleStartEdit = (speaker: Speaker) => {
     setEditingId(speaker.id);
@@ -332,6 +344,26 @@ export function SpeakerSidebar({
                 </div>
               </div>
             )}
+            <button
+              type="button"
+              className={cn(
+                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                "hover-elevate",
+                spellcheckFilterActive && "bg-accent",
+                (!spellcheckEnabled || spellcheckCount === 0) &&
+                  !spellcheckFilterActive &&
+                  "opacity-50 cursor-not-allowed",
+              )}
+              onClick={() => {
+                if (!spellcheckEnabled) return;
+                if (spellcheckCount === 0 && !spellcheckFilterActive) return;
+                onToggleSpellcheckFilter?.();
+              }}
+              data-testid="button-filter-spellcheck"
+            >
+              <span>Spelling issues</span>
+              <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
+            </button>
             <button
               type="button"
               className={cn(

@@ -464,7 +464,7 @@ describe("TranscriptSegment", () => {
     );
 
     const matchWord = screen.getByTestId("word-seg-1-1");
-    expect(matchWord.className).toContain("bg-amber-100");
+    expect(matchWord.querySelector("span")?.className).toContain("bg-amber-100/70");
     expect(matchWord).toHaveTextContent("Welt");
   });
 
@@ -537,5 +537,221 @@ describe("TranscriptSegment", () => {
     await userEvent.click(ignoreButton[0]);
 
     expect(onIgnoreLexiconMatch).toHaveBeenCalledWith("Welt", "Welt");
+  });
+
+  it("highlights only the matched lexicon part in a hyphenated word", () => {
+    const lexiconMatch = new Map<number, { term: string; score: number; partIndex?: number }>();
+    lexiconMatch.set(0, { term: "Geweihte", score: 0.9, partIndex: 1 });
+    const segmentWithHyphen: Segment = {
+      ...segment,
+      text: "Tsa-Geweihte",
+      words: [{ word: "Tsa-Geweihte", start: 0, end: 2 }],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={segmentWithHyphen}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        lexiconMatches={lexiconMatch}
+        showLexiconMatches={true}
+        lexiconHighlightUnderline={true}
+        lexiconHighlightBackground={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const wordElement = screen.getByTestId("word-seg-1-0");
+    const highlighted = wordElement.querySelectorAll(".decoration-emerald-600");
+    expect(highlighted.length).toBe(1);
+    expect(highlighted[0]?.textContent).toBe("Geweihte");
+  });
+
+  it("applies a spellcheck suggestion from the tooltip", async () => {
+    const onTextChange = vi.fn();
+    const onIgnoreSpellcheckMatch = vi.fn();
+    const onAddSpellcheckToGlossary = vi.fn();
+    const spellcheckMatch = new Map<number, { suggestions: string[] }>();
+    spellcheckMatch.set(1, { suggestions: ["World", "Welt", "Word", "Worlt"] });
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        spellcheckMatches={spellcheckMatch}
+        showSpellcheckMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={onTextChange}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+        onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    await userEvent.hover(matchWord);
+
+    const applyButtons = await screen.findAllByTestId("button-apply-spellcheck-seg-1-1");
+    const worldButton = applyButtons.find((button) => button.textContent === "World");
+    expect(worldButton).toBeTruthy();
+    if (worldButton) {
+      await userEvent.click(worldButton);
+    }
+
+    expect(onTextChange).toHaveBeenCalledWith("Hallo World");
+
+    const ignoreButton = await screen.findAllByTestId("button-ignore-spellcheck-seg-1-1");
+    await userEvent.click(ignoreButton[0]);
+
+    expect(onIgnoreSpellcheckMatch).toHaveBeenCalledWith("Welt");
+
+    const addToGlossaryButton = await screen.findAllByTestId(
+      "button-add-glossary-spellcheck-seg-1-1",
+    );
+    await userEvent.click(addToGlossaryButton[0]);
+
+    expect(onAddSpellcheckToGlossary).toHaveBeenCalledWith("Welt");
+  });
+
+  it("normalizes punctuation before adding to the glossary", async () => {
+    const onAddSpellcheckToGlossary = vi.fn();
+    const spellcheckMatch = new Map<number, { suggestions: string[] }>();
+    spellcheckMatch.set(1, { suggestions: ["World"] });
+    const segmentWithPunctuation: Segment = {
+      ...segment,
+      text: "Hallo Welt,",
+      words: [
+        { word: "Hallo", start: 0, end: 1 },
+        { word: "Welt,", start: 1, end: 2 },
+      ],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={segmentWithPunctuation}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        spellcheckMatches={spellcheckMatch}
+        showSpellcheckMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreSpellcheckMatch={vi.fn()}
+        onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-1");
+    await userEvent.hover(matchWord);
+
+    const addToGlossaryButton = await screen.findAllByTestId(
+      "button-add-glossary-spellcheck-seg-1-1",
+    );
+    await userEvent.click(addToGlossaryButton[0]);
+
+    expect(onAddSpellcheckToGlossary).toHaveBeenCalledWith("Welt");
+  });
+
+  it("uses the hyphenated part for glossary and ignore actions", async () => {
+    const onAddSpellcheckToGlossary = vi.fn();
+    const onIgnoreSpellcheckMatch = vi.fn();
+    const spellcheckMatch = new Map<number, { suggestions: string[]; partIndex?: number }>();
+    spellcheckMatch.set(0, { suggestions: ["Probe"], partIndex: 1 });
+    const segmentWithHyphen: Segment = {
+      ...segment,
+      text: "Fährtenlesen-Probe",
+      words: [{ word: "Fährtenlesen-Probe", start: 0, end: 2 }],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={segmentWithHyphen}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        spellcheckMatches={spellcheckMatch}
+        showSpellcheckMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+        onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const matchWord = screen.getByTestId("word-seg-1-0");
+    await userEvent.hover(matchWord);
+
+    const addToGlossaryButton = await screen.findAllByTestId(
+      "button-add-glossary-spellcheck-seg-1-0",
+    );
+    await userEvent.click(addToGlossaryButton[0]);
+    expect(onAddSpellcheckToGlossary).toHaveBeenCalledWith("Probe");
+
+    const ignoreButton = await screen.findAllByTestId("button-ignore-spellcheck-seg-1-0");
+    await userEvent.click(ignoreButton[0]);
+    expect(onIgnoreSpellcheckMatch).toHaveBeenCalledWith("Probe");
+  });
+
+  it("underlines only the misspelled hyphenated part", () => {
+    const spellcheckMatch = new Map<number, { suggestions: string[]; partIndex?: number }>();
+    spellcheckMatch.set(0, { suggestions: ["Probe"], partIndex: 1 });
+    const segmentWithHyphen: Segment = {
+      ...segment,
+      text: "Fährtenlesen-Probe",
+      words: [{ word: "Fährtenlesen-Probe", start: 0, end: 2 }],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={segmentWithHyphen}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        spellcheckMatches={spellcheckMatch}
+        showSpellcheckMatches={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onIgnoreSpellcheckMatch={vi.fn()}
+        onAddSpellcheckToGlossary={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const wordElement = screen.getByTestId("word-seg-1-0");
+    const underlined = wordElement.querySelectorAll(".spellcheck-underline");
+    expect(underlined.length).toBe(1);
+    expect(underlined[0]?.textContent).toBe("Probe");
   });
 });

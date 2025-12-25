@@ -21,6 +21,12 @@ const baseState = {
   lexiconThreshold: 0.82,
   lexiconHighlightUnderline: false,
   lexiconHighlightBackground: false,
+  spellcheckEnabled: false,
+  spellcheckLanguages: ["de"],
+  spellcheckIgnoreWords: [],
+  spellcheckCustomEnabled: false,
+  spellcheckCustomDictionaries: [],
+  spellcheckCustomDictionariesLoaded: false,
   recentSessions: [],
 };
 
@@ -122,6 +128,16 @@ describe("useTranscriptStore", () => {
     expect(segments[0].text).toBe("Hallo Welt Guten Morgen");
     expect(segments[0].words).toHaveLength(4);
     expect(selectedSegmentId).toBe(mergedId);
+  });
+
+  it("merges adjacent segments in reverse order", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    const mergedId = useTranscriptStore.getState().mergeSegments("seg-2", "seg-1");
+    const { segments } = useTranscriptStore.getState();
+
+    expect(mergedId).not.toBeNull();
+    expect(segments).toHaveLength(1);
   });
 
   it("renames and merges speakers", () => {
@@ -317,6 +333,16 @@ describe("useTranscriptStore", () => {
     expect(historyIndex).toBe(1);
   });
 
+  it("skips timing updates when nothing changes", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { segments, historyIndex } = useTranscriptStore.getState();
+
+    useTranscriptStore.getState().updateSegmentTiming("seg-1", segments[0].start, segments[0].end);
+
+    const after = useTranscriptStore.getState();
+    expect(after.historyIndex).toBe(historyIndex);
+  });
+
   it("deletes a segment and tracks history", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
 
@@ -325,6 +351,16 @@ describe("useTranscriptStore", () => {
     const { segments, historyIndex } = useTranscriptStore.getState();
     expect(segments).toHaveLength(1);
     expect(segments[0].id).toBe("seg-2");
+    expect(historyIndex).toBe(1);
+  });
+
+  it("adds a new speaker and tracks history", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().addSpeaker("SPEAKER_02");
+
+    const { speakers, historyIndex } = useTranscriptStore.getState();
+    expect(speakers.map((speaker) => speaker.name)).toContain("SPEAKER_02");
     expect(historyIndex).toBe(1);
   });
 
@@ -340,6 +376,46 @@ describe("useTranscriptStore", () => {
     expect(canRedo()).toBe(true);
     redo();
     expect(useTranscriptStore.getState().segments[0].text).toBe("Hallo zusammen");
+  });
+
+  it("clamps lexicon thresholds and ignores empty entries", () => {
+    const { setLexiconThreshold, addLexiconEntry, updateLexiconEntry, addLexiconFalsePositive } =
+      useTranscriptStore.getState();
+
+    addLexiconEntry("   ");
+    updateLexiconEntry("missing", "   ");
+    addLexiconFalsePositive("missing", "   ");
+
+    setLexiconThreshold(0.1);
+    expect(useTranscriptStore.getState().lexiconThreshold).toBe(0.5);
+
+    setLexiconThreshold(2);
+    expect(useTranscriptStore.getState().lexiconThreshold).toBe(0.99);
+
+    expect(useTranscriptStore.getState().lexiconEntries).toEqual([]);
+  });
+
+  it("normalizes and deduplicates spellcheck ignore words", () => {
+    const {
+      setSpellcheckIgnoreWords,
+      addSpellcheckIgnoreWord,
+      removeSpellcheckIgnoreWord,
+      clearSpellcheckIgnoreWords,
+    } = useTranscriptStore.getState();
+
+    setSpellcheckIgnoreWords(["  Test  ", "test", "  ", "123"]);
+    expect(useTranscriptStore.getState().spellcheckIgnoreWords).toEqual(["test", "123"]);
+
+    addSpellcheckIgnoreWord("  Test ");
+    addSpellcheckIgnoreWord("");
+    expect(useTranscriptStore.getState().spellcheckIgnoreWords).toEqual(["test", "123"]);
+
+    removeSpellcheckIgnoreWord("");
+    removeSpellcheckIgnoreWord("test");
+    expect(useTranscriptStore.getState().spellcheckIgnoreWords).toEqual(["123"]);
+
+    clearSpellcheckIgnoreWords();
+    expect(useTranscriptStore.getState().spellcheckIgnoreWords).toEqual([]);
   });
 
   it("restores selection when undoing a merge", () => {
@@ -364,5 +440,112 @@ describe("useTranscriptStore", () => {
 
     expect(result).toBeNull();
     expect(useTranscriptStore.getState().speakers).toEqual(speakers);
+  });
+
+  it("keeps spellcheck mode exclusive when switching languages", () => {
+    const { setSpellcheckLanguages } = useTranscriptStore.getState();
+
+    setSpellcheckLanguages(["en", "de"]);
+
+    const { spellcheckLanguages, spellcheckCustomEnabled } = useTranscriptStore.getState();
+    expect(spellcheckLanguages).toEqual(["de"]);
+    expect(spellcheckCustomEnabled).toBe(false);
+  });
+
+  it("switches to custom mode exclusively", () => {
+    const { setSpellcheckCustomEnabled } = useTranscriptStore.getState();
+
+    setSpellcheckCustomEnabled(true);
+
+    const { spellcheckLanguages, spellcheckCustomEnabled } = useTranscriptStore.getState();
+    expect(spellcheckCustomEnabled).toBe(true);
+    expect(spellcheckLanguages).toEqual([]);
+  });
+
+  it("restores a default language when disabling custom mode", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      spellcheckLanguages: [],
+      spellcheckCustomEnabled: true,
+    });
+
+    const { setSpellcheckCustomEnabled } = useTranscriptStore.getState();
+    setSpellcheckCustomEnabled(false);
+
+    const { spellcheckLanguages, spellcheckCustomEnabled } = useTranscriptStore.getState();
+    expect(spellcheckCustomEnabled).toBe(false);
+    expect(spellcheckLanguages).toEqual(["de"]);
+  });
+
+  it("keeps spellcheck selection consistent across toggle order", () => {
+    const { setSpellcheckCustomEnabled, setSpellcheckLanguages } = useTranscriptStore.getState();
+
+    setSpellcheckCustomEnabled(true);
+    setSpellcheckLanguages(["de"]);
+
+    const afterCustomToDe = useTranscriptStore.getState();
+    expect(afterCustomToDe.spellcheckCustomEnabled).toBe(false);
+    expect(afterCustomToDe.spellcheckLanguages).toEqual(["de"]);
+
+    setSpellcheckCustomEnabled(true);
+    setSpellcheckLanguages(["en"]);
+
+    const afterCustomToEn = useTranscriptStore.getState();
+    expect(afterCustomToEn.spellcheckCustomEnabled).toBe(false);
+    expect(afterCustomToEn.spellcheckLanguages).toEqual(["en"]);
+  });
+
+  it("updates selection even when history is missing", () => {
+    useTranscriptStore.setState({
+      ...baseState,
+      history: [],
+      historyIndex: 0,
+    });
+
+    useTranscriptStore.getState().setSelectedSegmentId("seg-1");
+
+    const state = useTranscriptStore.getState();
+    expect(state.selectedSegmentId).toBe("seg-1");
+    expect(state.history).toEqual([]);
+  });
+
+  it("does not delete segments when the id is missing", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const before = useTranscriptStore.getState();
+
+    useTranscriptStore.getState().deleteSegment("missing-id");
+
+    const after = useTranscriptStore.getState();
+    expect(after.segments).toHaveLength(2);
+    expect(after.historyIndex).toBe(before.historyIndex);
+  });
+
+  it("ignores invalid speaker renames and merges", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const before = useTranscriptStore.getState();
+
+    useTranscriptStore.getState().renameSpeaker("missing", "New Name");
+    useTranscriptStore.getState().renameSpeaker("SPEAKER_00", "SPEAKER_00");
+    useTranscriptStore.getState().mergeSpeakers("missing", "SPEAKER_00");
+    useTranscriptStore.getState().mergeSpeakers("SPEAKER_00", "missing");
+    useTranscriptStore.getState().mergeSpeakers("SPEAKER_00", "SPEAKER_00");
+
+    const after = useTranscriptStore.getState();
+    expect(after.speakers).toEqual(before.speakers);
+    expect(after.segments).toEqual(before.segments);
+  });
+
+  it("does not undo or redo outside the history range", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const { undo, redo, updateSegmentText } = useTranscriptStore.getState();
+    const before = useTranscriptStore.getState();
+
+    undo();
+    expect(useTranscriptStore.getState().segments).toEqual(before.segments);
+
+    updateSegmentText("seg-1", "Hallo zusammen");
+    const afterUpdate = useTranscriptStore.getState();
+    redo();
+    expect(useTranscriptStore.getState().segments).toEqual(afterUpdate.segments);
   });
 });
