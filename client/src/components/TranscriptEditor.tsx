@@ -284,20 +284,17 @@ export function TranscriptEditor() {
   const handleWaveReady = useCallback(() => {
     setIsWaveReady(true);
   }, []);
-  const scheduleIdle = useCallback(
-    (callback: () => void) => {
-      const requestIdle = (
-        globalThis as typeof globalThis & {
-          requestIdleCallback?: (cb: () => void) => number;
-        }
-      ).requestIdleCallback;
-      if (requestIdle) {
-        return { id: requestIdle(callback), type: "idle" as const };
+  const scheduleIdle = useCallback((callback: () => void) => {
+    const requestIdle = (
+      globalThis as typeof globalThis & {
+        requestIdleCallback?: (cb: () => void) => number;
       }
-      return { id: globalThis.setTimeout(callback, 0), type: "timeout" as const };
-    },
-    [],
-  );
+    ).requestIdleCallback;
+    if (requestIdle) {
+      return { id: requestIdle(callback), type: "idle" as const };
+    }
+    return { id: globalThis.setTimeout(callback, 0), type: "timeout" as const };
+  }, []);
   const cancelIdle = useCallback((handle: { id: number; type: "idle" | "timeout" } | null) => {
     if (!handle) return;
     if (

@@ -1321,7 +1321,8 @@ if (canUseLocalStorage()) {
       !lastGlobalSnapshot ||
       lastGlobalSnapshot.lexiconEntries !== nextGlobalSnapshot.lexiconEntries ||
       lastGlobalSnapshot.lexiconThreshold !== nextGlobalSnapshot.lexiconThreshold ||
-      lastGlobalSnapshot.lexiconHighlightUnderline !== nextGlobalSnapshot.lexiconHighlightUnderline ||
+      lastGlobalSnapshot.lexiconHighlightUnderline !==
+        nextGlobalSnapshot.lexiconHighlightUnderline ||
       lastGlobalSnapshot.lexiconHighlightBackground !==
         nextGlobalSnapshot.lexiconHighlightBackground ||
       lastGlobalSnapshot.spellcheckEnabled !== nextGlobalSnapshot.spellcheckEnabled ||
