@@ -159,6 +159,32 @@ describe("TranscriptEditor integration", () => {
     waveSurferMock.handlers.clear();
   });
 
+  it("renders segments from the store", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 2,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 2 },
+          ],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+    });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Hallo")).toBeInTheDocument();
+      expect(screen.getByText("Welt")).toBeInTheDocument();
+    });
+  });
+
   it("updates selected segment after wave interaction while paused", async () => {
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
