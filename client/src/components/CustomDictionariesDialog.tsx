@@ -1,4 +1,4 @@
-import { Download, Upload, X } from "lucide-react";
+import { X } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {

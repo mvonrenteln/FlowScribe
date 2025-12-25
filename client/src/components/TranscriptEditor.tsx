@@ -475,10 +475,17 @@ export function TranscriptEditor() {
     let cancelled = false;
 
     const scheduleIdle = (callback: (deadline?: { timeRemaining: () => number }) => void) => {
-      if (typeof window !== "undefined" && "requestIdleCallback" in window) {
-        return window.requestIdleCallback(callback);
+      const requestIdle = (
+        globalThis as typeof globalThis & {
+          requestIdleCallback?: (
+            cb: (deadline?: { timeRemaining: () => number }) => void,
+          ) => number;
+        }
+      ).requestIdleCallback;
+      if (requestIdle) {
+        return requestIdle(callback);
       }
-      return window.setTimeout(() => callback(), 0);
+      return globalThis.setTimeout(() => callback(), 0);
     };
 
     const processChunk = (deadline?: { timeRemaining: () => number }) => {

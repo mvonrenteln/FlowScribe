@@ -28,4 +28,36 @@ describe("extractHunspellFromOxt", () => {
 
     expect(pairs.map((pair) => pair.name)).toEqual(["first", "second"]);
   });
+
+  it("throws when no dictionary pairs are present", async () => {
+    const zip = new JSZip();
+    zip.file("dictionaries/only.aff", "AFF1");
+    const buffer = await zip.generateAsync({ type: "arraybuffer" });
+
+    await expect(extractHunspellFromOxt(buffer)).rejects.toThrow(
+      "No Hunspell .aff/.dic pair found in .oxt archive.",
+    );
+  });
+
+  it("throws when the requested dictionary is missing", async () => {
+    const zip = new JSZip();
+    zip.file("dictionaries/de_DE.aff", "AFF");
+    zip.file("dictionaries/de_DE.dic", "DIC");
+    const buffer = await zip.generateAsync({ type: "arraybuffer" });
+
+    await expect(extractHunspellFromOxt(buffer, "missing")).rejects.toThrow(
+      "Requested dictionary was not found in .oxt archive.",
+    );
+  });
+
+  it("throws when dictionary content cannot be read", async () => {
+    const zip = new JSZip();
+    zip.file("dictionaries/de_DE.aff", "");
+    zip.file("dictionaries/de_DE.dic", "DIC");
+    const buffer = await zip.generateAsync({ type: "arraybuffer" });
+
+    await expect(extractHunspellFromOxt(buffer, "de_DE")).rejects.toThrow(
+      "Failed to read .aff/.dic content from .oxt archive.",
+    );
+  });
 });

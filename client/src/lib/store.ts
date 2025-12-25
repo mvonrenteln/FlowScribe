@@ -160,23 +160,9 @@ const SPEAKER_COLORS = [
 ];
 
 const MAX_HISTORY = 100;
-const LEGACY_STORAGE_KEY = "flowscribe:transcript-state";
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 const GLOBAL_STORAGE_KEY = "flowscribe:global";
 const PERSIST_THROTTLE_MS = 500;
-
-type PersistedTranscriptState = {
-  segments: Segment[];
-  speakers: Speaker[];
-  selectedSegmentId: string | null;
-  currentTime: number;
-  isWhisperXFormat: boolean;
-  lexiconEntries?: LexiconEntry[];
-  lexiconTerms?: string[];
-  lexiconThreshold: number;
-  lexiconHighlightUnderline?: boolean;
-  lexiconHighlightBackground?: boolean;
-};
 
 type PersistedSession = {
   audioRef: FileReference | null;
@@ -215,58 +201,7 @@ const canUseLocalStorage = () => {
   }
 };
 
-const readLegacyState = (): PersistedTranscriptState | null => {
-  if (!canUseLocalStorage()) return null;
-  const raw = window.localStorage.getItem(LEGACY_STORAGE_KEY);
-  if (!raw) return null;
-  try {
-    const parsed = JSON.parse(raw) as PersistedTranscriptState;
-    if (!Array.isArray(parsed.segments) || !Array.isArray(parsed.speakers)) {
-      return null;
-    }
-    const selectedSegmentId =
-      parsed.selectedSegmentId && parsed.segments.some((s) => s.id === parsed.selectedSegmentId)
-        ? parsed.selectedSegmentId
-        : (parsed.segments[0]?.id ?? null);
-    const lexiconEntries = Array.isArray(parsed.lexiconEntries)
-      ? parsed.lexiconEntries
-          .filter((entry) => entry && typeof entry.term === "string")
-          .map((entry) => ({
-            term: String(entry.term),
-            variants: Array.isArray(entry.variants)
-              ? entry.variants.map(String).filter(Boolean)
-              : [],
-            falsePositives: Array.isArray(entry.falsePositives)
-              ? entry.falsePositives.map(String).filter(Boolean)
-              : [],
-          }))
-      : Array.isArray(parsed.lexiconTerms)
-        ? parsed.lexiconTerms
-            .map((term) => (typeof term === "string" ? term : String(term ?? "")))
-            .filter(Boolean)
-            .map((term) => ({ term, variants: [], falsePositives: [] }))
-        : [];
-
-    return {
-      segments: parsed.segments,
-      speakers: parsed.speakers,
-      selectedSegmentId,
-      currentTime: Number.isFinite(parsed.currentTime) ? parsed.currentTime : 0,
-      isWhisperXFormat: Boolean(parsed.isWhisperXFormat),
-      lexiconEntries,
-      lexiconThreshold:
-        typeof parsed.lexiconThreshold === "number" ? parsed.lexiconThreshold : 0.82,
-      lexiconHighlightUnderline: Boolean(parsed.lexiconHighlightUnderline),
-      lexiconHighlightBackground: Boolean(parsed.lexiconHighlightBackground),
-    };
-  } catch {
-    return null;
-  }
-};
-
-const readSessionsState = (
-  legacyState: PersistedTranscriptState | null,
-): PersistedSessionsState => {
+const readSessionsState = (): PersistedSessionsState => {
   if (!canUseLocalStorage()) {
     return { sessions: {}, activeSessionKey: null };
   }
@@ -296,36 +231,17 @@ const readSessionsState = (
       // ignore malformed storage
     }
   }
-  if (!legacyState) {
-    return { sessions: {}, activeSessionKey: null };
-  }
-  const legacyKey = buildSessionKey(null, null);
-  return {
-    sessions: {
-      [legacyKey]: {
-        audioRef: null,
-        transcriptRef: null,
-        segments: legacyState.segments,
-        speakers: legacyState.speakers,
-        selectedSegmentId: legacyState.selectedSegmentId,
-        currentTime: legacyState.currentTime,
-        isWhisperXFormat: legacyState.isWhisperXFormat,
-      },
-    },
-    activeSessionKey: legacyKey,
-  };
+  return { sessions: {}, activeSessionKey: null };
 };
 
-const readGlobalState = (
-  legacyState: PersistedTranscriptState | null,
-): PersistedGlobalState | null => {
+const readGlobalState = (): PersistedGlobalState | null => {
   if (!canUseLocalStorage()) return null;
   const raw = window.localStorage.getItem(GLOBAL_STORAGE_KEY);
-  if (!raw) return legacyState;
+  if (!raw) return null;
   try {
     return JSON.parse(raw) as PersistedGlobalState;
   } catch {
-    return legacyState;
+    return null;
   }
 };
 
@@ -433,7 +349,10 @@ const normalizeSpellcheckLanguages = (value: unknown): SpellcheckLanguage[] => {
   return unique;
 };
 
-const resolveSpellcheckSelection = (languages: SpellcheckLanguage[], customEnabled: boolean) => {
+const resolveSpellcheckSelection = (
+  languages: SpellcheckLanguage[],
+  customEnabled: boolean,
+): { languages: SpellcheckLanguage[]; customEnabled: boolean } => {
   if (customEnabled) {
     return { languages: [], customEnabled: true };
   }
@@ -446,8 +365,8 @@ const resolveSpellcheckSelection = (languages: SpellcheckLanguage[], customEnabl
   return { languages: ["de"], customEnabled: false };
 };
 
-const sessionsState = readSessionsState(null);
-const globalState = readGlobalState(null);
+const sessionsState = readSessionsState();
+const globalState = readGlobalState();
 const resolvedSpellcheckSelection = resolveSpellcheckSelection(
   normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
   Boolean(globalState?.spellcheckCustomEnabled),
