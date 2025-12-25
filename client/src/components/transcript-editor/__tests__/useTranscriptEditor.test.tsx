@@ -473,7 +473,7 @@ describe("useTranscriptEditor", () => {
     });
   });
 
-  it("scrolls selected segments without centering while paused", async () => {
+  it("centers selected segments while paused", async () => {
     useTranscriptStore.setState({
       segments: [
         {
@@ -513,7 +513,7 @@ describe("useTranscriptEditor", () => {
     });
 
     expect(scrollSpy.mock).toHaveBeenCalledWith(
-      expect.objectContaining({ block: "nearest", behavior: "auto" }),
+      expect.objectContaining({ block: "center", behavior: "smooth" }),
     );
 
     rafSpy.mockRestore();

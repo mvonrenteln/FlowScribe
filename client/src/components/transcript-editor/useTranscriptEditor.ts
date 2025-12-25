@@ -1070,8 +1070,8 @@ export const useTranscriptEditor = () => {
     if (!scrollTargetId) return;
     if (isPlaying && !isActiveSegmentVisible) return;
     scrollSegmentIntoView(scrollTargetId, {
-      block: isPlaying ? "center" : "nearest",
-      behavior: isPlaying ? "smooth" : "auto",
+      block: "center",
+      behavior: "smooth",
     });
   }, [
     activeSegment,
