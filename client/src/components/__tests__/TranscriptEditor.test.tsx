@@ -970,6 +970,72 @@ describe("TranscriptEditor", () => {
     expect(screen.queryByTestId("segment-segment-2")).not.toBeInTheDocument();
   });
 
+  it("includes glossary variants in the low-score filter", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Geweihten",
+          words: [{ word: "Geweihten", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Unrelated",
+          words: [{ word: "Unrelated", start: 1, end: 2 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconEntries: [{ term: "Geweihte", variants: ["Geweihten"], falsePositives: [] }],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
+
+    expect(screen.queryByTestId("segment-segment-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-segment-2")).not.toBeInTheDocument();
+  });
+
+  it("treats normalized glossary variants as low-score matches", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Zwergenbar",
+          words: [{ word: "Zwergenbar", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Unrelated",
+          words: [{ word: "Unrelated", start: 1, end: 2 }],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      lexiconEntries: [{ term: "Zwergenbär", variants: ["Zwergenbar"], falsePositives: [] }],
+      lexiconThreshold: 0.8,
+    });
+
+    render(<TranscriptEditor />);
+
+    await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
+
+    expect(screen.queryByTestId("segment-segment-1")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-segment-2")).not.toBeInTheDocument();
+  });
+
   it("keeps spellcheck selection exclusive when switching modes in the UI", async () => {
     const customDictionary = {
       id: "custom-1",

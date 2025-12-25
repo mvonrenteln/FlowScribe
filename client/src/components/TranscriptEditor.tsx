@@ -428,10 +428,12 @@ export function TranscriptEditor() {
         .map((entry) => ({
           term: entry.term,
           normalized: normalizeToken(entry.term),
+          raw: entry.term.trim().toLowerCase(),
           variants: entry.variants
             .map((variant) => ({
               value: variant,
               normalized: normalizeToken(variant),
+              raw: variant.trim().toLowerCase(),
             }))
             .filter((variant) => variant.normalized.length > 0),
           falsePositives: (entry.falsePositives ?? [])
@@ -469,6 +471,8 @@ export function TranscriptEditor() {
           const rawPart = part.trim().toLowerCase();
           if (!normalizedPart) return;
           lexiconEntriesNormalized.forEach((entry) => {
+            const rawTerm = entry.raw;
+            const isExactTermMatch = rawPart === rawTerm;
             if (
               entry.falsePositives.some(
                 (value) =>
@@ -489,18 +493,18 @@ export function TranscriptEditor() {
               return;
             }
             const score = similarityScore(normalizedPart, entry.normalized);
-            if (score > bestScore) {
-              bestScore = score;
+            const adjustedScore = score === 1 && !isExactTermMatch ? 0.99 : score;
+            if (adjustedScore > bestScore) {
+              bestScore = adjustedScore;
               bestTerm = entry.term;
               bestPartIndex = parts.length > 1 ? partIndex : undefined;
             }
-            entry.variants.forEach((variant) => {
-              if (variant.normalized === normalizedPart && 1 > bestScore) {
-                bestScore = 1;
-                bestTerm = entry.term;
-                bestPartIndex = parts.length > 1 ? partIndex : undefined;
-              }
-            });
+            const hasVariantMatch = entry.variants.some((variant) => variant.raw === rawPart);
+            if (hasVariantMatch && !isExactTermMatch && 0.99 > bestScore) {
+              bestScore = 0.99;
+              bestTerm = entry.term;
+              bestPartIndex = parts.length > 1 ? partIndex : undefined;
+            }
           });
         });
         if (bestScore >= lexiconThreshold) {
@@ -655,7 +659,8 @@ export function TranscriptEditor() {
   const showLexiconMatches =
     lexiconEntriesNormalized.length > 0 &&
     (filterLexicon || filterLexiconLowScore || lexiconHighlightEnabled);
-  const showSpellcheckMatches = spellcheckEnabled || filterSpellcheck;
+  const showSpellcheckMatches =
+    (spellcheckEnabled || filterSpellcheck) && !(filterLexicon || filterLexiconLowScore);
 
   const { lexiconMatchCount, lexiconLowScoreMatchCount } = useMemo(() => {
     let totalMatches = 0;
