@@ -129,6 +129,8 @@ export function TranscriptEditor() {
   const [spellcheckMatchesBySegment, setSpellcheckMatchesBySegment] = useState<
     Map<string, Map<number, { suggestions: string[] }>>
   >(new Map());
+  const [spellcheckMatchLimitReached, setSpellcheckMatchLimitReached] = useState(false);
+  const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
   const spellcheckRunIdRef = useRef(0);
   const isTranscriptEditing = useCallback(
     () => document.body?.dataset.transcriptEditing === "true",
@@ -276,9 +278,55 @@ export function TranscriptEditor() {
       return false;
     }
   }, []);
+  useEffect(() => {
+    setIsWaveReady(!audioUrl);
+  }, [audioUrl]);
+  const handleWaveReady = useCallback(() => {
+    setIsWaveReady(true);
+  }, []);
+  const scheduleIdle = useCallback(
+    (callback: () => void) => {
+      const requestIdle = (
+        globalThis as typeof globalThis & {
+          requestIdleCallback?: (cb: () => void) => number;
+        }
+      ).requestIdleCallback;
+      if (requestIdle) {
+        return { id: requestIdle(callback), type: "idle" as const };
+      }
+      return { id: globalThis.setTimeout(callback, 0), type: "timeout" as const };
+    },
+    [],
+  );
+  const cancelIdle = useCallback((handle: { id: number; type: "idle" | "timeout" } | null) => {
+    if (!handle) return;
+    if (
+      handle.type === "idle" &&
+      (
+        globalThis as typeof globalThis & {
+          cancelIdleCallback?: (id: number) => void;
+        }
+      ).cancelIdleCallback
+    ) {
+      (
+        globalThis as typeof globalThis & {
+          cancelIdleCallback?: (id: number) => void;
+        }
+      ).cancelIdleCallback?.(handle.id);
+      return;
+    }
+    globalThis.clearTimeout(handle.id);
+  }, []);
 
   useEffect(() => {
     let isMounted = true;
+    let scheduled: { id: number; type: "idle" | "timeout" } | null = null;
+    if (audioUrl && !isWaveReady) {
+      return () => {
+        isMounted = false;
+        cancelIdle(scheduled);
+      };
+    }
     if (
       !spellcheckEnabled ||
       (effectiveSpellcheckLanguages.length === 0 && !spellcheckCustomEnabled)
@@ -286,26 +334,34 @@ export function TranscriptEditor() {
       setSpellcheckers([]);
       return () => {
         isMounted = false;
+        cancelIdle(scheduled);
       };
     }
 
-    loadSpellcheckers(
-      effectiveSpellcheckLanguages,
-      spellcheckCustomEnabled ? spellcheckCustomDictionaries : [],
-    )
-      .then((loaded) => {
-        if (isMounted) {
-          setSpellcheckers(loaded);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to load spellcheck dictionaries:", err);
-      });
+    scheduled = scheduleIdle(() => {
+      loadSpellcheckers(
+        effectiveSpellcheckLanguages,
+        spellcheckCustomEnabled ? spellcheckCustomDictionaries : [],
+      )
+        .then((loaded) => {
+          if (isMounted) {
+            setSpellcheckers(loaded);
+          }
+        })
+        .catch((err) => {
+          console.error("Failed to load spellcheck dictionaries:", err);
+        });
+    });
 
     return () => {
       isMounted = false;
+      cancelIdle(scheduled);
     };
   }, [
+    audioUrl,
+    cancelIdle,
+    isWaveReady,
+    scheduleIdle,
     spellcheckCustomDictionaries,
     spellcheckCustomEnabled,
     spellcheckEnabled,
@@ -450,8 +506,10 @@ export function TranscriptEditor() {
   }, [effectiveSpellcheckLanguages, spellcheckCustomDictionaries, spellcheckCustomEnabled]);
 
   useEffect(() => {
+    const SPELLCHECK_MATCH_LIMIT = 1000;
     const runId = spellcheckRunIdRef.current + 1;
     spellcheckRunIdRef.current = runId;
+    setSpellcheckMatchLimitReached(false);
 
     if (!spellcheckEnabled || spellcheckers.length === 0 || segments.length === 0) {
       setSpellcheckMatchesBySegment(new Map());
@@ -472,6 +530,7 @@ export function TranscriptEditor() {
       });
     });
     const matches = new Map<string, Map<number, { suggestions: string[] }>>();
+    let matchCount = 0;
     let segmentIndex = 0;
     let wordIndex = 0;
     let processedSinceUpdate = 0;
@@ -511,6 +570,15 @@ export function TranscriptEditor() {
           );
           if (suggestions !== null) {
             wordMatches.set(wordIndex, { suggestions });
+            matchCount += 1;
+            if (matchCount >= SPELLCHECK_MATCH_LIMIT) {
+              if (wordMatches.size > 0) {
+                matches.set(segment.id, wordMatches);
+              }
+              setSpellcheckMatchesBySegment(new Map(matches));
+              setSpellcheckMatchLimitReached(true);
+              return;
+            }
           }
           wordIndex += 1;
           iterations += 1;
@@ -583,11 +651,12 @@ export function TranscriptEditor() {
   }, [lexiconMatchesBySegment]);
 
   const spellcheckMatchCount = useMemo(() => {
+    const SPELLCHECK_MATCH_LIMIT = 1000;
     let totalMatches = 0;
     spellcheckMatchesBySegment.forEach((matches) => {
       totalMatches += matches.size;
     });
-    return totalMatches;
+    return Math.min(totalMatches, SPELLCHECK_MATCH_LIMIT);
   }, [spellcheckMatchesBySegment]);
 
   const activeSpeakerName = filterSpeakerId
@@ -1469,6 +1538,7 @@ export function TranscriptEditor() {
             spellcheckFilterActive={filterSpellcheck}
             onToggleSpellcheckFilter={() => setFilterSpellcheck((current) => !current)}
             spellcheckEnabled={spellcheckEnabled}
+            spellcheckMatchLimitReached={spellcheckMatchLimitReached}
           />
         </aside>
 
@@ -1487,6 +1557,7 @@ export function TranscriptEditor() {
               onDurationChange={setDuration}
               onSeek={setCurrentTime}
               onSegmentBoundaryChange={updateSegmentTiming}
+              onReady={handleWaveReady}
             />
 
             <PlaybackControls

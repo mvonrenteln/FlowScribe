@@ -22,6 +22,7 @@ const waveSurferMock = vi.hoisted(() => {
     play: vi.fn(),
     pause: vi.fn(),
     setTime: vi.fn(),
+    setPlaybackRate: vi.fn(),
   };
 
   return {
@@ -278,6 +279,10 @@ describe("TranscriptEditor integration", () => {
     });
 
     render(<TranscriptEditor />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
 
     await waitFor(() => {
       expect(screen.getByTestId("button-filter-spellcheck").textContent).toContain("1");

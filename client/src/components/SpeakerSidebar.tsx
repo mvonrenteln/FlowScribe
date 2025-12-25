@@ -37,6 +37,7 @@ interface SpeakerSidebarProps {
   spellcheckFilterActive?: boolean;
   onToggleSpellcheckFilter?: () => void;
   spellcheckMatchCount?: number;
+  spellcheckMatchLimitReached?: boolean;
   spellcheckEnabled?: boolean;
 }
 
@@ -64,6 +65,7 @@ export function SpeakerSidebar({
   spellcheckFilterActive = false,
   onToggleSpellcheckFilter,
   spellcheckMatchCount = 0,
+  spellcheckMatchLimitReached = false,
   spellcheckEnabled = false,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -101,6 +103,7 @@ export function SpeakerSidebar({
         ).length;
   const bookmarkCount = segments.filter((segment) => segment.bookmarked).length;
   const spellcheckCount = spellcheckMatchCount ?? 0;
+  const spellcheckCountLabel = spellcheckMatchLimitReached ? "1000+" : `${spellcheckCount}`;
 
   const handleStartEdit = (speaker: Speaker) => {
     setEditingId(speaker.id);
@@ -359,7 +362,7 @@ export function SpeakerSidebar({
               data-testid="button-filter-spellcheck"
             >
               <span>Spelling issues</span>
-              <span className="text-xs text-muted-foreground">{spellcheckCount}</span>
+              <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
             </button>
             <button
               type="button"
