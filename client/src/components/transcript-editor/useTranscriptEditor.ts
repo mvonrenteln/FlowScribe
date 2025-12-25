@@ -171,6 +171,7 @@ export const useTranscriptEditor = () => {
   const [editRequestId, setEditRequestId] = useState<string | null>(null);
   const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
   const transcriptListRef = useRef<HTMLDivElement>(null);
+  const lastScrollRef = useRef<{ id: string; at: number } | null>(null);
   const restoreAttemptedRef = useRef(false);
   const [spellcheckers, setSpellcheckers] = useState<LoadedSpellchecker[]>([]);
   const [spellcheckMatchesBySegment, setSpellcheckMatchesBySegment] = useState<
@@ -1042,29 +1043,44 @@ export const useTranscriptEditor = () => {
     setSelectedSegmentId,
   ]);
 
-  useEffect(() => {
-    if (isTranscriptEditing()) return;
-    if (!activeSegment) return;
-    const container = transcriptListRef.current;
-    if (!container) return;
-    const target = container.querySelector<HTMLElement>(`[data-segment-id="${activeSegment.id}"]`);
-    if (!target) return;
-    requestAnimationFrame(() => {
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
-    });
-  }, [activeSegment, isTranscriptEditing]);
+  const scrollSegmentIntoView = useCallback(
+    (segmentId: string, options: { block: ScrollLogicalPosition; behavior: ScrollBehavior }) => {
+      const container = transcriptListRef.current;
+      if (!container) return;
+      const target = container.querySelector<HTMLElement>(`[data-segment-id="${segmentId}"]`);
+      if (!target) return;
+      const now = globalThis.performance?.now?.() ?? Date.now();
+      const last = lastScrollRef.current;
+      if (last && last.id === segmentId && now - last.at < 250) {
+        return;
+      }
+      lastScrollRef.current = { id: segmentId, at: now };
+      requestAnimationFrame(() => {
+        target.scrollIntoView({ block: options.block, behavior: options.behavior });
+      });
+    },
+    [],
+  );
 
   useEffect(() => {
     if (isTranscriptEditing()) return;
-    if (!selectedSegmentId || isPlaying) return;
-    const container = transcriptListRef.current;
-    if (!container) return;
-    const target = container.querySelector<HTMLElement>(`[data-segment-id="${selectedSegmentId}"]`);
-    if (!target) return;
-    requestAnimationFrame(() => {
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
+    const scrollTargetId = isPlaying
+      ? activeSegment?.id
+      : (selectedSegmentId ?? activeSegment?.id ?? null);
+    if (!scrollTargetId) return;
+    if (isPlaying && !isActiveSegmentVisible) return;
+    scrollSegmentIntoView(scrollTargetId, {
+      block: isPlaying ? "center" : "nearest",
+      behavior: isPlaying ? "smooth" : "auto",
     });
-  }, [selectedSegmentId, isPlaying, isTranscriptEditing]);
+  }, [
+    activeSegment,
+    isActiveSegmentVisible,
+    isPlaying,
+    isTranscriptEditing,
+    scrollSegmentIntoView,
+    selectedSegmentId,
+  ]);
 
   useEffect(() => {
     const handleGlobalArrowNav = (event: KeyboardEvent) => {

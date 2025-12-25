@@ -116,6 +116,28 @@ const resetStore = () => {
   });
 };
 
+const mockScrollIntoView = () => {
+  const original = HTMLElement.prototype.scrollIntoView;
+  const mock = vi.fn();
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    configurable: true,
+    value: mock,
+  });
+  return {
+    mock,
+    restore: () => {
+      if (original) {
+        Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+          configurable: true,
+          value: original,
+        });
+      } else {
+        delete (HTMLElement.prototype as { scrollIntoView?: unknown }).scrollIntoView;
+      }
+    },
+  };
+};
+
 describe("useTranscriptEditor", () => {
   beforeEach(() => {
     resetStore();
@@ -449,6 +471,136 @@ describe("useTranscriptEditor", () => {
     await waitFor(() => {
       expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
     });
+  });
+
+  it("scrolls selected segments without centering while paused", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+        },
+      ],
+      selectedSegmentId: "segment-2",
+      currentTime: 2.2,
+      isPlaying: false,
+    });
+
+    const scrollSpy = mockScrollIntoView();
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(scrollSpy.mock).toHaveBeenCalled();
+    });
+
+    expect(scrollSpy.mock).toHaveBeenCalledWith(
+      expect.objectContaining({ block: "nearest", behavior: "auto" }),
+    );
+
+    rafSpy.mockRestore();
+    scrollSpy.restore();
+  });
+
+  it("centers the active segment while playing", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+      ],
+      currentTime: 0.4,
+      isPlaying: true,
+    });
+
+    const scrollSpy = mockScrollIntoView();
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(scrollSpy.mock).toHaveBeenCalled();
+    });
+
+    expect(scrollSpy.mock).toHaveBeenCalledWith(
+      expect.objectContaining({ block: "center", behavior: "smooth" }),
+    );
+
+    rafSpy.mockRestore();
+    scrollSpy.restore();
+  });
+
+  it("dedupes back-to-back scroll requests for the same segment", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+      ],
+      selectedSegmentId: null,
+      currentTime: 0.4,
+      isPlaying: false,
+    });
+
+    const scrollSpy = mockScrollIntoView();
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+    const nowSpy = vi.spyOn(globalThis.performance, "now").mockReturnValue(1000);
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(scrollSpy.mock).toHaveBeenCalledTimes(1);
+    });
+
+    act(() => {
+      useTranscriptStore.setState({ selectedSegmentId: "segment-1" });
+    });
+
+    await waitFor(() => {
+      expect(scrollSpy.mock).toHaveBeenCalledTimes(1);
+    });
+
+    nowSpy.mockRestore();
+    rafSpy.mockRestore();
+    scrollSpy.restore();
   });
 
   it("seeks to a clicked segment while paused", async () => {
