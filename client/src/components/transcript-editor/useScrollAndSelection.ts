@@ -32,7 +32,6 @@ export function useScrollAndSelection({
 }: UseScrollAndSelectionOptions) {
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const lastScrollRef = useRef<{ id: string; at: number } | null>(null);
-  const finalizeScrollTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
   const isActiveSegmentVisible = useMemo(() => {
@@ -67,29 +66,9 @@ export function useScrollAndSelection({
         return;
       }
       lastScrollRef.current = { id: segmentId, at: now };
-      if (finalizeScrollTimeoutRef.current) {
-        clearTimeout(finalizeScrollTimeoutRef.current);
-        finalizeScrollTimeoutRef.current = null;
-      }
       requestAnimationFrame(() => {
         target.scrollIntoView({ block: options.block, behavior: options.behavior });
       });
-      const viewport = container.parentElement;
-      if (!viewport) return;
-      const viewportRect = viewport.getBoundingClientRect();
-      const targetRect = target.getBoundingClientRect();
-      if (viewportRect.height === 0 || targetRect.height === 0) return;
-      const desiredScrollTop =
-        viewport.scrollTop +
-        (targetRect.top - viewportRect.top) -
-        viewport.clientHeight / 2 +
-        targetRect.height / 2;
-      const distance = Math.abs(desiredScrollTop - viewport.scrollTop);
-      const delay = Math.min(800, Math.max(200, distance * 0.5));
-      finalizeScrollTimeoutRef.current = setTimeout(() => {
-        if (Math.abs(viewport.scrollTop - desiredScrollTop) <= 2) return;
-        viewport.scrollTo({ top: desiredScrollTop, behavior: "auto" });
-      }, delay);
     },
     [],
   );
@@ -149,15 +128,6 @@ export function useScrollAndSelection({
     setIsPlaying,
     setSelectedSegmentId,
   ]);
-
-  useEffect(() => {
-    return () => {
-      if (finalizeScrollTimeoutRef.current) {
-        clearTimeout(finalizeScrollTimeoutRef.current);
-        finalizeScrollTimeoutRef.current = null;
-      }
-    };
-  }, []);
 
   return { transcriptListRef, activeSegment, isActiveSegmentVisible };
 }
