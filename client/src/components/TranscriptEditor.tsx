@@ -284,18 +284,22 @@ export function TranscriptEditor() {
   const handleWaveReady = useCallback(() => {
     setIsWaveReady(true);
   }, []);
-  const scheduleIdle = useCallback((callback: () => void) => {
+  type IdleHandle = {
+    id: number | ReturnType<typeof setTimeout>;
+    type: "idle" | "timeout";
+  };
+  const scheduleIdle = useCallback((callback: () => void): IdleHandle => {
     const requestIdle = (
       globalThis as typeof globalThis & {
         requestIdleCallback?: (cb: () => void) => number;
       }
     ).requestIdleCallback;
     if (requestIdle) {
-      return { id: requestIdle(callback), type: "idle" as const };
+      return { id: requestIdle(callback), type: "idle" };
     }
-    return { id: globalThis.setTimeout(callback, 0), type: "timeout" as const };
+    return { id: globalThis.setTimeout(callback, 0), type: "timeout" };
   }, []);
-  const cancelIdle = useCallback((handle: { id: number; type: "idle" | "timeout" } | null) => {
+  const cancelIdle = useCallback((handle: IdleHandle | null) => {
     if (!handle) return;
     if (
       handle.type === "idle" &&
@@ -309,7 +313,7 @@ export function TranscriptEditor() {
         globalThis as typeof globalThis & {
           cancelIdleCallback?: (id: number) => void;
         }
-      ).cancelIdleCallback?.(handle.id);
+      ).cancelIdleCallback?.(handle.id as number);
       return;
     }
     globalThis.clearTimeout(handle.id);
@@ -317,7 +321,7 @@ export function TranscriptEditor() {
 
   useEffect(() => {
     let isMounted = true;
-    let scheduled: { id: number; type: "idle" | "timeout" } | null = null;
+    let scheduled: IdleHandle | null = null;
     if (audioUrl && !isWaveReady) {
       return () => {
         isMounted = false;
