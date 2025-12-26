@@ -1,7 +1,14 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
-import { type Segment, type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
+import {
+  type Segment,
+  type SpellcheckLanguage,
+  usePlaybackState,
+  useSegments,
+  useSpeakers,
+  useTranscriptStore,
+} from "@/lib/store";
 import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
@@ -75,16 +82,14 @@ const buildSegmentHandlers = (
 };
 
 export const useTranscriptEditor = () => {
+  const segments = useSegments();
+  const speakers = useSpeakers();
+  const { currentTime, isPlaying, duration } = usePlaybackState();
   const {
     audioFile,
     audioUrl,
     transcriptRef,
-    segments,
-    speakers,
     selectedSegmentId,
-    currentTime,
-    isPlaying,
-    duration,
     isWhisperXFormat,
     lexiconEntries,
     lexiconThreshold,
@@ -143,6 +148,8 @@ export const useTranscriptEditor = () => {
   const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
   const restoreAttemptedRef = useRef(false);
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
+  const canUndoChecked = canUndo();
+  const canRedoChecked = canRedo();
 
   const isTranscriptEditing = useCallback(
     () => document.body?.dataset.transcriptEditing === "true",
@@ -503,8 +510,8 @@ export const useTranscriptEditor = () => {
     onActivateSession: activateSession,
     onUndo: undo,
     onRedo: redo,
-    canUndo: canUndo(),
-    canRedo: canRedo(),
+    canUndo: canUndoChecked,
+    canRedo: canRedoChecked,
     onShowShortcuts: () => setShowShortcuts(true),
     onShowExport: () => setShowExport(true),
     highlightLowConfidence,
