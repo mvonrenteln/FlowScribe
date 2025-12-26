@@ -232,14 +232,74 @@ if (canUseLocalStorage()) {
   );
 }
 
+export const selectAudioAndSessionState = (state: TranscriptStore) => ({
+  audioFile: state.audioFile,
+  audioUrl: state.audioUrl,
+  transcriptRef: state.transcriptRef,
+  recentSessions: state.recentSessions,
+  isWhisperXFormat: state.isWhisperXFormat,
+  setAudioFile: state.setAudioFile,
+  setAudioUrl: state.setAudioUrl,
+  setAudioReference: state.setAudioReference,
+  activateSession: state.activateSession,
+  loadTranscript: state.loadTranscript,
+});
+
+export const selectPlaybackState = (state: TranscriptStore) => ({
+  currentTime: state.currentTime,
+  isPlaying: state.isPlaying,
+  duration: state.duration,
+  seekRequestTime: state.seekRequestTime,
+  requestSeek: state.requestSeek,
+  clearSeekRequest: state.clearSeekRequest,
+  setCurrentTime: state.setCurrentTime,
+  setIsPlaying: state.setIsPlaying,
+  setDuration: state.setDuration,
+});
+
+export const selectSegmentOperations = (state: TranscriptStore) => ({
+  segments: state.segments,
+  speakers: state.speakers,
+  selectedSegmentId: state.selectedSegmentId,
+  setSelectedSegmentId: state.setSelectedSegmentId,
+  mergeSegments: state.mergeSegments,
+  splitSegment: state.splitSegment,
+  updateSegmentText: state.updateSegmentText,
+  updateSegmentSpeaker: state.updateSegmentSpeaker,
+  confirmSegment: state.confirmSegment,
+  toggleSegmentBookmark: state.toggleSegmentBookmark,
+  updateSegmentTiming: state.updateSegmentTiming,
+  deleteSegment: state.deleteSegment,
+  renameSpeaker: state.renameSpeaker,
+  addSpeaker: state.addSpeaker,
+  mergeSpeakers: state.mergeSpeakers,
+  undo: state.undo,
+  redo: state.redo,
+  canUndo: state.canUndo,
+  canRedo: state.canRedo,
+});
+
+export const selectLexiconAndSpellcheck = (state: TranscriptStore) => ({
+  lexiconEntries: state.lexiconEntries,
+  lexiconThreshold: state.lexiconThreshold,
+  lexiconHighlightUnderline: state.lexiconHighlightUnderline,
+  lexiconHighlightBackground: state.lexiconHighlightBackground,
+  addLexiconFalsePositive: state.addLexiconFalsePositive,
+  addLexiconEntry: state.addLexiconEntry,
+  spellcheckEnabled: state.spellcheckEnabled,
+  spellcheckLanguages: state.spellcheckLanguages,
+  spellcheckIgnoreWords: state.spellcheckIgnoreWords,
+  spellcheckCustomDictionaries: state.spellcheckCustomDictionaries,
+  spellcheckCustomEnabled: state.spellcheckCustomEnabled,
+  loadSpellcheckCustomDictionaries: state.loadSpellcheckCustomDictionaries,
+  addSpellcheckIgnoreWord: state.addSpellcheckIgnoreWord,
+  setSpellcheckEnabled: state.setSpellcheckEnabled,
+  setSpellcheckLanguages: state.setSpellcheckLanguages,
+  setSpellcheckCustomEnabled: state.setSpellcheckCustomEnabled,
+});
+
 export const useSegments = () => useTranscriptStore((state) => state.segments);
-export const usePlaybackState = () => {
-  const currentTime = useTranscriptStore((state) => state.currentTime);
-  const isPlaying = useTranscriptStore((state) => state.isPlaying);
-  const duration = useTranscriptStore((state) => state.duration);
-  const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
-  return { currentTime, isPlaying, duration, seekRequestTime };
-};
+export const usePlaybackState = () => useTranscriptStore(selectPlaybackState);
 export const useSpeakers = () => useTranscriptStore((state) => state.speakers);
 
 export type {
