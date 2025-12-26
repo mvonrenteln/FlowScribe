@@ -223,7 +223,7 @@ describe("TranscriptEditor integration", () => {
     });
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
-    expect(screen.getByTestId("segment-segment-2")).toHaveAttribute("aria-pressed", "true");
+    expect(screen.getByTestId("segment-segment-2")).toHaveAttribute("aria-current", "true");
 
     await waitFor(() => {
       expect(scrollIntoView).toHaveBeenCalled();

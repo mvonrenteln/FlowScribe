@@ -1,9 +1,9 @@
 import {
   Bookmark,
   BookmarkCheck,
-  BookOpenText,
   Check,
   CheckCircle2,
+  Edit,
   Merge,
   MoreVertical,
   Scissors,
@@ -21,43 +21,42 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { normalizeSpellcheckToken } from "@/lib/spellcheck";
 import type { Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
+import { TranscriptWord } from "./TranscriptWord";
 
 interface TranscriptSegmentProps {
-  segment: Segment;
-  speakers: Speaker[];
-  isSelected: boolean;
-  isActive: boolean;
-  activeWordIndex?: number;
-  splitWordIndex?: number;
-  highlightLowConfidence?: boolean;
-  lowConfidenceThreshold?: number | null;
-  lexiconMatches?: Map<number, { term: string; score: number; partIndex?: number }>;
-  showLexiconMatches?: boolean;
-  lexiconHighlightUnderline?: boolean;
-  lexiconHighlightBackground?: boolean;
-  spellcheckMatches?: Map<number, { suggestions: string[]; partIndex?: number }>;
-  showSpellcheckMatches?: boolean;
-  editRequested?: boolean;
-  onEditRequestHandled?: () => void;
-  onSelect: () => void;
-  onTextChange: (text: string) => void;
-  onSpeakerChange: (speaker: string) => void;
-  onSplit: (wordIndex: number) => void;
-  onConfirm: () => void;
-  onToggleBookmark: () => void;
-  onIgnoreLexiconMatch?: (term: string, value: string) => void;
-  onIgnoreSpellcheckMatch?: (value: string) => void;
-  onAddSpellcheckToGlossary?: (value: string) => void;
-  showConfirmAction?: boolean;
-  onMergeWithPrevious?: () => void;
-  onMergeWithNext?: () => void;
-  onDelete: () => void;
-  onSeek: (time: number) => void;
+  readonly segment: Segment;
+  readonly speakers: Speaker[];
+  readonly isSelected: boolean;
+  readonly isActive: boolean;
+  readonly activeWordIndex?: number;
+  readonly splitWordIndex?: number;
+  readonly highlightLowConfidence?: boolean;
+  readonly lowConfidenceThreshold?: number | null;
+  readonly lexiconMatches?: Map<number, { term: string; score: number; partIndex?: number }>;
+  readonly showLexiconMatches?: boolean;
+  readonly lexiconHighlightUnderline?: boolean;
+  readonly lexiconHighlightBackground?: boolean;
+  readonly spellcheckMatches?: Map<number, { suggestions: string[]; partIndex?: number }>;
+  readonly showSpellcheckMatches?: boolean;
+  readonly editRequested?: boolean;
+  readonly onEditRequestHandled?: () => void;
+  readonly onSelect: () => void;
+  readonly onTextChange: (text: string) => void;
+  readonly onSpeakerChange: (speaker: string) => void;
+  readonly onSplit: (wordIndex: number) => void;
+  readonly onConfirm: () => void;
+  readonly onToggleBookmark: () => void;
+  readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
+  readonly onIgnoreSpellcheckMatch?: (value: string) => void;
+  readonly onAddSpellcheckToGlossary?: (value: string) => void;
+  readonly showConfirmAction?: boolean;
+  readonly onMergeWithPrevious?: () => void;
+  readonly onMergeWithNext?: () => void;
+  readonly onDelete: () => void;
+  readonly onSeek: (time: number) => void;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -192,7 +191,7 @@ function TranscriptSegmentComponent({
   );
 
   const handleWordKeyDown = useCallback(
-    (word: Word, index: number, event: React.KeyboardEvent<HTMLSpanElement>) => {
+    (word: Word, index: number, event: React.KeyboardEvent) => {
       if (event.key === " ") {
         event.preventDefault();
         return;
@@ -230,8 +229,8 @@ function TranscriptSegmentComponent({
     (index: number, replacement: string, partIndex?: number) => {
       const nextText = segment.words.map((item) => item.word);
       const original = nextText[index] ?? "";
-      const leading = original.match(wordLeadingRegex)?.[0] ?? "";
-      const trailing = original.match(wordTrailingRegex)?.[0] ?? "";
+      const leading = wordLeadingRegex.exec(original)?.[0] ?? "";
+      const trailing = wordTrailingRegex.exec(original)?.[0] ?? "";
       const core = original.slice(leading.length, original.length - trailing.length);
       if (partIndex === undefined || !core.includes("-")) {
         nextText[index] = `${leading}${replacement}${trailing}`;
@@ -253,8 +252,8 @@ function TranscriptSegmentComponent({
 
   const getHyphenTarget = useCallback((value: string, partIndex?: number) => {
     if (partIndex === undefined) return value;
-    const leading = value.match(wordLeadingRegex)?.[0] ?? "";
-    const trailing = value.match(wordTrailingRegex)?.[0] ?? "";
+    const leading = wordLeadingRegex.exec(value)?.[0] ?? "";
+    const trailing = wordTrailingRegex.exec(value)?.[0] ?? "";
     const core = value.slice(leading.length, value.length - trailing.length);
     if (!core.includes("-")) return value;
     const parts = core.split("-");
@@ -268,15 +267,8 @@ function TranscriptSegmentComponent({
   const isConfirmed = segment.confirmed === true;
   const isBookmarked = segment.bookmarked === true;
 
-  const isLowConfidence = (word: Word) => {
-    if (!highlightLowConfidence) return false;
-    if (lowConfidenceThreshold === null) return false;
-    if (typeof word.score !== "number") return false;
-    return word.score <= lowConfidenceThreshold;
-  };
-
   return (
-    <div
+    <article // NOSONAR
       className={cn(
         "group relative p-3 rounded-md border transition-colors cursor-pointer",
         isSelected && "ring-2 ring-ring",
@@ -287,10 +279,10 @@ function TranscriptSegmentComponent({
       onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
-      role="button"
       aria-label={`Segment by ${segment.speaker}`}
-      aria-pressed={isSelected}
-      tabIndex={0}
+      aria-current={isSelected ? "true" : undefined}
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: Segment needs to be focusable for keyboard navigation
+      tabIndex={0} // NOSONAR
     >
       <div className="flex items-start gap-3">
         <div className="w-1 self-stretch rounded-full" style={{ backgroundColor: speakerColor }} />
@@ -340,245 +332,7 @@ function TranscriptSegmentComponent({
             )}
           </div>
 
-          {!isEditing ? (
-            <div
-              onDoubleClick={handleStartEdit}
-              onMouseDown={(event) => {
-                event.preventDefault();
-              }}
-              className="text-base leading-relaxed outline-none"
-              data-testid={`text-segment-${segment.id}`}
-              role="textbox"
-              aria-readonly
-              tabIndex={0}
-            >
-              {segment.words.map((word, index) => {
-                const lexiconMatch = showLexiconMatches ? lexiconMatches?.get(index) : undefined;
-                const spellcheckMatch = showSpellcheckMatches
-                  ? spellcheckMatches?.get(index)
-                  : undefined;
-                const isLexiconMatch = Boolean(lexiconMatch);
-                const isSpellcheckMatch = Boolean(spellcheckMatch);
-                const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
-                const shouldBackground =
-                  isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
-                const lowConfidenceClass = cn(
-                  isLowConfidence(word) &&
-                    "opacity-60 underline decoration-dotted decoration-2 underline-offset-2",
-                );
-                const lexiconUnderlineClass = shouldUnderline
-                  ? "underline decoration-dotted decoration-emerald-600 underline-offset-2"
-                  : "";
-                const lexiconBackgroundClass = shouldBackground
-                  ? "bg-amber-100/70 text-amber-950"
-                  : "";
-                const spellcheckUnderlineClass = isSpellcheckMatch ? "spellcheck-underline" : "";
-                const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
-                const trailing = word.word.match(wordTrailingRegex)?.[0] ?? "";
-                const core = word.word.slice(leading.length, word.word.length - trailing.length);
-                const hyphenParts =
-                  (spellcheckMatch?.partIndex !== undefined ||
-                    lexiconMatch?.partIndex !== undefined) &&
-                  core.includes("-")
-                    ? core.split("-")
-                    : null;
-                const wordSpan = (
-                  <span
-                    key={`${segment.id}-${word.start}-${word.end}`}
-                    onClick={(e) => handleWordClick(word, index, e)}
-                    onKeyDown={(event) => handleWordKeyDown(word, index, event)}
-                    className={cn(
-                      "cursor-pointer transition-colors",
-                      index === resolvedActiveWordIndex && "bg-primary/20 underline",
-                      index === selectedWordIndex && "bg-accent ring-1 ring-ring",
-                    )}
-                    data-testid={`word-${segment.id}-${index}`}
-                    title={
-                      isLowConfidence(word) && typeof word.score === "number"
-                        ? `Score: ${word.score.toFixed(2)}`
-                        : undefined
-                    }
-                    role="button"
-                    tabIndex={0}
-                  >
-                    {hyphenParts ? (
-                      <span className={lowConfidenceClass}>
-                        {leading}
-                        {hyphenParts.map((part, partIndex) => (
-                          <span key={`${segment.id}-${word.start}-${partIndex}`}>
-                            <span
-                              className={cn(
-                                partIndex === lexiconMatch?.partIndex && lexiconUnderlineClass,
-                                partIndex === lexiconMatch?.partIndex && lexiconBackgroundClass,
-                                partIndex === spellcheckMatch?.partIndex &&
-                                  spellcheckUnderlineClass,
-                              )}
-                            >
-                              {part}
-                            </span>
-                            {partIndex < hyphenParts.length - 1 ? "-" : ""}
-                          </span>
-                        ))}
-                        {trailing}
-                      </span>
-                    ) : (
-                      <span
-                        className={cn(
-                          lowConfidenceClass,
-                          lexiconUnderlineClass,
-                          lexiconBackgroundClass,
-                          spellcheckUnderlineClass,
-                        )}
-                      >
-                        {word.word}
-                      </span>
-                    )}
-                    <span className="no-underline"> </span>
-                  </span>
-                );
-
-                if (!isLexiconMatch && !isSpellcheckMatch) {
-                  return wordSpan;
-                }
-
-                const suggestions = spellcheckMatch?.suggestions ?? [];
-                const isExpanded = spellcheckExpandedIndex === index;
-                const visibleSuggestions = isExpanded ? suggestions : suggestions.slice(0, 3);
-                const showMore = suggestions.length > 3;
-
-                return (
-                  <TooltipProvider key={`${segment.id}-${word.start}-${word.end}`}>
-                    <Tooltip>
-                      <TooltipTrigger asChild>{wordSpan}</TooltipTrigger>
-                      <TooltipContent className="flex flex-col gap-2">
-                        {isLexiconMatch && lexiconMatch && (
-                          <div className="flex flex-wrap items-center gap-2">
-                            <div className="text-xs">
-                              Match: {lexiconMatch.term} ({lexiconMatch.score.toFixed(2)})
-                            </div>
-                            {lexiconMatch.score < 1 && (
-                              <>
-                                <Button
-                                  size="sm"
-                                  variant="outline"
-                                  data-testid={`button-apply-glossary-${segment.id}-${index}`}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    applyWordReplacement(
-                                      index,
-                                      lexiconMatch.term,
-                                      lexiconMatch.partIndex,
-                                    );
-                                  }}
-                                >
-                                  Apply
-                                </Button>
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  data-testid={`button-ignore-glossary-${segment.id}-${index}`}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    const target = getHyphenTarget(
-                                      word.word,
-                                      lexiconMatch.partIndex,
-                                    );
-                                    onIgnoreLexiconMatch?.(lexiconMatch.term, target);
-                                  }}
-                                >
-                                  Ignore
-                                </Button>
-                              </>
-                            )}
-                          </div>
-                        )}
-                        {isSpellcheckMatch && (
-                          <div className="flex flex-col gap-2">
-                            <div className="text-xs text-muted-foreground">Spelling</div>
-                            <div className="flex flex-wrap items-center gap-2">
-                              {visibleSuggestions.length > 0 ? (
-                                visibleSuggestions.map((suggestion) => (
-                                  <Button
-                                    key={suggestion}
-                                    size="sm"
-                                    variant="outline"
-                                    data-testid={`button-apply-spellcheck-${segment.id}-${index}`}
-                                    data-suggestion={suggestion}
-                                    onClick={(event) => {
-                                      event.stopPropagation();
-                                      applyWordReplacement(
-                                        index,
-                                        suggestion,
-                                        spellcheckMatch?.partIndex,
-                                      );
-                                    }}
-                                  >
-                                    {suggestion}
-                                  </Button>
-                                ))
-                              ) : (
-                                <span className="text-xs text-muted-foreground">
-                                  No suggestions
-                                </span>
-                              )}
-                              {showMore && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    setSpellcheckExpandedIndex((current) =>
-                                      current === index ? null : index,
-                                    );
-                                  }}
-                                >
-                                  {isExpanded ? "Less" : `More (${suggestions.length - 3})`}
-                                </Button>
-                              )}
-                              {onAddSpellcheckToGlossary && (
-                                <Button
-                                  size="sm"
-                                  variant="ghost"
-                                  data-testid={`button-add-glossary-spellcheck-${segment.id}-${index}`}
-                                  onClick={(event) => {
-                                    event.stopPropagation();
-                                    const target = getHyphenTarget(
-                                      word.word,
-                                      spellcheckMatch?.partIndex,
-                                    );
-                                    const cleaned = normalizeSpellcheckToken(target).trim();
-                                    onAddSpellcheckToGlossary(cleaned || target);
-                                  }}
-                                >
-                                  <BookOpenText className="h-3.5 w-3.5 mr-1" aria-hidden="true" />
-                                  Add to glossary
-                                </Button>
-                              )}
-                              <Button
-                                size="sm"
-                                variant="ghost"
-                                data-testid={`button-ignore-spellcheck-${segment.id}-${index}`}
-                                onClick={(event) => {
-                                  event.stopPropagation();
-                                  const target = getHyphenTarget(
-                                    word.word,
-                                    spellcheckMatch?.partIndex,
-                                  );
-                                  onIgnoreSpellcheckMatch?.(target);
-                                }}
-                              >
-                                Ignore
-                              </Button>
-                            </div>
-                          </div>
-                        )}
-                      </TooltipContent>
-                    </Tooltip>
-                  </TooltipProvider>
-                );
-              })}
-            </div>
-          ) : (
+          {isEditing ? (
             <div className="space-y-2">
               <Textarea
                 ref={editInputRef}
@@ -611,6 +365,46 @@ function TranscriptSegmentComponent({
                   Cancel
                 </Button>
               </div>
+            </div>
+          ) : (
+            // biome-ignore lint/a11y/noStaticElementInteractions: Double click to edit text
+            <div // NOSONAR
+              onDoubleClick={handleStartEdit}
+              onMouseDown={(event) => {
+                event.preventDefault();
+              }}
+              className="text-base leading-relaxed outline-none"
+              data-testid={`text-segment-${segment.id}`}
+            >
+              {segment.words.map((word, index) => (
+                <TranscriptWord
+                  key={`${segment.id}-${word.start}-${word.end}`}
+                  word={word}
+                  index={index}
+                  segmentId={segment.id}
+                  isActive={index === resolvedActiveWordIndex}
+                  isSelected={index === selectedWordIndex}
+                  lexiconMatch={showLexiconMatches ? lexiconMatches?.get(index) : undefined}
+                  spellcheckMatch={
+                    showSpellcheckMatches ? spellcheckMatches?.get(index) : undefined
+                  }
+                  lexiconHighlightUnderline={lexiconHighlightUnderline}
+                  lexiconHighlightBackground={lexiconHighlightBackground}
+                  highlightLowConfidence={highlightLowConfidence}
+                  lowConfidenceThreshold={lowConfidenceThreshold}
+                  isExpanded={spellcheckExpandedIndex === index}
+                  onToggleExpand={() =>
+                    setSpellcheckExpandedIndex((current) => (current === index ? null : index))
+                  }
+                  onClick={(e) => handleWordClick(word, index, e)}
+                  onKeyDown={(e) => handleWordKeyDown(word, index, e)}
+                  onApplyReplacement={applyWordReplacement}
+                  onIgnoreLexiconMatch={onIgnoreLexiconMatch}
+                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                  getHyphenTarget={getHyphenTarget}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -678,6 +472,10 @@ function TranscriptSegmentComponent({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
+              <DropdownMenuItem onClick={handleStartEdit}>
+                <Edit className="h-4 w-4 mr-2" />
+                Edit text
+              </DropdownMenuItem>
               <DropdownMenuItem
                 onClick={() => {
                   if (!canSplitAtCurrentWord) return;
@@ -721,7 +519,7 @@ function TranscriptSegmentComponent({
           </DropdownMenu>
         </div>
       </div>
-    </div>
+    </article>
   );
 }
 
