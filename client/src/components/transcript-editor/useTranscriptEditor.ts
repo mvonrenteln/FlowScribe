@@ -85,6 +85,7 @@ export const useTranscriptEditor = () => {
       activateSession: state.activateSession,
       loadTranscript: state.loadTranscript,
       createRevision: state.createRevision,
+      deleteSession: state.deleteSession,
       setSelectedSegmentId: state.setSelectedSegmentId,
       mergeSegments: state.mergeSegments,
       toggleSegmentBookmark: state.toggleSegmentBookmark,
@@ -603,6 +604,7 @@ export const useTranscriptEditor = () => {
       activeSessionKey: sessionKey,
       recentSessions,
       onActivateSession: activateSession,
+      onDeleteSession: transcriptActions.deleteSession,
       onShowRevisionDialog: () => setShowRevisionDialog(true),
       canCreateRevision,
       onUndo: undo,
@@ -675,6 +677,7 @@ export const useTranscriptEditor = () => {
       sessionKind,
       sessionLabel,
       canCreateRevision,
+      transcriptActions.deleteSession,
     ],
   );
 

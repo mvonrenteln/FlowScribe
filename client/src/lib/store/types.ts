@@ -135,6 +135,7 @@ export interface SessionSlice {
   setTranscriptReference: (reference: FileReference | null) => void;
   activateSession: (key: string) => void;
   createRevision: (name: string) => string | null;
+  deleteSession: (key: string) => void;
 }
 
 export interface PlaybackSlice {

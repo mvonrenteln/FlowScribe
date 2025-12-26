@@ -65,4 +65,17 @@ describe("revisions stay isolated", () => {
       label: "QC Revision",
     });
   });
+
+  it("deletes a session", () => {
+    const revisionKey = useTranscriptStore.getState().createRevision("To be deleted");
+    expect(revisionKey).toBeTruthy();
+
+    let recent = useTranscriptStore.getState().recentSessions;
+    expect(recent.find((s) => s.key === revisionKey)).toBeDefined();
+
+    useTranscriptStore.getState().deleteSession(revisionKey as string);
+
+    recent = useTranscriptStore.getState().recentSessions;
+    expect(recent.find((s) => s.key === revisionKey)).toBeUndefined();
+  });
 });

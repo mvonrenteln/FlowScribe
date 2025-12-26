@@ -220,6 +220,28 @@ export const createSessionSlice = (
     );
     return revisionKey;
   },
+  deleteSession: (key) => {
+    const sessions = context.getSessionsCache();
+    if (!sessions[key]) return;
+
+    const nextSessions = { ...sessions };
+    delete nextSessions[key];
+
+    const activeKey = context.getActiveSessionKey();
+    const nextActiveKey = activeKey === key ? null : activeKey;
+    if (activeKey === key) {
+      context.setActiveSessionKey(null);
+    }
+
+    context.setSessionsCache(nextSessions);
+    const recentSessions = buildRecentSessions(nextSessions);
+    context.setLastRecentSerialized(JSON.stringify(recentSessions));
+    set({ recentSessions });
+    context.persist(
+      { sessions: nextSessions, activeSessionKey: nextActiveKey },
+      buildGlobalStatePayload(get()),
+    );
+  },
 });
 
 export const buildInitialSpeakers = (segments: Segment[]) =>

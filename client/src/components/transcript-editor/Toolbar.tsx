@@ -10,6 +10,7 @@ import {
   Redo2,
   ScanText,
   SpellCheck,
+  Trash2,
   Undo2,
 } from "lucide-react";
 import { useMemo } from "react";
@@ -47,6 +48,7 @@ export function Toolbar({
   activeSessionKey,
   recentSessions,
   onActivateSession,
+  onDeleteSession,
   onShowRevisionDialog,
   canCreateRevision,
   onUndo,
@@ -193,7 +195,7 @@ export function Toolbar({
                         <DropdownMenuItem
                           onClick={() => onActivateSession(base.key)}
                           className={cn(
-                            "flex flex-col items-start gap-1",
+                            "flex flex-col items-start gap-1 group relative pr-8",
                             baseActive && "bg-accent/40",
                           )}
                           aria-current={baseActive ? "true" : undefined}
@@ -211,6 +213,18 @@ export function Toolbar({
                               {base.transcriptName || "Untitled transcript"}
                             </span>
                           </div>
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteSession(base.key);
+                            }}
+                            aria-label="Delete session"
+                          >
+                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                          </Button>
                         </DropdownMenuItem>
                         {revisions.map((revision) => {
                           const isActive = revision.key === activeSessionKey;
@@ -219,7 +233,7 @@ export function Toolbar({
                               key={revision.key}
                               onClick={() => onActivateSession(revision.key)}
                               className={cn(
-                                "flex flex-col items-start gap-1 pl-6",
+                                "flex flex-col items-start gap-1 pl-6 group relative pr-8",
                                 isActive && "bg-accent/40",
                               )}
                               aria-current={isActive ? "true" : undefined}
@@ -240,6 +254,18 @@ export function Toolbar({
                                   <Badge variant="secondary">{revision.label}</Badge>
                                 ) : null}
                               </div>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteSession(revision.key);
+                                }}
+                                aria-label="Delete revision"
+                              >
+                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
+                              </Button>
                             </DropdownMenuItem>
                           );
                         })}

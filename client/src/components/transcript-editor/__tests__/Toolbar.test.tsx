@@ -25,6 +25,7 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   activeSessionKey: "active-session",
   recentSessions: [],
   onActivateSession: vi.fn(),
+  onDeleteSession: vi.fn(),
   onShowRevisionDialog: vi.fn(),
   canCreateRevision: true,
   onUndo: vi.fn(),
@@ -111,5 +112,32 @@ describe("Toolbar", () => {
     expect(within(menuItems[1]).getByText("Client review")).toBeInTheDocument();
     expect(screen.getAllByText("audio.mp3")).toHaveLength(2);
     expect(screen.getAllByText("transcript.json")).toHaveLength(2);
+  });
+
+  it("calls onDeleteSession when the delete button is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const onDeleteSession = vi.fn();
+    render(
+      <Toolbar
+        {...baseProps}
+        onDeleteSession={onDeleteSession}
+        recentSessions={[
+          {
+            key: "base-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 20,
+            kind: "current",
+            label: null,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByTestId("button-recent-sessions"));
+    const deleteButton = screen.getByLabelText("Delete session");
+    await user.click(deleteButton);
+
+    expect(onDeleteSession).toHaveBeenCalledWith("base-1");
   });
 });
