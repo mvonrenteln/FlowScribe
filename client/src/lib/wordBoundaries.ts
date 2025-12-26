@@ -18,6 +18,6 @@ export const wordEdgeRegex = createRegex(
   "g",
 );
 
-export const wordLeadingRegex = createRegex("^[^\\p{L}\\p{N}]+", "gu", "^[^A-Za-z0-9]+", "g");
+export const wordLeadingRegex = createRegex("^[^\\p{L}\\p{N}]+", "u", "^[^A-Za-z0-9]+", "");
 
-export const wordTrailingRegex = createRegex("[^\\p{L}\\p{N}]+$", "gu", "[^A-Za-z0-9]+$", "g");
+export const wordTrailingRegex = createRegex("[^\\p{L}\\p{N}]+$", "u", "[^A-Za-z0-9]+$", "");
