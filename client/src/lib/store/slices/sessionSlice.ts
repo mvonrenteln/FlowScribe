@@ -10,9 +10,9 @@ import type {
   SessionSlice,
   TranscriptStore,
 } from "../types";
-import { buildGlobalStateSnapshot } from "../utils/globalState";
+import { buildGlobalStatePayload } from "../utils/globalState";
 import { generateId } from "../utils/id";
-import { buildRevisionKey, cloneSessionForSnapshot } from "../utils/session";
+import { buildRevisionKey, cloneSessionForRevision } from "../utils/session";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -198,7 +198,7 @@ export const createSessionSlice = (
     const trimmedName = name.trim();
     if (!trimmedName) return null;
     const state = get();
-    const snapshot = cloneSessionForSnapshot({
+    const revisionClone = cloneSessionForRevision({
       ...buildPersistedSession(state),
       kind: "revision",
       label: trimmedName,
@@ -208,7 +208,7 @@ export const createSessionSlice = (
     const revisionKey = buildRevisionKey(state.sessionKey);
     const nextSessions = {
       ...context.getSessionsCache(),
-      [revisionKey]: snapshot,
+      [revisionKey]: revisionClone,
     };
     context.setSessionsCache(nextSessions);
     const recentSessions = buildRecentSessions(nextSessions);
@@ -216,7 +216,7 @@ export const createSessionSlice = (
     set({ recentSessions });
     context.persist(
       { sessions: nextSessions, activeSessionKey: context.getActiveSessionKey() },
-      buildGlobalStateSnapshot(get()),
+      buildGlobalStatePayload(get()),
     );
     return revisionKey;
   },

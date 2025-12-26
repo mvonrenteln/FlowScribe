@@ -11,7 +11,7 @@ const cloneSegments = (segments: Segment[]) =>
 
 export const buildRevisionKey = (baseKey: string) => `${baseKey}|revision:${generateId()}`;
 
-export const cloneSessionForSnapshot = (session: PersistedSession): PersistedSession => ({
+export const cloneSessionForRevision = (session: PersistedSession): PersistedSession => ({
   ...session,
   segments: cloneSegments(session.segments),
   speakers: cloneSpeakers(session.speakers),

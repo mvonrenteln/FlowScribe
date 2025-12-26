@@ -32,7 +32,7 @@ import type {
   TranscriptStore,
   Word,
 } from "./store/types";
-import { buildGlobalStateSnapshot } from "./store/utils/globalState";
+import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
   normalizeSpellcheckIgnoreWords,
@@ -99,7 +99,7 @@ const initialState: InitialStoreState = {
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
 let storeContext: StoreContext | null = null;
-let lastGlobalSnapshot: ReturnType<typeof buildGlobalStateSnapshot> | null = null;
+let lastGlobalPayload: ReturnType<typeof buildGlobalStatePayload> | null = null;
 
 export const useTranscriptStore = create<TranscriptStore>()(
   subscribeWithSelector((set, get) => {
@@ -194,19 +194,19 @@ if (canUseLocalStorage()) {
         storeContext.updateRecentSessions(storeContext.getSessionsCache());
       }
 
-      const nextGlobalSnapshot = buildGlobalStateSnapshot(state);
+      const nextGlobalPayload = buildGlobalStatePayload(state);
       const globalChanged =
-        !lastGlobalSnapshot ||
-        lastGlobalSnapshot.lexiconEntries !== nextGlobalSnapshot.lexiconEntries ||
-        lastGlobalSnapshot.lexiconThreshold !== nextGlobalSnapshot.lexiconThreshold ||
-        lastGlobalSnapshot.lexiconHighlightUnderline !==
-          nextGlobalSnapshot.lexiconHighlightUnderline ||
-        lastGlobalSnapshot.lexiconHighlightBackground !==
-          nextGlobalSnapshot.lexiconHighlightBackground ||
-        lastGlobalSnapshot.spellcheckEnabled !== nextGlobalSnapshot.spellcheckEnabled ||
-        lastGlobalSnapshot.spellcheckLanguages !== nextGlobalSnapshot.spellcheckLanguages ||
-        lastGlobalSnapshot.spellcheckIgnoreWords !== nextGlobalSnapshot.spellcheckIgnoreWords ||
-        lastGlobalSnapshot.spellcheckCustomEnabled !== nextGlobalSnapshot.spellcheckCustomEnabled;
+        !lastGlobalPayload ||
+        lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
+        lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
+        lastGlobalPayload.lexiconHighlightUnderline !==
+          nextGlobalPayload.lexiconHighlightUnderline ||
+        lastGlobalPayload.lexiconHighlightBackground !==
+          nextGlobalPayload.lexiconHighlightBackground ||
+        lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
+        lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
+        lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
+        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(
@@ -214,12 +214,12 @@ if (canUseLocalStorage()) {
             sessions: storeContext.getSessionsCache(),
             activeSessionKey: storeContext.getActiveSessionKey(),
           },
-          nextGlobalSnapshot,
+          nextGlobalPayload,
         );
       }
 
       if (globalChanged) {
-        lastGlobalSnapshot = nextGlobalSnapshot;
+        lastGlobalPayload = nextGlobalPayload;
       }
     },
   );

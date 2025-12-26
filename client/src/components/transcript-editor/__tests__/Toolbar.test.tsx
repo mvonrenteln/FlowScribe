@@ -76,7 +76,7 @@ describe("Toolbar", () => {
     expect(glossaryButton).toHaveAttribute("aria-pressed", "true");
   });
 
-  it("renders revision entries with a snapshot badge", async () => {
+  it("renders revision entries with a Revision badge", async () => {
     const user = userEvent.setup();
     render(
       <Toolbar
@@ -96,7 +96,7 @@ describe("Toolbar", () => {
     );
 
     await user.click(screen.getByTestId("button-recent-sessions"));
-    expect(screen.getByText("Snapshot")).toBeInTheDocument();
+    expect(screen.getByText("Revision")).toBeInTheDocument();
     expect(screen.getByText("Client review")).toBeInTheDocument();
     expect(screen.getByText("audio.mp3")).toBeInTheDocument();
   });

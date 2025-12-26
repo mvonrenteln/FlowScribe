@@ -15,7 +15,7 @@ const baseSegments = [
 
 const baseSpeakers = [{ id: "spk-1", name: "SPEAKER_00", color: "red" }];
 
-describe("revision snapshots", () => {
+describe("revisions stay isolated", () => {
   beforeEach(() => {
     resetStore();
     useTranscriptStore.setState({
@@ -54,7 +54,7 @@ describe("revision snapshots", () => {
   });
 
   it("adds revision metadata to recent sessions", () => {
-    const revisionKey = useTranscriptStore.getState().createRevision("QC snapshot");
+    const revisionKey = useTranscriptStore.getState().createRevision("QC Revision");
     expect(revisionKey).toBeTruthy();
     const revisionEntry = useTranscriptStore
       .getState()
@@ -62,7 +62,7 @@ describe("revision snapshots", () => {
 
     expect(revisionEntry).toMatchObject({
       kind: "revision",
-      label: "QC snapshot",
+      label: "QC Revision",
     });
   });
 });

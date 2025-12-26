@@ -5,7 +5,7 @@ import type {
   TranscriptStore,
 } from "../types";
 
-export interface GlobalStateSnapshot extends PersistedGlobalState {
+export interface GlobalStatePayload extends PersistedGlobalState {
   lexiconEntries: LexiconEntry[];
   lexiconTerms: string[];
   lexiconThreshold: number;
@@ -17,7 +17,7 @@ export interface GlobalStateSnapshot extends PersistedGlobalState {
   spellcheckCustomEnabled: boolean;
 }
 
-export const buildGlobalStateSnapshot = (state: TranscriptStore): GlobalStateSnapshot => ({
+export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
   lexiconEntries: state.lexiconEntries,
   lexiconTerms: state.lexiconEntries.map((entry) => entry.term),
   lexiconThreshold: state.lexiconThreshold,

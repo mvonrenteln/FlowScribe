@@ -118,7 +118,7 @@ export function Toolbar({
             />
             <div className="flex items-center gap-2 min-w-[180px]">
               <Badge variant={sessionKind === "revision" ? "outline" : "secondary"}>
-                {sessionKind === "revision" ? "Snapshot" : "Current"}
+                {sessionKind === "revision" ? "Revision" : "Current"}
               </Badge>
               <span className="text-sm font-medium truncate max-w-[180px]">
                 {sessionLabel || "Live session"}
@@ -137,7 +137,7 @@ export function Toolbar({
                   Save revision
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Snapshot the current edits</TooltipContent>
+              <TooltipContent>Save a Revision of the current edits</TooltipContent>
             </Tooltip>
             <DropdownMenu>
               <Tooltip>
@@ -177,7 +177,7 @@ export function Toolbar({
                           variant={session.kind === "revision" ? "outline" : "secondary"}
                           className="ml-auto"
                         >
-                          {session.kind === "revision" ? "Snapshot" : "Current"}
+                          {session.kind === "revision" ? "Revision" : "Current"}
                         </Badge>
                         {session.key === activeSessionKey ? (
                           <Check className="h-3 w-3 text-muted-foreground" />

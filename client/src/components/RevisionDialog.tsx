@@ -64,10 +64,10 @@ export function RevisionDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle>Save revision</DialogTitle>
+          <DialogTitle>Save Revision</DialogTitle>
           <DialogDescription>
-            Create a named snapshot of the current session. New edits continue on the active
-            version; the saved revision will stay unchanged until you open and edit it explicitly.
+            Create a named Revision of the current session. New edits continue on the active
+            version; the saved Revision will stay unchanged until you open and edit it explicitly.
           </DialogDescription>
         </DialogHeader>
 
