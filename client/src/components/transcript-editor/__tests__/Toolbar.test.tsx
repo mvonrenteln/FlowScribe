@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "@/components/transcript-editor/Toolbar";
@@ -77,11 +77,19 @@ describe("Toolbar", () => {
   });
 
   it("renders revision entries with a Revision badge", async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
     render(
       <Toolbar
         {...baseProps}
         recentSessions={[
+          {
+            key: "base-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 20,
+            kind: "current",
+            label: null,
+          },
           {
             key: "rev-1",
             audioName: "audio.mp3",
@@ -89,6 +97,7 @@ describe("Toolbar", () => {
             updatedAt: 10,
             kind: "revision",
             label: "Client review",
+            baseSessionKey: "base-1",
           },
         ]}
         activeSessionKey="rev-1"
@@ -96,8 +105,11 @@ describe("Toolbar", () => {
     );
 
     await user.click(screen.getByTestId("button-recent-sessions"));
-    expect(screen.getByText("Revision")).toBeInTheDocument();
-    expect(screen.getByText("Client review")).toBeInTheDocument();
-    expect(screen.getByText("audio.mp3")).toBeInTheDocument();
+    await screen.findByText("Recent sessions");
+    const menuItems = screen.getAllByRole("menuitem");
+    expect(menuItems[1]).toHaveClass("pl-6");
+    expect(within(menuItems[1]).getByText("Client review")).toBeInTheDocument();
+    expect(screen.getAllByText("audio.mp3")).toHaveLength(2);
+    expect(screen.getAllByText("transcript.json")).toHaveLength(2);
   });
 });

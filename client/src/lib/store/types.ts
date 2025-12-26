@@ -84,6 +84,7 @@ export interface RecentSessionSummary {
   updatedAt?: number;
   kind: SessionKind;
   label?: string | null;
+  baseSessionKey?: string | null;
 }
 
 export interface InitialStoreState {

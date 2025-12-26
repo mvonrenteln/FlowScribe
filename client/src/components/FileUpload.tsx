@@ -18,6 +18,7 @@ interface FileUploadProps {
   transcriptFileName?: string;
   transcriptLoaded?: boolean;
   variant?: "card" | "inline";
+  revisionName?: string | null;
 }
 
 export function FileUpload({
@@ -27,6 +28,7 @@ export function FileUpload({
   transcriptFileName,
   transcriptLoaded,
   variant = "card",
+  revisionName,
 }: FileUploadProps) {
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
@@ -144,6 +146,10 @@ export function FileUpload({
     [onTranscriptUpload],
   );
 
+  const transcriptLabel =
+    localTranscriptFileName || (transcriptLoaded ? "Transcript Loaded" : "Load Transcript");
+  const transcriptDisplay = revisionName ? `${transcriptLabel} (${revisionName})` : transcriptLabel;
+
   const content = (
     <TooltipProvider delayDuration={200}>
       <div className="flex flex-wrap items-center gap-3">
@@ -202,8 +208,7 @@ export function FileUpload({
               data-testid="button-upload-transcript"
             >
               <FileText className="h-4 w-4 mr-2" />
-              {localTranscriptFileName ||
-                (transcriptLoaded ? "Transcript Loaded" : "Load Transcript")}
+              {transcriptDisplay}
             </Button>
           </TooltipTrigger>
           <TooltipContent>Load transcript JSON</TooltipContent>

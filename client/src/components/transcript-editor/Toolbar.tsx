@@ -12,6 +12,7 @@ import {
   SpellCheck,
   Undo2,
 } from "lucide-react";
+import { useMemo } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -79,6 +80,49 @@ export function Toolbar({
   glossaryHighlightActive,
   onShowGlossary,
 }: ToolbarProps) {
+  const revisionName = sessionKind === "revision" ? (sessionLabel ?? "Revision") : null;
+
+  const groupedSessions = useMemo(() => {
+    const baseOrder: string[] = [];
+    const baseMap = new Map<string, (typeof recentSessions)[number]>();
+    const revisionsByBase = new Map<string, (typeof recentSessions)[number][]>();
+
+    recentSessions.forEach((session) => {
+      if (session.kind !== "revision") {
+        if (!baseMap.has(session.key)) {
+          baseOrder.push(session.key);
+          baseMap.set(session.key, session);
+        }
+      }
+    });
+
+    recentSessions.forEach((session) => {
+      if (session.kind !== "revision" || !session.baseSessionKey) return;
+      const list = revisionsByBase.get(session.baseSessionKey) ?? [];
+      list.push(session);
+      revisionsByBase.set(session.baseSessionKey, list);
+      if (!baseMap.has(session.baseSessionKey)) {
+        baseOrder.push(session.baseSessionKey);
+        baseMap.set(session.baseSessionKey, {
+          key: session.baseSessionKey,
+          audioName: session.audioName,
+          transcriptName: session.transcriptName,
+          updatedAt: session.updatedAt,
+          kind: "current",
+          label: null,
+          baseSessionKey: null,
+        });
+      }
+    });
+
+    return baseOrder.map((key) => ({
+      base: baseMap.get(key),
+      revisions: (revisionsByBase.get(key) ?? []).sort(
+        (a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0),
+      ),
+    }));
+  }, [recentSessions]);
+
   return (
     <header className="flex items-center gap-3 h-14 px-4 border-b bg-card">
       <TooltipProvider delayDuration={200}>
@@ -114,31 +158,9 @@ export function Toolbar({
               audioFileName={audioFileName}
               transcriptFileName={transcriptFileName}
               transcriptLoaded={transcriptLoaded}
+              revisionName={revisionName}
               variant="inline"
             />
-            <div className="flex items-center gap-2 min-w-[180px]">
-              <Badge variant={sessionKind === "revision" ? "outline" : "secondary"}>
-                {sessionKind === "revision" ? "Revision" : "Current"}
-              </Badge>
-              <span className="text-sm font-medium truncate max-w-[180px]">
-                {sessionLabel || "Live session"}
-              </span>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={onShowRevisionDialog}
-                  disabled={!canCreateRevision}
-                  data-testid="button-save-revision"
-                >
-                  <BookmarkPlus className="h-4 w-4 mr-2" />
-                  Save revision
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Save a Revision of the current edits</TooltipContent>
-            </Tooltip>
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -163,33 +185,67 @@ export function Toolbar({
                 {recentSessions.length === 0 ? (
                   <DropdownMenuItem disabled>No recent sessions</DropdownMenuItem>
                 ) : (
-                  recentSessions.slice(0, 8).map((session) => (
-                    <DropdownMenuItem
-                      key={session.key}
-                      onClick={() => onActivateSession(session.key)}
-                      className="flex flex-col items-start gap-1"
-                    >
-                      <div className="flex w-full items-center gap-2">
-                        <span className="text-xs text-muted-foreground">
-                          {session.audioName || "Unknown audio"}
-                        </span>
-                        <Badge
-                          variant={session.kind === "revision" ? "outline" : "secondary"}
-                          className="ml-auto"
+                  groupedSessions.slice(0, 8).map(({ base, revisions }) => {
+                    if (!base) return null;
+                    const baseActive = base.key === activeSessionKey;
+                    return (
+                      <div key={base.key} className="flex flex-col">
+                        <DropdownMenuItem
+                          onClick={() => onActivateSession(base.key)}
+                          className={cn(
+                            "flex flex-col items-start gap-1",
+                            baseActive && "bg-accent/40",
+                          )}
+                          aria-current={baseActive ? "true" : undefined}
                         >
-                          {session.kind === "revision" ? "Revision" : "Current"}
-                        </Badge>
-                        {session.key === activeSessionKey ? (
-                          <Check className="h-3 w-3 text-muted-foreground" />
-                        ) : null}
+                          <div className="flex w-full items-center gap-2">
+                            <span className="text-xs text-muted-foreground">
+                              {base.audioName || "Unknown audio"}
+                            </span>
+                            {baseActive ? (
+                              <Check className="h-3 w-3 text-muted-foreground" />
+                            ) : null}
+                          </div>
+                          <div className="flex items-center gap-2 w-full">
+                            <span className="text-sm font-medium">
+                              {base.transcriptName || "Untitled transcript"}
+                            </span>
+                          </div>
+                        </DropdownMenuItem>
+                        {revisions.map((revision) => {
+                          const isActive = revision.key === activeSessionKey;
+                          return (
+                            <DropdownMenuItem
+                              key={revision.key}
+                              onClick={() => onActivateSession(revision.key)}
+                              className={cn(
+                                "flex flex-col items-start gap-1 pl-6",
+                                isActive && "bg-accent/40",
+                              )}
+                              aria-current={isActive ? "true" : undefined}
+                            >
+                              <div className="flex w-full items-center gap-2">
+                                <span className="text-xs text-muted-foreground">
+                                  {revision.audioName || "Unknown audio"}
+                                </span>
+                                {isActive ? (
+                                  <Check className="h-3 w-3 text-muted-foreground" />
+                                ) : null}
+                              </div>
+                              <div className="flex items-center gap-2 w-full">
+                                <span className="text-sm font-medium">
+                                  {revision.transcriptName || "Untitled transcript"}
+                                </span>
+                                {revision.label ? (
+                                  <Badge variant="secondary">{revision.label}</Badge>
+                                ) : null}
+                              </div>
+                            </DropdownMenuItem>
+                          );
+                        })}
                       </div>
-                      <span className="text-sm font-medium">
-                        {session.kind === "revision"
-                          ? session.label || "Revision"
-                          : session.transcriptName || "Untitled transcript"}
-                      </span>
-                    </DropdownMenuItem>
-                  ))
+                    );
+                  })
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
@@ -441,6 +497,21 @@ export function Toolbar({
         <Separator orientation="vertical" className="h-6" />
 
         <div className="flex items-center gap-2">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={onShowRevisionDialog}
+                disabled={!canCreateRevision}
+                data-testid="button-save-revision"
+              >
+                <BookmarkPlus className="h-4 w-4 mr-2" />
+                Save revision
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Save a Revision of the current edits</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button

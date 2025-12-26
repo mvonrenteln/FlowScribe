@@ -70,6 +70,7 @@ export const buildRecentSessions = (sessions: Record<string, PersistedSession>) 
       updatedAt: session.updatedAt ?? 0,
       kind: session.kind ?? "current",
       label: session.label ?? null,
+      baseSessionKey: session.baseSessionKey ?? null,
     }))
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 };
