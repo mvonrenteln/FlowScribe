@@ -6,22 +6,11 @@ A professional audio transcription editor webapp that loads audio files (MP3, WA
 
 ## Project Structure
 
-```
-client/src/
-├── components/
-│   ├── TranscriptEditor.tsx    # Main application component
-│   ├── WaveformPlayer.tsx      # Audio waveform with wavesurfer.js
-│   ├── PlaybackControls.tsx    # Play/pause, seek, timeline controls
-│   ├── TranscriptSegment.tsx   # Individual segment with word highlighting
-│   ├── SpeakerSidebar.tsx      # Speaker management panel
-│   ├── FileUpload.tsx          # Audio and transcript file upload
-│   ├── ExportDialog.tsx        # Export to JSON/SRT/TXT
-│   ├── KeyboardShortcuts.tsx   # Keyboard shortcuts help dialog
-│   └── ThemeToggle.tsx         # Dark/light theme toggle
-├── lib/
-│   └── store.ts                # Zustand state management
-└── App.tsx                     # App entry with routing
-```
+- `client/src/components/`: Feature-focused React components. UI layout (shell, theming, navigation), media controls (waveform/transport/zoom), transcript editing surfaces (segment rows, speaker sidebar, keyboard shortcuts/help), and import/export dialogs live here.
+- `client/src/lib/`: Shared client utilities and application state. The central Zustand store, transcript parsing/formatting helpers, and reusable hooks belong in this layer.
+- `client/src/App.tsx`: Application entrypoint that wires providers, theming, layout, and route-level features.
+- `docs/`: Project design notes and usage docs aimed at contributors and product stakeholders.
+- Root config (`vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `biome.json`, `postcss.config.js`, etc.): Build/lint/format pipeline and design-system configuration.
 
 ## Supported Transcript Formats
 
