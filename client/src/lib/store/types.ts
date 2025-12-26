@@ -134,7 +134,7 @@ export interface SessionSlice {
   setAudioReference: (reference: FileReference | null) => void;
   setTranscriptReference: (reference: FileReference | null) => void;
   activateSession: (key: string) => void;
-  createRevision: (name: string) => string | null;
+  createRevision: (name: string, overwrite?: boolean) => string | null;
   deleteSession: (key: string) => void;
 }
 

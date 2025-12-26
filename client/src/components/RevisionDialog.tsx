@@ -16,10 +16,12 @@ import type { SessionKind } from "@/lib/store";
 interface RevisionDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
-  onCreateRevision: (name: string) => string | null;
+  onCreateRevision: (name: string, overwrite?: boolean) => string | null;
   canCreateRevision: boolean;
   activeSessionName: string;
   activeSessionKind: SessionKind;
+  existingRevisionNames: string[];
+  defaultRevisionName?: string;
 }
 
 export function RevisionDialog({
@@ -29,16 +31,20 @@ export function RevisionDialog({
   canCreateRevision,
   activeSessionName,
   activeSessionKind,
+  existingRevisionNames,
+  defaultRevisionName,
 }: RevisionDialogProps) {
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [confirmOverwrite, setConfirmOverwrite] = useState(false);
 
   useEffect(() => {
-    if (!open) {
-      setName("");
+    if (open) {
+      setName(defaultRevisionName ?? "");
       setError(null);
+      setConfirmOverwrite(false);
     }
-  }, [open]);
+  }, [open, defaultRevisionName]);
 
   const handleSubmit = () => {
     const trimmed = name.trim();
@@ -46,10 +52,17 @@ export function RevisionDialog({
       setError("Please provide a revision name.");
       return;
     }
-    const created = onCreateRevision(trimmed);
+
+    if (!confirmOverwrite && existingRevisionNames.includes(trimmed)) {
+      setConfirmOverwrite(true);
+      return;
+    }
+
+    const created = onCreateRevision(trimmed, confirmOverwrite);
     if (created) {
       setName("");
       setError(null);
+      setConfirmOverwrite(false);
     }
   };
 
@@ -81,35 +94,60 @@ export function RevisionDialog({
             </span>
           </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="revision-name">Revision name</Label>
-            <Input
-              id="revision-name"
-              value={name}
-              autoFocus
-              onChange={(event) => {
-                setName(event.target.value);
-                if (event.target.value.trim()) {
-                  setError(null);
-                }
-              }}
-              onKeyDown={handleKeyDown}
-              placeholder="e.g. First pass, Timing review, Client feedback"
-            />
-            {error && <p className="text-sm text-destructive">{error}</p>}
-            <p className="text-xs text-muted-foreground">
-              Names are free-form. Duplicate names are allowed and tied to the current file.
-            </p>
-          </div>
+          {confirmOverwrite ? (
+            <div className="p-4 border border-yellow-200 bg-yellow-50 rounded-md text-sm text-yellow-800 dark:bg-yellow-900/20 dark:border-yellow-900/50 dark:text-yellow-200">
+              <p className="font-medium mb-1">Overwrite existing revision?</p>
+              <p>
+                A revision named "{name}" already exists. Saving will overwrite it with the current
+                state.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="revision-name">Revision name</Label>
+              <Input
+                id="revision-name"
+                value={name}
+                autoFocus
+                onChange={(event) => {
+                  setName(event.target.value);
+                  if (event.target.value.trim()) {
+                    setError(null);
+                  }
+                }}
+                onKeyDown={handleKeyDown}
+                placeholder="e.g. First pass, Timing review, Client feedback"
+              />
+              {error && <p className="text-sm text-destructive">{error}</p>}
+              <p className="text-xs text-muted-foreground">
+                Names are free-form. Duplicate names are allowed and tied to the current file.
+              </p>
+            </div>
+          )}
         </div>
 
         <DialogFooter>
-          <Button variant="ghost" onClick={() => onOpenChange(false)}>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button onClick={handleSubmit} disabled={!canCreateRevision}>
-            Save revision
-          </Button>
+          {confirmOverwrite ? (
+            <>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setConfirmOverwrite(false);
+                  // Focus back on input?
+                }}
+              >
+                Back
+              </Button>
+              <Button onClick={handleSubmit}>Overwrite</Button>
+            </>
+          ) : (
+            <Button onClick={handleSubmit} disabled={!canCreateRevision}>
+              Save Revision
+            </Button>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

@@ -27,6 +27,8 @@ export function EditorDialogs({
   canCreateRevision,
   activeSessionName,
   activeSessionKind,
+  existingRevisionNames,
+  defaultRevisionName,
 }: DialogProps) {
   return (
     <>
@@ -50,6 +52,8 @@ export function EditorDialogs({
         canCreateRevision={canCreateRevision}
         activeSessionName={activeSessionName}
         activeSessionKind={activeSessionKind}
+        existingRevisionNames={existingRevisionNames}
+        defaultRevisionName={defaultRevisionName}
       />
     </>
   );

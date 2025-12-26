@@ -227,8 +227,8 @@ export const useTranscriptEditor = () => {
   );
 
   const handleCreateRevision = useCallback(
-    (name: string) => {
-      const createdKey = createRevision(name);
+    (name: string, overwrite?: boolean) => {
+      const createdKey = createRevision(name, overwrite);
       if (createdKey) {
         toast({
           title: "Revision saved",
@@ -815,6 +815,20 @@ export const useTranscriptEditor = () => {
       canCreateRevision,
       activeSessionName: activeSessionDisplayName,
       activeSessionKind: sessionKind,
+      existingRevisionNames: recentSessions
+        .filter(
+          (s) =>
+            s.kind === "revision" &&
+            (s.baseSessionKey === sessionKey || s.key === sessionKey || s.baseSessionKey === useTranscriptStore.getState().baseSessionKey),
+        )
+        .map((s) => s.label)
+        .filter((l): l is string => l !== null),
+      defaultRevisionName:
+        sessionKind === "revision"
+          ? sessionLabel ?? undefined
+          : recentSessions
+              .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
+              .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined,
     }),
     [
       audioFile?.name,
@@ -829,6 +843,9 @@ export const useTranscriptEditor = () => {
       showLexicon,
       showShortcuts,
       showSpellcheckDialog,
+      recentSessions,
+      sessionKey,
+      sessionLabel,
     ],
   );
 

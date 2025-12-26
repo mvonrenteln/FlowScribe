@@ -194,10 +194,28 @@ export const createSessionSlice = (
       seekRequestTime: null,
     });
   },
-  createRevision: (name) => {
+  createRevision: (name, overwrite) => {
     const trimmedName = name.trim();
     if (!trimmedName) return null;
     const state = get();
+    const sessions = context.getSessionsCache();
+
+    let revisionKey = buildRevisionKey(state.sessionKey);
+
+    if (overwrite) {
+      // Find existing revision with this name for the current base session
+      const existingEntry = Object.entries(sessions).find(([key, session]) => {
+        return (
+          session.kind === "revision" &&
+          session.baseSessionKey === state.sessionKey &&
+          session.label === trimmedName
+        );
+      });
+      if (existingEntry) {
+        revisionKey = existingEntry[0];
+      }
+    }
+
     const revisionClone = cloneSessionForRevision({
       ...buildPersistedSession(state),
       kind: "revision",
@@ -205,9 +223,9 @@ export const createSessionSlice = (
       baseSessionKey: state.sessionKey,
       updatedAt: Date.now(),
     });
-    const revisionKey = buildRevisionKey(state.sessionKey);
+
     const nextSessions = {
-      ...context.getSessionsCache(),
+      ...sessions,
       [revisionKey]: revisionClone,
     };
     context.setSessionsCache(nextSessions);

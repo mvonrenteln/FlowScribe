@@ -16,6 +16,7 @@ describe("RevisionDialog", () => {
         canCreateRevision={true}
         activeSessionName="Transcript A"
         activeSessionKind="current"
+        existingRevisionNames={[]}
       />,
     );
 
@@ -40,9 +41,37 @@ describe("RevisionDialog", () => {
         canCreateRevision={false}
         activeSessionName="Transcript A"
         activeSessionKind="revision"
+        existingRevisionNames={[]}
       />,
     );
 
     expect(screen.getByRole("button", { name: "Save revision" })).toBeDisabled();
+  });
+
+  it("prompts for overwrite when name exists", async () => {
+    const onCreateRevision = vi.fn().mockReturnValue("rev-1");
+    const user = userEvent.setup();
+
+    render(
+      <RevisionDialog
+        open
+        onOpenChange={vi.fn()}
+        onCreateRevision={onCreateRevision}
+        canCreateRevision={true}
+        activeSessionName="Transcript A"
+        activeSessionKind="current"
+        existingRevisionNames={["Existing Revision"]}
+      />,
+    );
+
+    const input = screen.getByLabelText("Revision name");
+    await user.type(input, "Existing Revision");
+    await user.click(screen.getByRole("button", { name: "Save revision" }));
+
+    expect(onCreateRevision).not.toHaveBeenCalled();
+    expect(screen.getByText("Overwrite existing revision?")).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Overwrite" }));
+    expect(onCreateRevision).toHaveBeenCalledWith("Existing Revision", true);
   });
 });
