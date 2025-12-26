@@ -55,6 +55,9 @@ export const createSegmentsSlice = (
         historyIndex: 0,
         transcriptRef: data.reference ?? get().transcriptRef,
         sessionKey,
+        sessionKind: session?.kind ?? "current",
+        sessionLabel: session?.label ?? null,
+        baseSessionKey: session?.baseSessionKey ?? null,
       });
       return;
     }
@@ -67,6 +70,9 @@ export const createSegmentsSlice = (
       historyIndex: 0,
       transcriptRef: data.reference ?? get().transcriptRef,
       sessionKey,
+      sessionKind: "current",
+      sessionLabel: data.reference?.name ?? null,
+      baseSessionKey: null,
     });
   },
 

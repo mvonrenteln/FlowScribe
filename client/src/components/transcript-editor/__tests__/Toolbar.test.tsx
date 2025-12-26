@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "@/components/transcript-editor/Toolbar";
 import type { TranscriptEditorState } from "@/components/transcript-editor/useTranscriptEditor";
@@ -19,8 +20,13 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   audioFileName: undefined,
   transcriptFileName: undefined,
   transcriptLoaded: true,
+  sessionKind: "current",
+  sessionLabel: null,
+  activeSessionKey: "active-session",
   recentSessions: [],
   onActivateSession: vi.fn(),
+  onShowRevisionDialog: vi.fn(),
+  canCreateRevision: true,
   onUndo: vi.fn(),
   onRedo: vi.fn(),
   canUndo: false,
@@ -68,5 +74,30 @@ describe("Toolbar", () => {
     const glossaryButton = screen.getByTestId("button-glossary");
     expect(glossaryButton).toHaveClass("bg-accent");
     expect(glossaryButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("renders revision entries with a snapshot badge", async () => {
+    const user = userEvent.setup();
+    render(
+      <Toolbar
+        {...baseProps}
+        recentSessions={[
+          {
+            key: "rev-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 10,
+            kind: "revision",
+            label: "Client review",
+          },
+        ]}
+        activeSessionKey="rev-1"
+      />,
+    );
+
+    await user.click(screen.getByTestId("button-recent-sessions"));
+    expect(screen.getByText("Snapshot")).toBeInTheDocument();
+    expect(screen.getByText("Client review")).toBeInTheDocument();
+    expect(screen.getByText("audio.mp3")).toBeInTheDocument();
   });
 });

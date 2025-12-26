@@ -2,6 +2,7 @@ import { CustomDictionariesDialog } from "../CustomDictionariesDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
+import { RevisionDialog } from "../RevisionDialog";
 import { SpellcheckDialog } from "../SpellcheckDialog";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -20,6 +21,12 @@ export function EditorDialogs({
   onSpellcheckDialogChange,
   showCustomDictionariesDialog,
   onCustomDictionariesDialogChange,
+  showRevisionDialog,
+  onRevisionDialogChange,
+  onCreateRevision,
+  canCreateRevision,
+  activeSessionName,
+  activeSessionKind,
 }: DialogProps) {
   return (
     <>
@@ -35,6 +42,14 @@ export function EditorDialogs({
       <CustomDictionariesDialog
         open={showCustomDictionariesDialog}
         onOpenChange={onCustomDictionariesDialogChange}
+      />
+      <RevisionDialog
+        open={showRevisionDialog}
+        onOpenChange={onRevisionDialogChange}
+        onCreateRevision={onCreateRevision}
+        canCreateRevision={canCreateRevision}
+        activeSessionName={activeSessionName}
+        activeSessionKind={activeSessionKind}
       />
     </>
   );

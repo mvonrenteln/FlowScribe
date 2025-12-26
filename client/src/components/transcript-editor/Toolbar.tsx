@@ -1,4 +1,5 @@
 import {
+  BookmarkPlus,
   BookOpenText,
   Check,
   Clock,
@@ -11,6 +12,7 @@ import {
   SpellCheck,
   Undo2,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,8 +41,13 @@ export function Toolbar({
   audioFileName,
   transcriptFileName,
   transcriptLoaded,
+  sessionKind,
+  sessionLabel,
+  activeSessionKey,
   recentSessions,
   onActivateSession,
+  onShowRevisionDialog,
+  canCreateRevision,
   onUndo,
   onRedo,
   canUndo,
@@ -109,6 +116,29 @@ export function Toolbar({
               transcriptLoaded={transcriptLoaded}
               variant="inline"
             />
+            <div className="flex items-center gap-2 min-w-[180px]">
+              <Badge variant={sessionKind === "revision" ? "outline" : "secondary"}>
+                {sessionKind === "revision" ? "Snapshot" : "Current"}
+              </Badge>
+              <span className="text-sm font-medium truncate max-w-[180px]">
+                {sessionLabel || "Live session"}
+              </span>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={onShowRevisionDialog}
+                  disabled={!canCreateRevision}
+                  data-testid="button-save-revision"
+                >
+                  <BookmarkPlus className="h-4 w-4 mr-2" />
+                  Save revision
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Snapshot the current edits</TooltipContent>
+            </Tooltip>
             <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -139,11 +169,24 @@ export function Toolbar({
                       onClick={() => onActivateSession(session.key)}
                       className="flex flex-col items-start gap-1"
                     >
-                      <span className="text-xs text-muted-foreground">
-                        {session.audioName || "Unknown audio"}
-                      </span>
-                      <span className="text-sm">
-                        {session.transcriptName || "Untitled transcript"}
+                      <div className="flex w-full items-center gap-2">
+                        <span className="text-xs text-muted-foreground">
+                          {session.audioName || "Unknown audio"}
+                        </span>
+                        <Badge
+                          variant={session.kind === "revision" ? "outline" : "secondary"}
+                          className="ml-auto"
+                        >
+                          {session.kind === "revision" ? "Snapshot" : "Current"}
+                        </Badge>
+                        {session.key === activeSessionKey ? (
+                          <Check className="h-3 w-3 text-muted-foreground" />
+                        ) : null}
+                      </div>
+                      <span className="text-sm font-medium">
+                        {session.kind === "revision"
+                          ? session.label || "Revision"
+                          : session.transcriptName || "Untitled transcript"}
                       </span>
                     </DropdownMenuItem>
                   ))

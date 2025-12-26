@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { type Segment, type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
@@ -83,6 +84,7 @@ export const useTranscriptEditor = () => {
       setAudioReference: state.setAudioReference,
       activateSession: state.activateSession,
       loadTranscript: state.loadTranscript,
+      createRevision: state.createRevision,
       setSelectedSegmentId: state.setSelectedSegmentId,
       mergeSegments: state.mergeSegments,
       toggleSegmentBookmark: state.toggleSegmentBookmark,
@@ -117,6 +119,9 @@ export const useTranscriptEditor = () => {
   const audioFile = useTranscriptStore((state) => state.audioFile);
   const audioUrl = useTranscriptStore((state) => state.audioUrl);
   const transcriptRef = useTranscriptStore((state) => state.transcriptRef);
+  const sessionKey = useTranscriptStore((state) => state.sessionKey);
+  const sessionKind = useTranscriptStore((state) => state.sessionKind);
+  const sessionLabel = useTranscriptStore((state) => state.sessionLabel);
   const recentSessions = useTranscriptStore((state) => state.recentSessions);
   const isWhisperXFormat = useTranscriptStore((state) => state.isWhisperXFormat);
   const selectedSegmentId = useTranscriptStore((state) => state.selectedSegmentId);
@@ -157,6 +162,7 @@ export const useTranscriptEditor = () => {
     redo,
     canUndo,
     canRedo,
+    createRevision,
   } = transcriptActions;
   const { setCurrentTime, setIsPlaying, setDuration, requestSeek, clearSeekRequest } =
     transcriptActions;
@@ -175,6 +181,7 @@ export const useTranscriptEditor = () => {
   const [showLexicon, setShowLexicon] = useState(false);
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
   const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
+  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -184,6 +191,7 @@ export const useTranscriptEditor = () => {
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
   const canUndoChecked = canUndo();
   const canRedoChecked = canRedo();
+  const canCreateRevision = segments.length > 0;
 
   const isTranscriptEditing = useCallback(
     () => document.body?.dataset.transcriptEditing === "true",
@@ -215,6 +223,21 @@ export const useTranscriptEditor = () => {
       });
     },
     [loadTranscript],
+  );
+
+  const handleCreateRevision = useCallback(
+    (name: string) => {
+      const createdKey = createRevision(name);
+      if (createdKey) {
+        toast({
+          title: "Revision saved",
+          description: `“${name.trim()}” is now listed in Recent sessions.`,
+        });
+        setShowRevisionDialog(false);
+      }
+      return createdKey;
+    },
+    [createRevision],
   );
 
   useEffect(() => {
@@ -563,6 +586,9 @@ export const useTranscriptEditor = () => {
     ],
   );
 
+  const activeSessionDisplayName =
+    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? "Current session";
+
   const toolbarProps = useMemo(
     () => ({
       sidebarOpen,
@@ -572,8 +598,13 @@ export const useTranscriptEditor = () => {
       audioFileName: audioFile?.name,
       transcriptFileName: transcriptRef?.name,
       transcriptLoaded: segments.length > 0,
+      sessionKind,
+      sessionLabel,
+      activeSessionKey: sessionKey,
       recentSessions,
       onActivateSession: activateSession,
+      onShowRevisionDialog: () => setShowRevisionDialog(true),
+      canCreateRevision,
       onUndo: undo,
       onRedo: redo,
       canUndo: canUndoChecked,
@@ -640,6 +671,10 @@ export const useTranscriptEditor = () => {
       undo,
       showLexiconMatches,
       showSpellcheckMatches,
+      sessionKey,
+      sessionKind,
+      sessionLabel,
+      canCreateRevision,
     ],
   );
 
@@ -771,12 +806,23 @@ export const useTranscriptEditor = () => {
       onSpellcheckDialogChange: setShowSpellcheckDialog,
       showCustomDictionariesDialog,
       onCustomDictionariesDialogChange: setShowCustomDictionariesDialog,
+      showRevisionDialog,
+      onRevisionDialogChange: setShowRevisionDialog,
+      onCreateRevision: handleCreateRevision,
+      canCreateRevision,
+      activeSessionName: activeSessionDisplayName,
+      activeSessionKind: sessionKind,
     }),
     [
       audioFile?.name,
+      activeSessionDisplayName,
+      canCreateRevision,
+      handleCreateRevision,
+      sessionKind,
       segments,
       showCustomDictionariesDialog,
       showExport,
+      showRevisionDialog,
       showLexicon,
       showShortcuts,
       showSpellcheckDialog,

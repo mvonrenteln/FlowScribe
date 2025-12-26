@@ -68,6 +68,8 @@ export const buildRecentSessions = (sessions: Record<string, PersistedSession>) 
       audioName: session.audioRef?.name,
       transcriptName: session.transcriptRef?.name,
       updatedAt: session.updatedAt ?? 0,
+      kind: session.kind ?? "current",
+      label: session.label ?? null,
     }))
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 };
