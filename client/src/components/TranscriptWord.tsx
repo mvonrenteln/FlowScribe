@@ -87,7 +87,7 @@ export function TranscriptWord({
       onClick={onClick}
       onKeyDown={onKeyDown}
       className={cn(
-        "cursor-pointer transition-colors inline-block bg-transparent border-none p-0 font-inherit text-inherit text-left align-baseline",
+        "transcript-word cursor-pointer transition-colors inline-block bg-transparent border-none p-0 font-inherit text-inherit text-left align-baseline",
         isActive && "bg-primary/20 underline",
         isSelected && "bg-accent ring-1 ring-ring",
       )}

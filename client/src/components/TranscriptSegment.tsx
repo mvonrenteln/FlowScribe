@@ -377,35 +377,33 @@ function TranscriptSegmentComponent({
               data-testid={`text-segment-${segment.id}`}
             >
               {segment.words.map((word, index) => (
-                <span key={`${segment.id}-${word.start}-${word.end}`}>
-                  <TranscriptWord
-                    word={word}
-                    index={index}
-                    segmentId={segment.id}
-                    isActive={index === resolvedActiveWordIndex}
-                    isSelected={index === selectedWordIndex}
-                    lexiconMatch={showLexiconMatches ? lexiconMatches?.get(index) : undefined}
-                    spellcheckMatch={
-                      showSpellcheckMatches ? spellcheckMatches?.get(index) : undefined
-                    }
-                    lexiconHighlightUnderline={lexiconHighlightUnderline}
-                    lexiconHighlightBackground={lexiconHighlightBackground}
-                    highlightLowConfidence={highlightLowConfidence}
-                    lowConfidenceThreshold={lowConfidenceThreshold}
-                    isExpanded={spellcheckExpandedIndex === index}
-                    onToggleExpand={() =>
-                      setSpellcheckExpandedIndex((current) => (current === index ? null : index))
-                    }
-                    onClick={(e) => handleWordClick(word, index, e)}
-                    onKeyDown={(e) => handleWordKeyDown(word, index, e)}
-                    onApplyReplacement={applyWordReplacement}
-                    onIgnoreLexiconMatch={onIgnoreLexiconMatch}
-                    onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
-                    onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
-                    getHyphenTarget={getHyphenTarget}
-                  />
-                  {index < segment.words.length - 1 ? " " : ""}
-                </span>
+                <TranscriptWord
+                  key={`${segment.id}-${word.start}-${word.end}`}
+                  word={word}
+                  index={index}
+                  segmentId={segment.id}
+                  isActive={index === resolvedActiveWordIndex}
+                  isSelected={index === selectedWordIndex}
+                  lexiconMatch={showLexiconMatches ? lexiconMatches?.get(index) : undefined}
+                  spellcheckMatch={
+                    showSpellcheckMatches ? spellcheckMatches?.get(index) : undefined
+                  }
+                  lexiconHighlightUnderline={lexiconHighlightUnderline}
+                  lexiconHighlightBackground={lexiconHighlightBackground}
+                  highlightLowConfidence={highlightLowConfidence}
+                  lowConfidenceThreshold={lowConfidenceThreshold}
+                  isExpanded={spellcheckExpandedIndex === index}
+                  onToggleExpand={() =>
+                    setSpellcheckExpandedIndex((current) => (current === index ? null : index))
+                  }
+                  onClick={(e) => handleWordClick(word, index, e)}
+                  onKeyDown={(e) => handleWordKeyDown(word, index, e)}
+                  onApplyReplacement={applyWordReplacement}
+                  onIgnoreLexiconMatch={onIgnoreLexiconMatch}
+                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                  getHyphenTarget={getHyphenTarget}
+                />
               ))}
             </div>
           )}
