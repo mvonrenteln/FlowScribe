@@ -25,12 +25,14 @@ import type {
   InitialStoreState,
   LexiconEntry,
   Segment,
+  SessionKind,
   Speaker,
   SpellcheckCustomDictionary,
   SpellcheckLanguage,
   TranscriptStore,
   Word,
 } from "./store/types";
+import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
   normalizeSpellcheckIgnoreWords,
@@ -69,6 +71,9 @@ const initialState: InitialStoreState = {
   audioRef: activeSession?.audioRef ?? null,
   transcriptRef: activeSession?.transcriptRef ?? null,
   sessionKey: activeSessionKey ?? buildSessionKey(null, null),
+  sessionKind: activeSession?.kind ?? "current",
+  sessionLabel: activeSession?.label ?? null,
+  baseSessionKey: activeSession?.baseSessionKey ?? null,
   recentSessions: buildRecentSessions(sessionsState.sessions),
   segments: activeSession?.segments ?? [],
   speakers: activeSession?.speakers ?? [],
@@ -94,16 +99,7 @@ const initialState: InitialStoreState = {
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
 let storeContext: StoreContext | null = null;
-let lastGlobalSnapshot: {
-  lexiconEntries: LexiconEntry[];
-  lexiconThreshold: number;
-  lexiconHighlightUnderline: boolean;
-  lexiconHighlightBackground: boolean;
-  spellcheckEnabled: boolean;
-  spellcheckLanguages: SpellcheckLanguage[];
-  spellcheckIgnoreWords: string[];
-  spellcheckCustomEnabled: boolean;
-} | null = null;
+let lastGlobalPayload: ReturnType<typeof buildGlobalStatePayload> | null = null;
 
 export const useTranscriptStore = create<TranscriptStore>()(
   subscribeWithSelector((set, get) => {
@@ -165,6 +161,9 @@ if (canUseLocalStorage()) {
           currentTime: state.currentTime,
           isWhisperXFormat: state.isWhisperXFormat,
           updatedAt: Date.now(),
+          kind: state.sessionKind,
+          label: state.sessionLabel,
+          baseSessionKey: state.baseSessionKey,
         };
         if (shouldTouchSession || !previous) {
           nextEntry.audioRef = state.audioRef;
@@ -172,7 +171,13 @@ if (canUseLocalStorage()) {
           nextEntry.segments = state.segments;
           nextEntry.speakers = state.speakers;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
-          nextEntry.updatedAt = Date.now();
+          // Only update timestamp if content changed, not just on activation
+          if (baseChanged || !previous) {
+            nextEntry.updatedAt = Date.now();
+          }
+          nextEntry.kind = state.sessionKind;
+          nextEntry.label = state.sessionLabel;
+          nextEntry.baseSessionKey = state.baseSessionKey;
         }
         if (shouldUpdateSelected || !previous) {
           nextEntry.selectedSegmentId = state.selectedSegmentId;
@@ -192,28 +197,19 @@ if (canUseLocalStorage()) {
         storeContext.updateRecentSessions(storeContext.getSessionsCache());
       }
 
-      const nextGlobalSnapshot = {
-        lexiconEntries: state.lexiconEntries,
-        lexiconThreshold: state.lexiconThreshold,
-        lexiconHighlightUnderline: state.lexiconHighlightUnderline,
-        lexiconHighlightBackground: state.lexiconHighlightBackground,
-        spellcheckEnabled: state.spellcheckEnabled,
-        spellcheckLanguages: state.spellcheckLanguages,
-        spellcheckIgnoreWords: state.spellcheckIgnoreWords,
-        spellcheckCustomEnabled: state.spellcheckCustomEnabled,
-      };
+      const nextGlobalPayload = buildGlobalStatePayload(state);
       const globalChanged =
-        !lastGlobalSnapshot ||
-        lastGlobalSnapshot.lexiconEntries !== nextGlobalSnapshot.lexiconEntries ||
-        lastGlobalSnapshot.lexiconThreshold !== nextGlobalSnapshot.lexiconThreshold ||
-        lastGlobalSnapshot.lexiconHighlightUnderline !==
-          nextGlobalSnapshot.lexiconHighlightUnderline ||
-        lastGlobalSnapshot.lexiconHighlightBackground !==
-          nextGlobalSnapshot.lexiconHighlightBackground ||
-        lastGlobalSnapshot.spellcheckEnabled !== nextGlobalSnapshot.spellcheckEnabled ||
-        lastGlobalSnapshot.spellcheckLanguages !== nextGlobalSnapshot.spellcheckLanguages ||
-        lastGlobalSnapshot.spellcheckIgnoreWords !== nextGlobalSnapshot.spellcheckIgnoreWords ||
-        lastGlobalSnapshot.spellcheckCustomEnabled !== nextGlobalSnapshot.spellcheckCustomEnabled;
+        !lastGlobalPayload ||
+        lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
+        lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
+        lastGlobalPayload.lexiconHighlightUnderline !==
+          nextGlobalPayload.lexiconHighlightUnderline ||
+        lastGlobalPayload.lexiconHighlightBackground !==
+          nextGlobalPayload.lexiconHighlightBackground ||
+        lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
+        lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
+        lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
+        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(
@@ -221,12 +217,12 @@ if (canUseLocalStorage()) {
             sessions: storeContext.getSessionsCache(),
             activeSessionKey: storeContext.getActiveSessionKey(),
           },
-          nextGlobalSnapshot,
+          nextGlobalPayload,
         );
       }
 
       if (globalChanged) {
-        lastGlobalSnapshot = nextGlobalSnapshot;
+        lastGlobalPayload = nextGlobalPayload;
       }
     },
   );
@@ -236,6 +232,10 @@ export const selectAudioAndSessionState = (state: TranscriptStore) => ({
   audioFile: state.audioFile,
   audioUrl: state.audioUrl,
   transcriptRef: state.transcriptRef,
+  sessionKey: state.sessionKey,
+  sessionKind: state.sessionKind,
+  sessionLabel: state.sessionLabel,
+  baseSessionKey: state.baseSessionKey,
   recentSessions: state.recentSessions,
   isWhisperXFormat: state.isWhisperXFormat,
   setAudioFile: state.setAudioFile,
@@ -243,6 +243,7 @@ export const selectAudioAndSessionState = (state: TranscriptStore) => ({
   setAudioReference: state.setAudioReference,
   activateSession: state.activateSession,
   loadTranscript: state.loadTranscript,
+  createRevision: state.createRevision,
 });
 
 export const selectPlaybackState = (state: TranscriptStore) => ({
@@ -309,5 +310,6 @@ export type {
   Speaker,
   SpellcheckCustomDictionary,
   SpellcheckLanguage,
+  SessionKind,
   Word,
 };

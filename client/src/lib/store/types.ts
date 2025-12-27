@@ -55,6 +55,9 @@ export interface PersistedSession {
   currentTime: number;
   isWhisperXFormat: boolean;
   updatedAt?: number;
+  kind?: SessionKind;
+  label?: string | null;
+  baseSessionKey?: string | null;
 }
 
 export interface PersistedSessionsState {
@@ -79,6 +82,9 @@ export interface RecentSessionSummary {
   audioName?: string;
   transcriptName?: string;
   updatedAt?: number;
+  kind: SessionKind;
+  label?: string | null;
+  baseSessionKey?: string | null;
 }
 
 export interface InitialStoreState {
@@ -87,6 +93,9 @@ export interface InitialStoreState {
   audioRef: FileReference | null;
   transcriptRef: FileReference | null;
   sessionKey: string;
+  sessionKind: SessionKind;
+  sessionLabel: string | null;
+  baseSessionKey: string | null;
   recentSessions: RecentSessionSummary[];
   segments: Segment[];
   speakers: Speaker[];
@@ -125,6 +134,8 @@ export interface SessionSlice {
   setAudioReference: (reference: FileReference | null) => void;
   setTranscriptReference: (reference: FileReference | null) => void;
   activateSession: (key: string) => void;
+  createRevision: (name: string, overwrite?: boolean) => string | null;
+  deleteSession: (key: string) => void;
 }
 
 export interface PlaybackSlice {
@@ -196,3 +207,5 @@ export interface SpellcheckSlice {
   ) => Promise<void>;
   removeSpellcheckCustomDictionary: (id: string) => Promise<void>;
 }
+
+export type SessionKind = "current" | "revision";

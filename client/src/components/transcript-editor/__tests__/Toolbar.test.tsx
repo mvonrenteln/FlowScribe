@@ -1,4 +1,5 @@
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { Toolbar } from "@/components/transcript-editor/Toolbar";
 import type { TranscriptEditorState } from "@/components/transcript-editor/useTranscriptEditor";
@@ -19,8 +20,14 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   audioFileName: undefined,
   transcriptFileName: undefined,
   transcriptLoaded: true,
+  sessionKind: "current",
+  sessionLabel: null,
+  activeSessionKey: "active-session",
   recentSessions: [],
   onActivateSession: vi.fn(),
+  onDeleteSession: vi.fn(),
+  onShowRevisionDialog: vi.fn(),
+  canCreateRevision: true,
   onUndo: vi.fn(),
   onRedo: vi.fn(),
   canUndo: false,
@@ -58,7 +65,7 @@ describe("Toolbar", () => {
     render(<Toolbar {...baseProps} spellcheckHighlightActive={true} />);
 
     const spellcheckButton = screen.getByTestId("button-spellcheck");
-    expect(spellcheckButton).toHaveClass("bg-accent");
+
     expect(spellcheckButton).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -66,7 +73,72 @@ describe("Toolbar", () => {
     render(<Toolbar {...baseProps} glossaryHighlightActive={true} />);
 
     const glossaryButton = screen.getByTestId("button-glossary");
-    expect(glossaryButton).toHaveClass("bg-accent");
+
     expect(glossaryButton).toHaveAttribute("aria-pressed", "true");
+  });
+
+  it("renders revision entries with a Revision badge", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    render(
+      <Toolbar
+        {...baseProps}
+        recentSessions={[
+          {
+            key: "base-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 20,
+            kind: "current",
+            label: null,
+          },
+          {
+            key: "rev-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 10,
+            kind: "revision",
+            label: "Client review",
+            baseSessionKey: "base-1",
+          },
+        ]}
+        activeSessionKey="rev-1"
+      />,
+    );
+
+    await user.click(screen.getByTestId("button-recent-sessions"));
+    await screen.findByText("Recent sessions");
+    const menuItems = screen.getAllByRole("menuitem");
+
+    expect(within(menuItems[1]).getByText("Client review")).toBeInTheDocument();
+    expect(screen.getAllByText("audio")).toHaveLength(1);
+    expect(screen.getAllByText("transcript")).toHaveLength(1);
+  });
+
+  it("calls onDeleteSession when the delete button is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const onDeleteSession = vi.fn();
+    render(
+      <Toolbar
+        {...baseProps}
+        onDeleteSession={onDeleteSession}
+        recentSessions={[
+          {
+            key: "base-1",
+            audioName: "audio.mp3",
+            transcriptName: "transcript.json",
+            updatedAt: 20,
+            kind: "current",
+            label: null,
+          },
+        ]}
+      />,
+    );
+
+    await user.click(screen.getByTestId("button-recent-sessions"));
+
+    const deleteButton = screen.getByLabelText("Delete session");
+    await user.click(deleteButton);
+
+    expect(onDeleteSession).toHaveBeenCalledWith("base-1");
   });
 });

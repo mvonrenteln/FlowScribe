@@ -1,12 +1,44 @@
 import type { StoreApi } from "zustand";
 import { buildSessionKey, isSameFileReference } from "@/lib/fileReference";
+import { buildRecentSessions } from "@/lib/storage";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
-import type { Segment, SessionSlice, TranscriptStore } from "../types";
+import type {
+  PersistedSession,
+  Segment,
+  SessionKind,
+  SessionSlice,
+  TranscriptStore,
+} from "../types";
+import { buildGlobalStatePayload } from "../utils/globalState";
 import { generateId } from "../utils/id";
+import { buildRevisionKey, cloneSessionForRevision } from "../utils/session";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const getSessionKind = (session?: PersistedSession, fallback?: SessionKind) =>
+  session?.kind ?? fallback ?? "current";
+
+const getSessionLabel = (session?: PersistedSession, fallback?: string | null) =>
+  session?.label ?? fallback ?? null;
+
+const getBaseSessionKey = (session?: PersistedSession, fallback?: string | null) =>
+  session?.baseSessionKey ?? fallback ?? null;
+
+const buildPersistedSession = (state: TranscriptStore): PersistedSession => ({
+  audioRef: state.audioRef,
+  transcriptRef: state.transcriptRef,
+  segments: state.segments,
+  speakers: state.speakers,
+  selectedSegmentId: state.selectedSegmentId,
+  currentTime: state.currentTime,
+  isWhisperXFormat: state.isWhisperXFormat,
+  updatedAt: Date.now(),
+  kind: state.sessionKind,
+  label: state.sessionLabel,
+  baseSessionKey: state.baseSessionKey,
+});
 
 export const createSessionSlice = (
   set: StoreSetter,
@@ -27,17 +59,18 @@ export const createSessionSlice = (
       context.setSessionsCache({
         ...context.getSessionsCache(),
         [sessionKey]: {
+          ...buildPersistedSession(state),
           audioRef: reference,
-          transcriptRef: state.transcriptRef,
-          segments: state.segments,
-          speakers: state.speakers,
-          selectedSegmentId: state.selectedSegmentId,
-          currentTime: state.currentTime,
-          isWhisperXFormat: state.isWhisperXFormat,
-          updatedAt: Date.now(),
+          baseSessionKey: state.baseSessionKey,
         },
       });
     }
+    const sessionKind = getSessionKind(session, state.sessionKind);
+    const sessionLabel = getSessionLabel(
+      session,
+      state.sessionLabel ?? state.transcriptRef?.name ?? null,
+    );
+    const baseSessionKey = getBaseSessionKey(session, state.baseSessionKey);
     const selectedSegmentId =
       session?.selectedSegmentId &&
       session.segments.some((segment) => segment.id === session.selectedSegmentId)
@@ -49,6 +82,9 @@ export const createSessionSlice = (
       audioRef: reference,
       transcriptRef: state.transcriptRef,
       sessionKey,
+      sessionKind,
+      sessionLabel,
+      baseSessionKey,
       segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
       selectedSegmentId,
@@ -78,17 +114,18 @@ export const createSessionSlice = (
       context.setSessionsCache({
         ...context.getSessionsCache(),
         [sessionKey]: {
-          audioRef: state.audioRef,
+          ...buildPersistedSession(state),
           transcriptRef: reference,
-          segments: state.segments,
-          speakers: state.speakers,
-          selectedSegmentId: state.selectedSegmentId,
-          currentTime: state.currentTime,
-          isWhisperXFormat: state.isWhisperXFormat,
-          updatedAt: Date.now(),
+          baseSessionKey: state.baseSessionKey,
         },
       });
     }
+    const sessionKind = getSessionKind(session, state.sessionKind);
+    const sessionLabel = getSessionLabel(
+      session,
+      state.sessionLabel ?? reference?.name ?? state.transcriptRef?.name ?? null,
+    );
+    const baseSessionKey = getBaseSessionKey(session, state.baseSessionKey);
     const selectedSegmentId =
       session?.selectedSegmentId &&
       session.segments.some((segment) => segment.id === session.selectedSegmentId)
@@ -100,6 +137,9 @@ export const createSessionSlice = (
       audioRef: state.audioRef,
       transcriptRef: reference,
       sessionKey,
+      sessionKind,
+      sessionLabel,
+      baseSessionKey,
       segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
       selectedSegmentId,
@@ -133,6 +173,9 @@ export const createSessionSlice = (
       audioRef: session.audioRef,
       transcriptRef: session.transcriptRef,
       sessionKey: key,
+      sessionKind: session.kind ?? "current",
+      sessionLabel: session.label ?? null,
+      baseSessionKey: session.baseSessionKey ?? null,
       segments: session.segments,
       speakers: session.speakers,
       selectedSegmentId,
@@ -150,6 +193,72 @@ export const createSessionSlice = (
       audioUrl: shouldClearAudio ? null : state.audioUrl,
       seekRequestTime: null,
     });
+  },
+  createRevision: (name, overwrite) => {
+    const trimmedName = name.trim();
+    if (!trimmedName) return null;
+    const state = get();
+    const sessions = context.getSessionsCache();
+
+    let revisionKey = buildRevisionKey(state.sessionKey);
+
+    if (overwrite) {
+      // Find existing revision with this name for the current base session
+      const existingEntry = Object.entries(sessions).find(([_key, session]) => {
+        return (
+          session.kind === "revision" &&
+          session.baseSessionKey === state.sessionKey &&
+          session.label === trimmedName
+        );
+      });
+      if (existingEntry) {
+        revisionKey = existingEntry[0];
+      }
+    }
+
+    const revisionClone = cloneSessionForRevision({
+      ...buildPersistedSession(state),
+      kind: "revision",
+      label: trimmedName,
+      baseSessionKey: state.sessionKey,
+      updatedAt: Date.now(),
+    });
+
+    const nextSessions = {
+      ...sessions,
+      [revisionKey]: revisionClone,
+    };
+    context.setSessionsCache(nextSessions);
+    const recentSessions = buildRecentSessions(nextSessions);
+    context.setLastRecentSerialized(JSON.stringify(recentSessions));
+    set({ recentSessions });
+    context.persist(
+      { sessions: nextSessions, activeSessionKey: context.getActiveSessionKey() },
+      buildGlobalStatePayload(get()),
+    );
+    return revisionKey;
+  },
+  deleteSession: (key) => {
+    const sessions = context.getSessionsCache();
+    if (!sessions[key]) return;
+
+    const nextSessions = { ...sessions };
+    delete nextSessions[key];
+
+    const activeKey = context.getActiveSessionKey();
+    const nextActiveKey = activeKey === key ? null : activeKey;
+    if (activeKey === key) {
+      context.setActiveSessionKey(null);
+    }
+
+    context.setSessionsCache(nextSessions);
+    const recentSessions = buildRecentSessions(nextSessions);
+    context.setLastRecentSerialized(JSON.stringify(recentSessions));
+    set({ recentSessions });
+    context.persist(
+      { sessions: nextSessions, activeSessionKey: nextActiveKey },
+      buildGlobalStatePayload(get()),
+    );
   },
 });
 
