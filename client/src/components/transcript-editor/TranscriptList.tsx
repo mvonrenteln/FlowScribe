@@ -27,6 +27,8 @@ export function TranscriptList({
   onIgnoreSpellcheckMatch,
   onAddSpellcheckToGlossary,
   emptyState,
+  searchQuery,
+  isRegexSearch,
 }: TranscriptListProps) {
   return (
     <ScrollArea className="flex-1">
@@ -72,6 +74,8 @@ export function TranscriptList({
                 onMergeWithNext={handlers.onMergeWithNext}
                 onDelete={handlers.onDelete}
                 onSeek={onSeek}
+                searchQuery={searchQuery}
+                isRegexSearch={isRegexSearch}
               />
             );
           })

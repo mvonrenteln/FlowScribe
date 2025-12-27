@@ -1,4 +1,4 @@
-import { Check, Edit2, Merge, Plus, X } from "lucide-react";
+import { Check, Code, Edit2, Merge, Plus, Search, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -39,6 +39,10 @@ interface SpeakerSidebarProps {
   spellcheckMatchCount?: number;
   spellcheckMatchLimitReached?: boolean;
   spellcheckEnabled?: boolean;
+  searchQuery?: string;
+  onSearchQueryChange?: (value: string) => void;
+  isRegexSearch?: boolean;
+  onToggleRegexSearch?: () => void;
 }
 
 export function SpeakerSidebar({
@@ -67,6 +71,10 @@ export function SpeakerSidebar({
   spellcheckMatchCount = 0,
   spellcheckMatchLimitReached = false,
   spellcheckEnabled = false,
+  searchQuery = "",
+  onSearchQueryChange,
+  isRegexSearch = false,
+  onToggleRegexSearch,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -97,10 +105,10 @@ export function SpeakerSidebar({
     lowConfidenceThreshold === null
       ? 0
       : segments.filter((segment) =>
-          segment.words.some(
-            (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
-          ),
-        ).length;
+        segment.words.some(
+          (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
+        ),
+      ).length;
   const bookmarkCount = segments.filter((segment) => segment.bookmarked).length;
   const spellcheckCount = spellcheckMatchCount ?? 0;
   const spellcheckCountLabel = spellcheckMatchLimitReached ? "1000+" : `${spellcheckCount}`;
@@ -142,15 +150,80 @@ export function SpeakerSidebar({
     }
   };
 
+  // Debounce search input to prevent filtering on every keystroke
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchQuery !== searchQuery) {
+        onSearchQueryChange?.(localSearchQuery);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [localSearchQuery, searchQuery, onSearchQueryChange]);
+
+  const isValidRegex = (query: string) => {
+    if (!query) return true;
+    try {
+      new RegExp(query);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const regexValid = !isRegexSearch || isValidRegex(localSearchQuery);
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Speakers</h2>
+          <h2 className="text-sm font-semibold">Transcript Filter</h2>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {speakers.length} speaker{speakers.length !== 1 ? "s" : ""} detected
-        </p>
+
+        <div className="relative group/search">
+          <div className="absolute left-2.5 top-2.5 text-muted-foreground transition-colors group-focus-within/search:text-foreground">
+            <Search className="h-4 w-4" />
+          </div>
+          <Input
+            value={localSearchQuery}
+            onChange={(e) => setLocalSearchQuery(e.target.value)}
+            placeholder={isRegexSearch ? "Regex search..." : "Search transcript..."}
+            className={cn(
+              "pl-9 pr-14 h-9 text-sm",
+              !regexValid && "border-destructive focus-visible:ring-destructive",
+            )}
+            data-testid="input-search-transcript"
+          />
+          <div className="absolute right-1 top-1 flex items-center gap-0.5">
+            {searchQuery && (
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                onClick={() => onSearchQueryChange?.("")}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+            <Button
+              size="icon"
+              variant={isRegexSearch ? "secondary" : "ghost"}
+              className={cn(
+                "h-7 w-7 transition-colors",
+                isRegexSearch ? "text-primary" : "text-muted-foreground hover:text-foreground",
+              )}
+              onClick={() => onToggleRegexSearch?.()}
+              title="Toggle Regex Search"
+            >
+              <Code className="h-3.5 w-3.5" />
+            </Button>
+          </div>
+        </div>
       </div>
 
       <ScrollArea className="flex-1">
@@ -351,8 +424,8 @@ export function SpeakerSidebar({
                 "hover-elevate",
                 spellcheckFilterActive && "bg-accent",
                 (!spellcheckEnabled || spellcheckCount === 0) &&
-                  !spellcheckFilterActive &&
-                  "opacity-50 cursor-not-allowed",
+                !spellcheckFilterActive &&
+                "opacity-50 cursor-not-allowed",
               )}
               onClick={() => {
                 if (!spellcheckEnabled) return;
@@ -388,8 +461,8 @@ export function SpeakerSidebar({
                 "hover-elevate",
                 lexiconLowScoreFilterActive && "bg-accent",
                 lexiconLowScoreMatchCount === 0 &&
-                  !lexiconLowScoreFilterActive &&
-                  "opacity-50 cursor-not-allowed",
+                !lexiconLowScoreFilterActive &&
+                "opacity-50 cursor-not-allowed",
               )}
               onClick={() => {
                 if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;

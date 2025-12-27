@@ -57,6 +57,8 @@ interface TranscriptSegmentProps {
   readonly onMergeWithNext?: () => void;
   readonly onDelete: () => void;
   readonly onSeek: (time: number) => void;
+  readonly searchQuery?: string;
+  readonly isRegexSearch?: boolean;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -97,6 +99,8 @@ function TranscriptSegmentComponent({
   onMergeWithNext,
   onDelete,
   onSeek,
+  searchQuery,
+  isRegexSearch,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -403,6 +407,8 @@ function TranscriptSegmentComponent({
                   onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
                   onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
                   getHyphenTarget={getHyphenTarget}
+                  searchQuery={searchQuery}
+                  isRegexSearch={isRegexSearch}
                 />
               ))}
             </div>
@@ -553,7 +559,9 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&
     prev.onDelete === next.onDelete &&
-    prev.onSeek === next.onSeek
+    prev.onSeek === next.onSeek &&
+    prev.searchQuery === next.searchQuery &&
+    prev.isRegexSearch === next.isRegexSearch
   );
 };
 

@@ -38,6 +38,10 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         onToggleSpellcheckFilter={props.onToggleSpellcheckFilter}
         spellcheckEnabled={props.spellcheckEnabled}
         spellcheckMatchLimitReached={props.spellcheckMatchLimitReached}
+        searchQuery={props.searchQuery}
+        onSearchQueryChange={props.onSearchQueryChange}
+        isRegexSearch={props.isRegexSearch}
+        onToggleRegexSearch={props.onToggleRegexSearch}
       />
     </aside>
   );

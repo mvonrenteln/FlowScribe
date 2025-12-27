@@ -53,6 +53,8 @@ export function useFiltersAndLexicon({
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
   const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isRegexSearch, setIsRegexSearch] = useState(false);
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
@@ -96,6 +98,21 @@ export function useFiltersAndLexicon({
     (spellcheckEnabled || filterSpellcheck) && !(filterLexicon || filterLexiconLowScore);
 
   const filteredSegments = useMemo(() => {
+    let regex: RegExp | null = null;
+    if (searchQuery.trim()) {
+      try {
+        if (isRegexSearch) {
+          regex = new RegExp(searchQuery, "i");
+        }
+      } catch (e) {
+        // Invalid regex, will handle via return false or similar if we wanted,
+        // but for now we'll just not filter by regex if it's invalid
+        console.warn("Invalid regex search query", e);
+      }
+    }
+
+    const searchLower = searchQuery.toLowerCase().trim();
+
     return segments.filter((segment) => {
       if (activeSpeakerName && segment.speaker !== activeSpeakerName) {
         return false;
@@ -122,6 +139,44 @@ export function useFiltersAndLexicon({
       if (filterSpellcheck) {
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
+
+      if (searchLower) {
+        // Normalize for robust search (NFC)
+        const textNormalized = segment.text.normalize("NFC").toLowerCase();
+
+        if (isRegexSearch) {
+          if (regex && !regex.test(segment.text)) {
+            // Fallback: check normalized text for regex too (?) - probably not for regex, keep raw
+            // But actually, regex search on raw text is usually expected.
+            // However, let's also check the words array joined, just in case segment.text is desynced
+            const wordsText = segment.words.map((w) => w.word).join(" ");
+            if (!regex.test(wordsText)) {
+              return false;
+            }
+          }
+          if (!regex) return true;
+        } else {
+          // Normal text search
+          const searchNormalized = searchLower.normalize("NFC");
+
+          const textMatch = textNormalized.includes(searchNormalized);
+
+          // Also check reconstruction from words to handle potential syncing issues or extra spacing
+          // We join with space, but also could check words individually if query has no spaces
+          let wordsMatch = false;
+          const wordsTextNormalized = segment.words
+            .map((w) => w.word)
+            .join(" ")
+            .normalize("NFC")
+            .toLowerCase();
+          wordsMatch = wordsTextNormalized.includes(searchNormalized);
+
+          if (!textMatch && !wordsMatch) {
+            return false;
+          }
+        }
+      }
+
       return true;
     });
   }, [
@@ -135,6 +190,8 @@ export function useFiltersAndLexicon({
     lowConfidenceThreshold,
     segments,
     spellcheckMatchesBySegment,
+    searchQuery,
+    isRegexSearch,
   ]);
 
   useEffect(() => {
@@ -150,6 +207,8 @@ export function useFiltersAndLexicon({
     setFilterLexicon(false);
     setFilterLexiconLowScore(false);
     setFilterSpellcheck(false);
+    setSearchQuery("");
+    setIsRegexSearch(false);
   }, []);
 
   return {
@@ -180,6 +239,10 @@ export function useFiltersAndLexicon({
     effectiveLexiconHighlightBackground,
     filteredSegments,
     clearFilters,
+    searchQuery,
+    setSearchQuery,
+    isRegexSearch,
+    setIsRegexSearch,
   };
 }
 

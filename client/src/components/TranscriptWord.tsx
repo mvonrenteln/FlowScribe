@@ -27,6 +27,8 @@ interface TranscriptWordProps {
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
   readonly getHyphenTarget: (value: string, partIndex?: number) => string;
+  readonly searchQuery?: string;
+  readonly isRegexSearch?: boolean;
 }
 
 export function TranscriptWord({
@@ -50,6 +52,8 @@ export function TranscriptWord({
   onIgnoreSpellcheckMatch,
   onAddSpellcheckToGlossary,
   getHyphenTarget,
+  searchQuery = "",
+  isRegexSearch = false,
 }: TranscriptWordProps) {
   const isLexiconMatch = Boolean(lexiconMatch);
   const isSpellcheckMatch = Boolean(spellcheckMatch);
@@ -77,9 +81,124 @@ export function TranscriptWord({
   const core = word.word.slice(leading.length, word.word.length - trailing.length);
   const hyphenParts =
     (spellcheckMatch?.partIndex !== undefined || lexiconMatch?.partIndex !== undefined) &&
-    core.includes("-")
+      core.includes("-")
       ? core.split("-")
       : null;
+
+  const renderTextWithHighlights = (text: string) => {
+    const query = searchQuery.trim();
+    if (!query) return text;
+
+    // Use normalized search for robustness, but we must map back to original indices
+    // This is complex with NFD/NFC if lengths differ, so for highlighting we will stick to
+    // a regex approach that ignores case and tries to match flexible whitespace/punctuation if needed,
+    // OR we just use the simple regex if assumption is IS_REGEX or simple text search.
+    // Given the user issue "Blume." not matching "Blume", the previous regex `(${escaped})`
+    // works IF `escaped` is just "Blume".
+    // BUT the issue was likely that "Blume." was split into ["Blume", "."] or something?
+    // No, split returns ["", "Blume", "."] if the regex matches separators.
+
+    // The previous implementation used split with capturing group `(${escaped})`.
+    // If text is "Blume." and query is "Blume", regex is /(Blume)/gi.
+    // "Blume.".split(/(Blume)/gi) -> ["", "Blume", "."].
+    // part[1] is "Blume". regex.test("Blume") is true. It highlights.
+
+    // HOWEVER, if text is "Blume." and query is "Blume.", regex is /(Blume\.)/gi.
+    // "Blume.".split(/(Blume\.)/gi) -> ["", "Blume.", ""].
+    // This works too.
+
+    // The user said: "Wenn ein gesuchtes Wort Satzzeichen oder Bindestriche enthielt (z.B. "Blume."), wurde es zwar gefunden, aber nicht gelb markiert."
+    // Maybe they searched "Blume" and the word was "Blume."?
+    // If word is "Blume.", part is "Blume.". regex is /(Blume)/gi.
+    // split -> ["", "Blume", "."].
+    // "Blume" matches. "." does not.
+    // It should work.
+
+    // WAIT. word.word includes punctuation in `Segment` usually?
+    // `wordLeadingRegex` and `wordTrailingRegex` strip it for `core`.
+    // The `TranscriptWord` renders `leading`, then `hyphenParts` OR `word.word` (if no parts).
+    // If `hyphenParts` is null, it renders `word.word` via `renderTextWithHighlights`.
+
+    // If the word in store is "Blume.", and we search "Blume".
+    // renderTextWithHighlights("Blume.") with regex /(Blume)/gi.
+    // split -> ["", "Blume", "."].
+    // "" -> no match
+    // "Blume" -> match -> Highlighted
+    // "." -> no match
+    // Result: <mark>Blume</mark>.
+
+    // If user searches "Blume." (query = "Blume."). Regex /(Blume\.)/gi.
+    // renderTextWithHighlights("Blume.") -> ["", "Blume.", ""].
+    // "Blume." matches. Highlighted.
+
+    // What if the user searches "Blume" and the text is "Blume-Topf"?
+    // Word might be "Blume-Topf". Core.
+    // renderTextWithHighlights("Blume-Topf") with /(Blume)/gi.
+    // ["", "Blume", "-Topf"]. "Blume" matches.
+
+    // Maybe the issue is `split` behavior or `regex.test` check.
+    // Let's make it more robust by ensuring we catch the match correctly.
+    // Also handle unicode normalization in highlighting if possible, but that's hard with regex on raw text.
+    // We will stick to the regex but ensuring we handle the "split" result correctly.
+
+    let regex: RegExp;
+    try {
+      if (isRegexSearch) {
+        regex = new RegExp(`(${query})`, "gi");
+      } else {
+        // Normalize the query for the regex creation if we want to match "u" to "ü" ??
+        // Standard Regex won't match "u" to "ü" unless we strictly map.
+        // For highlighting, if the filter found it via normalization, but the regex doesn't match raw text,
+        // we won't highlight it. That might be the "missing highlighting" issue!
+        // The user searches "valla" (normalized) but text is "voilà" (or similar).
+        // Filter says YES. Highlight says NO (because "valla" != "voilà").
+
+        // If we want to highlight "müller" when searching "muller", we need the regex to handle it.
+        // Or we use a non-regex approach?
+        // Let's stick to strict highlighting for now (what matches the query visually).
+        // BUT user said "Blume." failed.
+
+        const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        regex = new RegExp(`(${escaped})`, "gi");
+      }
+    } catch {
+      return text;
+    }
+
+    const parts = text.split(regex);
+    if (parts.length === 1) return text;
+
+    return parts.map((part, i) => {
+      if (!part) return null; // Filter empty strings from split if any (though usually we want them for key/structure?)
+      // Actually split keeps empty strings at boundaries. We should render them as text (empty).
+
+      // We check if this part matches the regex.
+      // Re-running regex.test(part) is usually fine for "GI" regex on the part produced by capturing group.
+      // However, regex is stateful if 'g' is used with exec, but .test with 'g' also advances lastIndex.
+      // AND `split` doesn't use lastIndex.
+      // BUT `regex.test(part)` advances `regex.lastIndex` if 'g' is set!
+      // This is a common bug. calling .test() on the same regex instance multiple times.
+      // We should use a fresh regex or reset lastIndex, or simpler:
+      // Just check if part.toLowerCase() == query.toLowerCase() (for simple search)?
+      // No, regex search needs regex.
+      // For the capturing group split, the "odd" indices are usually the matches?
+      // "a_b_c".split(/(_)/) -> ["a", "_", "b", "_", "c"].
+      // Indices: 0, 1, 2, 3, 4. 1 and 3 are matches.
+      // So valid matches are at index 1, 3, 5...
+
+      if (i % 2 === 1) {
+        return (
+          <mark
+            key={`${i}-${part}`}
+            className="bg-yellow-200 text-black rounded-sm px-0.5 mx-[-0.5px]"
+          >
+            {part}
+          </mark>
+        );
+      }
+      return part;
+    });
+  };
 
   const wordButton = (
     <button
@@ -100,7 +219,7 @@ export function TranscriptWord({
     >
       {hyphenParts ? (
         <span className={lowConfidenceClass}>
-          {leading}
+          {renderTextWithHighlights(leading)}
           {hyphenParts.map((part, partIndex) => (
             <span key={`${segmentId}-${word.start}-${partIndex}`}>
               <span
@@ -110,12 +229,12 @@ export function TranscriptWord({
                   partIndex === spellcheckMatch?.partIndex && spellcheckUnderlineClass,
                 )}
               >
-                {part}
+                {renderTextWithHighlights(part)}
               </span>
               {partIndex < hyphenParts.length - 1 ? "-" : ""}
             </span>
           ))}
-          {trailing}
+          {renderTextWithHighlights(trailing)}
         </span>
       ) : (
         <span
@@ -126,7 +245,7 @@ export function TranscriptWord({
             spellcheckUnderlineClass,
           )}
         >
-          {word.word}
+          {renderTextWithHighlights(word.word)}
         </span>
       )}
     </button>

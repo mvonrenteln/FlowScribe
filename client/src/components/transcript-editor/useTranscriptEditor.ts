@@ -320,6 +320,10 @@ export const useTranscriptEditor = () => {
     effectiveLexiconHighlightBackground,
     filteredSegments,
     clearFilters,
+    searchQuery,
+    setSearchQuery,
+    isRegexSearch,
+    setIsRegexSearch,
   } = useFiltersAndLexicon({
     segments,
     speakers,
@@ -714,6 +718,10 @@ export const useTranscriptEditor = () => {
       onToggleSpellcheckFilter: () => setFilterSpellcheck((current) => !current),
       spellcheckEnabled,
       spellcheckMatchLimitReached,
+      searchQuery,
+      onSearchQueryChange: setSearchQuery,
+      isRegexSearch,
+      onToggleRegexSearch: () => setIsRegexSearch((current) => !current),
     }),
     [
       addSpeaker,
@@ -742,6 +750,10 @@ export const useTranscriptEditor = () => {
       spellcheckMatchCount,
       spellcheckMatchLimitReached,
       speakers,
+      searchQuery,
+      setSearchQuery,
+      isRegexSearch,
+      setIsRegexSearch,
     ],
   );
 
@@ -769,6 +781,8 @@ export const useTranscriptEditor = () => {
       onIgnoreSpellcheckMatch: addSpellcheckIgnoreWord,
       onAddSpellcheckToGlossary: addLexiconEntry,
       emptyState,
+      searchQuery,
+      isRegexSearch,
     }),
     [
       activeSegmentId,
@@ -792,6 +806,8 @@ export const useTranscriptEditor = () => {
       spellcheckMatchesBySegment,
       splitWordIndex,
       transcriptListRef,
+      searchQuery,
+      isRegexSearch,
     ],
   );
 

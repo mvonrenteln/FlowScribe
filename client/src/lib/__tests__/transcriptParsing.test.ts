@@ -46,4 +46,3 @@ describe("transcriptParsing", () => {
     expect(parsed?.segments[0]?.words[0]?.score).toBeUndefined();
   });
 });
-
