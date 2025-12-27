@@ -183,107 +183,113 @@ export function Toolbar({
                 </TooltipTrigger>
                 <TooltipContent>Recent sessions</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-72 p-1">
+              <DropdownMenuContent align="end" className="w-80 p-1">
                 <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
                   Recent sessions
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {recentSessions.length === 0 ? (
-                  <DropdownMenuItem disabled className="justify-center py-6 text-xs">
-                    No recent sessions
-                  </DropdownMenuItem>
+                    <DropdownMenuItem disabled className="justify-center py-6 text-xs">
+                      No recent sessions
+                    </DropdownMenuItem>
                 ) : (
-                  groupedSessions.slice(0, 8).map(({ base, revisions }) => {
-                    if (!base) return null;
-                    const isBaseActive = base.key === activeSessionKey;
+                    groupedSessions.slice(0, 8).map(({ base, revisions }) => {
+                      if (!base) return null;
+                      const isBaseActive = base.key === activeSessionKey;
 
-                    return (
-                      // mb-2 für Abstand zwischen Sessions, aber innerhalb einer Session ist es kompakt
-                      <div key={base.key} className="flex flex-col mb-2 last:mb-0">
-                        {/* Basis: Audio + Transkript */}
-                        <DropdownMenuItem
-                          onClick={() => onActivateSession(base.key)}
-                          className={cn(
-                            "group relative flex flex-col items-start p-2 cursor-pointer rounded-sm min-h-[44px]",
-                            isBaseActive && "bg-accent/50",
-                          )}
-                        >
-                          {/* Content-Container mit pr-12 damit Text nicht unter den Button rutscht */}
-                          <div className="flex flex-col w-full pr-12 gap-0.5">
-                            <div className="flex items-center gap-2 w-full pr-12">
-                              <AudioLines className="h-4 w-4 shrink-0 text-primary" />
-                              <span className="text-sm font-bold truncate">
-                                {base.audioName?.replace(".flac", "") || "Unknown Audio"}
-                                <span className="font-normal text-muted-foreground/40 ml-0.5">.flac</span>
-                              </span>
-                            </div>
-
-                            <div className="flex items-center gap-2 w-full pr-12 pl-0.5">
-                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                              <span className="text-xs font-medium text-muted-foreground truncate">
-                                {base.transcriptName?.replace(".json", "") || "Untitled"}
-                              </span>
-                              {isBaseActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary ml-2" />}
-                            </div>
-                          </div>
-
-                          {/* Löschen Button - Fest rechts fixiert */}
-                          <div className="absolute right-1 top-0 bottom-0 flex items-center">
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteSession(base.key);
-                              }}
-                            >
-                              <Trash2 className="h-4 w-4" />
-                            </Button>
-                          </div>
-                        </DropdownMenuItem>
-
-                        {/* Revisionen - Enger an die Basis gerückt */}
-                        <div className="flex flex-col mt-0">
-                          {revisions.map((revision) => {
-                            const isRevActive = revision.key === activeSessionKey;
-                            return (
-                              <DropdownMenuItem
-                                key={revision.key}
-                                onClick={() => onActivateSession(revision.key)}
+                      return (
+                          <div key={base.key} className="flex flex-col mb-1 last:mb-0">
+                            {/* Basis-Kombination */}
+                            <DropdownMenuItem
+                                onClick={() => onActivateSession(base.key)}
                                 className={cn(
-                                  "group relative flex items-center ml-7 mr-1 py-1 px-2 rounded-sm min-h-[28px] gap-2",
-                                  isRevActive && "bg-accent/30 text-accent-foreground"
+                                    "group relative flex flex-col items-start p-2 cursor-pointer rounded-md min-h-[48px] gap-0.5 pr-12",
+                                    isBaseActive && "bg-accent/50"
                                 )}
-                              >
-                                <Bookmark className="h-3 w-3 shrink-0 text-muted-foreground/40" />
-                                <span className="text-xs font-medium truncate flex-1">
-                                  {revision.label || "Snapshot"}
-                                </span>
-                                {isRevActive && (
-                                  <Check className="h-3 w-3 shrink-0 text-primary ml-2" />
-                                )}
+                            >
+                              {/* Audio Zeile */}
+                              <div className="flex items-center gap-2 w-full">
+                                <AudioLines className="h-4 w-4 shrink-0 text-primary" />
+                                <span className="text-sm font-bold truncate">
+                {base.audioName?.replace(".flac", "") || "Unknown Audio"}
+                                  <span className="font-normal text-muted-foreground/40 ml-0.5">.flac</span>
+              </span>
+                              </div>
 
-                                <div className="absolute right-1 top-0 bottom-0 flex items-center">
-                                  <Button
-                                    size="icon"
-                                    variant="ghost"
-                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      onDeleteSession(revision.key);
-                                    }}
-                                  >
-                                    <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </div>
-                              </DropdownMenuItem>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })
+                              {/* Transkript Zeile */}
+                              <div className="flex items-center gap-2 w-full pl-0.5">
+                                <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                                <span className="text-xs font-medium text-muted-foreground truncate">
+                {base.transcriptName?.replace(".json", "") || "Untitled"}
+              </span>
+                              </div>
+
+                              {/* Status-Bereich (Rechts mittig): Entweder Haken ODER Löschen */}
+                              <div className="absolute right-1 top-0 bottom-0 flex items-center justify-center w-10">
+                                {isBaseActive ? (
+                                    <Check className="h-4 w-4 text-primary" />
+                                ) : (
+                                    <Button
+                                        size="icon"
+                                        variant="ghost"
+                                        className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          onDeleteSession(base.key);
+                                        }}
+                                    >
+                                      <Trash2 className="h-4 w-4" />
+                                    </Button>
+                                )}
+                              </div>
+                            </DropdownMenuItem>
+
+                            {/* Revisionen */}
+                            <div className="flex flex-col mt-0">
+                              {revisions.map((revision) => {
+                                const isRevActive = revision.key === activeSessionKey;
+                                return (
+                                    <DropdownMenuItem
+                                        key={revision.key}
+                                        onClick={() => onActivateSession(revision.key)}
+                                        className={cn(
+                                            "group relative flex items-center ml-7 mr-1 py-1 px-2 rounded-sm cursor-pointer min-h-[28px] gap-2 pr-12",
+                                            isRevActive && "bg-accent/30 text-accent-foreground"
+                                        )}
+                                    >
+                                      <Bookmark className={cn(
+                                          "h-3 w-3 shrink-0",
+                                          isRevActive ? "text-primary" : "text-muted-foreground/40"
+                                      )} />
+                                      <span className="text-xs font-medium truncate flex-1">
+                    {revision.label || "Snapshot"}
+                  </span>
+
+                                      {/* Status-Bereich Revision: Entweder Haken ODER Löschen */}
+                                      <div className="absolute right-1 top-0 bottom-0 flex items-center justify-center w-10">
+                                        {isRevActive ? (
+                                            <Check className="h-3.5 w-3.5 text-primary/70" />
+                                        ) : (
+                                            <Button
+                                                size="icon"
+                                                variant="ghost"
+                                                className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                                onClick={(e) => {
+                                                  e.stopPropagation();
+                                                  onDeleteSession(revision.key);
+                                                }}
+                                            >
+                                              <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        )}
+                                      </div>
+                                    </DropdownMenuItem>
+                                );
+                              })}
+                            </div>
+                          </div>
+                      );
+                    })
                 )}
               </DropdownMenuContent>
             </DropdownMenu>
