@@ -211,14 +211,14 @@ export function Toolbar({
                           {/* Content-Container mit pr-8 damit Text nicht unter den Button rutscht */}
                           <div className="flex flex-col w-full pr-8 gap-0.5">
                             <div className="flex items-center gap-2 text-muted-foreground">
-                              <AudioLines className="h-3 w-3 shrink-0" />
+                              <AudioLines className={cn("h-3 w-3 shrink-0", isBaseActive ? "text-primary" : "text-muted-foreground")} />
                               <span className="text-[10px] font-medium truncate">
                                 {base.audioName || "Unknown Audio"}
                               </span>
                             </div>
 
                             <div className="flex items-center gap-2">
-                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
                               <span className="text-sm font-semibold truncate">
                                 {base.transcriptName?.replace(".json", "") || "Untitled"}
                               </span>
@@ -261,7 +261,7 @@ export function Toolbar({
                                   <Bookmark
                                     className={cn(
                                       "h-3 w-3 shrink-0",
-                                      isRevActive ? "text-primary" : "text-muted-foreground/50",
+                                      isRevActive ? "text-primary" : "text-muted-foreground",
                                     )}
                                   />
                                   <span className="text-xs font-medium truncate">
