@@ -204,7 +204,7 @@ export const createSessionSlice = (
 
     if (overwrite) {
       // Find existing revision with this name for the current base session
-      const existingEntry = Object.entries(sessions).find(([key, session]) => {
+      const existingEntry = Object.entries(sessions).find(([_key, session]) => {
         return (
           session.kind === "revision" &&
           session.baseSessionKey === state.sessionKey &&
