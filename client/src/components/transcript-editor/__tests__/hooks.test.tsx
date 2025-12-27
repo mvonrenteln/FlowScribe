@@ -25,6 +25,101 @@ describe("useFiltersAndLexicon", () => {
     },
   ];
 
+  it("treats glossary variants as uncertain matches", () => {
+    const segments: Segment[] = [
+      {
+        id: "segment-variant",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "bluebird",
+        words: [{ word: "bluebird", start: 0, end: 1 }],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [{ term: "hydrogen", variants: ["bluebird"], falsePositives: [] }],
+        lexiconThreshold: 0.9,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+      }),
+    );
+
+    const match = result.current.lexiconMatchesBySegment.get("segment-variant")?.get(0);
+    expect(match?.term).toBe("hydrogen");
+    expect(match?.score).toBeLessThan(1);
+    expect(result.current.lexiconLowScoreMatchCount).toBe(1);
+
+    act(() => result.current.setFilterLexiconLowScore(true));
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0]?.id).toBe("segment-variant");
+  });
+
+  it("matches glossary variants case-insensitively", () => {
+    const segments: Segment[] = [
+      {
+        id: "segment-variant-case",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "BLUEBIRD",
+        words: [{ word: "BLUEBIRD", start: 0, end: 1 }],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [{ term: "hydrogen", variants: ["bluebird"], falsePositives: [] }],
+        lexiconThreshold: 0.9,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+      }),
+    );
+
+    const match = result.current.lexiconMatchesBySegment.get("segment-variant-case")?.get(0);
+    expect(match?.term).toBe("hydrogen");
+    expect(result.current.lexiconLowScoreMatchCount).toBe(1);
+  });
+
+  it("matches glossary variants when punctuation trails the word", () => {
+    const segments: Segment[] = [
+      {
+        id: "segment-variant-punct",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "bluebird,",
+        words: [{ word: "bluebird,", start: 0, end: 1 }],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [{ term: "hydrogen", variants: ["bluebird"], falsePositives: [] }],
+        lexiconThreshold: 0.9,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+      }),
+    );
+
+    const match = result.current.lexiconMatchesBySegment.get("segment-variant-punct")?.get(0);
+    expect(match?.term).toBe("hydrogen");
+    expect(result.current.lexiconLowScoreMatchCount).toBe(1);
+  });
+
   it("returns lexicon matches and filters segments", () => {
     const spellcheckMatches = new Map<string, Map<number, unknown>>();
     const { result } = renderHook(() =>
