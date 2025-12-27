@@ -171,7 +171,10 @@ if (canUseLocalStorage()) {
           nextEntry.segments = state.segments;
           nextEntry.speakers = state.speakers;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
-          nextEntry.updatedAt = Date.now();
+          // Only update timestamp if content changed, not just on activation
+          if (baseChanged || !previous) {
+            nextEntry.updatedAt = Date.now();
+          }
           nextEntry.kind = state.sessionKind;
           nextEntry.label = state.sessionLabel;
           nextEntry.baseSessionKey = state.baseSessionKey;
