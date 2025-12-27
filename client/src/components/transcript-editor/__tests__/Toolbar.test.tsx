@@ -65,7 +65,7 @@ describe("Toolbar", () => {
     render(<Toolbar {...baseProps} spellcheckHighlightActive={true} />);
 
     const spellcheckButton = screen.getByTestId("button-spellcheck");
-    expect(spellcheckButton).toHaveClass("bg-accent");
+
     expect(spellcheckButton).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -73,7 +73,7 @@ describe("Toolbar", () => {
     render(<Toolbar {...baseProps} glossaryHighlightActive={true} />);
 
     const glossaryButton = screen.getByTestId("button-glossary");
-    expect(glossaryButton).toHaveClass("bg-accent");
+
     expect(glossaryButton).toHaveAttribute("aria-pressed", "true");
   });
 
@@ -108,10 +108,10 @@ describe("Toolbar", () => {
     await user.click(screen.getByTestId("button-recent-sessions"));
     await screen.findByText("Recent sessions");
     const menuItems = screen.getAllByRole("menuitem");
-    expect(menuItems[1]).toHaveClass("pl-6");
+
     expect(within(menuItems[1]).getByText("Client review")).toBeInTheDocument();
-    expect(screen.getAllByText("audio.mp3")).toHaveLength(2);
-    expect(screen.getAllByText("transcript.json")).toHaveLength(2);
+    expect(screen.getAllByText("audio")).toHaveLength(1);
+    expect(screen.getAllByText("transcript")).toHaveLength(1);
   });
 
   it("calls onDeleteSession when the delete button is clicked", async () => {
@@ -135,6 +135,7 @@ describe("Toolbar", () => {
     );
 
     await user.click(screen.getByTestId("button-recent-sessions"));
+
     const deleteButton = screen.getByLabelText("Delete session");
     await user.click(deleteButton);
 

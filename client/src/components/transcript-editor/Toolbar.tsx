@@ -236,6 +236,7 @@ export function Toolbar({
                                 size="icon"
                                 variant="ghost"
                                 className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                aria-label="Delete session"
                                 onClick={(e) => {
                                   e.stopPropagation();
                                   onDeleteSession(base.key);
@@ -279,6 +280,7 @@ export function Toolbar({
                                       size="icon"
                                       variant="ghost"
                                       className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                      aria-label="Delete revision"
                                       onClick={(e) => {
                                         e.stopPropagation();
                                         onDeleteSession(revision.key);

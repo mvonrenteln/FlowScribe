@@ -20,7 +20,7 @@ describe("RevisionDialog", () => {
       />,
     );
 
-    const saveButton = screen.getByRole("button", { name: "Save revision" });
+    const saveButton = screen.getByRole("button", { name: "Save Revision" });
 
     await user.click(saveButton);
     expect(onCreateRevision).not.toHaveBeenCalled();
@@ -29,7 +29,7 @@ describe("RevisionDialog", () => {
     await user.clear(screen.getByLabelText("Revision name"));
     await user.type(screen.getByLabelText("Revision name"), "  First pass  ");
     await user.click(saveButton);
-    expect(onCreateRevision).toHaveBeenCalledWith("First pass");
+    expect(onCreateRevision).toHaveBeenCalledWith("First pass", false);
   });
 
   it("disables saving when revisions cannot be created", () => {
@@ -45,7 +45,7 @@ describe("RevisionDialog", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: "Save revision" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Save Revision" })).toBeDisabled();
   });
 
   it("prompts for overwrite when name exists", async () => {
@@ -66,7 +66,7 @@ describe("RevisionDialog", () => {
 
     const input = screen.getByLabelText("Revision name");
     await user.type(input, "Existing Revision");
-    await user.click(screen.getByRole("button", { name: "Save revision" }));
+    await user.click(screen.getByRole("button", { name: "Save Revision" }));
 
     expect(onCreateRevision).not.toHaveBeenCalled();
     expect(screen.getByText("Overwrite existing revision?")).toBeInTheDocument();
