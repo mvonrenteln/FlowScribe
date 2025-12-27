@@ -1,9 +1,12 @@
 import {
+  AudioLines,
+  Bookmark,
   BookmarkPlus,
   BookOpenText,
   Check,
   Clock,
   Download,
+  FilePenLine,
   Keyboard,
   PanelLeft,
   PanelLeftClose,
@@ -14,7 +17,6 @@ import {
   Undo2,
 } from "lucide-react";
 import { useMemo } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -181,94 +183,112 @@ export function Toolbar({
                 </TooltipTrigger>
                 <TooltipContent>Recent sessions</TooltipContent>
               </Tooltip>
-              <DropdownMenuContent align="end" className="w-64">
-                <DropdownMenuLabel>Recent sessions</DropdownMenuLabel>
+              <DropdownMenuContent align="end" className="w-72 p-1">
+                <DropdownMenuLabel className="px-2 py-1.5 text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                  Recent sessions
+                </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {recentSessions.length === 0 ? (
-                  <DropdownMenuItem disabled>No recent sessions</DropdownMenuItem>
+                  <DropdownMenuItem disabled className="justify-center py-6 text-xs">
+                    No recent sessions
+                  </DropdownMenuItem>
                 ) : (
                   groupedSessions.slice(0, 8).map(({ base, revisions }) => {
                     if (!base) return null;
-                    const baseActive = base.key === activeSessionKey;
+                    const isBaseActive = base.key === activeSessionKey;
+
                     return (
-                      <div key={base.key} className="flex flex-col">
+                      // mb-2 für Abstand zwischen Sessions, aber innerhalb einer Session ist es kompakt
+                      <div key={base.key} className="flex flex-col mb-2 last:mb-0">
+                        {/* Basis: Audio + Transkript */}
                         <DropdownMenuItem
                           onClick={() => onActivateSession(base.key)}
                           className={cn(
-                            "flex flex-col items-start gap-1 group relative pr-8",
-                            baseActive && "bg-accent/40",
+                            "group relative flex flex-col items-start p-2 cursor-pointer rounded-sm min-h-[44px]",
+                            isBaseActive && "bg-accent/50",
                           )}
-                          aria-current={baseActive ? "true" : undefined}
                         >
-                          <div className="flex w-full items-center gap-2">
-                            <span className="text-xs text-muted-foreground">
-                              {base.audioName || "Unknown audio"}
-                            </span>
-                            {baseActive ? (
-                              <Check className="h-3 w-3 text-muted-foreground" />
-                            ) : null}
-                          </div>
-                          <div className="flex items-center gap-2 w-full">
-                            <span className="text-sm font-medium">
-                              {base.transcriptName || "Untitled transcript"}
-                            </span>
-                          </div>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onDeleteSession(base.key);
-                            }}
-                            aria-label="Delete session"
-                          >
-                            <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                          </Button>
-                        </DropdownMenuItem>
-                        {revisions.map((revision) => {
-                          const isActive = revision.key === activeSessionKey;
-                          return (
-                            <DropdownMenuItem
-                              key={revision.key}
-                              onClick={() => onActivateSession(revision.key)}
-                              className={cn(
-                                "flex flex-col items-start gap-1 pl-6 group relative pr-8",
-                                isActive && "bg-accent/40",
+                          {/* Content-Container mit pr-8 damit Text nicht unter den Button rutscht */}
+                          <div className="flex flex-col w-full pr-8 gap-0.5">
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <AudioLines className="h-3 w-3 shrink-0" />
+                              <span className="text-[10px] font-medium truncate">
+                                {base.audioName || "Unknown Audio"}
+                              </span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-primary/70" />
+                              <span className="text-sm font-semibold truncate">
+                                {base.transcriptName?.replace(".json", "") || "Untitled"}
+                              </span>
+                              {isBaseActive && (
+                                <Check className="h-3.5 w-3.5 shrink-0 text-primary ml-1" />
                               )}
-                              aria-current={isActive ? "true" : undefined}
+                            </div>
+                          </div>
+
+                          {/* Löschen Button - Fest rechts fixiert */}
+                          <div className="absolute right-1 top-0 bottom-0 flex items-center">
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteSession(base.key);
+                              }}
                             >
-                              <div className="flex w-full items-center gap-2">
-                                <span className="text-xs text-muted-foreground">
-                                  {revision.audioName || "Unknown audio"}
-                                </span>
-                                {isActive ? (
-                                  <Check className="h-3 w-3 text-muted-foreground" />
-                                ) : null}
-                              </div>
-                              <div className="flex items-center gap-2 w-full">
-                                <span className="text-sm font-medium">
-                                  {revision.transcriptName || "Untitled transcript"}
-                                </span>
-                                {revision.label ? (
-                                  <Badge variant="secondary">{revision.label}</Badge>
-                                ) : null}
-                              </div>
-                              <Button
-                                size="icon"
-                                variant="ghost"
-                                className="absolute right-1 top-1/2 -translate-y-1/2 h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onDeleteSession(revision.key);
-                                }}
-                                aria-label="Delete revision"
+                              <Trash2 className="h-3.5 w-3.5" />
+                            </Button>
+                          </div>
+                        </DropdownMenuItem>
+
+                        {/* Revisionen - Enger an die Basis gerückt */}
+                        <div className="flex flex-col mt-0.5">
+                          {revisions.map((revision) => {
+                            const isRevActive = revision.key === activeSessionKey;
+                            return (
+                              <DropdownMenuItem
+                                key={revision.key}
+                                onClick={() => onActivateSession(revision.key)}
+                                className={cn(
+                                  "group relative flex items-center ml-6 py-1 px-2 rounded-sm cursor-pointer min-h-[28px]",
+                                  isRevActive && "bg-accent/40",
+                                )}
                               >
-                                <Trash2 className="h-3 w-3 text-muted-foreground hover:text-destructive" />
-                              </Button>
-                            </DropdownMenuItem>
-                          );
-                        })}
+                                <div className="flex items-center gap-2 flex-1 pr-8 truncate">
+                                  <Bookmark
+                                    className={cn(
+                                      "h-3 w-3 shrink-0",
+                                      isRevActive ? "text-primary" : "text-muted-foreground/50",
+                                    )}
+                                  />
+                                  <span className="text-xs font-medium truncate">
+                                    {revision.label || "Snapshot"}
+                                  </span>
+                                  {isRevActive && (
+                                    <Check className="h-3 w-3 shrink-0 text-primary/70 ml-1" />
+                                  )}
+                                </div>
+
+                                <div className="absolute right-1 top-0 bottom-0 flex items-center">
+                                  <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      onDeleteSession(revision.key);
+                                    }}
+                                  >
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </div>
+                              </DropdownMenuItem>
+                            );
+                          })}
+                        </div>
                       </div>
                     );
                   })

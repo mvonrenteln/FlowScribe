@@ -819,16 +819,18 @@ export const useTranscriptEditor = () => {
         .filter(
           (s) =>
             s.kind === "revision" &&
-            (s.baseSessionKey === sessionKey || s.key === sessionKey || s.baseSessionKey === useTranscriptStore.getState().baseSessionKey),
+            (s.baseSessionKey === sessionKey ||
+              s.key === sessionKey ||
+              s.baseSessionKey === useTranscriptStore.getState().baseSessionKey),
         )
         .map((s) => s.label)
         .filter((l): l is string => l !== null),
       defaultRevisionName:
         sessionKind === "revision"
-          ? sessionLabel ?? undefined
-          : recentSessions
+          ? (sessionLabel ?? undefined)
+          : (recentSessions
               .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
-              .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined,
+              .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
     }),
     [
       audioFile?.name,
