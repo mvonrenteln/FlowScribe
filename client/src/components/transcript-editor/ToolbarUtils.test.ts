@@ -19,7 +19,7 @@ describe("ToolbarUtils", () => {
       expect(getFileNameWithoutExtension("test.v1.mp3")).toBe("test.v1");
     });
 
-    it('should return an empty string if the name is just an extension', () => {
+    it("should return an empty string if the name is just an extension", () => {
       expect(getFileNameWithoutExtension(".mp3")).toBe("");
     });
 
@@ -41,7 +41,7 @@ describe("ToolbarUtils", () => {
       expect(getFileExtension("test.v1.mp3")).toBe(".mp3");
     });
 
-    it('should return the extension if the name is just an extension', () => {
+    it("should return the extension if the name is just an extension", () => {
       expect(getFileExtension(".mp3")).toBe(".mp3");
     });
 
@@ -65,11 +65,8 @@ describe("ToolbarUtils", () => {
       expect(formatTranscriptName("test.json")).toBe("test");
     });
 
-
-
     it("should return 'Untitled transcript' for undefined input", () => {
       expect(formatTranscriptName(undefined)).toBe("Untitled transcript");
     });
   });
 });
-
