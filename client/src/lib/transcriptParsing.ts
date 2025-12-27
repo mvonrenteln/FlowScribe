@@ -9,6 +9,7 @@ export interface WhisperXWord {
   word: string;
   start: number;
   end: number;
+  score?: number;
 }
 
 export interface WhisperXSegment {
@@ -72,6 +73,7 @@ export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] })
         word: word.word,
         start: word.start,
         end: word.end,
+        score: typeof word.score === "number" ? word.score : undefined,
       })) || buildWordsFromText(segment.text.trim(), segment.start, segment.end),
   }));
 };
