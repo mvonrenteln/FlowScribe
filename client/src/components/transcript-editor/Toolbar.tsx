@@ -208,23 +208,22 @@ export function Toolbar({
                             isBaseActive && "bg-accent/50",
                           )}
                         >
-                          {/* Content-Container mit pr-8 damit Text nicht unter den Button rutscht */}
-                          <div className="flex flex-col w-full pr-8 gap-0.5">
-                            <div className="flex items-center gap-2 text-muted-foreground">
-                              <AudioLines className={cn("h-3 w-3 shrink-0", isBaseActive ? "text-primary" : "text-muted-foreground")} />
-                              <span className="text-[10px] font-medium truncate">
-                                {base.audioName || "Unknown Audio"}
+                          {/* Content-Container mit pr-12 damit Text nicht unter den Button rutscht */}
+                          <div className="flex flex-col w-full pr-12 gap-0.5">
+                            <div className="flex items-center gap-2 w-full pr-12">
+                              <AudioLines className="h-4 w-4 shrink-0 text-primary" />
+                              <span className="text-sm font-bold truncate">
+                                {base.audioName?.replace(".flac", "") || "Unknown Audio"}
+                                <span className="font-normal text-muted-foreground/40 ml-0.5">.flac</span>
                               </span>
                             </div>
 
-                            <div className="flex items-center gap-2">
-                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground" />
-                              <span className="text-sm font-semibold truncate">
+                            <div className="flex items-center gap-2 w-full pr-12 pl-0.5">
+                              <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
+                              <span className="text-xs font-medium text-muted-foreground truncate">
                                 {base.transcriptName?.replace(".json", "") || "Untitled"}
                               </span>
-                              {isBaseActive && (
-                                <Check className="h-3.5 w-3.5 shrink-0 text-primary ml-1" />
-                              )}
+                              {isBaseActive && <Check className="h-3.5 w-3.5 shrink-0 text-primary ml-2" />}
                             </div>
                           </div>
 
@@ -233,19 +232,19 @@ export function Toolbar({
                             <Button
                               size="icon"
                               variant="ghost"
-                              className="h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                              className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
                               onClick={(e) => {
                                 e.stopPropagation();
                                 onDeleteSession(base.key);
                               }}
                             >
-                              <Trash2 className="h-3.5 w-3.5" />
+                              <Trash2 className="h-4 w-4" />
                             </Button>
                           </div>
                         </DropdownMenuItem>
 
                         {/* Revisionen - Enger an die Basis gerückt */}
-                        <div className="flex flex-col mt-0.5">
+                        <div className="flex flex-col mt-0">
                           {revisions.map((revision) => {
                             const isRevActive = revision.key === activeSessionKey;
                             return (
@@ -253,36 +252,29 @@ export function Toolbar({
                                 key={revision.key}
                                 onClick={() => onActivateSession(revision.key)}
                                 className={cn(
-                                  "group relative flex items-center ml-6 py-1 px-2 rounded-sm cursor-pointer min-h-[28px]",
-                                  isRevActive && "bg-accent/40",
+                                  "group relative flex items-center ml-7 mr-1 py-1 px-2 rounded-sm min-h-[28px] gap-2",
+                                  isRevActive && "bg-accent/30 text-accent-foreground"
                                 )}
                               >
-                                <div className="flex items-center gap-2 flex-1 pr-8 truncate">
-                                  <Bookmark
-                                    className={cn(
-                                      "h-3 w-3 shrink-0",
-                                      isRevActive ? "text-primary" : "text-muted-foreground",
-                                    )}
-                                  />
-                                  <span className="text-xs font-medium truncate">
-                                    {revision.label || "Snapshot"}
-                                  </span>
-                                  {isRevActive && (
-                                    <Check className="h-3 w-3 shrink-0 text-primary/70 ml-1" />
-                                  )}
-                                </div>
+                                <Bookmark className="h-3 w-3 shrink-0 text-muted-foreground/40" />
+                                <span className="text-xs font-medium truncate flex-1">
+                                  {revision.label || "Snapshot"}
+                                </span>
+                                {isRevActive && (
+                                  <Check className="h-3 w-3 shrink-0 text-primary ml-2" />
+                                )}
 
                                 <div className="absolute right-1 top-0 bottom-0 flex items-center">
                                   <Button
                                     size="icon"
                                     variant="ghost"
-                                    className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
+                                    className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity hover:bg-destructive/10 hover:text-destructive"
                                     onClick={(e) => {
                                       e.stopPropagation();
                                       onDeleteSession(revision.key);
                                     }}
                                   >
-                                    <Trash2 className="h-3 w-3" />
+                                    <Trash2 className="h-4 w-4" />
                                   </Button>
                                 </div>
                               </DropdownMenuItem>
