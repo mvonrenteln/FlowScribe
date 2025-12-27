@@ -33,6 +33,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { cn } from "@/lib/utils";
 import { FileUpload } from "../FileUpload";
 import { ThemeToggle } from "../ThemeToggle";
+import {
+  formatAudioName,
+  formatTranscriptName,
+  getFileExtension,
+} from "./ToolbarUtils";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type ToolbarProps = TranscriptEditorState["toolbarProps"];
@@ -210,18 +215,18 @@ export function Toolbar({
                               {/* Audio Zeile */}
                               <div className="flex items-center gap-2 w-full">
                                 <AudioLines className="h-4 w-4 shrink-0 text-primary" />
-                                <span className="text-sm font-bold truncate">
-                {base.audioName?.replace(".flac", "") || "Unknown Audio"}
-                                  <span className="font-normal text-muted-foreground/40 ml-0.5">.flac</span>
-              </span>
+<span className="text-sm font-bold truncate">
+                                  {formatAudioName(base.audioName)}
+                                  <span className="font-normal text-muted-foreground/40 ml-0.5">{getFileExtension(base.audioName)}</span>
+                                </span>
                               </div>
 
                               {/* Transkript Zeile */}
                               <div className="flex items-center gap-2 w-full pl-0.5">
                                 <FilePenLine className="h-3.5 w-3.5 shrink-0 text-muted-foreground/60" />
-                                <span className="text-xs font-medium text-muted-foreground truncate">
-                {base.transcriptName?.replace(".json", "") || "Untitled"}
-              </span>
+<span className="text-xs font-medium text-muted-foreground truncate">
+                                  {formatTranscriptName(base.transcriptName)}
+                                </span>
                               </div>
 
                               {/* Status-Bereich (Rechts mittig): Entweder Haken ODER Löschen */}
