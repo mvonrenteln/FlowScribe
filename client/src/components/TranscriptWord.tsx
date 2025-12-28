@@ -228,7 +228,7 @@ export const TranscriptWord = memo(({
             key={`${i}-${part}`}
             className={cn(
               "rounded-sm px-0.5 mx-[-0.5px] transition-colors duration-200",
-              replaceQuery ? (isCurrentMatch ? "bg-primary text-primary-foreground shadow-sm" : "bg-primary/20 text-foreground") : "bg-primary text-primary-foreground shadow-sm",
+              replaceQuery ? (isCurrentMatch ? "bg-primary text-primary-foreground shadow-sm" : "bg-muted text-muted-foreground dark:bg-primary/35 dark:text-primary-foreground") : "bg-primary text-primary-foreground shadow-sm",
             )}
           >
             {part}
