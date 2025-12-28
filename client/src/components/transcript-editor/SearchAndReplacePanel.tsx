@@ -126,18 +126,20 @@ export function SearchAndReplacePanel({
                             {totalMatches > 0 ? `${currentMatchIndex + 1}/${totalMatches}` : "0"}
                         </span>
                     )}
-                    <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                        onClick={() => {
-                            setLocalSearch("");
-                            onSearchQueryChange("");
-                        }}
-                        title="Clear search"
-                    >
-                        <X className="h-3 w-3" />
-                    </Button>
+                    {localSearch && (
+                        <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                            onClick={() => {
+                                setLocalSearch("");
+                                onSearchQueryChange("");
+                            }}
+                            title="Clear search"
+                        >
+                            <X className="h-3 w-3" />
+                        </Button>
+                    )}
                     <Button
                         size="icon"
                         variant={isRegexSearch ? "secondary" : "ghost"}
@@ -181,6 +183,19 @@ export function SearchAndReplacePanel({
                             className="pl-9 pr-9 h-9 text-sm"
                             data-testid="input-replace-transcript"
                         />
+                        {replaceQuery && (
+                            <div className="absolute right-1 top-1">
+                                <Button
+                                    size="icon"
+                                    variant="ghost"
+                                    className="h-7 w-7 text-muted-foreground hover:text-foreground"
+                                    onClick={() => onReplaceQueryChange("")}
+                                    title="Clear replace"
+                                >
+                                    <X className="h-3 w-3" />
+                                </Button>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex items-center justify-between gap-1">
