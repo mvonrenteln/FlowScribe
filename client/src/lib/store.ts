@@ -59,10 +59,10 @@ const activeSessionKey =
 const initialHistoryState = buildInitialHistory(
   activeSession?.segments.length && activeSession.speakers.length
     ? {
-      segments: activeSession.segments,
-      speakers: activeSession.speakers,
-      selectedSegmentId: activeSession.selectedSegmentId,
-    }
+        segments: activeSession.segments,
+        speakers: activeSession.speakers,
+        selectedSegmentId: activeSession.selectedSegmentId,
+      }
     : null,
 );
 
@@ -204,9 +204,9 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
-        nextGlobalPayload.lexiconHighlightUnderline ||
+          nextGlobalPayload.lexiconHighlightUnderline ||
         lastGlobalPayload.lexiconHighlightBackground !==
-        nextGlobalPayload.lexiconHighlightBackground ||
+          nextGlobalPayload.lexiconHighlightBackground ||
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||

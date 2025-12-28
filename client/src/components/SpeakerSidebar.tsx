@@ -1,5 +1,4 @@
-import { Check, Code, Edit2, Merge, Plus, Search, X } from "lucide-react";
-import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
+import { Check, Edit2, Merge, Plus, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import type { Segment, Speaker } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
@@ -122,10 +122,10 @@ export function SpeakerSidebar({
     lowConfidenceThreshold === null
       ? 0
       : segments.filter((segment) =>
-        segment.words.some(
-          (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
-        ),
-      ).length;
+          segment.words.some(
+            (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
+          ),
+        ).length;
   const bookmarkCount = segments.filter((segment) => segment.bookmarked).length;
   const spellcheckCount = spellcheckMatchCount ?? 0;
   const spellcheckCountLabel = spellcheckMatchLimitReached ? "1000+" : `${spellcheckCount}`;
@@ -183,28 +183,18 @@ export function SpeakerSidebar({
     return () => clearTimeout(timer);
   }, [localSearchQuery, searchQuery, onSearchQueryChange]);
 
-  const isValidRegex = (query: string) => {
-    if (!query) return true;
-    try {
-      new RegExp(query);
-      return true;
-    } catch {
-      return false;
-    }
-  };
-
-  const regexValid = !isRegexSearch || isValidRegex(localSearchQuery);
-
   return (
     <div className="flex flex-col h-full">
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transcript Filter</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Transcript Filter
+          </h2>
           <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => onClearFilter?.()}
-              data-testid="button-clear-filters"
+            size="sm"
+            variant="ghost"
+            onClick={() => onClearFilter?.()}
+            data-testid="button-clear-filters"
           >
             Clear
           </Button>
@@ -212,17 +202,17 @@ export function SpeakerSidebar({
 
         <SearchAndReplacePanel
           searchQuery={searchQuery}
-          onSearchQueryChange={onSearchQueryChange ?? (() => { })}
+          onSearchQueryChange={onSearchQueryChange ?? (() => {})}
           replaceQuery={replaceQuery}
-          onReplaceQueryChange={onReplaceQueryChange ?? (() => { })}
+          onReplaceQueryChange={onReplaceQueryChange ?? (() => {})}
           isRegexSearch={isRegexSearch}
-          onToggleRegexSearch={onToggleRegexSearch ?? (() => { })}
+          onToggleRegexSearch={onToggleRegexSearch ?? (() => {})}
           currentMatchIndex={currentMatchIndex}
           totalMatches={totalMatches}
-          goToNextMatch={goToNextMatch ?? (() => { })}
-          goToPrevMatch={goToPrevMatch ?? (() => { })}
-          onReplaceCurrent={onReplaceCurrent ?? (() => { })}
-          onReplaceAll={onReplaceAll ?? (() => { })}
+          goToNextMatch={goToNextMatch ?? (() => {})}
+          goToPrevMatch={goToPrevMatch ?? (() => {})}
+          onReplaceCurrent={onReplaceCurrent ?? (() => {})}
+          onReplaceAll={onReplaceAll ?? (() => {})}
         />
       </div>
 
@@ -359,7 +349,6 @@ export function SpeakerSidebar({
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Review
               </div>
-
             </div>
             <button
               type="button"
@@ -417,8 +406,8 @@ export function SpeakerSidebar({
                 "hover-elevate",
                 spellcheckFilterActive && "bg-accent",
                 (!spellcheckEnabled || spellcheckCount === 0) &&
-                !spellcheckFilterActive &&
-                "opacity-50 cursor-not-allowed",
+                  !spellcheckFilterActive &&
+                  "opacity-50 cursor-not-allowed",
               )}
               onClick={() => {
                 if (!spellcheckEnabled) return;
@@ -454,8 +443,8 @@ export function SpeakerSidebar({
                 "hover-elevate",
                 lexiconLowScoreFilterActive && "bg-accent",
                 lexiconLowScoreMatchCount === 0 &&
-                !lexiconLowScoreFilterActive &&
-                "opacity-50 cursor-not-allowed",
+                  !lexiconLowScoreFilterActive &&
+                  "opacity-50 cursor-not-allowed",
               )}
               onClick={() => {
                 if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;

@@ -39,23 +39,23 @@ const buildSegmentHandlers = (
     const onMergeWithPrevious =
       index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
         ? () => {
-          if (!areAdjacent(previousSegment.id, segment.id)) return;
-          const mergedId = mergeSegments(previousSegment.id, segment.id);
-          if (mergedId) {
-            setSelectedSegmentId(mergedId);
+            if (!areAdjacent(previousSegment.id, segment.id)) return;
+            const mergedId = mergeSegments(previousSegment.id, segment.id);
+            if (mergedId) {
+              setSelectedSegmentId(mergedId);
+            }
           }
-        }
         : undefined;
 
     const onMergeWithNext =
       index < filteredSegments.length - 1 && nextSegment && areAdjacent(segment.id, nextSegment.id)
         ? () => {
-          if (!areAdjacent(segment.id, nextSegment.id)) return;
-          const mergedId = mergeSegments(segment.id, nextSegment.id);
-          if (mergedId) {
-            setSelectedSegmentId(mergedId);
+            if (!areAdjacent(segment.id, nextSegment.id)) return;
+            const mergedId = mergeSegments(segment.id, nextSegment.id);
+            if (mergedId) {
+              setSelectedSegmentId(mergedId);
+            }
           }
-        }
         : undefined;
 
     return {
@@ -898,8 +898,8 @@ export const useTranscriptEditor = () => {
         sessionKind === "revision"
           ? (sessionLabel ?? undefined)
           : (recentSessions
-            .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
-            .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
+              .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
+              .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
     }),
     [
       audioFile?.name,

@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
-import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 
 interface UseFiltersAndLexiconOptions {
   segments: Segment[];
@@ -145,7 +145,9 @@ export function useFiltersAndLexicon({
           if (textNormalized.includes(searchNormalized)) return true;
 
           // Check words reconstruction fallback
-          const wordsTextNormalized = normalizeForSearch(segment.words.map((w) => w.word).join(" "));
+          const wordsTextNormalized = normalizeForSearch(
+            segment.words.map((w) => w.word).join(" "),
+          );
           if (!wordsTextNormalized.includes(searchNormalized)) {
             return false;
           }

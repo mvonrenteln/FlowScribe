@@ -64,7 +64,12 @@ interface TranscriptSegmentProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
-  readonly allMatches?: Array<{ segmentId: string; startIndex: number; endIndex: number; text: string }>;
+  readonly allMatches?: Array<{
+    segmentId: string;
+    startIndex: number;
+    endIndex: number;
+    text: string;
+  }>;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -434,7 +439,7 @@ function TranscriptSegmentComponent({
                       replaceQuery={replaceQuery}
                       onReplaceCurrent={onReplaceCurrent}
                       onMatchClick={onMatchClick}
-                      matches={allMatches?.filter(m => m.segmentId === segment.id)}
+                      matches={allMatches?.filter((m) => m.segmentId === segment.id)}
                       findMatchIndex={findMatchIndex}
                     />
                   );

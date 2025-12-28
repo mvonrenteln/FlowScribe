@@ -10,18 +10,15 @@
  * 3. Collapsing multiple whitespaces into one
  */
 export function normalizeForSearch(text: string): string {
-    if (!text) return "";
-    return text
-        .normalize("NFC")
-        .toLowerCase()
-        .replace(/\s+/g, " ");
+  if (!text) return "";
+  return text.normalize("NFC").toLowerCase().replace(/\s+/g, " ");
 }
 
 /**
  * Escapes special characters for use in a regular expression.
  */
 export function escapeRegExp(string: string): string {
-    return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return string.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 }
 
 /**
@@ -30,43 +27,46 @@ export function escapeRegExp(string: string): string {
  * If isRegex is false, it treats the query as a literal string.
  */
 export function createSearchRegex(query: string, isRegex: boolean): RegExp | null {
-    const trimmedQuery = query.trim();
-    if (!trimmedQuery) return null;
+  const trimmedQuery = query.trim();
+  if (!trimmedQuery) return null;
 
-    try {
-        if (isRegex) {
-            return new RegExp(`(${trimmedQuery})`, "gi");
-        }
-        const escaped = escapeRegExp(trimmedQuery);
-        return new RegExp(`(${escaped})`, "gi");
-    } catch (e) {
-        console.warn("Invalid search regex:", e);
-        return null;
+  try {
+    if (isRegex) {
+      return new RegExp(`(${trimmedQuery})`, "gi");
     }
+    const escaped = escapeRegExp(trimmedQuery);
+    return new RegExp(`(${escaped})`, "gi");
+  } catch (e) {
+    console.warn("Invalid search regex:", e);
+    return null;
+  }
 }
 
 /**
  * Identifies all occurrences of a regex match in a text.
  * Returns an array of start/end indices.
  */
-export function findMatchesInText(text: string, regex: RegExp): Array<{ start: number; end: number; match: string }> {
-    if (!text || !regex) return [];
+export function findMatchesInText(
+  text: string,
+  regex: RegExp,
+): Array<{ start: number; end: number; match: string }> {
+  if (!text || !regex) return [];
 
-    const matches: Array<{ start: number; end: number; match: string }> = [];
-    const localRegex = new RegExp(regex.source, regex.flags); // Ensure it has 'g' and fresh state
+  const matches: Array<{ start: number; end: number; match: string }> = [];
+  const localRegex = new RegExp(regex.source, regex.flags); // Ensure it has 'g' and fresh state
 
-    let match: RegExpExecArray | null;
-    // biome-ignore lint/suspicious/noAssignInExpressions: standard regex iteration pattern
-    while ((match = localRegex.exec(text)) !== null) {
-        if (match.index === localRegex.lastIndex) {
-            localRegex.lastIndex++; // Prevent infinite loop on empty matches
-        }
-        matches.push({
-            start: match.index,
-            end: localRegex.lastIndex,
-            match: match[0],
-        });
+  let match: RegExpExecArray | null;
+  // biome-ignore lint/suspicious/noAssignInExpressions: standard regex iteration pattern
+  while ((match = localRegex.exec(text)) !== null) {
+    if (match.index === localRegex.lastIndex) {
+      localRegex.lastIndex++; // Prevent infinite loop on empty matches
     }
+    matches.push({
+      start: match.index,
+      end: localRegex.lastIndex,
+      match: match[0],
+    });
+  }
 
-    return matches;
+  return matches;
 }

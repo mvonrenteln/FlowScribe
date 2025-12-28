@@ -35,7 +35,7 @@ export const createSegmentsSlice = (
     const session = context.getSessionsCache()[sessionKey];
     const selectedFromSession =
       session?.selectedSegmentId &&
-        session.segments.some((segment) => segment.id === session.selectedSegmentId)
+      session.segments.some((segment) => segment.id === session.selectedSegmentId)
         ? session.selectedSegmentId
         : (session?.segments[0]?.id ?? null);
     if (session && session.segments.length > 0) {
@@ -97,7 +97,7 @@ export const createSegmentsSlice = (
 
   updateSegmentsTexts: (updates) => {
     const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
-    let currentSegments = [...segments];
+    const currentSegments = [...segments];
     let changed = false;
 
     for (const update of updates) {
