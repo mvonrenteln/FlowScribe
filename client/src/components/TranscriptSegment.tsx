@@ -400,7 +400,7 @@ function TranscriptSegmentComponent({
 
                   return (
                     <TranscriptWord
-                      key={`${segment.id}-${word.start}-${word.end}`}
+                      key={`${segment.id}-${word.start}-${word.end}-${index}`}
                       word={word}
                       index={index}
                       segmentId={segment.id}
