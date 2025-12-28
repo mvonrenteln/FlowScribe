@@ -24,6 +24,7 @@ import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
 import type {
   InitialStoreState,
   LexiconEntry,
+  SearchMatch,
   Segment,
   SessionKind,
   Speaker,
@@ -306,6 +307,7 @@ export const useSpeakers = () => useTranscriptStore((state) => state.speakers);
 export type {
   FileReference,
   LexiconEntry,
+  SearchMatch,
   Segment,
   Speaker,
   SpellcheckCustomDictionary,

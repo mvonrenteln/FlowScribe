@@ -7,6 +7,7 @@ import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
 import { useScrollAndSelection } from "./useScrollAndSelection";
+import { useSearchAndReplace } from "./useSearchAndReplace";
 import { useSpellcheck } from "./useSpellcheck";
 
 const buildSegmentHandlers = (
@@ -93,6 +94,7 @@ export const useTranscriptEditor = () => {
       deleteSegment: state.deleteSegment,
       splitSegment: state.splitSegment,
       updateSegmentText: state.updateSegmentText,
+      updateSegmentsTexts: state.updateSegmentsTexts, // Added this action
       updateSegmentSpeaker: state.updateSegmentSpeaker,
       updateSegmentTiming: state.updateSegmentTiming,
       addSpeaker: state.addSpeaker,
@@ -154,6 +156,7 @@ export const useTranscriptEditor = () => {
     deleteSegment,
     splitSegment,
     updateSegmentText,
+    updateSegmentsTexts, // Destructured the new action
     updateSegmentSpeaker,
     updateSegmentTiming,
     addSpeaker,
@@ -320,6 +323,10 @@ export const useTranscriptEditor = () => {
     effectiveLexiconHighlightBackground,
     filteredSegments,
     clearFilters,
+    searchQuery,
+    setSearchQuery,
+    isRegexSearch,
+    setIsRegexSearch,
   } = useFiltersAndLexicon({
     segments,
     speakers,
@@ -330,6 +337,28 @@ export const useTranscriptEditor = () => {
     spellcheckEnabled,
     spellcheckMatchesBySegment,
   });
+
+  const {
+    replaceQuery,
+    setReplaceQuery,
+    currentMatchIndex,
+    totalMatches,
+    currentMatch,
+    goToNextMatch,
+    goToPrevMatch,
+    replaceAll,
+    replaceCurrent,
+    onMatchClick,
+    findMatchIndex,
+    allMatches,
+  } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
+
+  // Sync selection and scroll to current match
+  useEffect(() => {
+    if (currentMatch) {
+      setSelectedSegmentId(currentMatch.segmentId);
+    }
+  }, [currentMatch, setSelectedSegmentId]);
 
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
@@ -714,6 +743,18 @@ export const useTranscriptEditor = () => {
       onToggleSpellcheckFilter: () => setFilterSpellcheck((current) => !current),
       spellcheckEnabled,
       spellcheckMatchLimitReached,
+      searchQuery,
+      onSearchQueryChange: setSearchQuery,
+      isRegexSearch,
+      onToggleRegexSearch: () => setIsRegexSearch((current) => !current),
+      replaceQuery,
+      onReplaceQueryChange: setReplaceQuery,
+      currentMatchIndex,
+      totalMatches,
+      goToNextMatch,
+      goToPrevMatch,
+      onReplaceCurrent: replaceCurrent,
+      onReplaceAll: replaceAll,
     }),
     [
       addSpeaker,
@@ -742,6 +783,18 @@ export const useTranscriptEditor = () => {
       spellcheckMatchCount,
       spellcheckMatchLimitReached,
       speakers,
+      searchQuery,
+      setSearchQuery,
+      isRegexSearch,
+      setIsRegexSearch,
+      replaceQuery,
+      setReplaceQuery,
+      currentMatchIndex,
+      totalMatches,
+      goToNextMatch,
+      goToPrevMatch,
+      replaceCurrent,
+      replaceAll,
     ],
   );
 
@@ -769,6 +822,14 @@ export const useTranscriptEditor = () => {
       onIgnoreSpellcheckMatch: addSpellcheckIgnoreWord,
       onAddSpellcheckToGlossary: addLexiconEntry,
       emptyState,
+      searchQuery,
+      isRegexSearch,
+      currentMatch,
+      replaceQuery,
+      onReplaceCurrent: replaceCurrent,
+      onMatchClick,
+      findMatchIndex,
+      allMatches,
     }),
     [
       activeSegmentId,
@@ -792,6 +853,14 @@ export const useTranscriptEditor = () => {
       spellcheckMatchesBySegment,
       splitWordIndex,
       transcriptListRef,
+      searchQuery,
+      isRegexSearch,
+      currentMatch,
+      replaceQuery,
+      replaceCurrent,
+      onMatchClick,
+      findMatchIndex,
+      allMatches,
     ],
   );
 

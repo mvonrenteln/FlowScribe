@@ -12,6 +12,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import type { Segment, Speaker } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
@@ -39,6 +40,18 @@ interface SpeakerSidebarProps {
   spellcheckMatchCount?: number;
   spellcheckMatchLimitReached?: boolean;
   spellcheckEnabled?: boolean;
+  searchQuery?: string;
+  onSearchQueryChange?: (value: string) => void;
+  isRegexSearch?: boolean;
+  onToggleRegexSearch?: () => void;
+  replaceQuery?: string;
+  onReplaceQueryChange?: (value: string) => void;
+  currentMatchIndex?: number;
+  totalMatches?: number;
+  goToNextMatch?: () => void;
+  goToPrevMatch?: () => void;
+  onReplaceCurrent?: () => void;
+  onReplaceAll?: () => void;
 }
 
 export function SpeakerSidebar({
@@ -67,6 +80,18 @@ export function SpeakerSidebar({
   spellcheckMatchCount = 0,
   spellcheckMatchLimitReached = false,
   spellcheckEnabled = false,
+  searchQuery = "",
+  onSearchQueryChange,
+  isRegexSearch = false,
+  onToggleRegexSearch,
+  replaceQuery = "",
+  onReplaceQueryChange,
+  currentMatchIndex = -1,
+  totalMatches = 0,
+  goToNextMatch,
+  goToPrevMatch,
+  onReplaceCurrent,
+  onReplaceAll,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -142,15 +167,53 @@ export function SpeakerSidebar({
     }
   };
 
+  // Debounce search input to prevent filtering on every keystroke
+  const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
+
+  useEffect(() => {
+    setLocalSearchQuery(searchQuery);
+  }, [searchQuery]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (localSearchQuery !== searchQuery) {
+        onSearchQueryChange?.(localSearchQuery);
+      }
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [localSearchQuery, searchQuery, onSearchQueryChange]);
+
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b">
+      <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Speakers</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Transcript Filter
+          </h2>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => onClearFilter?.()}
+            data-testid="button-clear-filters"
+          >
+            Clear
+          </Button>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">
-          {speakers.length} speaker{speakers.length !== 1 ? "s" : ""} detected
-        </p>
+
+        <SearchAndReplacePanel
+          searchQuery={searchQuery}
+          onSearchQueryChange={onSearchQueryChange ?? (() => {})}
+          replaceQuery={replaceQuery}
+          onReplaceQueryChange={onReplaceQueryChange ?? (() => {})}
+          isRegexSearch={isRegexSearch}
+          onToggleRegexSearch={onToggleRegexSearch ?? (() => {})}
+          currentMatchIndex={currentMatchIndex}
+          totalMatches={totalMatches}
+          goToNextMatch={goToNextMatch ?? (() => {})}
+          goToPrevMatch={goToPrevMatch ?? (() => {})}
+          onReplaceCurrent={onReplaceCurrent ?? (() => {})}
+          onReplaceAll={onReplaceAll ?? (() => {})}
+        />
       </div>
 
       <ScrollArea className="flex-1">
@@ -286,14 +349,6 @@ export function SpeakerSidebar({
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Review
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onClearFilter?.()}
-                data-testid="button-clear-filters"
-              >
-                Clear
-              </Button>
             </div>
             <button
               type="button"

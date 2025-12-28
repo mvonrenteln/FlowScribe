@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
@@ -53,6 +54,8 @@ export function useFiltersAndLexicon({
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
   const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
   const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isRegexSearch, setIsRegexSearch] = useState(false);
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
@@ -96,6 +99,9 @@ export function useFiltersAndLexicon({
     (spellcheckEnabled || filterSpellcheck) && !(filterLexicon || filterLexiconLowScore);
 
   const filteredSegments = useMemo(() => {
+    const regex = createSearchRegex(searchQuery, isRegexSearch);
+    const searchNormalized = normalizeForSearch(searchQuery);
+
     return segments.filter((segment) => {
       if (activeSpeakerName && segment.speaker !== activeSpeakerName) {
         return false;
@@ -122,6 +128,32 @@ export function useFiltersAndLexicon({
       if (filterSpellcheck) {
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
+
+      if (searchNormalized) {
+        if (isRegexSearch) {
+          if (regex && !regex.test(segment.text)) {
+            // Fallback: check reconstructed text from words too
+            const wordsText = segment.words.map((w) => w.word).join(" ");
+            if (!regex.test(wordsText)) {
+              return false;
+            }
+          }
+          if (!regex) return true;
+        } else {
+          // Normal normalized text search
+          const textNormalized = normalizeForSearch(segment.text);
+          if (textNormalized.includes(searchNormalized)) return true;
+
+          // Check words reconstruction fallback
+          const wordsTextNormalized = normalizeForSearch(
+            segment.words.map((w) => w.word).join(" "),
+          );
+          if (!wordsTextNormalized.includes(searchNormalized)) {
+            return false;
+          }
+        }
+      }
+
       return true;
     });
   }, [
@@ -135,6 +167,8 @@ export function useFiltersAndLexicon({
     lowConfidenceThreshold,
     segments,
     spellcheckMatchesBySegment,
+    searchQuery,
+    isRegexSearch,
   ]);
 
   useEffect(() => {
@@ -150,6 +184,8 @@ export function useFiltersAndLexicon({
     setFilterLexicon(false);
     setFilterLexiconLowScore(false);
     setFilterSpellcheck(false);
+    setSearchQuery("");
+    setIsRegexSearch(false);
   }, []);
 
   return {
@@ -180,6 +216,10 @@ export function useFiltersAndLexicon({
     effectiveLexiconHighlightBackground,
     filteredSegments,
     clearFilters,
+    searchQuery,
+    setSearchQuery,
+    isRegexSearch,
+    setIsRegexSearch,
   };
 }
 
