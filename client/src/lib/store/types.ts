@@ -1,5 +1,12 @@
 import type { FileReference } from "@/lib/fileReference";
 
+export interface SearchMatch {
+  segmentId: string;
+  startIndex: number;
+  endIndex: number;
+  text: string;
+}
+
 export interface Word {
   word: string;
   start: number;
@@ -162,6 +169,7 @@ export interface SegmentsSlice {
   }) => void;
   setSelectedSegmentId: (id: string | null) => void;
   updateSegmentText: (id: string, text: string) => void;
+  updateSegmentsTexts: (updates: Array<{ id: string; text: string }>) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
   confirmSegment: (id: string) => void;
   toggleSegmentBookmark: (id: string) => void;

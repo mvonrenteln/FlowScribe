@@ -1,4 +1,5 @@
 import { Check, Code, Edit2, Merge, Plus, Search, X } from "lucide-react";
+import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -43,6 +44,14 @@ interface SpeakerSidebarProps {
   onSearchQueryChange?: (value: string) => void;
   isRegexSearch?: boolean;
   onToggleRegexSearch?: () => void;
+  replaceQuery?: string;
+  onReplaceQueryChange?: (value: string) => void;
+  currentMatchIndex?: number;
+  totalMatches?: number;
+  goToNextMatch?: () => void;
+  goToPrevMatch?: () => void;
+  onReplaceCurrent?: () => void;
+  onReplaceAll?: () => void;
 }
 
 export function SpeakerSidebar({
@@ -75,6 +84,14 @@ export function SpeakerSidebar({
   onSearchQueryChange,
   isRegexSearch = false,
   onToggleRegexSearch,
+  replaceQuery = "",
+  onReplaceQueryChange,
+  currentMatchIndex = -1,
+  totalMatches = 0,
+  goToNextMatch,
+  goToPrevMatch,
+  onReplaceCurrent,
+  onReplaceAll,
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -185,45 +202,20 @@ export function SpeakerSidebar({
           <h2 className="text-sm font-semibold">Transcript Filter</h2>
         </div>
 
-        <div className="relative group/search">
-          <div className="absolute left-2.5 top-2.5 text-muted-foreground transition-colors group-focus-within/search:text-foreground">
-            <Search className="h-4 w-4" />
-          </div>
-          <Input
-            value={localSearchQuery}
-            onChange={(e) => setLocalSearchQuery(e.target.value)}
-            placeholder={isRegexSearch ? "Regex search..." : "Search transcript..."}
-            className={cn(
-              "pl-9 pr-14 h-9 text-sm",
-              !regexValid && "border-destructive focus-visible:ring-destructive",
-            )}
-            data-testid="input-search-transcript"
-          />
-          <div className="absolute right-1 top-1 flex items-center gap-0.5">
-            {searchQuery && (
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-7 w-7 text-muted-foreground hover:text-foreground"
-                onClick={() => onSearchQueryChange?.("")}
-              >
-                <X className="h-3 w-3" />
-              </Button>
-            )}
-            <Button
-              size="icon"
-              variant={isRegexSearch ? "secondary" : "ghost"}
-              className={cn(
-                "h-7 w-7 transition-colors",
-                isRegexSearch ? "text-primary" : "text-muted-foreground hover:text-foreground",
-              )}
-              onClick={() => onToggleRegexSearch?.()}
-              title="Toggle Regex Search"
-            >
-              <Code className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
+        <SearchAndReplacePanel
+          searchQuery={searchQuery}
+          onSearchQueryChange={onSearchQueryChange ?? (() => { })}
+          replaceQuery={replaceQuery}
+          onReplaceQueryChange={onReplaceQueryChange ?? (() => { })}
+          isRegexSearch={isRegexSearch}
+          onToggleRegexSearch={onToggleRegexSearch ?? (() => { })}
+          currentMatchIndex={currentMatchIndex}
+          totalMatches={totalMatches}
+          goToNextMatch={goToNextMatch ?? (() => { })}
+          goToPrevMatch={goToPrevMatch ?? (() => { })}
+          onReplaceCurrent={onReplaceCurrent ?? (() => { })}
+          onReplaceAll={onReplaceAll ?? (() => { })}
+        />
       </div>
 
       <ScrollArea className="flex-1">

@@ -1,8 +1,10 @@
-import { BookOpenText } from "lucide-react";
+import { BookOpenText, Check, Replace } from "lucide-react";
+import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { normalizeSpellcheckToken } from "@/lib/spellcheck";
-import type { Word } from "@/lib/store";
+import type { SearchMatch, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 
@@ -29,9 +31,16 @@ interface TranscriptWordProps {
   readonly getHyphenTarget: (value: string, partIndex?: number) => string;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
+  readonly currentMatch?: SearchMatch;
+  readonly wordRange?: { start: number; end: number };
+  readonly replaceQuery?: string;
+  readonly onReplaceCurrent?: () => void;
+  readonly onMatchClick?: (index: number) => void;
+  readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  readonly matches?: Array<{ segmentId: string; startIndex: number; endIndex: number; text: string }>;
 }
 
-export function TranscriptWord({
+export const TranscriptWord = memo(({
   word,
   index,
   segmentId,
@@ -54,9 +63,36 @@ export function TranscriptWord({
   getHyphenTarget,
   searchQuery = "",
   isRegexSearch = false,
-}: TranscriptWordProps) {
+  currentMatch,
+  wordRange,
+  replaceQuery = "",
+  onReplaceCurrent,
+  onMatchClick,
+  findMatchIndex,
+  matches,
+}: TranscriptWordProps) => {
   const isLexiconMatch = Boolean(lexiconMatch);
   const isSpellcheckMatch = Boolean(spellcheckMatch);
+
+  const handleClick = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (onMatchClick && findMatchIndex && wordRange) {
+      const globalIndex = findMatchIndex(segmentId, wordRange.start);
+      if (globalIndex !== -1) {
+        onMatchClick(globalIndex);
+      }
+    }
+    onClick(e);
+  };
+
+  const isCurrentMatch = useMemo(() => {
+    if (!currentMatch || !wordRange) return false;
+    // Check if the current match overlap with this word's range in the segment
+    return (
+      currentMatch.startIndex < wordRange.end &&
+      currentMatch.endIndex > wordRange.start
+    );
+  }, [currentMatch, wordRange]);
   const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
   const shouldBackground =
     isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
@@ -190,7 +226,10 @@ export function TranscriptWord({
         return (
           <mark
             key={`${i}-${part}`}
-            className="bg-yellow-200 text-black rounded-sm px-0.5 mx-[-0.5px]"
+            className={cn(
+              "rounded-sm px-0.5 mx-[-0.5px] transition-colors duration-200",
+              isCurrentMatch ? "bg-primary text-primary-foreground shadow-sm" : "bg-primary/20 text-foreground",
+            )}
           >
             {part}
           </mark>
@@ -203,7 +242,7 @@ export function TranscriptWord({
   const wordButton = (
     <button
       type="button"
-      onClick={onClick}
+      onClick={handleClick}
       onKeyDown={onKeyDown}
       className={cn(
         "transcript-word cursor-pointer transition-colors inline-block bg-transparent border-none p-0 font-inherit text-inherit text-left align-baseline",
@@ -243,6 +282,7 @@ export function TranscriptWord({
             lexiconUnderlineClass,
             lexiconBackgroundClass,
             spellcheckUnderlineClass,
+            isCurrentMatch && "bg-primary/30 ring-1 ring-primary/50 rounded-sm px-0.5 -mx-0.5 shadow-sm",
           )}
         >
           {renderTextWithHighlights(word.word)}
@@ -250,6 +290,41 @@ export function TranscriptWord({
       )}
     </button>
   );
+
+  if (isCurrentMatch && replaceQuery && onReplaceCurrent) {
+    return (
+      <Popover open={!!replaceQuery}>
+        <PopoverTrigger asChild>{wordButton}</PopoverTrigger>
+        <PopoverContent
+          className="p-2 w-auto flex flex-col gap-2 animate-in fade-in zoom-in duration-150"
+          side="top"
+          onOpenAutoFocus={(e) => e.preventDefault()} // Don't steal focus from search input
+        >
+          <div className="text-[10px] font-semibold text-primary uppercase flex items-center gap-1.5 border-b pb-1 mb-0.5">
+            <Replace className="w-3 h-3" />
+            Replace Preview
+          </div>
+          <div className="flex items-center gap-2">
+            <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded border shadow-sm">{word.word}</code>
+            <span className="text-muted-foreground text-xs">→</span>
+            <code className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold border border-primary/20 shadow-sm">{replaceQuery}</code>
+            <Button
+              size="sm"
+              variant="default"
+              className="h-7 px-2.5 text-[11px] font-semibold shadow-sm hover:shadow-md transition-all active:scale-95"
+              onClick={(e) => {
+                e.stopPropagation();
+                onReplaceCurrent();
+              }}
+            >
+              <Check className="w-3 h-3 mr-1" />
+              Replace
+            </Button>
+          </div>
+        </PopoverContent>
+      </Popover>
+    );
+  }
 
   if (!isLexiconMatch && !isSpellcheckMatch) {
     return wordButton;
@@ -368,4 +443,4 @@ export function TranscriptWord({
       </Tooltip>
     </TooltipProvider>
   );
-}
+});

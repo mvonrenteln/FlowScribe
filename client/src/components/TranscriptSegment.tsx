@@ -21,7 +21,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Textarea } from "@/components/ui/textarea";
-import type { Segment, Speaker, Word } from "@/lib/store";
+import type { SearchMatch, Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 import { TranscriptWord } from "./TranscriptWord";
@@ -41,6 +41,7 @@ interface TranscriptSegmentProps {
   readonly lexiconHighlightBackground?: boolean;
   readonly spellcheckMatches?: Map<number, { suggestions: string[]; partIndex?: number }>;
   readonly showSpellcheckMatches?: boolean;
+  readonly currentMatch?: SearchMatch;
   readonly editRequested?: boolean;
   readonly onEditRequestHandled?: () => void;
   readonly onSelect: () => void;
@@ -59,6 +60,11 @@ interface TranscriptSegmentProps {
   readonly onSeek: (time: number) => void;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
+  readonly replaceQuery?: string;
+  readonly onReplaceCurrent?: () => void;
+  readonly onMatchClick?: (index: number) => void;
+  readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  readonly allMatches?: Array<{ segmentId: string; startIndex: number; endIndex: number; text: string }>;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -83,6 +89,7 @@ function TranscriptSegmentComponent({
   lexiconHighlightBackground = false,
   spellcheckMatches,
   showSpellcheckMatches = false,
+  currentMatch,
   editRequested = false,
   onEditRequestHandled,
   onSelect,
@@ -101,6 +108,11 @@ function TranscriptSegmentComponent({
   onSeek,
   searchQuery,
   isRegexSearch,
+  replaceQuery,
+  onReplaceCurrent,
+  onMatchClick,
+  findMatchIndex,
+  allMatches,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -380,37 +392,54 @@ function TranscriptSegmentComponent({
               className="text-base leading-relaxed outline-none"
               data-testid={`text-segment-${segment.id}`}
             >
-              {segment.words.map((word, index) => (
-                <TranscriptWord
-                  key={`${segment.id}-${word.start}-${word.end}`}
-                  word={word}
-                  index={index}
-                  segmentId={segment.id}
-                  isActive={index === resolvedActiveWordIndex}
-                  isSelected={index === selectedWordIndex}
-                  lexiconMatch={showLexiconMatches ? lexiconMatches?.get(index) : undefined}
-                  spellcheckMatch={
-                    showSpellcheckMatches ? spellcheckMatches?.get(index) : undefined
-                  }
-                  lexiconHighlightUnderline={lexiconHighlightUnderline}
-                  lexiconHighlightBackground={lexiconHighlightBackground}
-                  highlightLowConfidence={highlightLowConfidence}
-                  lowConfidenceThreshold={lowConfidenceThreshold}
-                  isExpanded={spellcheckExpandedIndex === index}
-                  onToggleExpand={() =>
-                    setSpellcheckExpandedIndex((current) => (current === index ? null : index))
-                  }
-                  onClick={(e) => handleWordClick(word, index, e)}
-                  onKeyDown={(e) => handleWordKeyDown(word, index, e)}
-                  onApplyReplacement={applyWordReplacement}
-                  onIgnoreLexiconMatch={onIgnoreLexiconMatch}
-                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
-                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
-                  getHyphenTarget={getHyphenTarget}
-                  searchQuery={searchQuery}
-                  isRegexSearch={isRegexSearch}
-                />
-              ))}
+              {(() => {
+                let currentPos = 0;
+                return segment.words.map((word, index) => {
+                  const wordStart = currentPos;
+                  const wordEnd = currentPos + word.word.length;
+                  // Increment currentPos by word length + 1 (space)
+                  currentPos += word.word.length + 1;
+
+                  return (
+                    <TranscriptWord
+                      key={`${segment.id}-${word.start}-${word.end}`}
+                      word={word}
+                      index={index}
+                      segmentId={segment.id}
+                      isActive={index === resolvedActiveWordIndex}
+                      isSelected={index === selectedWordIndex}
+                      lexiconMatch={showLexiconMatches ? lexiconMatches?.get(index) : undefined}
+                      spellcheckMatch={
+                        showSpellcheckMatches ? spellcheckMatches?.get(index) : undefined
+                      }
+                      lexiconHighlightUnderline={lexiconHighlightUnderline}
+                      lexiconHighlightBackground={lexiconHighlightBackground}
+                      highlightLowConfidence={highlightLowConfidence}
+                      lowConfidenceThreshold={lowConfidenceThreshold}
+                      isExpanded={spellcheckExpandedIndex === index}
+                      onToggleExpand={() =>
+                        setSpellcheckExpandedIndex((current) => (current === index ? null : index))
+                      }
+                      onClick={(e) => handleWordClick(word, index, e)}
+                      onKeyDown={(e) => handleWordKeyDown(word, index, e)}
+                      onApplyReplacement={applyWordReplacement}
+                      onIgnoreLexiconMatch={onIgnoreLexiconMatch}
+                      onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                      onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                      getHyphenTarget={getHyphenTarget}
+                      searchQuery={searchQuery}
+                      isRegexSearch={isRegexSearch}
+                      currentMatch={currentMatch}
+                      wordRange={{ start: wordStart, end: wordEnd }}
+                      replaceQuery={replaceQuery}
+                      onReplaceCurrent={onReplaceCurrent}
+                      onMatchClick={onMatchClick}
+                      matches={allMatches?.filter(m => m.segmentId === segment.id)}
+                      findMatchIndex={findMatchIndex}
+                    />
+                  );
+                });
+              })()}
             </div>
           )}
         </div>
@@ -561,7 +590,10 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onDelete === next.onDelete &&
     prev.onSeek === next.onSeek &&
     prev.searchQuery === next.searchQuery &&
-    prev.isRegexSearch === next.isRegexSearch
+    prev.isRegexSearch === next.isRegexSearch &&
+    prev.replaceQuery === next.replaceQuery &&
+    prev.currentMatch === next.currentMatch &&
+    prev.allMatches === next.allMatches
   );
 };
 

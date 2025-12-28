@@ -42,6 +42,14 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         onSearchQueryChange={props.onSearchQueryChange}
         isRegexSearch={props.isRegexSearch}
         onToggleRegexSearch={props.onToggleRegexSearch}
+        replaceQuery={props.replaceQuery}
+        onReplaceQueryChange={props.onReplaceQueryChange}
+        currentMatchIndex={props.currentMatchIndex}
+        totalMatches={props.totalMatches}
+        goToNextMatch={props.goToNextMatch}
+        goToPrevMatch={props.goToPrevMatch}
+        onReplaceCurrent={props.onReplaceCurrent}
+        onReplaceAll={props.onReplaceAll}
       />
     </aside>
   );

@@ -7,6 +7,7 @@ import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
 import { useScrollAndSelection } from "./useScrollAndSelection";
+import { useSearchAndReplace } from "./useSearchAndReplace";
 import { useSpellcheck } from "./useSpellcheck";
 
 const buildSegmentHandlers = (
@@ -38,23 +39,23 @@ const buildSegmentHandlers = (
     const onMergeWithPrevious =
       index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
         ? () => {
-            if (!areAdjacent(previousSegment.id, segment.id)) return;
-            const mergedId = mergeSegments(previousSegment.id, segment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
+          if (!areAdjacent(previousSegment.id, segment.id)) return;
+          const mergedId = mergeSegments(previousSegment.id, segment.id);
+          if (mergedId) {
+            setSelectedSegmentId(mergedId);
           }
+        }
         : undefined;
 
     const onMergeWithNext =
       index < filteredSegments.length - 1 && nextSegment && areAdjacent(segment.id, nextSegment.id)
         ? () => {
-            if (!areAdjacent(segment.id, nextSegment.id)) return;
-            const mergedId = mergeSegments(segment.id, nextSegment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
+          if (!areAdjacent(segment.id, nextSegment.id)) return;
+          const mergedId = mergeSegments(segment.id, nextSegment.id);
+          if (mergedId) {
+            setSelectedSegmentId(mergedId);
           }
+        }
         : undefined;
 
     return {
@@ -93,6 +94,7 @@ export const useTranscriptEditor = () => {
       deleteSegment: state.deleteSegment,
       splitSegment: state.splitSegment,
       updateSegmentText: state.updateSegmentText,
+      updateSegmentsTexts: state.updateSegmentsTexts, // Added this action
       updateSegmentSpeaker: state.updateSegmentSpeaker,
       updateSegmentTiming: state.updateSegmentTiming,
       addSpeaker: state.addSpeaker,
@@ -154,6 +156,7 @@ export const useTranscriptEditor = () => {
     deleteSegment,
     splitSegment,
     updateSegmentText,
+    updateSegmentsTexts, // Destructured the new action
     updateSegmentSpeaker,
     updateSegmentTiming,
     addSpeaker,
@@ -334,6 +337,28 @@ export const useTranscriptEditor = () => {
     spellcheckEnabled,
     spellcheckMatchesBySegment,
   });
+
+  const {
+    replaceQuery,
+    setReplaceQuery,
+    currentMatchIndex,
+    totalMatches,
+    currentMatch,
+    goToNextMatch,
+    goToPrevMatch,
+    replaceAll,
+    replaceCurrent,
+    onMatchClick,
+    findMatchIndex,
+    allMatches,
+  } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
+
+  // Sync selection and scroll to current match
+  useEffect(() => {
+    if (currentMatch) {
+      setSelectedSegmentId(currentMatch.segmentId);
+    }
+  }, [currentMatch, setSelectedSegmentId]);
 
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
@@ -722,6 +747,14 @@ export const useTranscriptEditor = () => {
       onSearchQueryChange: setSearchQuery,
       isRegexSearch,
       onToggleRegexSearch: () => setIsRegexSearch((current) => !current),
+      replaceQuery,
+      onReplaceQueryChange: setReplaceQuery,
+      currentMatchIndex,
+      totalMatches,
+      goToNextMatch,
+      goToPrevMatch,
+      onReplaceCurrent: replaceCurrent,
+      onReplaceAll: replaceAll,
     }),
     [
       addSpeaker,
@@ -754,6 +787,14 @@ export const useTranscriptEditor = () => {
       setSearchQuery,
       isRegexSearch,
       setIsRegexSearch,
+      replaceQuery,
+      setReplaceQuery,
+      currentMatchIndex,
+      totalMatches,
+      goToNextMatch,
+      goToPrevMatch,
+      replaceCurrent,
+      replaceAll,
     ],
   );
 
@@ -783,6 +824,12 @@ export const useTranscriptEditor = () => {
       emptyState,
       searchQuery,
       isRegexSearch,
+      currentMatch,
+      replaceQuery,
+      onReplaceCurrent: replaceCurrent,
+      onMatchClick,
+      findMatchIndex,
+      allMatches,
     }),
     [
       activeSegmentId,
@@ -808,6 +855,12 @@ export const useTranscriptEditor = () => {
       transcriptListRef,
       searchQuery,
       isRegexSearch,
+      currentMatch,
+      replaceQuery,
+      replaceCurrent,
+      onMatchClick,
+      findMatchIndex,
+      allMatches,
     ],
   );
 
@@ -845,8 +898,8 @@ export const useTranscriptEditor = () => {
         sessionKind === "revision"
           ? (sessionLabel ?? undefined)
           : (recentSessions
-              .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
-              .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
+            .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
+            .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
     }),
     [
       audioFile?.name,

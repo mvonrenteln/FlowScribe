@@ -29,6 +29,12 @@ export function TranscriptList({
   emptyState,
   searchQuery,
   isRegexSearch,
+  currentMatch,
+  replaceQuery,
+  onReplaceCurrent,
+  onMatchClick,
+  allMatches,
+  findMatchIndex,
 }: TranscriptListProps) {
   return (
     <ScrollArea className="flex-1">
@@ -49,6 +55,7 @@ export function TranscriptList({
                 speakers={speakers}
                 isSelected={segment.id === selectedSegmentId}
                 isActive={activeSegmentId === segment.id}
+                currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
                 activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
                 splitWordIndex={resolvedSplitWordIndex ?? undefined}
                 highlightLowConfidence={highlightLowConfidence}
@@ -76,6 +83,11 @@ export function TranscriptList({
                 onSeek={onSeek}
                 searchQuery={searchQuery}
                 isRegexSearch={isRegexSearch}
+                replaceQuery={replaceQuery}
+                onReplaceCurrent={onReplaceCurrent}
+                onMatchClick={onMatchClick}
+                allMatches={allMatches}
+                findMatchIndex={findMatchIndex}
               />
             );
           })
