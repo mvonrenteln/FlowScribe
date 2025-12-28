@@ -1,0 +1,3624 @@
+{
+  "segments": [
+    {
+      "speaker": "SL",
+      "start": 0,
+      "end": 7.8,
+      "text": "The mountains stand ahead of you, quiet and ominous. The strange ley-line still hums nearby—wrong, hollow, like something missing where power should be.",
+      "words": [
+        {
+          "word": "The",
+          "start": 0,
+          "end": 0.2
+        },
+        {
+          "word": "mountains",
+          "start": 0.2,
+          "end": 0.6
+        },
+        {
+          "word": "stand",
+          "start": 0.6,
+          "end": 0.8
+        },
+        {
+          "word": "ahead",
+          "start": 0.8,
+          "end": 1.2
+        },
+        {
+          "word": "of",
+          "start": 1.2,
+          "end": 1.4
+        },
+        {
+          "word": "you,",
+          "start": 1.4,
+          "end": 1.6
+        },
+        {
+          "word": "quiet",
+          "start": 1.6,
+          "end": 1.8
+        },
+        {
+          "word": "and",
+          "start": 1.8,
+          "end": 2
+        },
+        {
+          "word": "ominous.",
+          "start": 2,
+          "end": 2.6
+        },
+        {
+          "word": "The",
+          "start": 2.6,
+          "end": 2.8
+        },
+        {
+          "word": "strange",
+          "start": 2.8,
+          "end": 3.2
+        },
+        {
+          "word": "ley-line",
+          "start": 3.2,
+          "end": 3.8
+        },
+        {
+          "word": "still",
+          "start": 3.8,
+          "end": 4
+        },
+        {
+          "word": "hums",
+          "start": 4,
+          "end": 4.2
+        },
+        {
+          "word": "nearby—wrong,",
+          "start": 4.2,
+          "end": 4.8
+        },
+        {
+          "word": "hollow,",
+          "start": 4.8,
+          "end": 5.2
+        },
+        {
+          "word": "like",
+          "start": 5.2,
+          "end": 5.6
+        },
+        {
+          "word": "something",
+          "start": 5.6,
+          "end": 6.2
+        },
+        {
+          "word": "missing",
+          "start": 6.2,
+          "end": 6.6
+        },
+        {
+          "word": "where",
+          "start": 6.6,
+          "end": 7
+        },
+        {
+          "word": "power",
+          "start": 7,
+          "end": 7.4
+        },
+        {
+          "word": "should",
+          "start": 7.4,
+          "end": 7.6
+        },
+        {
+          "word": "be.",
+          "start": 7.6,
+          "end": 7.8
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 7.8,
+      "end": 13.4,
+      "text": "We shouldn’t stay. The land is wounded, and whatever caused it is still out there. The mountains will not wait for us.",
+      "words": [
+        {
+          "word": "We",
+          "start": 7.8,
+          "end": 8
+        },
+        {
+          "word": "shouldn’t",
+          "start": 8,
+          "end": 8.2
+        },
+        {
+          "word": "stay.",
+          "start": 8.2,
+          "end": 8.4
+        },
+        {
+          "word": "The",
+          "start": 8.4,
+          "end": 8.6
+        },
+        {
+          "word": "land",
+          "start": 8.6,
+          "end": 8.8
+        },
+        {
+          "word": "is",
+          "start": 8.8,
+          "end": 9
+        },
+        {
+          "word": "wounded,",
+          "start": 9,
+          "end": 9.4
+        },
+        {
+          "word": "and",
+          "start": 9.4,
+          "end": 9.6
+        },
+        {
+          "word": "whatever",
+          "start": 9.6,
+          "end": 10.2
+        },
+        {
+          "word": "caused",
+          "start": 10.2,
+          "end": 10.6
+        },
+        {
+          "word": "it",
+          "start": 10.6,
+          "end": 10.8
+        },
+        {
+          "word": "is",
+          "start": 10.8,
+          "end": 11
+        },
+        {
+          "word": "still",
+          "start": 11,
+          "end": 11.2
+        },
+        {
+          "word": "out",
+          "start": 11.2,
+          "end": 11.4
+        },
+        {
+          "word": "there.",
+          "start": 11.4,
+          "end": 11.8
+        },
+        {
+          "word": "The",
+          "start": 11.8,
+          "end": 12
+        },
+        {
+          "word": "mountains",
+          "start": 12,
+          "end": 12.4
+        },
+        {
+          "word": "will",
+          "start": 12.4,
+          "end": 12.6
+        },
+        {
+          "word": "not",
+          "start": 12.6,
+          "end": 12.8
+        },
+        {
+          "word": "wait",
+          "start": 12.8,
+          "end": 13
+        },
+        {
+          "word": "for",
+          "start": 13,
+          "end": 13.2
+        },
+        {
+          "word": "us.",
+          "start": 13.2,
+          "end": 13.4
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 13.4,
+      "end": 19.8,
+      "text": "I agree. Whatever twisted this ley-line is still active. I want to see where it leads… preferably without dying.",
+      "words": [
+        {
+          "word": "I",
+          "start": 13.4,
+          "end": 13.6
+        },
+        {
+          "word": "agree.",
+          "start": 13.6,
+          "end": 14
+        },
+        {
+          "word": "Whatever",
+          "start": 14,
+          "end": 14.6
+        },
+        {
+          "word": "twisted",
+          "start": 14.6,
+          "end": 15
+        },
+        {
+          "word": "this",
+          "start": 15,
+          "end": 15.2
+        },
+        {
+          "word": "ley-line",
+          "start": 15.2,
+          "end": 15.8
+        },
+        {
+          "word": "is",
+          "start": 15.8,
+          "end": 16
+        },
+        {
+          "word": "still",
+          "start": 16,
+          "end": 16.2
+        },
+        {
+          "word": "active.",
+          "start": 16.2,
+          "end": 16.8
+        },
+        {
+          "word": "I",
+          "start": 16.8,
+          "end": 17
+        },
+        {
+          "word": "want",
+          "start": 17,
+          "end": 17.2
+        },
+        {
+          "word": "to",
+          "start": 17.2,
+          "end": 17.4
+        },
+        {
+          "word": "see",
+          "start": 17.4,
+          "end": 17.6
+        },
+        {
+          "word": "where",
+          "start": 17.6,
+          "end": 18
+        },
+        {
+          "word": "it",
+          "start": 18,
+          "end": 18.2
+        },
+        {
+          "word": "leads…",
+          "start": 18.2,
+          "end": 18.4
+        },
+        {
+          "word": "preferably",
+          "start": 18.4,
+          "end": 19.2
+        },
+        {
+          "word": "without",
+          "start": 19.2,
+          "end": 19.6
+        },
+        {
+          "word": "dying.",
+          "start": 19.6,
+          "end": 19.8
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 19.8,
+      "end": 22.2,
+      "text": "Mountains, monsters, maybe treasure. Works for me.",
+      "words": [
+        {
+          "word": "Mountains,",
+          "start": 19.8,
+          "end": 20.2
+        },
+        {
+          "word": "monsters,",
+          "start": 20.2,
+          "end": 20.6
+        },
+        {
+          "word": "maybe",
+          "start": 20.6,
+          "end": 21
+        },
+        {
+          "word": "treasure.",
+          "start": 21,
+          "end": 21.6
+        },
+        {
+          "word": "Works",
+          "start": 21.6,
+          "end": 21.8
+        },
+        {
+          "word": "for",
+          "start": 21.8,
+          "end": 22
+        },
+        {
+          "word": "me.",
+          "start": 22,
+          "end": 22.2
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 22.2,
+      "end": 24.8,
+      "text": "As long as something tries to kill us, I’m happy.",
+      "words": [
+        {
+          "word": "As",
+          "start": 22.2,
+          "end": 22.4
+        },
+        {
+          "word": "long",
+          "start": 22.4,
+          "end": 22.6
+        },
+        {
+          "word": "as",
+          "start": 22.6,
+          "end": 22.8
+        },
+        {
+          "word": "something",
+          "start": 22.8,
+          "end": 23.4
+        },
+        {
+          "word": "tries",
+          "start": 23.4,
+          "end": 23.6
+        },
+        {
+          "word": "to",
+          "start": 23.6,
+          "end": 23.8
+        },
+        {
+          "word": "kill",
+          "start": 23.8,
+          "end": 24
+        },
+        {
+          "word": "us,",
+          "start": 24,
+          "end": 24.2
+        },
+        {
+          "word": "I’m",
+          "start": 24.2,
+          "end": 24.4
+        },
+        {
+          "word": "happy.",
+          "start": 24.4,
+          "end": 24.8
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 26.8,
+      "end": 35.4,
+      "text": "(removing his mask respectfully) We’re leaving. We chase the threat instead of waiting for it to return here. There was talk of a bridge. Is it still intact?",
+      "words": [
+        {
+          "word": "(removing",
+          "start": 26.8,
+          "end": 27.4
+        },
+        {
+          "word": "his",
+          "start": 27.4,
+          "end": 27.6
+        },
+        {
+          "word": "mask",
+          "start": 27.6,
+          "end": 27.8
+        },
+        {
+          "word": "respectfully)",
+          "start": 27.8,
+          "end": 28.6
+        },
+        {
+          "word": "We’re",
+          "start": 28.6,
+          "end": 29
+        },
+        {
+          "word": "leaving.",
+          "start": 29,
+          "end": 29.4
+        },
+        {
+          "word": "We",
+          "start": 29.4,
+          "end": 29.6
+        },
+        {
+          "word": "chase",
+          "start": 29.6,
+          "end": 30
+        },
+        {
+          "word": "the",
+          "start": 30,
+          "end": 30.2
+        },
+        {
+          "word": "threat",
+          "start": 30.2,
+          "end": 30.4
+        },
+        {
+          "word": "instead",
+          "start": 30.4,
+          "end": 30.8
+        },
+        {
+          "word": "of",
+          "start": 30.8,
+          "end": 31
+        },
+        {
+          "word": "waiting",
+          "start": 31,
+          "end": 31.4
+        },
+        {
+          "word": "for",
+          "start": 31.4,
+          "end": 31.6
+        },
+        {
+          "word": "it",
+          "start": 31.6,
+          "end": 31.8
+        },
+        {
+          "word": "to",
+          "start": 31.8,
+          "end": 32
+        },
+        {
+          "word": "return",
+          "start": 32,
+          "end": 32.4
+        },
+        {
+          "word": "here.",
+          "start": 32.4,
+          "end": 32.8
+        },
+        {
+          "word": "There",
+          "start": 32.8,
+          "end": 33.2
+        },
+        {
+          "word": "was",
+          "start": 33.2,
+          "end": 33.4
+        },
+        {
+          "word": "talk",
+          "start": 33.4,
+          "end": 33.6
+        },
+        {
+          "word": "of",
+          "start": 33.6,
+          "end": 33.8
+        },
+        {
+          "word": "a",
+          "start": 33.8,
+          "end": 34
+        },
+        {
+          "word": "bridge.",
+          "start": 34,
+          "end": 34.4
+        },
+        {
+          "word": "Is",
+          "start": 34.4,
+          "end": 34.6
+        },
+        {
+          "word": "it",
+          "start": 34.6,
+          "end": 34.8
+        },
+        {
+          "word": "still",
+          "start": 34.8,
+          "end": 35
+        },
+        {
+          "word": "intact?",
+          "start": 35,
+          "end": 35.4
+        }
+      ]
+    },
+    {
+      "speaker": "Tsa Priestess",
+      "start": 35.4,
+      "end": 41.4,
+      "text": "Yes. You can cross safely. And yes… we feel it too. The air is wrong now. Since the tree fell, everything has changed.",
+      "words": [
+        {
+          "word": "Yes.",
+          "start": 35.4,
+          "end": 35.6
+        },
+        {
+          "word": "You",
+          "start": 35.6,
+          "end": 35.8
+        },
+        {
+          "word": "can",
+          "start": 35.8,
+          "end": 36
+        },
+        {
+          "word": "cross",
+          "start": 36,
+          "end": 36.2
+        },
+        {
+          "word": "safely.",
+          "start": 36.2,
+          "end": 36.8
+        },
+        {
+          "word": "And",
+          "start": 36.8,
+          "end": 37
+        },
+        {
+          "word": "yes…",
+          "start": 37,
+          "end": 37.2
+        },
+        {
+          "word": "we",
+          "start": 37.2,
+          "end": 37.4
+        },
+        {
+          "word": "feel",
+          "start": 37.4,
+          "end": 37.6
+        },
+        {
+          "word": "it",
+          "start": 37.6,
+          "end": 37.8
+        },
+        {
+          "word": "too.",
+          "start": 37.8,
+          "end": 38
+        },
+        {
+          "word": "The",
+          "start": 38,
+          "end": 38.2
+        },
+        {
+          "word": "air",
+          "start": 38.2,
+          "end": 38.4
+        },
+        {
+          "word": "is",
+          "start": 38.4,
+          "end": 38.6
+        },
+        {
+          "word": "wrong",
+          "start": 38.6,
+          "end": 38.8
+        },
+        {
+          "word": "now.",
+          "start": 38.8,
+          "end": 39
+        },
+        {
+          "word": "Since",
+          "start": 39,
+          "end": 39.4
+        },
+        {
+          "word": "the",
+          "start": 39.4,
+          "end": 39.6
+        },
+        {
+          "word": "tree",
+          "start": 39.6,
+          "end": 39.8
+        },
+        {
+          "word": "fell,",
+          "start": 39.8,
+          "end": 40
+        },
+        {
+          "word": "everything",
+          "start": 40,
+          "end": 40.8
+        },
+        {
+          "word": "has",
+          "start": 40.8,
+          "end": 41
+        },
+        {
+          "word": "changed.",
+          "start": 41,
+          "end": 41.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 41.4,
+      "end": 43.8,
+      "text": "Then it began the day everything broke.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 41.4,
+          "end": 41.6
+        },
+        {
+          "word": "it",
+          "start": 41.6,
+          "end": 41.8
+        },
+        {
+          "word": "began",
+          "start": 41.8,
+          "end": 42.2
+        },
+        {
+          "word": "the",
+          "start": 42.2,
+          "end": 42.4
+        },
+        {
+          "word": "day",
+          "start": 42.4,
+          "end": 42.6
+        },
+        {
+          "word": "everything",
+          "start": 42.6,
+          "end": 43.4
+        },
+        {
+          "word": "broke.",
+          "start": 43.4,
+          "end": 43.8
+        }
+      ]
+    },
+    {
+      "speaker": "Tsa Priestess",
+      "start": 43.8,
+      "end": 47.8,
+      "text": "I believe so. And I believe you’re the ones meant to face it.",
+      "words": [
+        {
+          "word": "I",
+          "start": 43.8,
+          "end": 44
+        },
+        {
+          "word": "believe",
+          "start": 44,
+          "end": 44.6
+        },
+        {
+          "word": "so.",
+          "start": 44.6,
+          "end": 44.8
+        },
+        {
+          "word": "And",
+          "start": 44.8,
+          "end": 45
+        },
+        {
+          "word": "I",
+          "start": 45,
+          "end": 45.2
+        },
+        {
+          "word": "believe",
+          "start": 45.2,
+          "end": 45.8
+        },
+        {
+          "word": "you’re",
+          "start": 45.8,
+          "end": 46.2
+        },
+        {
+          "word": "the",
+          "start": 46.2,
+          "end": 46.4
+        },
+        {
+          "word": "ones",
+          "start": 46.4,
+          "end": 46.8
+        },
+        {
+          "word": "meant",
+          "start": 46.8,
+          "end": 47
+        },
+        {
+          "word": "to",
+          "start": 47,
+          "end": 47.2
+        },
+        {
+          "word": "face",
+          "start": 47.2,
+          "end": 47.6
+        },
+        {
+          "word": "it.",
+          "start": 47.6,
+          "end": 47.8
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 47.8,
+      "end": 54.2,
+      "text": "Then we’ll do what we can. Protect your people. Guard the new sapling. And pray your enemy does not come before we return.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 47.8,
+          "end": 48
+        },
+        {
+          "word": "we’ll",
+          "start": 48,
+          "end": 48.2
+        },
+        {
+          "word": "do",
+          "start": 48.2,
+          "end": 48.4
+        },
+        {
+          "word": "what",
+          "start": 48.4,
+          "end": 48.6
+        },
+        {
+          "word": "we",
+          "start": 48.6,
+          "end": 48.8
+        },
+        {
+          "word": "can.",
+          "start": 48.8,
+          "end": 49
+        },
+        {
+          "word": "Protect",
+          "start": 49,
+          "end": 49.4
+        },
+        {
+          "word": "your",
+          "start": 49.4,
+          "end": 49.6
+        },
+        {
+          "word": "people.",
+          "start": 49.6,
+          "end": 50
+        },
+        {
+          "word": "Guard",
+          "start": 50,
+          "end": 50.2
+        },
+        {
+          "word": "the",
+          "start": 50.2,
+          "end": 50.4
+        },
+        {
+          "word": "new",
+          "start": 50.4,
+          "end": 50.6
+        },
+        {
+          "word": "sapling.",
+          "start": 50.6,
+          "end": 51
+        },
+        {
+          "word": "And",
+          "start": 51,
+          "end": 51.2
+        },
+        {
+          "word": "pray",
+          "start": 51.2,
+          "end": 51.4
+        },
+        {
+          "word": "your",
+          "start": 51.4,
+          "end": 51.6
+        },
+        {
+          "word": "enemy",
+          "start": 51.6,
+          "end": 52.2
+        },
+        {
+          "word": "does",
+          "start": 52.2,
+          "end": 52.4
+        },
+        {
+          "word": "not",
+          "start": 52.4,
+          "end": 52.6
+        },
+        {
+          "word": "come",
+          "start": 52.6,
+          "end": 53
+        },
+        {
+          "word": "before",
+          "start": 53,
+          "end": 53.6
+        },
+        {
+          "word": "we",
+          "start": 53.6,
+          "end": 53.8
+        },
+        {
+          "word": "return.",
+          "start": 53.8,
+          "end": 54.2
+        }
+      ]
+    },
+    {
+      "speaker": "Tsa Priestess",
+      "start": 54.2,
+      "end": 55.8,
+      "text": "May the gods walk beside you.",
+      "words": [
+        {
+          "word": "May",
+          "start": 54.2,
+          "end": 54.4
+        },
+        {
+          "word": "the",
+          "start": 54.4,
+          "end": 54.6
+        },
+        {
+          "word": "gods",
+          "start": 54.6,
+          "end": 54.8
+        },
+        {
+          "word": "walk",
+          "start": 54.8,
+          "end": 55
+        },
+        {
+          "word": "beside",
+          "start": 55,
+          "end": 55.6
+        },
+        {
+          "word": "you.",
+          "start": 55.6,
+          "end": 55.8
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 57.8,
+      "end": 60,
+      "text": "There’s a bridge. No more excuses.",
+      "words": [
+        {
+          "word": "There’s",
+          "start": 57.8,
+          "end": 58.2
+        },
+        {
+          "word": "a",
+          "start": 58.2,
+          "end": 58.4
+        },
+        {
+          "word": "bridge.",
+          "start": 58.4,
+          "end": 58.8
+        },
+        {
+          "word": "No",
+          "start": 58.8,
+          "end": 59
+        },
+        {
+          "word": "more",
+          "start": 59,
+          "end": 59.4
+        },
+        {
+          "word": "excuses.",
+          "start": 59.4,
+          "end": 60
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 60,
+      "end": 63.2,
+      "text": "Good. The curiosity is killing me faster than the danger.",
+      "words": [
+        {
+          "word": "Good.",
+          "start": 60,
+          "end": 60.2
+        },
+        {
+          "word": "The",
+          "start": 60.2,
+          "end": 60.4
+        },
+        {
+          "word": "curiosity",
+          "start": 60.4,
+          "end": 61.2
+        },
+        {
+          "word": "is",
+          "start": 61.2,
+          "end": 61.4
+        },
+        {
+          "word": "killing",
+          "start": 61.4,
+          "end": 61.8
+        },
+        {
+          "word": "me",
+          "start": 61.8,
+          "end": 62
+        },
+        {
+          "word": "faster",
+          "start": 62,
+          "end": 62.4
+        },
+        {
+          "word": "than",
+          "start": 62.4,
+          "end": 62.6
+        },
+        {
+          "word": "the",
+          "start": 62.6,
+          "end": 62.8
+        },
+        {
+          "word": "danger.",
+          "start": 62.8,
+          "end": 63.2
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 63.2,
+      "end": 66.8,
+      "text": "Still unholy, this movement spell of yours. Useful… but unholy.",
+      "words": [
+        {
+          "word": "Still",
+          "start": 63.2,
+          "end": 63.4
+        },
+        {
+          "word": "unholy,",
+          "start": 63.4,
+          "end": 64
+        },
+        {
+          "word": "this",
+          "start": 64,
+          "end": 64.2
+        },
+        {
+          "word": "movement",
+          "start": 64.2,
+          "end": 64.8
+        },
+        {
+          "word": "spell",
+          "start": 64.8,
+          "end": 65
+        },
+        {
+          "word": "of",
+          "start": 65,
+          "end": 65.2
+        },
+        {
+          "word": "yours.",
+          "start": 65.2,
+          "end": 65.4
+        },
+        {
+          "word": "Useful…",
+          "start": 65.4,
+          "end": 66
+        },
+        {
+          "word": "but",
+          "start": 66,
+          "end": 66.2
+        },
+        {
+          "word": "unholy.",
+          "start": 66.2,
+          "end": 66.8
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 66.8,
+      "end": 69,
+      "text": "Don’t complain. You can swing your axe longer.",
+      "words": [
+        {
+          "word": "Don’t",
+          "start": 66.8,
+          "end": 67
+        },
+        {
+          "word": "complain.",
+          "start": 67,
+          "end": 67.4
+        },
+        {
+          "word": "You",
+          "start": 67.4,
+          "end": 67.6
+        },
+        {
+          "word": "can",
+          "start": 67.6,
+          "end": 67.8
+        },
+        {
+          "word": "swing",
+          "start": 67.8,
+          "end": 68
+        },
+        {
+          "word": "your",
+          "start": 68,
+          "end": 68.2
+        },
+        {
+          "word": "axe",
+          "start": 68.2,
+          "end": 68.6
+        },
+        {
+          "word": "longer.",
+          "start": 68.6,
+          "end": 69
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 69,
+      "end": 70,
+      "text": "That’s what scares me.",
+      "words": [
+        {
+          "word": "That’s",
+          "start": 69,
+          "end": 69.2
+        },
+        {
+          "word": "what",
+          "start": 69.2,
+          "end": 69.4
+        },
+        {
+          "word": "scares",
+          "start": 69.4,
+          "end": 69.8
+        },
+        {
+          "word": "me.",
+          "start": 69.8,
+          "end": 70
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 72,
+      "end": 79.2,
+      "text": "The bridge stands untouched, stone strong beneath your feet though its railings are shattered. The river snarls below, but the path forward is clear.",
+      "words": [
+        {
+          "word": "The",
+          "start": 72,
+          "end": 72.2
+        },
+        {
+          "word": "bridge",
+          "start": 72.2,
+          "end": 72.6
+        },
+        {
+          "word": "stands",
+          "start": 72.6,
+          "end": 72.8
+        },
+        {
+          "word": "untouched,",
+          "start": 72.8,
+          "end": 73.4
+        },
+        {
+          "word": "stone",
+          "start": 73.4,
+          "end": 73.8
+        },
+        {
+          "word": "strong",
+          "start": 73.8,
+          "end": 74
+        },
+        {
+          "word": "beneath",
+          "start": 74,
+          "end": 74.4
+        },
+        {
+          "word": "your",
+          "start": 74.4,
+          "end": 74.6
+        },
+        {
+          "word": "feet",
+          "start": 74.6,
+          "end": 74.8
+        },
+        {
+          "word": "though",
+          "start": 74.8,
+          "end": 75
+        },
+        {
+          "word": "its",
+          "start": 75,
+          "end": 75.2
+        },
+        {
+          "word": "railings",
+          "start": 75.2,
+          "end": 75.6
+        },
+        {
+          "word": "are",
+          "start": 75.6,
+          "end": 76
+        },
+        {
+          "word": "shattered.",
+          "start": 76,
+          "end": 76.6
+        },
+        {
+          "word": "The",
+          "start": 76.6,
+          "end": 76.8
+        },
+        {
+          "word": "river",
+          "start": 76.8,
+          "end": 77.2
+        },
+        {
+          "word": "snarls",
+          "start": 77.2,
+          "end": 77.4
+        },
+        {
+          "word": "below,",
+          "start": 77.4,
+          "end": 77.8
+        },
+        {
+          "word": "but",
+          "start": 77.8,
+          "end": 78
+        },
+        {
+          "word": "the",
+          "start": 78,
+          "end": 78.2
+        },
+        {
+          "word": "path",
+          "start": 78.2,
+          "end": 78.4
+        },
+        {
+          "word": "forward",
+          "start": 78.4,
+          "end": 78.8
+        },
+        {
+          "word": "is",
+          "start": 78.8,
+          "end": 79
+        },
+        {
+          "word": "clear.",
+          "start": 79,
+          "end": 79.2
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 79.2,
+      "end": 83.4,
+      "text": "The ley-line doesn’t follow the bridge. It runs beside it. Straight. Uncaring. Wrong.",
+      "words": [
+        {
+          "word": "The",
+          "start": 79.2,
+          "end": 79.4
+        },
+        {
+          "word": "ley-line",
+          "start": 79.4,
+          "end": 80
+        },
+        {
+          "word": "doesn’t",
+          "start": 80,
+          "end": 80.2
+        },
+        {
+          "word": "follow",
+          "start": 80.2,
+          "end": 80.6
+        },
+        {
+          "word": "the",
+          "start": 80.6,
+          "end": 80.8
+        },
+        {
+          "word": "bridge.",
+          "start": 80.8,
+          "end": 81.2
+        },
+        {
+          "word": "It",
+          "start": 81.2,
+          "end": 81.4
+        },
+        {
+          "word": "runs",
+          "start": 81.4,
+          "end": 81.6
+        },
+        {
+          "word": "beside",
+          "start": 81.6,
+          "end": 82.2
+        },
+        {
+          "word": "it.",
+          "start": 82.2,
+          "end": 82.4
+        },
+        {
+          "word": "Straight.",
+          "start": 82.4,
+          "end": 82.6
+        },
+        {
+          "word": "Uncaring.",
+          "start": 82.6,
+          "end": 83.2
+        },
+        {
+          "word": "Wrong.",
+          "start": 83.2,
+          "end": 83.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 83.4,
+      "end": 84.8,
+      "text": "So we follow the wrongness.",
+      "words": [
+        {
+          "word": "So",
+          "start": 83.4,
+          "end": 83.6
+        },
+        {
+          "word": "we",
+          "start": 83.6,
+          "end": 83.8
+        },
+        {
+          "word": "follow",
+          "start": 83.8,
+          "end": 84.2
+        },
+        {
+          "word": "the",
+          "start": 84.2,
+          "end": 84.4
+        },
+        {
+          "word": "wrongness.",
+          "start": 84.4,
+          "end": 84.8
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 84.8,
+      "end": 86.6,
+      "text": "That’s been our specialty lately.",
+      "words": [
+        {
+          "word": "That’s",
+          "start": 84.8,
+          "end": 85
+        },
+        {
+          "word": "been",
+          "start": 85,
+          "end": 85.2
+        },
+        {
+          "word": "our",
+          "start": 85.2,
+          "end": 85.4
+        },
+        {
+          "word": "specialty",
+          "start": 85.4,
+          "end": 86
+        },
+        {
+          "word": "lately.",
+          "start": 86,
+          "end": 86.6
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 88.6,
+      "end": 97.6,
+      "text": "After some travel, the nature near the ley-line shifts. Grass grows in warped shapes. Bushes twist. Branches bend like broken fingers reaching for something that isn’t there.",
+      "words": [
+        {
+          "word": "After",
+          "start": 88.6,
+          "end": 89
+        },
+        {
+          "word": "some",
+          "start": 89,
+          "end": 89.4
+        },
+        {
+          "word": "travel,",
+          "start": 89.4,
+          "end": 89.8
+        },
+        {
+          "word": "the",
+          "start": 89.8,
+          "end": 90
+        },
+        {
+          "word": "nature",
+          "start": 90,
+          "end": 90.6
+        },
+        {
+          "word": "near",
+          "start": 90.6,
+          "end": 90.8
+        },
+        {
+          "word": "the",
+          "start": 90.8,
+          "end": 91
+        },
+        {
+          "word": "ley-line",
+          "start": 91,
+          "end": 91.6
+        },
+        {
+          "word": "shifts.",
+          "start": 91.6,
+          "end": 91.8
+        },
+        {
+          "word": "Grass",
+          "start": 91.8,
+          "end": 92
+        },
+        {
+          "word": "grows",
+          "start": 92,
+          "end": 92.2
+        },
+        {
+          "word": "in",
+          "start": 92.2,
+          "end": 92.4
+        },
+        {
+          "word": "warped",
+          "start": 92.4,
+          "end": 92.8
+        },
+        {
+          "word": "shapes.",
+          "start": 92.8,
+          "end": 93.2
+        },
+        {
+          "word": "Bushes",
+          "start": 93.2,
+          "end": 93.6
+        },
+        {
+          "word": "twist.",
+          "start": 93.6,
+          "end": 93.8
+        },
+        {
+          "word": "Branches",
+          "start": 93.8,
+          "end": 94.2
+        },
+        {
+          "word": "bend",
+          "start": 94.2,
+          "end": 94.4
+        },
+        {
+          "word": "like",
+          "start": 94.4,
+          "end": 94.8
+        },
+        {
+          "word": "broken",
+          "start": 94.8,
+          "end": 95.2
+        },
+        {
+          "word": "fingers",
+          "start": 95.2,
+          "end": 95.6
+        },
+        {
+          "word": "reaching",
+          "start": 95.6,
+          "end": 96
+        },
+        {
+          "word": "for",
+          "start": 96,
+          "end": 96.2
+        },
+        {
+          "word": "something",
+          "start": 96.2,
+          "end": 96.8
+        },
+        {
+          "word": "that",
+          "start": 96.8,
+          "end": 97
+        },
+        {
+          "word": "isn’t",
+          "start": 97,
+          "end": 97.2
+        },
+        {
+          "word": "there.",
+          "start": 97.2,
+          "end": 97.6
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 97.6,
+      "end": 99.8,
+      "text": "This isn’t random. The world doesn’t grow like this.",
+      "words": [
+        {
+          "word": "This",
+          "start": 97.6,
+          "end": 97.8
+        },
+        {
+          "word": "isn’t",
+          "start": 97.8,
+          "end": 98
+        },
+        {
+          "word": "random.",
+          "start": 98,
+          "end": 98.4
+        },
+        {
+          "word": "The",
+          "start": 98.4,
+          "end": 98.6
+        },
+        {
+          "word": "world",
+          "start": 98.6,
+          "end": 98.8
+        },
+        {
+          "word": "doesn’t",
+          "start": 98.8,
+          "end": 99
+        },
+        {
+          "word": "grow",
+          "start": 99,
+          "end": 99.2
+        },
+        {
+          "word": "like",
+          "start": 99.2,
+          "end": 99.6
+        },
+        {
+          "word": "this.",
+          "start": 99.6,
+          "end": 99.8
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 99.8,
+      "end": 101.4,
+      "text": "That’s… not just decay. That’s intent.",
+      "words": [
+        {
+          "word": "That’s…",
+          "start": 99.8,
+          "end": 100
+        },
+        {
+          "word": "not",
+          "start": 100,
+          "end": 100.2
+        },
+        {
+          "word": "just",
+          "start": 100.2,
+          "end": 100.4
+        },
+        {
+          "word": "decay.",
+          "start": 100.4,
+          "end": 100.8
+        },
+        {
+          "word": "That’s",
+          "start": 100.8,
+          "end": 101
+        },
+        {
+          "word": "intent.",
+          "start": 101,
+          "end": 101.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 101.4,
+      "end": 102.4,
+      "text": "Could it be writing?",
+      "words": [
+        {
+          "word": "Could",
+          "start": 101.4,
+          "end": 101.6
+        },
+        {
+          "word": "it",
+          "start": 101.6,
+          "end": 101.8
+        },
+        {
+          "word": "be",
+          "start": 101.8,
+          "end": 102
+        },
+        {
+          "word": "writing?",
+          "start": 102,
+          "end": 102.4
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 102.4,
+      "end": 103,
+      "text": "…Let me look.",
+      "words": [
+        {
+          "word": "…Let",
+          "start": 102.4,
+          "end": 102.6
+        },
+        {
+          "word": "me",
+          "start": 102.6,
+          "end": 102.8
+        },
+        {
+          "word": "look.",
+          "start": 102.8,
+          "end": 103
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 105,
+      "end": 112.6,
+      "text": "It looks like Zhayad. But it isn’t. It pretends to be. It’s like someone who knows how letters should look but has never actually learned to write.",
+      "words": [
+        {
+          "word": "It",
+          "start": 105,
+          "end": 105.2
+        },
+        {
+          "word": "looks",
+          "start": 105.2,
+          "end": 105.4
+        },
+        {
+          "word": "like",
+          "start": 105.4,
+          "end": 105.8
+        },
+        {
+          "word": "Zhayad.",
+          "start": 105.8,
+          "end": 106
+        },
+        {
+          "word": "But",
+          "start": 106,
+          "end": 106.2
+        },
+        {
+          "word": "it",
+          "start": 106.2,
+          "end": 106.4
+        },
+        {
+          "word": "isn’t.",
+          "start": 106.4,
+          "end": 106.6
+        },
+        {
+          "word": "It",
+          "start": 106.6,
+          "end": 106.8
+        },
+        {
+          "word": "pretends",
+          "start": 106.8,
+          "end": 107.2
+        },
+        {
+          "word": "to",
+          "start": 107.2,
+          "end": 107.4
+        },
+        {
+          "word": "be.",
+          "start": 107.4,
+          "end": 107.6
+        },
+        {
+          "word": "It’s",
+          "start": 107.6,
+          "end": 107.8
+        },
+        {
+          "word": "like",
+          "start": 107.8,
+          "end": 108.2
+        },
+        {
+          "word": "someone",
+          "start": 108.2,
+          "end": 108.8
+        },
+        {
+          "word": "who",
+          "start": 108.8,
+          "end": 109
+        },
+        {
+          "word": "knows",
+          "start": 109,
+          "end": 109.2
+        },
+        {
+          "word": "how",
+          "start": 109.2,
+          "end": 109.4
+        },
+        {
+          "word": "letters",
+          "start": 109.4,
+          "end": 109.8
+        },
+        {
+          "word": "should",
+          "start": 109.8,
+          "end": 110
+        },
+        {
+          "word": "look",
+          "start": 110,
+          "end": 110.2
+        },
+        {
+          "word": "but",
+          "start": 110.2,
+          "end": 110.4
+        },
+        {
+          "word": "has",
+          "start": 110.4,
+          "end": 110.6
+        },
+        {
+          "word": "never",
+          "start": 110.6,
+          "end": 111
+        },
+        {
+          "word": "actually",
+          "start": 111,
+          "end": 111.6
+        },
+        {
+          "word": "learned",
+          "start": 111.6,
+          "end": 112
+        },
+        {
+          "word": "to",
+          "start": 112,
+          "end": 112.2
+        },
+        {
+          "word": "write.",
+          "start": 112.2,
+          "end": 112.6
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 112.6,
+      "end": 113,
+      "text": "Meaning?",
+      "words": [
+        {
+          "word": "Meaning?",
+          "start": 112.6,
+          "end": 113
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 113,
+      "end": 122.6,
+      "text": "Meaning this is imitation. Corruption trying to masquerade as logic. And everything it says comes down to one idea: merging things that were never meant to be merged.",
+      "words": [
+        {
+          "word": "Meaning",
+          "start": 113,
+          "end": 113.4
+        },
+        {
+          "word": "this",
+          "start": 113.4,
+          "end": 113.6
+        },
+        {
+          "word": "is",
+          "start": 113.6,
+          "end": 113.8
+        },
+        {
+          "word": "imitation.",
+          "start": 113.8,
+          "end": 114.6
+        },
+        {
+          "word": "Corruption",
+          "start": 114.6,
+          "end": 115.2
+        },
+        {
+          "word": "trying",
+          "start": 115.2,
+          "end": 115.4
+        },
+        {
+          "word": "to",
+          "start": 115.4,
+          "end": 115.6
+        },
+        {
+          "word": "masquerade",
+          "start": 115.6,
+          "end": 116.4
+        },
+        {
+          "word": "as",
+          "start": 116.4,
+          "end": 116.6
+        },
+        {
+          "word": "logic.",
+          "start": 116.6,
+          "end": 117
+        },
+        {
+          "word": "And",
+          "start": 117,
+          "end": 117.2
+        },
+        {
+          "word": "everything",
+          "start": 117.2,
+          "end": 118
+        },
+        {
+          "word": "it",
+          "start": 118,
+          "end": 118.2
+        },
+        {
+          "word": "says",
+          "start": 118.2,
+          "end": 118.4
+        },
+        {
+          "word": "comes",
+          "start": 118.4,
+          "end": 118.8
+        },
+        {
+          "word": "down",
+          "start": 118.8,
+          "end": 119
+        },
+        {
+          "word": "to",
+          "start": 119,
+          "end": 119.2
+        },
+        {
+          "word": "one",
+          "start": 119.2,
+          "end": 119.6
+        },
+        {
+          "word": "idea:",
+          "start": 119.6,
+          "end": 120
+        },
+        {
+          "word": "merging",
+          "start": 120,
+          "end": 120.4
+        },
+        {
+          "word": "things",
+          "start": 120.4,
+          "end": 120.6
+        },
+        {
+          "word": "that",
+          "start": 120.6,
+          "end": 120.8
+        },
+        {
+          "word": "were",
+          "start": 120.8,
+          "end": 121.2
+        },
+        {
+          "word": "never",
+          "start": 121.2,
+          "end": 121.6
+        },
+        {
+          "word": "meant",
+          "start": 121.6,
+          "end": 121.8
+        },
+        {
+          "word": "to",
+          "start": 121.8,
+          "end": 122
+        },
+        {
+          "word": "be",
+          "start": 122,
+          "end": 122.2
+        },
+        {
+          "word": "merged.",
+          "start": 122.2,
+          "end": 122.6
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 122.6,
+      "end": 123.6,
+      "text": "Chimera magic.",
+      "words": [
+        {
+          "word": "Chimera",
+          "start": 122.6,
+          "end": 123.2
+        },
+        {
+          "word": "magic.",
+          "start": 123.2,
+          "end": 123.6
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 123.6,
+      "end": 124.2,
+      "text": "Exactly.",
+      "words": [
+        {
+          "word": "Exactly.",
+          "start": 123.6,
+          "end": 124.2
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 126.2,
+      "end": 131.6,
+      "text": "(picks a berry, bites it, immediately spits it out) By the ancestors! That tastes like regret!",
+      "words": [
+        {
+          "word": "(picks",
+          "start": 126.2,
+          "end": 126.4
+        },
+        {
+          "word": "a",
+          "start": 126.4,
+          "end": 126.6
+        },
+        {
+          "word": "berry,",
+          "start": 126.6,
+          "end": 127
+        },
+        {
+          "word": "bites",
+          "start": 127,
+          "end": 127.4
+        },
+        {
+          "word": "it,",
+          "start": 127.4,
+          "end": 127.6
+        },
+        {
+          "word": "immediately",
+          "start": 127.6,
+          "end": 128.6
+        },
+        {
+          "word": "spits",
+          "start": 128.6,
+          "end": 128.8
+        },
+        {
+          "word": "it",
+          "start": 128.8,
+          "end": 129
+        },
+        {
+          "word": "out)",
+          "start": 129,
+          "end": 129.2
+        },
+        {
+          "word": "By",
+          "start": 129.2,
+          "end": 129.4
+        },
+        {
+          "word": "the",
+          "start": 129.4,
+          "end": 129.6
+        },
+        {
+          "word": "ancestors!",
+          "start": 129.6,
+          "end": 130.2
+        },
+        {
+          "word": "That",
+          "start": 130.2,
+          "end": 130.4
+        },
+        {
+          "word": "tastes",
+          "start": 130.4,
+          "end": 130.8
+        },
+        {
+          "word": "like",
+          "start": 130.8,
+          "end": 131.2
+        },
+        {
+          "word": "regret!",
+          "start": 131.2,
+          "end": 131.6
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 131.6,
+      "end": 134.2,
+      "text": "Try not to eat the cursed wilderness next time.",
+      "words": [
+        {
+          "word": "Try",
+          "start": 131.6,
+          "end": 131.8
+        },
+        {
+          "word": "not",
+          "start": 131.8,
+          "end": 132
+        },
+        {
+          "word": "to",
+          "start": 132,
+          "end": 132.2
+        },
+        {
+          "word": "eat",
+          "start": 132.2,
+          "end": 132.4
+        },
+        {
+          "word": "the",
+          "start": 132.4,
+          "end": 132.6
+        },
+        {
+          "word": "cursed",
+          "start": 132.6,
+          "end": 133
+        },
+        {
+          "word": "wilderness",
+          "start": 133,
+          "end": 133.6
+        },
+        {
+          "word": "next",
+          "start": 133.6,
+          "end": 133.8
+        },
+        {
+          "word": "time.",
+          "start": 133.8,
+          "end": 134.2
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 134.2,
+      "end": 135,
+      "text": "I was hungry.",
+      "words": [
+        {
+          "word": "I",
+          "start": 134.2,
+          "end": 134.4
+        },
+        {
+          "word": "was",
+          "start": 134.4,
+          "end": 134.6
+        },
+        {
+          "word": "hungry.",
+          "start": 134.6,
+          "end": 135
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 135,
+      "end": 136.8,
+      "text": "If your beard falls off, I’m not helping.",
+      "words": [
+        {
+          "word": "If",
+          "start": 135,
+          "end": 135.2
+        },
+        {
+          "word": "your",
+          "start": 135.2,
+          "end": 135.4
+        },
+        {
+          "word": "beard",
+          "start": 135.4,
+          "end": 135.6
+        },
+        {
+          "word": "falls",
+          "start": 135.6,
+          "end": 135.8
+        },
+        {
+          "word": "off,",
+          "start": 135.8,
+          "end": 136
+        },
+        {
+          "word": "I’m",
+          "start": 136,
+          "end": 136.2
+        },
+        {
+          "word": "not",
+          "start": 136.2,
+          "end": 136.4
+        },
+        {
+          "word": "helping.",
+          "start": 136.4,
+          "end": 136.8
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 138.8,
+      "end": 146,
+      "text": "The land shifts as you move. Hills give way to jagged stone and fractured cliff walls. A canyon yawns open, dotted with countless dark holes.",
+      "words": [
+        {
+          "word": "The",
+          "start": 138.8,
+          "end": 139
+        },
+        {
+          "word": "land",
+          "start": 139,
+          "end": 139.2
+        },
+        {
+          "word": "shifts",
+          "start": 139.2,
+          "end": 139.4
+        },
+        {
+          "word": "as",
+          "start": 139.4,
+          "end": 139.6
+        },
+        {
+          "word": "you",
+          "start": 139.6,
+          "end": 139.8
+        },
+        {
+          "word": "move.",
+          "start": 139.8,
+          "end": 140.2
+        },
+        {
+          "word": "Hills",
+          "start": 140.2,
+          "end": 140.4
+        },
+        {
+          "word": "give",
+          "start": 140.4,
+          "end": 140.8
+        },
+        {
+          "word": "way",
+          "start": 140.8,
+          "end": 141
+        },
+        {
+          "word": "to",
+          "start": 141,
+          "end": 141.2
+        },
+        {
+          "word": "jagged",
+          "start": 141.2,
+          "end": 141.6
+        },
+        {
+          "word": "stone",
+          "start": 141.6,
+          "end": 142
+        },
+        {
+          "word": "and",
+          "start": 142,
+          "end": 142.2
+        },
+        {
+          "word": "fractured",
+          "start": 142.2,
+          "end": 142.8
+        },
+        {
+          "word": "cliff",
+          "start": 142.8,
+          "end": 143
+        },
+        {
+          "word": "walls.",
+          "start": 143,
+          "end": 143.2
+        },
+        {
+          "word": "A",
+          "start": 143.2,
+          "end": 143.4
+        },
+        {
+          "word": "canyon",
+          "start": 143.4,
+          "end": 143.8
+        },
+        {
+          "word": "yawns",
+          "start": 143.8,
+          "end": 144
+        },
+        {
+          "word": "open,",
+          "start": 144,
+          "end": 144.4
+        },
+        {
+          "word": "dotted",
+          "start": 144.4,
+          "end": 144.8
+        },
+        {
+          "word": "with",
+          "start": 144.8,
+          "end": 145
+        },
+        {
+          "word": "countless",
+          "start": 145,
+          "end": 145.4
+        },
+        {
+          "word": "dark",
+          "start": 145.4,
+          "end": 145.6
+        },
+        {
+          "word": "holes.",
+          "start": 145.6,
+          "end": 146
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 146,
+      "end": 150.4,
+      "text": "This is perfect for an ambush. Stay sharp. Move carefully. Eyes everywhere.",
+      "words": [
+        {
+          "word": "This",
+          "start": 146,
+          "end": 146.2
+        },
+        {
+          "word": "is",
+          "start": 146.2,
+          "end": 146.4
+        },
+        {
+          "word": "perfect",
+          "start": 146.4,
+          "end": 146.8
+        },
+        {
+          "word": "for",
+          "start": 146.8,
+          "end": 147
+        },
+        {
+          "word": "an",
+          "start": 147,
+          "end": 147.2
+        },
+        {
+          "word": "ambush.",
+          "start": 147.2,
+          "end": 147.6
+        },
+        {
+          "word": "Stay",
+          "start": 147.6,
+          "end": 147.8
+        },
+        {
+          "word": "sharp.",
+          "start": 147.8,
+          "end": 148
+        },
+        {
+          "word": "Move",
+          "start": 148,
+          "end": 148.4
+        },
+        {
+          "word": "carefully.",
+          "start": 148.4,
+          "end": 149.2
+        },
+        {
+          "word": "Eyes",
+          "start": 149.2,
+          "end": 149.4
+        },
+        {
+          "word": "everywhere.",
+          "start": 149.4,
+          "end": 150.4
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 150.4,
+      "end": 153.8,
+      "text": "Or just let them try something. Saves us the trouble of looking.",
+      "words": [
+        {
+          "word": "Or",
+          "start": 150.4,
+          "end": 150.6
+        },
+        {
+          "word": "just",
+          "start": 150.6,
+          "end": 150.8
+        },
+        {
+          "word": "let",
+          "start": 150.8,
+          "end": 151
+        },
+        {
+          "word": "them",
+          "start": 151,
+          "end": 151.2
+        },
+        {
+          "word": "try",
+          "start": 151.2,
+          "end": 151.4
+        },
+        {
+          "word": "something.",
+          "start": 151.4,
+          "end": 152
+        },
+        {
+          "word": "Saves",
+          "start": 152,
+          "end": 152.4
+        },
+        {
+          "word": "us",
+          "start": 152.4,
+          "end": 152.6
+        },
+        {
+          "word": "the",
+          "start": 152.6,
+          "end": 152.8
+        },
+        {
+          "word": "trouble",
+          "start": 152.8,
+          "end": 153.2
+        },
+        {
+          "word": "of",
+          "start": 153.2,
+          "end": 153.4
+        },
+        {
+          "word": "looking.",
+          "start": 153.4,
+          "end": 153.8
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 153.8,
+      "end": 159.6,
+      "text": "The ley-line cuts straight through the rock here. It’s not just changing the plants anymore. The stone itself feels… wrong.",
+      "words": [
+        {
+          "word": "The",
+          "start": 153.8,
+          "end": 154
+        },
+        {
+          "word": "ley-line",
+          "start": 154,
+          "end": 154.6
+        },
+        {
+          "word": "cuts",
+          "start": 154.6,
+          "end": 154.8
+        },
+        {
+          "word": "straight",
+          "start": 154.8,
+          "end": 155
+        },
+        {
+          "word": "through",
+          "start": 155,
+          "end": 155.2
+        },
+        {
+          "word": "the",
+          "start": 155.2,
+          "end": 155.4
+        },
+        {
+          "word": "rock",
+          "start": 155.4,
+          "end": 155.6
+        },
+        {
+          "word": "here.",
+          "start": 155.6,
+          "end": 156
+        },
+        {
+          "word": "It’s",
+          "start": 156,
+          "end": 156.2
+        },
+        {
+          "word": "not",
+          "start": 156.2,
+          "end": 156.4
+        },
+        {
+          "word": "just",
+          "start": 156.4,
+          "end": 156.6
+        },
+        {
+          "word": "changing",
+          "start": 156.6,
+          "end": 157
+        },
+        {
+          "word": "the",
+          "start": 157,
+          "end": 157.2
+        },
+        {
+          "word": "plants",
+          "start": 157.2,
+          "end": 157.4
+        },
+        {
+          "word": "anymore.",
+          "start": 157.4,
+          "end": 158.2
+        },
+        {
+          "word": "The",
+          "start": 158.2,
+          "end": 158.4
+        },
+        {
+          "word": "stone",
+          "start": 158.4,
+          "end": 158.8
+        },
+        {
+          "word": "itself",
+          "start": 158.8,
+          "end": 159.2
+        },
+        {
+          "word": "feels…",
+          "start": 159.2,
+          "end": 159.4
+        },
+        {
+          "word": "wrong.",
+          "start": 159.4,
+          "end": 159.6
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 159.6,
+      "end": 161.6,
+      "text": "Then we stay close, but not too close.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 159.6,
+          "end": 159.8
+        },
+        {
+          "word": "we",
+          "start": 159.8,
+          "end": 160
+        },
+        {
+          "word": "stay",
+          "start": 160,
+          "end": 160.2
+        },
+        {
+          "word": "close,",
+          "start": 160.2,
+          "end": 160.6
+        },
+        {
+          "word": "but",
+          "start": 160.6,
+          "end": 160.8
+        },
+        {
+          "word": "not",
+          "start": 160.8,
+          "end": 161
+        },
+        {
+          "word": "too",
+          "start": 161,
+          "end": 161.2
+        },
+        {
+          "word": "close.",
+          "start": 161.2,
+          "end": 161.6
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 163.6,
+      "end": 169.2,
+      "text": "You round a bend. A piercing screech tears through the canyon air—part bird, part beast, part something that should never exist.",
+      "words": [
+        {
+          "word": "You",
+          "start": 163.6,
+          "end": 163.8
+        },
+        {
+          "word": "round",
+          "start": 163.8,
+          "end": 164
+        },
+        {
+          "word": "a",
+          "start": 164,
+          "end": 164.2
+        },
+        {
+          "word": "bend.",
+          "start": 164.2,
+          "end": 164.4
+        },
+        {
+          "word": "A",
+          "start": 164.4,
+          "end": 164.6
+        },
+        {
+          "word": "piercing",
+          "start": 164.6,
+          "end": 165
+        },
+        {
+          "word": "screech",
+          "start": 165,
+          "end": 165.2
+        },
+        {
+          "word": "tears",
+          "start": 165.2,
+          "end": 165.4
+        },
+        {
+          "word": "through",
+          "start": 165.4,
+          "end": 165.6
+        },
+        {
+          "word": "the",
+          "start": 165.6,
+          "end": 165.8
+        },
+        {
+          "word": "canyon",
+          "start": 165.8,
+          "end": 166.2
+        },
+        {
+          "word": "air—part",
+          "start": 166.2,
+          "end": 166.6
+        },
+        {
+          "word": "bird,",
+          "start": 166.6,
+          "end": 166.8
+        },
+        {
+          "word": "part",
+          "start": 166.8,
+          "end": 167
+        },
+        {
+          "word": "beast,",
+          "start": 167,
+          "end": 167.2
+        },
+        {
+          "word": "part",
+          "start": 167.2,
+          "end": 167.4
+        },
+        {
+          "word": "something",
+          "start": 167.4,
+          "end": 168
+        },
+        {
+          "word": "that",
+          "start": 168,
+          "end": 168.2
+        },
+        {
+          "word": "should",
+          "start": 168.2,
+          "end": 168.4
+        },
+        {
+          "word": "never",
+          "start": 168.4,
+          "end": 168.8
+        },
+        {
+          "word": "exist.",
+          "start": 168.8,
+          "end": 169.2
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 169.2,
+      "end": 170.2,
+      "text": "Down! Get to cover!",
+      "words": [
+        {
+          "word": "Down!",
+          "start": 169.2,
+          "end": 169.4
+        },
+        {
+          "word": "Get",
+          "start": 169.4,
+          "end": 169.6
+        },
+        {
+          "word": "to",
+          "start": 169.6,
+          "end": 169.8
+        },
+        {
+          "word": "cover!",
+          "start": 169.8,
+          "end": 170.2
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 170.2,
+      "end": 171.6,
+      "text": "That is not a normal bird.",
+      "words": [
+        {
+          "word": "That",
+          "start": 170.2,
+          "end": 170.4
+        },
+        {
+          "word": "is",
+          "start": 170.4,
+          "end": 170.6
+        },
+        {
+          "word": "not",
+          "start": 170.6,
+          "end": 170.8
+        },
+        {
+          "word": "a",
+          "start": 170.8,
+          "end": 171
+        },
+        {
+          "word": "normal",
+          "start": 171,
+          "end": 171.4
+        },
+        {
+          "word": "bird.",
+          "start": 171.4,
+          "end": 171.6
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 171.6,
+      "end": 172.2,
+      "text": "Sounds angry.",
+      "words": [
+        {
+          "word": "Sounds",
+          "start": 171.6,
+          "end": 171.8
+        },
+        {
+          "word": "angry.",
+          "start": 171.8,
+          "end": 172.2
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 172.2,
+      "end": 173,
+      "text": "Sounds like fun.",
+      "words": [
+        {
+          "word": "Sounds",
+          "start": 172.2,
+          "end": 172.4
+        },
+        {
+          "word": "like",
+          "start": 172.4,
+          "end": 172.8
+        },
+        {
+          "word": "fun.",
+          "start": 172.8,
+          "end": 173
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 173,
+      "end": 176.2,
+      "text": "And how exactly do you plan to axe something that flies?",
+      "words": [
+        {
+          "word": "And",
+          "start": 173,
+          "end": 173.2
+        },
+        {
+          "word": "how",
+          "start": 173.2,
+          "end": 173.4
+        },
+        {
+          "word": "exactly",
+          "start": 173.4,
+          "end": 174
+        },
+        {
+          "word": "do",
+          "start": 174,
+          "end": 174.2
+        },
+        {
+          "word": "you",
+          "start": 174.2,
+          "end": 174.4
+        },
+        {
+          "word": "plan",
+          "start": 174.4,
+          "end": 174.6
+        },
+        {
+          "word": "to",
+          "start": 174.6,
+          "end": 174.8
+        },
+        {
+          "word": "axe",
+          "start": 174.8,
+          "end": 175.2
+        },
+        {
+          "word": "something",
+          "start": 175.2,
+          "end": 175.8
+        },
+        {
+          "word": "that",
+          "start": 175.8,
+          "end": 176
+        },
+        {
+          "word": "flies?",
+          "start": 176,
+          "end": 176.2
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 176.2,
+      "end": 177.2,
+      "text": "I’ll improvise.",
+      "words": [
+        {
+          "word": "I’ll",
+          "start": 176.2,
+          "end": 176.4
+        },
+        {
+          "word": "improvise.",
+          "start": 176.4,
+          "end": 177.2
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 177.2,
+      "end": 178.2,
+      "text": "He usually does.",
+      "words": [
+        {
+          "word": "He",
+          "start": 177.2,
+          "end": 177.4
+        },
+        {
+          "word": "usually",
+          "start": 177.4,
+          "end": 178
+        },
+        {
+          "word": "does.",
+          "start": 178,
+          "end": 178.2
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 180.2,
+      "end": 191.4,
+      "text": "The sound echoes closer. Sherkan and Glymbar surge forward, momentum spell fueling their speed. Dust kicks beneath their boots. Oswin follows at a safer pace. Durrandir remains cautious, eyes scanning not just forward… but behind.",
+      "words": [
+        {
+          "word": "The",
+          "start": 180.2,
+          "end": 180.4
+        },
+        {
+          "word": "sound",
+          "start": 180.4,
+          "end": 180.6
+        },
+        {
+          "word": "echoes",
+          "start": 180.6,
+          "end": 181
+        },
+        {
+          "word": "closer.",
+          "start": 181,
+          "end": 181.4
+        },
+        {
+          "word": "Sherkan",
+          "start": 181.4,
+          "end": 181.8
+        },
+        {
+          "word": "and",
+          "start": 181.8,
+          "end": 182
+        },
+        {
+          "word": "Glymbar",
+          "start": 182,
+          "end": 182.4
+        },
+        {
+          "word": "surge",
+          "start": 182.4,
+          "end": 182.8
+        },
+        {
+          "word": "forward,",
+          "start": 182.8,
+          "end": 183.2
+        },
+        {
+          "word": "momentum",
+          "start": 183.2,
+          "end": 183.8
+        },
+        {
+          "word": "spell",
+          "start": 183.8,
+          "end": 184
+        },
+        {
+          "word": "fueling",
+          "start": 184,
+          "end": 184.4
+        },
+        {
+          "word": "their",
+          "start": 184.4,
+          "end": 184.6
+        },
+        {
+          "word": "speed.",
+          "start": 184.6,
+          "end": 184.8
+        },
+        {
+          "word": "Dust",
+          "start": 184.8,
+          "end": 185
+        },
+        {
+          "word": "kicks",
+          "start": 185,
+          "end": 185.2
+        },
+        {
+          "word": "beneath",
+          "start": 185.2,
+          "end": 185.6
+        },
+        {
+          "word": "their",
+          "start": 185.6,
+          "end": 185.8
+        },
+        {
+          "word": "boots.",
+          "start": 185.8,
+          "end": 186
+        },
+        {
+          "word": "Oswin",
+          "start": 186,
+          "end": 186.4
+        },
+        {
+          "word": "follows",
+          "start": 186.4,
+          "end": 186.8
+        },
+        {
+          "word": "at",
+          "start": 186.8,
+          "end": 187
+        },
+        {
+          "word": "a",
+          "start": 187,
+          "end": 187.2
+        },
+        {
+          "word": "safer",
+          "start": 187.2,
+          "end": 187.6
+        },
+        {
+          "word": "pace.",
+          "start": 187.6,
+          "end": 188
+        },
+        {
+          "word": "Durrandir",
+          "start": 188,
+          "end": 188.6
+        },
+        {
+          "word": "remains",
+          "start": 188.6,
+          "end": 189
+        },
+        {
+          "word": "cautious,",
+          "start": 189,
+          "end": 189.4
+        },
+        {
+          "word": "eyes",
+          "start": 189.4,
+          "end": 189.6
+        },
+        {
+          "word": "scanning",
+          "start": 189.6,
+          "end": 190
+        },
+        {
+          "word": "not",
+          "start": 190,
+          "end": 190.2
+        },
+        {
+          "word": "just",
+          "start": 190.2,
+          "end": 190.4
+        },
+        {
+          "word": "forward…",
+          "start": 190.4,
+          "end": 190.8
+        },
+        {
+          "word": "but",
+          "start": 190.8,
+          "end": 191
+        },
+        {
+          "word": "behind.",
+          "start": 191,
+          "end": 191.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 191.4,
+      "end": 193.4,
+      "text": "This could be bait. Don’t get tunnel vision.",
+      "words": [
+        {
+          "word": "This",
+          "start": 191.4,
+          "end": 191.6
+        },
+        {
+          "word": "could",
+          "start": 191.6,
+          "end": 191.8
+        },
+        {
+          "word": "be",
+          "start": 191.8,
+          "end": 192
+        },
+        {
+          "word": "bait.",
+          "start": 192,
+          "end": 192.2
+        },
+        {
+          "word": "Don’t",
+          "start": 192.2,
+          "end": 192.4
+        },
+        {
+          "word": "get",
+          "start": 192.4,
+          "end": 192.6
+        },
+        {
+          "word": "tunnel",
+          "start": 192.6,
+          "end": 193
+        },
+        {
+          "word": "vision.",
+          "start": 193,
+          "end": 193.4
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 193.4,
+      "end": 195.2,
+      "text": "Then keep up. I’m not dying alone.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 193.4,
+          "end": 193.6
+        },
+        {
+          "word": "keep",
+          "start": 193.6,
+          "end": 193.8
+        },
+        {
+          "word": "up.",
+          "start": 193.8,
+          "end": 194
+        },
+        {
+          "word": "I’m",
+          "start": 194,
+          "end": 194.2
+        },
+        {
+          "word": "not",
+          "start": 194.2,
+          "end": 194.4
+        },
+        {
+          "word": "dying",
+          "start": 194.4,
+          "end": 194.6
+        },
+        {
+          "word": "alone.",
+          "start": 194.6,
+          "end": 195.2
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 197.2,
+      "end": 207.2,
+      "text": "The canyon widens into a stone hollow. At its center stands an ancient altar, blackened and burning. A wild man in tattered yellow-red robes screams curses at the sky, shaking his fists.",
+      "words": [
+        {
+          "word": "The",
+          "start": 197.2,
+          "end": 197.4
+        },
+        {
+          "word": "canyon",
+          "start": 197.4,
+          "end": 197.8
+        },
+        {
+          "word": "widens",
+          "start": 197.8,
+          "end": 198.2
+        },
+        {
+          "word": "into",
+          "start": 198.2,
+          "end": 198.6
+        },
+        {
+          "word": "a",
+          "start": 198.6,
+          "end": 198.8
+        },
+        {
+          "word": "stone",
+          "start": 198.8,
+          "end": 199.2
+        },
+        {
+          "word": "hollow.",
+          "start": 199.2,
+          "end": 199.6
+        },
+        {
+          "word": "At",
+          "start": 199.6,
+          "end": 199.8
+        },
+        {
+          "word": "its",
+          "start": 199.8,
+          "end": 200
+        },
+        {
+          "word": "center",
+          "start": 200,
+          "end": 200.4
+        },
+        {
+          "word": "stands",
+          "start": 200.4,
+          "end": 200.6
+        },
+        {
+          "word": "an",
+          "start": 200.6,
+          "end": 200.8
+        },
+        {
+          "word": "ancient",
+          "start": 200.8,
+          "end": 201.2
+        },
+        {
+          "word": "altar,",
+          "start": 201.2,
+          "end": 201.6
+        },
+        {
+          "word": "blackened",
+          "start": 201.6,
+          "end": 202.2
+        },
+        {
+          "word": "and",
+          "start": 202.2,
+          "end": 202.4
+        },
+        {
+          "word": "burning.",
+          "start": 202.4,
+          "end": 202.8
+        },
+        {
+          "word": "A",
+          "start": 202.8,
+          "end": 203
+        },
+        {
+          "word": "wild",
+          "start": 203,
+          "end": 203.2
+        },
+        {
+          "word": "man",
+          "start": 203.2,
+          "end": 203.4
+        },
+        {
+          "word": "in",
+          "start": 203.4,
+          "end": 203.6
+        },
+        {
+          "word": "tattered",
+          "start": 203.6,
+          "end": 204.2
+        },
+        {
+          "word": "yellow-red",
+          "start": 204.2,
+          "end": 204.8
+        },
+        {
+          "word": "robes",
+          "start": 204.8,
+          "end": 205.2
+        },
+        {
+          "word": "screams",
+          "start": 205.2,
+          "end": 205.4
+        },
+        {
+          "word": "curses",
+          "start": 205.4,
+          "end": 205.8
+        },
+        {
+          "word": "at",
+          "start": 205.8,
+          "end": 206
+        },
+        {
+          "word": "the",
+          "start": 206,
+          "end": 206.2
+        },
+        {
+          "word": "sky,",
+          "start": 206.2,
+          "end": 206.4
+        },
+        {
+          "word": "shaking",
+          "start": 206.4,
+          "end": 206.8
+        },
+        {
+          "word": "his",
+          "start": 206.8,
+          "end": 207
+        },
+        {
+          "word": "fists.",
+          "start": 207,
+          "end": 207.2
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 207.2,
+      "end": 207.8,
+      "text": "Finally.",
+      "words": [
+        {
+          "word": "Finally.",
+          "start": 207.2,
+          "end": 207.8
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 207.8,
+      "end": 208.4,
+      "text": "Called it.",
+      "words": [
+        {
+          "word": "Called",
+          "start": 207.8,
+          "end": 208.2
+        },
+        {
+          "word": "it.",
+          "start": 208.2,
+          "end": 208.4
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 208.4,
+      "end": 210.4,
+      "text": "This isn’t random cruelty. It’s enjoying this.",
+      "words": [
+        {
+          "word": "This",
+          "start": 208.4,
+          "end": 208.6
+        },
+        {
+          "word": "isn’t",
+          "start": 208.6,
+          "end": 208.8
+        },
+        {
+          "word": "random",
+          "start": 208.8,
+          "end": 209.2
+        },
+        {
+          "word": "cruelty.",
+          "start": 209.2,
+          "end": 209.6
+        },
+        {
+          "word": "It’s",
+          "start": 209.6,
+          "end": 209.8
+        },
+        {
+          "word": "enjoying",
+          "start": 209.8,
+          "end": 210.2
+        },
+        {
+          "word": "this.",
+          "start": 210.2,
+          "end": 210.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 210.4,
+      "end": 211.6,
+      "text": "Then let’s end the joke.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 210.4,
+          "end": 210.6
+        },
+        {
+          "word": "let’s",
+          "start": 210.6,
+          "end": 210.8
+        },
+        {
+          "word": "end",
+          "start": 210.8,
+          "end": 211
+        },
+        {
+          "word": "the",
+          "start": 211,
+          "end": 211.2
+        },
+        {
+          "word": "joke.",
+          "start": 211.2,
+          "end": 211.6
+        }
+      ]
+    }
+  ]
+}
