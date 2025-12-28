@@ -3,3620 +3,3620 @@
     {
       "speaker": "SL",
       "start": 0,
-      "end": 7.8,
+      "end": 12.85,
       "text": "The mountains stand ahead of you, quiet and ominous. The strange ley-line still hums nearby—wrong, hollow, like something missing where power should be.",
       "words": [
         {
           "word": "The",
           "start": 0,
-          "end": 0.2
+          "end": 0.3
         },
         {
           "word": "mountains",
-          "start": 0.2,
-          "end": 0.6
+          "start": 0.3,
+          "end": 0.9
         },
         {
           "word": "stand",
-          "start": 0.6,
-          "end": 0.8
-        },
-        {
-          "word": "ahead",
-          "start": 0.8,
+          "start": 0.9,
           "end": 1.2
         },
         {
-          "word": "of",
+          "word": "ahead",
           "start": 1.2,
-          "end": 1.4
-        },
-        {
-          "word": "you,",
-          "start": 1.4,
-          "end": 1.6
-        },
-        {
-          "word": "quiet",
-          "start": 1.6,
           "end": 1.8
         },
         {
-          "word": "and",
+          "word": "of",
           "start": 1.8,
-          "end": 2
+          "end": 2.1
+        },
+        {
+          "word": "you,",
+          "start": 2.1,
+          "end": 2.4
+        },
+        {
+          "word": "quiet",
+          "start": 2.55,
+          "end": 2.85
+        },
+        {
+          "word": "and",
+          "start": 2.85,
+          "end": 3.15
         },
         {
           "word": "ominous.",
-          "start": 2,
-          "end": 2.6
+          "start": 3.15,
+          "end": 4.05
         },
         {
           "word": "The",
-          "start": 2.6,
-          "end": 2.8
+          "start": 4.4,
+          "end": 4.7
         },
         {
           "word": "strange",
-          "start": 2.8,
-          "end": 3.2
+          "start": 4.7,
+          "end": 5.3
         },
         {
           "word": "ley-line",
-          "start": 3.2,
-          "end": 3.8
-        },
-        {
-          "word": "still",
-          "start": 3.8,
-          "end": 4
-        },
-        {
-          "word": "hums",
-          "start": 4,
-          "end": 4.2
-        },
-        {
-          "word": "nearby—wrong,",
-          "start": 4.2,
-          "end": 4.8
-        },
-        {
-          "word": "hollow,",
-          "start": 4.8,
-          "end": 5.2
-        },
-        {
-          "word": "like",
-          "start": 5.2,
-          "end": 5.6
-        },
-        {
-          "word": "something",
-          "start": 5.6,
+          "start": 5.3,
           "end": 6.2
         },
         {
-          "word": "missing",
+          "word": "still",
           "start": 6.2,
-          "end": 6.6
+          "end": 6.5
+        },
+        {
+          "word": "hums",
+          "start": 6.5,
+          "end": 6.8
+        },
+        {
+          "word": "nearby—wrong,",
+          "start": 6.8,
+          "end": 7.7
+        },
+        {
+          "word": "hollow,",
+          "start": 7.85,
+          "end": 8.45
+        },
+        {
+          "word": "like",
+          "start": 8.6,
+          "end": 9.2
+        },
+        {
+          "word": "something",
+          "start": 9.2,
+          "end": 10.1
+        },
+        {
+          "word": "missing",
+          "start": 10.1,
+          "end": 10.7
         },
         {
           "word": "where",
-          "start": 6.6,
-          "end": 7
+          "start": 10.7,
+          "end": 11.3
         },
         {
           "word": "power",
-          "start": 7,
-          "end": 7.4
+          "start": 11.3,
+          "end": 11.9
         },
         {
           "word": "should",
-          "start": 7.4,
-          "end": 7.6
+          "start": 11.9,
+          "end": 12.2
         },
         {
           "word": "be.",
-          "start": 7.6,
-          "end": 7.8
+          "start": 12.2,
+          "end": 12.5
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 7.8,
-      "end": 13.4,
+      "start": 12.85,
+      "end": 22.45,
       "text": "We shouldn’t stay. The land is wounded, and whatever caused it is still out there. The mountains will not wait for us.",
       "words": [
         {
           "word": "We",
-          "start": 7.8,
-          "end": 8
+          "start": 12.85,
+          "end": 13.15
         },
         {
           "word": "shouldn’t",
-          "start": 8,
-          "end": 8.2
+          "start": 13.15,
+          "end": 13.45
         },
         {
           "word": "stay.",
-          "start": 8.2,
-          "end": 8.4
+          "start": 13.45,
+          "end": 13.75
         },
         {
           "word": "The",
-          "start": 8.4,
-          "end": 8.6
+          "start": 14.1,
+          "end": 14.4
         },
         {
           "word": "land",
-          "start": 8.6,
-          "end": 8.8
+          "start": 14.4,
+          "end": 14.7
         },
         {
           "word": "is",
-          "start": 8.8,
-          "end": 9
+          "start": 14.7,
+          "end": 15
         },
         {
           "word": "wounded,",
-          "start": 9,
-          "end": 9.4
+          "start": 15,
+          "end": 15.6
         },
         {
           "word": "and",
-          "start": 9.4,
-          "end": 9.6
+          "start": 15.75,
+          "end": 16.05
         },
         {
           "word": "whatever",
-          "start": 9.6,
-          "end": 10.2
+          "start": 16.05,
+          "end": 16.95
         },
         {
           "word": "caused",
-          "start": 10.2,
-          "end": 10.6
+          "start": 16.95,
+          "end": 17.55
         },
         {
           "word": "it",
-          "start": 10.6,
-          "end": 10.8
+          "start": 17.55,
+          "end": 17.85
         },
         {
           "word": "is",
-          "start": 10.8,
-          "end": 11
+          "start": 17.85,
+          "end": 18.15
         },
         {
           "word": "still",
-          "start": 11,
-          "end": 11.2
+          "start": 18.15,
+          "end": 18.45
         },
         {
           "word": "out",
-          "start": 11.2,
-          "end": 11.4
+          "start": 18.45,
+          "end": 18.75
         },
         {
           "word": "there.",
-          "start": 11.4,
-          "end": 11.8
+          "start": 18.75,
+          "end": 19.35
         },
         {
           "word": "The",
-          "start": 11.8,
-          "end": 12
+          "start": 19.7,
+          "end": 20
         },
         {
           "word": "mountains",
-          "start": 12,
-          "end": 12.4
+          "start": 20,
+          "end": 20.6
         },
         {
           "word": "will",
-          "start": 12.4,
-          "end": 12.6
+          "start": 20.6,
+          "end": 20.9
         },
         {
           "word": "not",
-          "start": 12.6,
-          "end": 12.8
+          "start": 20.9,
+          "end": 21.2
         },
         {
           "word": "wait",
-          "start": 12.8,
-          "end": 13
+          "start": 21.2,
+          "end": 21.5
         },
         {
           "word": "for",
-          "start": 13,
-          "end": 13.2
+          "start": 21.5,
+          "end": 21.8
         },
         {
           "word": "us.",
-          "start": 13.2,
-          "end": 13.4
+          "start": 21.8,
+          "end": 22.1
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 13.4,
-      "end": 19.8,
+      "start": 22.45,
+      "end": 33.5,
       "text": "I agree. Whatever twisted this ley-line is still active. I want to see where it leads… preferably without dying.",
       "words": [
         {
           "word": "I",
-          "start": 13.4,
-          "end": 13.6
+          "start": 22.45,
+          "end": 22.75
         },
         {
           "word": "agree.",
-          "start": 13.6,
-          "end": 14
+          "start": 22.75,
+          "end": 23.35
         },
         {
           "word": "Whatever",
-          "start": 14,
-          "end": 14.6
+          "start": 23.7,
+          "end": 24.6
         },
         {
           "word": "twisted",
-          "start": 14.6,
-          "end": 15
+          "start": 24.6,
+          "end": 25.2
         },
         {
           "word": "this",
-          "start": 15,
-          "end": 15.2
+          "start": 25.2,
+          "end": 25.5
         },
         {
           "word": "ley-line",
-          "start": 15.2,
-          "end": 15.8
+          "start": 25.5,
+          "end": 26.4
         },
         {
           "word": "is",
-          "start": 15.8,
-          "end": 16
+          "start": 26.4,
+          "end": 26.7
         },
         {
           "word": "still",
-          "start": 16,
-          "end": 16.2
+          "start": 26.7,
+          "end": 27
         },
         {
           "word": "active.",
-          "start": 16.2,
-          "end": 16.8
+          "start": 27,
+          "end": 27.9
         },
         {
           "word": "I",
-          "start": 16.8,
-          "end": 17
+          "start": 28.25,
+          "end": 28.55
         },
         {
           "word": "want",
-          "start": 17,
-          "end": 17.2
+          "start": 28.55,
+          "end": 28.85
         },
         {
           "word": "to",
-          "start": 17.2,
-          "end": 17.4
+          "start": 28.85,
+          "end": 29.15
         },
         {
           "word": "see",
-          "start": 17.4,
-          "end": 17.6
+          "start": 29.15,
+          "end": 29.45
         },
         {
           "word": "where",
-          "start": 17.6,
-          "end": 18
+          "start": 29.45,
+          "end": 30.05
         },
         {
           "word": "it",
-          "start": 18,
-          "end": 18.2
+          "start": 30.05,
+          "end": 30.35
         },
         {
           "word": "leads…",
-          "start": 18.2,
-          "end": 18.4
+          "start": 30.35,
+          "end": 30.65
         },
         {
           "word": "preferably",
-          "start": 18.4,
-          "end": 19.2
+          "start": 31.05,
+          "end": 32.25
         },
         {
           "word": "without",
-          "start": 19.2,
-          "end": 19.6
+          "start": 32.25,
+          "end": 32.85
         },
         {
           "word": "dying.",
-          "start": 19.6,
-          "end": 19.8
+          "start": 32.85,
+          "end": 33.15
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 19.8,
-      "end": 22.2,
+      "start": 33.5,
+      "end": 38.1,
       "text": "Mountains, monsters, maybe treasure. Works for me.",
       "words": [
         {
           "word": "Mountains,",
-          "start": 19.8,
-          "end": 20.2
+          "start": 33.5,
+          "end": 34.1
         },
         {
           "word": "monsters,",
-          "start": 20.2,
-          "end": 20.6
+          "start": 34.25,
+          "end": 34.85
         },
         {
           "word": "maybe",
-          "start": 20.6,
-          "end": 21
+          "start": 35,
+          "end": 35.6
         },
         {
           "word": "treasure.",
-          "start": 21,
-          "end": 21.6
+          "start": 35.6,
+          "end": 36.5
         },
         {
           "word": "Works",
-          "start": 21.6,
-          "end": 21.8
+          "start": 36.85,
+          "end": 37.15
         },
         {
           "word": "for",
-          "start": 21.8,
-          "end": 22
+          "start": 37.15,
+          "end": 37.45
         },
         {
           "word": "me.",
-          "start": 22,
-          "end": 22.2
+          "start": 37.45,
+          "end": 37.75
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 22.2,
-      "end": 24.8,
+      "start": 38.1,
+      "end": 42.5,
       "text": "As long as something tries to kill us, I’m happy.",
       "words": [
         {
           "word": "As",
-          "start": 22.2,
-          "end": 22.4
+          "start": 38.1,
+          "end": 38.4
         },
         {
           "word": "long",
-          "start": 22.4,
-          "end": 22.6
+          "start": 38.4,
+          "end": 38.7
         },
         {
           "word": "as",
-          "start": 22.6,
-          "end": 22.8
+          "start": 38.7,
+          "end": 39
         },
         {
           "word": "something",
-          "start": 22.8,
-          "end": 23.4
+          "start": 39,
+          "end": 39.9
         },
         {
           "word": "tries",
-          "start": 23.4,
-          "end": 23.6
+          "start": 39.9,
+          "end": 40.2
         },
         {
           "word": "to",
-          "start": 23.6,
-          "end": 23.8
+          "start": 40.2,
+          "end": 40.5
         },
         {
           "word": "kill",
-          "start": 23.8,
-          "end": 24
+          "start": 40.5,
+          "end": 40.8
         },
         {
           "word": "us,",
-          "start": 24,
-          "end": 24.2
+          "start": 40.8,
+          "end": 41.1
         },
         {
           "word": "I’m",
-          "start": 24.2,
-          "end": 24.4
+          "start": 41.25,
+          "end": 41.55
         },
         {
           "word": "happy.",
-          "start": 24.4,
-          "end": 24.8
+          "start": 41.55,
+          "end": 42.15
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 26.8,
-      "end": 35.4,
+      "start": 44.5,
+      "end": 58.8,
       "text": "(removing his mask respectfully) We’re leaving. We chase the threat instead of waiting for it to return here. There was talk of a bridge. Is it still intact?",
       "words": [
         {
           "word": "(removing",
-          "start": 26.8,
-          "end": 27.4
+          "start": 44.5,
+          "end": 45.4
         },
         {
           "word": "his",
-          "start": 27.4,
-          "end": 27.6
+          "start": 45.4,
+          "end": 45.7
         },
         {
           "word": "mask",
-          "start": 27.6,
-          "end": 27.8
+          "start": 45.7,
+          "end": 46
         },
         {
           "word": "respectfully)",
-          "start": 27.8,
-          "end": 28.6
+          "start": 46,
+          "end": 47.2
         },
         {
           "word": "We’re",
-          "start": 28.6,
-          "end": 29
+          "start": 47.2,
+          "end": 47.8
         },
         {
           "word": "leaving.",
-          "start": 29,
-          "end": 29.4
+          "start": 47.8,
+          "end": 48.4
         },
         {
           "word": "We",
-          "start": 29.4,
-          "end": 29.6
+          "start": 48.75,
+          "end": 49.05
         },
         {
           "word": "chase",
-          "start": 29.6,
-          "end": 30
+          "start": 49.05,
+          "end": 49.65
         },
         {
           "word": "the",
-          "start": 30,
-          "end": 30.2
+          "start": 49.65,
+          "end": 49.95
         },
         {
           "word": "threat",
-          "start": 30.2,
-          "end": 30.4
+          "start": 49.95,
+          "end": 50.25
         },
         {
           "word": "instead",
-          "start": 30.4,
-          "end": 30.8
+          "start": 50.25,
+          "end": 50.85
         },
         {
           "word": "of",
-          "start": 30.8,
-          "end": 31
+          "start": 50.85,
+          "end": 51.15
         },
         {
           "word": "waiting",
-          "start": 31,
-          "end": 31.4
+          "start": 51.15,
+          "end": 51.75
         },
         {
           "word": "for",
-          "start": 31.4,
-          "end": 31.6
+          "start": 51.75,
+          "end": 52.05
         },
         {
           "word": "it",
-          "start": 31.6,
-          "end": 31.8
+          "start": 52.05,
+          "end": 52.35
         },
         {
           "word": "to",
-          "start": 31.8,
-          "end": 32
+          "start": 52.35,
+          "end": 52.65
         },
         {
           "word": "return",
-          "start": 32,
-          "end": 32.4
+          "start": 52.65,
+          "end": 53.25
         },
         {
           "word": "here.",
-          "start": 32.4,
-          "end": 32.8
+          "start": 53.25,
+          "end": 53.85
         },
         {
           "word": "There",
-          "start": 32.8,
-          "end": 33.2
+          "start": 54.2,
+          "end": 54.8
         },
         {
           "word": "was",
-          "start": 33.2,
-          "end": 33.4
+          "start": 54.8,
+          "end": 55.1
         },
         {
           "word": "talk",
-          "start": 33.4,
-          "end": 33.6
+          "start": 55.1,
+          "end": 55.4
         },
         {
           "word": "of",
-          "start": 33.6,
-          "end": 33.8
+          "start": 55.4,
+          "end": 55.7
         },
         {
           "word": "a",
-          "start": 33.8,
-          "end": 34
+          "start": 55.7,
+          "end": 56
         },
         {
           "word": "bridge.",
-          "start": 34,
-          "end": 34.4
+          "start": 56,
+          "end": 56.6
         },
         {
           "word": "Is",
-          "start": 34.4,
-          "end": 34.6
+          "start": 56.95,
+          "end": 57.25
         },
         {
           "word": "it",
-          "start": 34.6,
-          "end": 34.8
+          "start": 57.25,
+          "end": 57.55
         },
         {
           "word": "still",
-          "start": 34.8,
-          "end": 35
+          "start": 57.55,
+          "end": 57.85
         },
         {
           "word": "intact?",
-          "start": 35,
-          "end": 35.4
+          "start": 57.85,
+          "end": 58.45
         }
       ]
     },
     {
       "speaker": "Tsa Priestess",
-      "start": 35.4,
-      "end": 41.4,
+      "start": 58.8,
+      "end": 70.1,
       "text": "Yes. You can cross safely. And yes… we feel it too. The air is wrong now. Since the tree fell, everything has changed.",
       "words": [
         {
           "word": "Yes.",
-          "start": 35.4,
-          "end": 35.6
+          "start": 58.8,
+          "end": 59.1
         },
         {
           "word": "You",
-          "start": 35.6,
-          "end": 35.8
+          "start": 59.45,
+          "end": 59.75
         },
         {
           "word": "can",
-          "start": 35.8,
-          "end": 36
+          "start": 59.75,
+          "end": 60.05
         },
         {
           "word": "cross",
-          "start": 36,
-          "end": 36.2
+          "start": 60.05,
+          "end": 60.35
         },
         {
           "word": "safely.",
-          "start": 36.2,
-          "end": 36.8
+          "start": 60.35,
+          "end": 61.25
         },
         {
           "word": "And",
-          "start": 36.8,
-          "end": 37
+          "start": 61.6,
+          "end": 61.9
         },
         {
           "word": "yes…",
-          "start": 37,
-          "end": 37.2
+          "start": 61.9,
+          "end": 62.2
         },
         {
           "word": "we",
-          "start": 37.2,
-          "end": 37.4
+          "start": 62.6,
+          "end": 62.9
         },
         {
           "word": "feel",
-          "start": 37.4,
-          "end": 37.6
+          "start": 62.9,
+          "end": 63.2
         },
         {
           "word": "it",
-          "start": 37.6,
-          "end": 37.8
+          "start": 63.2,
+          "end": 63.5
         },
         {
           "word": "too.",
-          "start": 37.8,
-          "end": 38
+          "start": 63.5,
+          "end": 63.8
         },
         {
           "word": "The",
-          "start": 38,
-          "end": 38.2
+          "start": 64.15,
+          "end": 64.45
         },
         {
           "word": "air",
-          "start": 38.2,
-          "end": 38.4
+          "start": 64.45,
+          "end": 64.75
         },
         {
           "word": "is",
-          "start": 38.4,
-          "end": 38.6
+          "start": 64.75,
+          "end": 65.05
         },
         {
           "word": "wrong",
-          "start": 38.6,
-          "end": 38.8
+          "start": 65.05,
+          "end": 65.35
         },
         {
           "word": "now.",
-          "start": 38.8,
-          "end": 39
+          "start": 65.35,
+          "end": 65.65
         },
         {
           "word": "Since",
-          "start": 39,
-          "end": 39.4
+          "start": 66,
+          "end": 66.6
         },
         {
           "word": "the",
-          "start": 39.4,
-          "end": 39.6
+          "start": 66.6,
+          "end": 66.9
         },
         {
           "word": "tree",
-          "start": 39.6,
-          "end": 39.8
+          "start": 66.9,
+          "end": 67.2
         },
         {
           "word": "fell,",
-          "start": 39.8,
-          "end": 40
+          "start": 67.2,
+          "end": 67.5
         },
         {
           "word": "everything",
-          "start": 40,
-          "end": 40.8
+          "start": 67.65,
+          "end": 68.85
         },
         {
           "word": "has",
-          "start": 40.8,
-          "end": 41
+          "start": 68.85,
+          "end": 69.15
         },
         {
           "word": "changed.",
-          "start": 41,
-          "end": 41.4
+          "start": 69.15,
+          "end": 69.75
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 41.4,
-      "end": 43.8,
+      "start": 70.1,
+      "end": 74.05,
       "text": "Then it began the day everything broke.",
       "words": [
         {
           "word": "Then",
-          "start": 41.4,
-          "end": 41.6
+          "start": 70.1,
+          "end": 70.4
         },
         {
           "word": "it",
-          "start": 41.6,
-          "end": 41.8
+          "start": 70.4,
+          "end": 70.7
         },
         {
           "word": "began",
-          "start": 41.8,
-          "end": 42.2
+          "start": 70.7,
+          "end": 71.3
         },
         {
           "word": "the",
-          "start": 42.2,
-          "end": 42.4
+          "start": 71.3,
+          "end": 71.6
         },
         {
           "word": "day",
-          "start": 42.4,
-          "end": 42.6
+          "start": 71.6,
+          "end": 71.9
         },
         {
           "word": "everything",
-          "start": 42.6,
-          "end": 43.4
+          "start": 71.9,
+          "end": 73.1
         },
         {
           "word": "broke.",
-          "start": 43.4,
-          "end": 43.8
+          "start": 73.1,
+          "end": 73.7
         }
       ]
     },
     {
       "speaker": "Tsa Priestess",
-      "start": 43.8,
-      "end": 47.8,
+      "start": 74.05,
+      "end": 80.75,
       "text": "I believe so. And I believe you’re the ones meant to face it.",
       "words": [
         {
           "word": "I",
-          "start": 43.8,
-          "end": 44
+          "start": 74.05,
+          "end": 74.35
         },
         {
           "word": "believe",
-          "start": 44,
-          "end": 44.6
+          "start": 74.35,
+          "end": 75.25
         },
         {
           "word": "so.",
-          "start": 44.6,
-          "end": 44.8
+          "start": 75.25,
+          "end": 75.55
         },
         {
           "word": "And",
-          "start": 44.8,
-          "end": 45
+          "start": 75.9,
+          "end": 76.2
         },
         {
           "word": "I",
-          "start": 45,
-          "end": 45.2
+          "start": 76.2,
+          "end": 76.5
         },
         {
           "word": "believe",
-          "start": 45.2,
-          "end": 45.8
-        },
-        {
-          "word": "you’re",
-          "start": 45.8,
-          "end": 46.2
-        },
-        {
-          "word": "the",
-          "start": 46.2,
-          "end": 46.4
-        },
-        {
-          "word": "ones",
-          "start": 46.4,
-          "end": 46.8
-        },
-        {
-          "word": "meant",
-          "start": 46.8,
-          "end": 47
-        },
-        {
-          "word": "to",
-          "start": 47,
-          "end": 47.2
-        },
-        {
-          "word": "face",
-          "start": 47.2,
-          "end": 47.6
-        },
-        {
-          "word": "it.",
-          "start": 47.6,
-          "end": 47.8
-        }
-      ]
-    },
-    {
-      "speaker": "Durrandir",
-      "start": 47.8,
-      "end": 54.2,
-      "text": "Then we’ll do what we can. Protect your people. Guard the new sapling. And pray your enemy does not come before we return.",
-      "words": [
-        {
-          "word": "Then",
-          "start": 47.8,
-          "end": 48
-        },
-        {
-          "word": "we’ll",
-          "start": 48,
-          "end": 48.2
-        },
-        {
-          "word": "do",
-          "start": 48.2,
-          "end": 48.4
-        },
-        {
-          "word": "what",
-          "start": 48.4,
-          "end": 48.6
-        },
-        {
-          "word": "we",
-          "start": 48.6,
-          "end": 48.8
-        },
-        {
-          "word": "can.",
-          "start": 48.8,
-          "end": 49
-        },
-        {
-          "word": "Protect",
-          "start": 49,
-          "end": 49.4
-        },
-        {
-          "word": "your",
-          "start": 49.4,
-          "end": 49.6
-        },
-        {
-          "word": "people.",
-          "start": 49.6,
-          "end": 50
-        },
-        {
-          "word": "Guard",
-          "start": 50,
-          "end": 50.2
-        },
-        {
-          "word": "the",
-          "start": 50.2,
-          "end": 50.4
-        },
-        {
-          "word": "new",
-          "start": 50.4,
-          "end": 50.6
-        },
-        {
-          "word": "sapling.",
-          "start": 50.6,
-          "end": 51
-        },
-        {
-          "word": "And",
-          "start": 51,
-          "end": 51.2
-        },
-        {
-          "word": "pray",
-          "start": 51.2,
-          "end": 51.4
-        },
-        {
-          "word": "your",
-          "start": 51.4,
-          "end": 51.6
-        },
-        {
-          "word": "enemy",
-          "start": 51.6,
-          "end": 52.2
-        },
-        {
-          "word": "does",
-          "start": 52.2,
-          "end": 52.4
-        },
-        {
-          "word": "not",
-          "start": 52.4,
-          "end": 52.6
-        },
-        {
-          "word": "come",
-          "start": 52.6,
-          "end": 53
-        },
-        {
-          "word": "before",
-          "start": 53,
-          "end": 53.6
-        },
-        {
-          "word": "we",
-          "start": 53.6,
-          "end": 53.8
-        },
-        {
-          "word": "return.",
-          "start": 53.8,
-          "end": 54.2
-        }
-      ]
-    },
-    {
-      "speaker": "Tsa Priestess",
-      "start": 54.2,
-      "end": 55.8,
-      "text": "May the gods walk beside you.",
-      "words": [
-        {
-          "word": "May",
-          "start": 54.2,
-          "end": 54.4
-        },
-        {
-          "word": "the",
-          "start": 54.4,
-          "end": 54.6
-        },
-        {
-          "word": "gods",
-          "start": 54.6,
-          "end": 54.8
-        },
-        {
-          "word": "walk",
-          "start": 54.8,
-          "end": 55
-        },
-        {
-          "word": "beside",
-          "start": 55,
-          "end": 55.6
-        },
-        {
-          "word": "you.",
-          "start": 55.6,
-          "end": 55.8
-        }
-      ]
-    },
-    {
-      "speaker": "Durrandir",
-      "start": 57.8,
-      "end": 60,
-      "text": "There’s a bridge. No more excuses.",
-      "words": [
-        {
-          "word": "There’s",
-          "start": 57.8,
-          "end": 58.2
-        },
-        {
-          "word": "a",
-          "start": 58.2,
-          "end": 58.4
-        },
-        {
-          "word": "bridge.",
-          "start": 58.4,
-          "end": 58.8
-        },
-        {
-          "word": "No",
-          "start": 58.8,
-          "end": 59
-        },
-        {
-          "word": "more",
-          "start": 59,
-          "end": 59.4
-        },
-        {
-          "word": "excuses.",
-          "start": 59.4,
-          "end": 60
-        }
-      ]
-    },
-    {
-      "speaker": "Oswin",
-      "start": 60,
-      "end": 63.2,
-      "text": "Good. The curiosity is killing me faster than the danger.",
-      "words": [
-        {
-          "word": "Good.",
-          "start": 60,
-          "end": 60.2
-        },
-        {
-          "word": "The",
-          "start": 60.2,
-          "end": 60.4
-        },
-        {
-          "word": "curiosity",
-          "start": 60.4,
-          "end": 61.2
-        },
-        {
-          "word": "is",
-          "start": 61.2,
-          "end": 61.4
-        },
-        {
-          "word": "killing",
-          "start": 61.4,
-          "end": 61.8
-        },
-        {
-          "word": "me",
-          "start": 61.8,
-          "end": 62
-        },
-        {
-          "word": "faster",
-          "start": 62,
-          "end": 62.4
-        },
-        {
-          "word": "than",
-          "start": 62.4,
-          "end": 62.6
-        },
-        {
-          "word": "the",
-          "start": 62.6,
-          "end": 62.8
-        },
-        {
-          "word": "danger.",
-          "start": 62.8,
-          "end": 63.2
-        }
-      ]
-    },
-    {
-      "speaker": "Glymbar",
-      "start": 63.2,
-      "end": 66.8,
-      "text": "Still unholy, this movement spell of yours. Useful… but unholy.",
-      "words": [
-        {
-          "word": "Still",
-          "start": 63.2,
-          "end": 63.4
-        },
-        {
-          "word": "unholy,",
-          "start": 63.4,
-          "end": 64
-        },
-        {
-          "word": "this",
-          "start": 64,
-          "end": 64.2
-        },
-        {
-          "word": "movement",
-          "start": 64.2,
-          "end": 64.8
-        },
-        {
-          "word": "spell",
-          "start": 64.8,
-          "end": 65
-        },
-        {
-          "word": "of",
-          "start": 65,
-          "end": 65.2
-        },
-        {
-          "word": "yours.",
-          "start": 65.2,
-          "end": 65.4
-        },
-        {
-          "word": "Useful…",
-          "start": 65.4,
-          "end": 66
-        },
-        {
-          "word": "but",
-          "start": 66,
-          "end": 66.2
-        },
-        {
-          "word": "unholy.",
-          "start": 66.2,
-          "end": 66.8
-        }
-      ]
-    },
-    {
-      "speaker": "Sherkan",
-      "start": 66.8,
-      "end": 69,
-      "text": "Don’t complain. You can swing your axe longer.",
-      "words": [
-        {
-          "word": "Don’t",
-          "start": 66.8,
-          "end": 67
-        },
-        {
-          "word": "complain.",
-          "start": 67,
-          "end": 67.4
-        },
-        {
-          "word": "You",
-          "start": 67.4,
-          "end": 67.6
-        },
-        {
-          "word": "can",
-          "start": 67.6,
-          "end": 67.8
-        },
-        {
-          "word": "swing",
-          "start": 67.8,
-          "end": 68
-        },
-        {
-          "word": "your",
-          "start": 68,
-          "end": 68.2
-        },
-        {
-          "word": "axe",
-          "start": 68.2,
-          "end": 68.6
-        },
-        {
-          "word": "longer.",
-          "start": 68.6,
-          "end": 69
-        }
-      ]
-    },
-    {
-      "speaker": "Glymbar",
-      "start": 69,
-      "end": 70,
-      "text": "That’s what scares me.",
-      "words": [
-        {
-          "word": "That’s",
-          "start": 69,
-          "end": 69.2
-        },
-        {
-          "word": "what",
-          "start": 69.2,
-          "end": 69.4
-        },
-        {
-          "word": "scares",
-          "start": 69.4,
-          "end": 69.8
-        },
-        {
-          "word": "me.",
-          "start": 69.8,
-          "end": 70
-        }
-      ]
-    },
-    {
-      "speaker": "SL",
-      "start": 72,
-      "end": 79.2,
-      "text": "The bridge stands untouched, stone strong beneath your feet though its railings are shattered. The river snarls below, but the path forward is clear.",
-      "words": [
-        {
-          "word": "The",
-          "start": 72,
-          "end": 72.2
-        },
-        {
-          "word": "bridge",
-          "start": 72.2,
-          "end": 72.6
-        },
-        {
-          "word": "stands",
-          "start": 72.6,
-          "end": 72.8
-        },
-        {
-          "word": "untouched,",
-          "start": 72.8,
-          "end": 73.4
-        },
-        {
-          "word": "stone",
-          "start": 73.4,
-          "end": 73.8
-        },
-        {
-          "word": "strong",
-          "start": 73.8,
-          "end": 74
-        },
-        {
-          "word": "beneath",
-          "start": 74,
-          "end": 74.4
-        },
-        {
-          "word": "your",
-          "start": 74.4,
-          "end": 74.6
-        },
-        {
-          "word": "feet",
-          "start": 74.6,
-          "end": 74.8
-        },
-        {
-          "word": "though",
-          "start": 74.8,
-          "end": 75
-        },
-        {
-          "word": "its",
-          "start": 75,
-          "end": 75.2
-        },
-        {
-          "word": "railings",
-          "start": 75.2,
-          "end": 75.6
-        },
-        {
-          "word": "are",
-          "start": 75.6,
-          "end": 76
-        },
-        {
-          "word": "shattered.",
-          "start": 76,
-          "end": 76.6
-        },
-        {
-          "word": "The",
-          "start": 76.6,
-          "end": 76.8
-        },
-        {
-          "word": "river",
-          "start": 76.8,
-          "end": 77.2
-        },
-        {
-          "word": "snarls",
-          "start": 77.2,
+          "start": 76.5,
           "end": 77.4
         },
         {
-          "word": "below,",
+          "word": "you’re",
           "start": 77.4,
-          "end": 77.8
-        },
-        {
-          "word": "but",
-          "start": 77.8,
           "end": 78
         },
         {
           "word": "the",
           "start": 78,
-          "end": 78.2
+          "end": 78.3
         },
         {
-          "word": "path",
-          "start": 78.2,
-          "end": 78.4
+          "word": "ones",
+          "start": 78.3,
+          "end": 78.9
         },
         {
-          "word": "forward",
-          "start": 78.4,
-          "end": 78.8
-        },
-        {
-          "word": "is",
-          "start": 78.8,
-          "end": 79
-        },
-        {
-          "word": "clear.",
-          "start": 79,
+          "word": "meant",
+          "start": 78.9,
           "end": 79.2
+        },
+        {
+          "word": "to",
+          "start": 79.2,
+          "end": 79.5
+        },
+        {
+          "word": "face",
+          "start": 79.5,
+          "end": 80.1
+        },
+        {
+          "word": "it.",
+          "start": 80.1,
+          "end": 80.4
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 80.75,
+      "end": 91.75,
+      "text": "Then we’ll do what we can. Protect your people. Guard the new sapling. And pray your enemy does not come before we return.",
+      "words": [
+        {
+          "word": "Then",
+          "start": 80.75,
+          "end": 81.05
+        },
+        {
+          "word": "we’ll",
+          "start": 81.05,
+          "end": 81.35
+        },
+        {
+          "word": "do",
+          "start": 81.35,
+          "end": 81.65
+        },
+        {
+          "word": "what",
+          "start": 81.65,
+          "end": 81.95
+        },
+        {
+          "word": "we",
+          "start": 81.95,
+          "end": 82.25
+        },
+        {
+          "word": "can.",
+          "start": 82.25,
+          "end": 82.55
+        },
+        {
+          "word": "Protect",
+          "start": 82.9,
+          "end": 83.5
+        },
+        {
+          "word": "your",
+          "start": 83.5,
+          "end": 83.8
+        },
+        {
+          "word": "people.",
+          "start": 83.8,
+          "end": 84.4
+        },
+        {
+          "word": "Guard",
+          "start": 84.75,
+          "end": 85.05
+        },
+        {
+          "word": "the",
+          "start": 85.05,
+          "end": 85.35
+        },
+        {
+          "word": "new",
+          "start": 85.35,
+          "end": 85.65
+        },
+        {
+          "word": "sapling.",
+          "start": 85.65,
+          "end": 86.25
+        },
+        {
+          "word": "And",
+          "start": 86.6,
+          "end": 86.9
+        },
+        {
+          "word": "pray",
+          "start": 86.9,
+          "end": 87.2
+        },
+        {
+          "word": "your",
+          "start": 87.2,
+          "end": 87.5
+        },
+        {
+          "word": "enemy",
+          "start": 87.5,
+          "end": 88.4
+        },
+        {
+          "word": "does",
+          "start": 88.4,
+          "end": 88.7
+        },
+        {
+          "word": "not",
+          "start": 88.7,
+          "end": 89
+        },
+        {
+          "word": "come",
+          "start": 89,
+          "end": 89.6
+        },
+        {
+          "word": "before",
+          "start": 89.6,
+          "end": 90.5
+        },
+        {
+          "word": "we",
+          "start": 90.5,
+          "end": 90.8
+        },
+        {
+          "word": "return.",
+          "start": 90.8,
+          "end": 91.4
+        }
+      ]
+    },
+    {
+      "speaker": "Tsa Priestess",
+      "start": 91.75,
+      "end": 94.5,
+      "text": "May the gods walk beside you.",
+      "words": [
+        {
+          "word": "May",
+          "start": 91.75,
+          "end": 92.05
+        },
+        {
+          "word": "the",
+          "start": 92.05,
+          "end": 92.35
+        },
+        {
+          "word": "gods",
+          "start": 92.35,
+          "end": 92.65
+        },
+        {
+          "word": "walk",
+          "start": 92.65,
+          "end": 92.95
+        },
+        {
+          "word": "beside",
+          "start": 92.95,
+          "end": 93.85
+        },
+        {
+          "word": "you.",
+          "start": 93.85,
+          "end": 94.15
+        }
+      ]
+    },
+    {
+      "speaker": "Durrandir",
+      "start": 96.5,
+      "end": 100.5,
+      "text": "There’s a bridge. No more excuses.",
+      "words": [
+        {
+          "word": "There’s",
+          "start": 96.5,
+          "end": 97.1
+        },
+        {
+          "word": "a",
+          "start": 97.1,
+          "end": 97.4
+        },
+        {
+          "word": "bridge.",
+          "start": 97.4,
+          "end": 98
+        },
+        {
+          "word": "No",
+          "start": 98.35,
+          "end": 98.65
+        },
+        {
+          "word": "more",
+          "start": 98.65,
+          "end": 99.25
+        },
+        {
+          "word": "excuses.",
+          "start": 99.25,
+          "end": 100.15
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 79.2,
-      "end": 83.4,
+      "start": 100.5,
+      "end": 106,
+      "text": "Good. The curiosity is killing me faster than the danger.",
+      "words": [
+        {
+          "word": "Good.",
+          "start": 100.5,
+          "end": 100.8
+        },
+        {
+          "word": "The",
+          "start": 101.15,
+          "end": 101.45
+        },
+        {
+          "word": "curiosity",
+          "start": 101.45,
+          "end": 102.65
+        },
+        {
+          "word": "is",
+          "start": 102.65,
+          "end": 102.95
+        },
+        {
+          "word": "killing",
+          "start": 102.95,
+          "end": 103.55
+        },
+        {
+          "word": "me",
+          "start": 103.55,
+          "end": 103.85
+        },
+        {
+          "word": "faster",
+          "start": 103.85,
+          "end": 104.45
+        },
+        {
+          "word": "than",
+          "start": 104.45,
+          "end": 104.75
+        },
+        {
+          "word": "the",
+          "start": 104.75,
+          "end": 105.05
+        },
+        {
+          "word": "danger.",
+          "start": 105.05,
+          "end": 105.65
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 106,
+      "end": 112.65,
+      "text": "Still unholy, this movement spell of yours. Useful… but unholy.",
+      "words": [
+        {
+          "word": "Still",
+          "start": 106,
+          "end": 106.3
+        },
+        {
+          "word": "unholy,",
+          "start": 106.3,
+          "end": 107.2
+        },
+        {
+          "word": "this",
+          "start": 107.35,
+          "end": 107.65
+        },
+        {
+          "word": "movement",
+          "start": 107.65,
+          "end": 108.55
+        },
+        {
+          "word": "spell",
+          "start": 108.55,
+          "end": 108.85
+        },
+        {
+          "word": "of",
+          "start": 108.85,
+          "end": 109.15
+        },
+        {
+          "word": "yours.",
+          "start": 109.15,
+          "end": 109.45
+        },
+        {
+          "word": "Useful…",
+          "start": 109.8,
+          "end": 110.7
+        },
+        {
+          "word": "but",
+          "start": 111.1,
+          "end": 111.4
+        },
+        {
+          "word": "unholy.",
+          "start": 111.4,
+          "end": 112.3
+        }
+      ]
+    },
+    {
+      "speaker": "Sherkan",
+      "start": 112.65,
+      "end": 116.65,
+      "text": "Don’t complain. You can swing your axe longer.",
+      "words": [
+        {
+          "word": "Don’t",
+          "start": 112.65,
+          "end": 112.95
+        },
+        {
+          "word": "complain.",
+          "start": 112.95,
+          "end": 113.55
+        },
+        {
+          "word": "You",
+          "start": 113.9,
+          "end": 114.2
+        },
+        {
+          "word": "can",
+          "start": 114.2,
+          "end": 114.5
+        },
+        {
+          "word": "swing",
+          "start": 114.5,
+          "end": 114.8
+        },
+        {
+          "word": "your",
+          "start": 114.8,
+          "end": 115.1
+        },
+        {
+          "word": "axe",
+          "start": 115.1,
+          "end": 115.7
+        },
+        {
+          "word": "longer.",
+          "start": 115.7,
+          "end": 116.3
+        }
+      ]
+    },
+    {
+      "speaker": "Glymbar",
+      "start": 116.65,
+      "end": 118.5,
+      "text": "That’s what scares me.",
+      "words": [
+        {
+          "word": "That’s",
+          "start": 116.65,
+          "end": 116.95
+        },
+        {
+          "word": "what",
+          "start": 116.95,
+          "end": 117.25
+        },
+        {
+          "word": "scares",
+          "start": 117.25,
+          "end": 117.85
+        },
+        {
+          "word": "me.",
+          "start": 117.85,
+          "end": 118.15
+        }
+      ]
+    },
+    {
+      "speaker": "SL",
+      "start": 120.5,
+      "end": 132.3,
+      "text": "The bridge stands untouched, stone strong beneath your feet though its railings are shattered. The river snarls below, but the path forward is clear.",
+      "words": [
+        {
+          "word": "The",
+          "start": 120.5,
+          "end": 120.8
+        },
+        {
+          "word": "bridge",
+          "start": 120.8,
+          "end": 121.4
+        },
+        {
+          "word": "stands",
+          "start": 121.4,
+          "end": 121.7
+        },
+        {
+          "word": "untouched,",
+          "start": 121.7,
+          "end": 122.6
+        },
+        {
+          "word": "stone",
+          "start": 122.75,
+          "end": 123.35
+        },
+        {
+          "word": "strong",
+          "start": 123.35,
+          "end": 123.65
+        },
+        {
+          "word": "beneath",
+          "start": 123.65,
+          "end": 124.25
+        },
+        {
+          "word": "your",
+          "start": 124.25,
+          "end": 124.55
+        },
+        {
+          "word": "feet",
+          "start": 124.55,
+          "end": 124.85
+        },
+        {
+          "word": "though",
+          "start": 124.85,
+          "end": 125.15
+        },
+        {
+          "word": "its",
+          "start": 125.15,
+          "end": 125.45
+        },
+        {
+          "word": "railings",
+          "start": 125.45,
+          "end": 126.05
+        },
+        {
+          "word": "are",
+          "start": 126.05,
+          "end": 126.65
+        },
+        {
+          "word": "shattered.",
+          "start": 126.65,
+          "end": 127.55
+        },
+        {
+          "word": "The",
+          "start": 127.9,
+          "end": 128.2
+        },
+        {
+          "word": "river",
+          "start": 128.2,
+          "end": 128.8
+        },
+        {
+          "word": "snarls",
+          "start": 128.8,
+          "end": 129.1
+        },
+        {
+          "word": "below,",
+          "start": 129.1,
+          "end": 129.7
+        },
+        {
+          "word": "but",
+          "start": 129.85,
+          "end": 130.15
+        },
+        {
+          "word": "the",
+          "start": 130.15,
+          "end": 130.45
+        },
+        {
+          "word": "path",
+          "start": 130.45,
+          "end": 130.75
+        },
+        {
+          "word": "forward",
+          "start": 130.75,
+          "end": 131.35
+        },
+        {
+          "word": "is",
+          "start": 131.35,
+          "end": 131.65
+        },
+        {
+          "word": "clear.",
+          "start": 131.65,
+          "end": 131.95
+        }
+      ]
+    },
+    {
+      "speaker": "Oswin",
+      "start": 132.3,
+      "end": 140.35,
       "text": "The ley-line doesn’t follow the bridge. It runs beside it. Straight. Uncaring. Wrong.",
       "words": [
         {
           "word": "The",
-          "start": 79.2,
-          "end": 79.4
+          "start": 132.3,
+          "end": 132.6
         },
         {
           "word": "ley-line",
-          "start": 79.4,
-          "end": 80
+          "start": 132.6,
+          "end": 133.5
         },
         {
           "word": "doesn’t",
-          "start": 80,
-          "end": 80.2
+          "start": 133.5,
+          "end": 133.8
         },
         {
           "word": "follow",
-          "start": 80.2,
-          "end": 80.6
+          "start": 133.8,
+          "end": 134.4
         },
         {
           "word": "the",
-          "start": 80.6,
-          "end": 80.8
+          "start": 134.4,
+          "end": 134.7
         },
         {
           "word": "bridge.",
-          "start": 80.8,
-          "end": 81.2
+          "start": 134.7,
+          "end": 135.3
         },
         {
           "word": "It",
-          "start": 81.2,
-          "end": 81.4
+          "start": 135.65,
+          "end": 135.95
         },
         {
           "word": "runs",
-          "start": 81.4,
-          "end": 81.6
+          "start": 135.95,
+          "end": 136.25
         },
         {
           "word": "beside",
-          "start": 81.6,
-          "end": 82.2
+          "start": 136.25,
+          "end": 137.15
         },
         {
           "word": "it.",
-          "start": 82.2,
-          "end": 82.4
+          "start": 137.15,
+          "end": 137.45
         },
         {
           "word": "Straight.",
-          "start": 82.4,
-          "end": 82.6
+          "start": 137.8,
+          "end": 138.1
         },
         {
           "word": "Uncaring.",
-          "start": 82.6,
-          "end": 83.2
+          "start": 138.45,
+          "end": 139.35
         },
         {
           "word": "Wrong.",
-          "start": 83.2,
-          "end": 83.4
+          "start": 139.7,
+          "end": 140
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 83.4,
-      "end": 84.8,
+      "start": 140.35,
+      "end": 142.8,
       "text": "So we follow the wrongness.",
       "words": [
         {
           "word": "So",
-          "start": 83.4,
-          "end": 83.6
+          "start": 140.35,
+          "end": 140.65
         },
         {
           "word": "we",
-          "start": 83.6,
-          "end": 83.8
+          "start": 140.65,
+          "end": 140.95
         },
         {
           "word": "follow",
-          "start": 83.8,
-          "end": 84.2
+          "start": 140.95,
+          "end": 141.55
         },
         {
           "word": "the",
-          "start": 84.2,
-          "end": 84.4
+          "start": 141.55,
+          "end": 141.85
         },
         {
           "word": "wrongness.",
-          "start": 84.4,
-          "end": 84.8
+          "start": 141.85,
+          "end": 142.45
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 84.8,
-      "end": 86.6,
+      "start": 142.8,
+      "end": 145.85,
       "text": "That’s been our specialty lately.",
       "words": [
         {
           "word": "That’s",
-          "start": 84.8,
-          "end": 85
+          "start": 142.8,
+          "end": 143.1
         },
         {
           "word": "been",
-          "start": 85,
-          "end": 85.2
+          "start": 143.1,
+          "end": 143.4
         },
         {
           "word": "our",
-          "start": 85.2,
-          "end": 85.4
+          "start": 143.4,
+          "end": 143.7
         },
         {
           "word": "specialty",
-          "start": 85.4,
-          "end": 86
+          "start": 143.7,
+          "end": 144.6
         },
         {
           "word": "lately.",
-          "start": 86,
-          "end": 86.6
+          "start": 144.6,
+          "end": 145.5
         }
       ]
     },
     {
       "speaker": "SL",
-      "start": 88.6,
-      "end": 97.6,
+      "start": 147.85,
+      "end": 162.9,
       "text": "After some travel, the nature near the ley-line shifts. Grass grows in warped shapes. Bushes twist. Branches bend like broken fingers reaching for something that isn’t there.",
       "words": [
         {
           "word": "After",
-          "start": 88.6,
-          "end": 89
+          "start": 147.85,
+          "end": 148.45
         },
         {
           "word": "some",
-          "start": 89,
-          "end": 89.4
+          "start": 148.45,
+          "end": 149.05
         },
         {
           "word": "travel,",
-          "start": 89.4,
-          "end": 89.8
+          "start": 149.05,
+          "end": 149.65
         },
         {
           "word": "the",
-          "start": 89.8,
-          "end": 90
+          "start": 149.8,
+          "end": 150.1
         },
         {
           "word": "nature",
-          "start": 90,
-          "end": 90.6
+          "start": 150.1,
+          "end": 151
         },
         {
           "word": "near",
-          "start": 90.6,
-          "end": 90.8
+          "start": 151,
+          "end": 151.3
         },
         {
           "word": "the",
-          "start": 90.8,
-          "end": 91
+          "start": 151.3,
+          "end": 151.6
         },
         {
           "word": "ley-line",
-          "start": 91,
-          "end": 91.6
+          "start": 151.6,
+          "end": 152.5
         },
         {
           "word": "shifts.",
-          "start": 91.6,
-          "end": 91.8
+          "start": 152.5,
+          "end": 152.8
         },
         {
           "word": "Grass",
-          "start": 91.8,
-          "end": 92
+          "start": 153.15,
+          "end": 153.45
         },
         {
           "word": "grows",
-          "start": 92,
-          "end": 92.2
+          "start": 153.45,
+          "end": 153.75
         },
         {
           "word": "in",
-          "start": 92.2,
-          "end": 92.4
+          "start": 153.75,
+          "end": 154.05
         },
         {
           "word": "warped",
-          "start": 92.4,
-          "end": 92.8
+          "start": 154.05,
+          "end": 154.65
         },
         {
           "word": "shapes.",
-          "start": 92.8,
-          "end": 93.2
+          "start": 154.65,
+          "end": 155.25
         },
         {
           "word": "Bushes",
-          "start": 93.2,
-          "end": 93.6
+          "start": 155.6,
+          "end": 156.2
         },
         {
           "word": "twist.",
-          "start": 93.6,
-          "end": 93.8
+          "start": 156.2,
+          "end": 156.5
         },
         {
           "word": "Branches",
-          "start": 93.8,
-          "end": 94.2
+          "start": 156.85,
+          "end": 157.45
         },
         {
           "word": "bend",
-          "start": 94.2,
-          "end": 94.4
+          "start": 157.45,
+          "end": 157.75
         },
         {
           "word": "like",
-          "start": 94.4,
-          "end": 94.8
+          "start": 157.75,
+          "end": 158.35
         },
         {
           "word": "broken",
-          "start": 94.8,
-          "end": 95.2
+          "start": 158.35,
+          "end": 158.95
         },
         {
           "word": "fingers",
-          "start": 95.2,
-          "end": 95.6
+          "start": 158.95,
+          "end": 159.55
         },
         {
           "word": "reaching",
-          "start": 95.6,
-          "end": 96
+          "start": 159.55,
+          "end": 160.15
         },
         {
           "word": "for",
-          "start": 96,
-          "end": 96.2
+          "start": 160.15,
+          "end": 160.45
         },
         {
           "word": "something",
-          "start": 96.2,
-          "end": 96.8
+          "start": 160.45,
+          "end": 161.35
         },
         {
           "word": "that",
-          "start": 96.8,
-          "end": 97
+          "start": 161.35,
+          "end": 161.65
         },
         {
           "word": "isn’t",
-          "start": 97,
-          "end": 97.2
+          "start": 161.65,
+          "end": 161.95
         },
         {
           "word": "there.",
-          "start": 97.2,
-          "end": 97.6
+          "start": 161.95,
+          "end": 162.55
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 97.6,
-      "end": 99.8,
+      "start": 162.9,
+      "end": 166.9,
       "text": "This isn’t random. The world doesn’t grow like this.",
       "words": [
         {
           "word": "This",
-          "start": 97.6,
-          "end": 97.8
+          "start": 162.9,
+          "end": 163.2
         },
         {
           "word": "isn’t",
-          "start": 97.8,
-          "end": 98
+          "start": 163.2,
+          "end": 163.5
         },
         {
           "word": "random.",
-          "start": 98,
-          "end": 98.4
+          "start": 163.5,
+          "end": 164.1
         },
         {
           "word": "The",
-          "start": 98.4,
-          "end": 98.6
+          "start": 164.45,
+          "end": 164.75
         },
         {
           "word": "world",
-          "start": 98.6,
-          "end": 98.8
+          "start": 164.75,
+          "end": 165.05
         },
         {
           "word": "doesn’t",
-          "start": 98.8,
-          "end": 99
+          "start": 165.05,
+          "end": 165.35
         },
         {
           "word": "grow",
-          "start": 99,
-          "end": 99.2
+          "start": 165.35,
+          "end": 165.65
         },
         {
           "word": "like",
-          "start": 99.2,
-          "end": 99.6
+          "start": 165.65,
+          "end": 166.25
         },
         {
           "word": "this.",
-          "start": 99.6,
-          "end": 99.8
+          "start": 166.25,
+          "end": 166.55
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 99.8,
-      "end": 101.4,
+      "start": 166.9,
+      "end": 170.4,
       "text": "That’s… not just decay. That’s intent.",
       "words": [
         {
           "word": "That’s…",
-          "start": 99.8,
-          "end": 100
+          "start": 166.9,
+          "end": 167.2
         },
         {
           "word": "not",
-          "start": 100,
-          "end": 100.2
+          "start": 167.6,
+          "end": 167.9
         },
         {
           "word": "just",
-          "start": 100.2,
-          "end": 100.4
+          "start": 167.9,
+          "end": 168.2
         },
         {
           "word": "decay.",
-          "start": 100.4,
-          "end": 100.8
+          "start": 168.2,
+          "end": 168.8
         },
         {
           "word": "That’s",
-          "start": 100.8,
-          "end": 101
+          "start": 169.15,
+          "end": 169.45
         },
         {
           "word": "intent.",
-          "start": 101,
-          "end": 101.4
+          "start": 169.45,
+          "end": 170.05
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 101.4,
-      "end": 102.4,
+      "start": 170.4,
+      "end": 172.25,
       "text": "Could it be writing?",
       "words": [
         {
           "word": "Could",
-          "start": 101.4,
-          "end": 101.6
+          "start": 170.4,
+          "end": 170.7
         },
         {
           "word": "it",
-          "start": 101.6,
-          "end": 101.8
+          "start": 170.7,
+          "end": 171
         },
         {
           "word": "be",
-          "start": 101.8,
-          "end": 102
+          "start": 171,
+          "end": 171.3
         },
         {
           "word": "writing?",
-          "start": 102,
-          "end": 102.4
+          "start": 171.3,
+          "end": 171.9
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 102.4,
-      "end": 103,
+      "start": 172.25,
+      "end": 173.5,
       "text": "…Let me look.",
       "words": [
         {
           "word": "…Let",
-          "start": 102.4,
-          "end": 102.6
+          "start": 172.25,
+          "end": 172.55
         },
         {
           "word": "me",
-          "start": 102.6,
-          "end": 102.8
+          "start": 172.55,
+          "end": 172.85
         },
         {
           "word": "look.",
-          "start": 102.8,
-          "end": 103
+          "start": 172.85,
+          "end": 173.15
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 105,
-      "end": 112.6,
+      "start": 175.5,
+      "end": 188.3,
       "text": "It looks like Zhayad. But it isn’t. It pretends to be. It’s like someone who knows how letters should look but has never actually learned to write.",
       "words": [
         {
           "word": "It",
-          "start": 105,
-          "end": 105.2
+          "start": 175.5,
+          "end": 175.8
         },
         {
           "word": "looks",
-          "start": 105.2,
-          "end": 105.4
+          "start": 175.8,
+          "end": 176.1
         },
         {
           "word": "like",
-          "start": 105.4,
-          "end": 105.8
+          "start": 176.1,
+          "end": 176.7
         },
         {
           "word": "Zhayad.",
-          "start": 105.8,
-          "end": 106
+          "start": 176.7,
+          "end": 177
         },
         {
           "word": "But",
-          "start": 106,
-          "end": 106.2
+          "start": 177.35,
+          "end": 177.65
         },
         {
           "word": "it",
-          "start": 106.2,
-          "end": 106.4
+          "start": 177.65,
+          "end": 177.95
         },
         {
           "word": "isn’t.",
-          "start": 106.4,
-          "end": 106.6
+          "start": 177.95,
+          "end": 178.25
         },
         {
           "word": "It",
-          "start": 106.6,
-          "end": 106.8
+          "start": 178.6,
+          "end": 178.9
         },
         {
           "word": "pretends",
-          "start": 106.8,
-          "end": 107.2
+          "start": 178.9,
+          "end": 179.5
         },
         {
           "word": "to",
-          "start": 107.2,
-          "end": 107.4
+          "start": 179.5,
+          "end": 179.8
         },
         {
           "word": "be.",
-          "start": 107.4,
-          "end": 107.6
+          "start": 179.8,
+          "end": 180.1
         },
         {
           "word": "It’s",
-          "start": 107.6,
-          "end": 107.8
+          "start": 180.45,
+          "end": 180.75
         },
         {
           "word": "like",
-          "start": 107.8,
-          "end": 108.2
+          "start": 180.75,
+          "end": 181.35
         },
         {
           "word": "someone",
-          "start": 108.2,
-          "end": 108.8
+          "start": 181.35,
+          "end": 182.25
         },
         {
           "word": "who",
-          "start": 108.8,
-          "end": 109
+          "start": 182.25,
+          "end": 182.55
         },
         {
           "word": "knows",
-          "start": 109,
-          "end": 109.2
+          "start": 182.55,
+          "end": 182.85
         },
         {
           "word": "how",
-          "start": 109.2,
-          "end": 109.4
+          "start": 182.85,
+          "end": 183.15
         },
         {
           "word": "letters",
-          "start": 109.4,
-          "end": 109.8
+          "start": 183.15,
+          "end": 183.75
         },
         {
           "word": "should",
-          "start": 109.8,
-          "end": 110
+          "start": 183.75,
+          "end": 184.05
         },
         {
           "word": "look",
-          "start": 110,
-          "end": 110.2
+          "start": 184.05,
+          "end": 184.35
         },
         {
           "word": "but",
-          "start": 110.2,
-          "end": 110.4
+          "start": 184.35,
+          "end": 184.65
         },
         {
           "word": "has",
-          "start": 110.4,
-          "end": 110.6
+          "start": 184.65,
+          "end": 184.95
         },
         {
           "word": "never",
-          "start": 110.6,
-          "end": 111
+          "start": 184.95,
+          "end": 185.55
         },
         {
           "word": "actually",
-          "start": 111,
-          "end": 111.6
+          "start": 185.55,
+          "end": 186.45
         },
         {
           "word": "learned",
-          "start": 111.6,
-          "end": 112
+          "start": 186.45,
+          "end": 187.05
         },
         {
           "word": "to",
-          "start": 112,
-          "end": 112.2
+          "start": 187.05,
+          "end": 187.35
         },
         {
           "word": "write.",
-          "start": 112.2,
-          "end": 112.6
+          "start": 187.35,
+          "end": 187.95
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 112.6,
-      "end": 113,
+      "start": 188.3,
+      "end": 189.25,
       "text": "Meaning?",
       "words": [
         {
           "word": "Meaning?",
-          "start": 112.6,
-          "end": 113
+          "start": 188.3,
+          "end": 188.9
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 113,
-      "end": 122.6,
+      "start": 189.25,
+      "end": 204.9,
       "text": "Meaning this is imitation. Corruption trying to masquerade as logic. And everything it says comes down to one idea: merging things that were never meant to be merged.",
       "words": [
         {
           "word": "Meaning",
-          "start": 113,
-          "end": 113.4
+          "start": 189.25,
+          "end": 189.85
         },
         {
           "word": "this",
-          "start": 113.4,
-          "end": 113.6
+          "start": 189.85,
+          "end": 190.15
         },
         {
           "word": "is",
-          "start": 113.6,
-          "end": 113.8
+          "start": 190.15,
+          "end": 190.45
         },
         {
           "word": "imitation.",
-          "start": 113.8,
-          "end": 114.6
+          "start": 190.45,
+          "end": 191.65
         },
         {
           "word": "Corruption",
-          "start": 114.6,
-          "end": 115.2
+          "start": 192,
+          "end": 192.9
         },
         {
           "word": "trying",
-          "start": 115.2,
-          "end": 115.4
+          "start": 192.9,
+          "end": 193.2
         },
         {
           "word": "to",
-          "start": 115.4,
-          "end": 115.6
+          "start": 193.2,
+          "end": 193.5
         },
         {
           "word": "masquerade",
-          "start": 115.6,
-          "end": 116.4
+          "start": 193.5,
+          "end": 194.7
         },
         {
           "word": "as",
-          "start": 116.4,
-          "end": 116.6
+          "start": 194.7,
+          "end": 195
         },
         {
           "word": "logic.",
-          "start": 116.6,
-          "end": 117
+          "start": 195,
+          "end": 195.6
         },
         {
           "word": "And",
-          "start": 117,
-          "end": 117.2
+          "start": 195.95,
+          "end": 196.25
         },
         {
           "word": "everything",
-          "start": 117.2,
-          "end": 118
+          "start": 196.25,
+          "end": 197.45
         },
         {
           "word": "it",
-          "start": 118,
-          "end": 118.2
+          "start": 197.45,
+          "end": 197.75
         },
         {
           "word": "says",
-          "start": 118.2,
-          "end": 118.4
+          "start": 197.75,
+          "end": 198.05
         },
         {
           "word": "comes",
-          "start": 118.4,
-          "end": 118.8
+          "start": 198.05,
+          "end": 198.65
         },
         {
           "word": "down",
-          "start": 118.8,
-          "end": 119
+          "start": 198.65,
+          "end": 198.95
         },
         {
           "word": "to",
-          "start": 119,
-          "end": 119.2
+          "start": 198.95,
+          "end": 199.25
         },
         {
           "word": "one",
-          "start": 119.2,
-          "end": 119.6
+          "start": 199.25,
+          "end": 199.85
         },
         {
           "word": "idea:",
-          "start": 119.6,
-          "end": 120
+          "start": 199.85,
+          "end": 200.45
         },
         {
           "word": "merging",
-          "start": 120,
-          "end": 120.4
+          "start": 200.65,
+          "end": 201.25
         },
         {
           "word": "things",
-          "start": 120.4,
-          "end": 120.6
+          "start": 201.25,
+          "end": 201.55
         },
         {
           "word": "that",
-          "start": 120.6,
-          "end": 120.8
+          "start": 201.55,
+          "end": 201.85
         },
         {
           "word": "were",
-          "start": 120.8,
-          "end": 121.2
+          "start": 201.85,
+          "end": 202.45
         },
         {
           "word": "never",
-          "start": 121.2,
-          "end": 121.6
+          "start": 202.45,
+          "end": 203.05
         },
         {
           "word": "meant",
-          "start": 121.6,
-          "end": 121.8
+          "start": 203.05,
+          "end": 203.35
         },
         {
           "word": "to",
-          "start": 121.8,
-          "end": 122
+          "start": 203.35,
+          "end": 203.65
         },
         {
           "word": "be",
-          "start": 122,
-          "end": 122.2
+          "start": 203.65,
+          "end": 203.95
         },
         {
           "word": "merged.",
-          "start": 122.2,
-          "end": 122.6
+          "start": 203.95,
+          "end": 204.55
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 122.6,
-      "end": 123.6,
+      "start": 204.9,
+      "end": 206.75,
       "text": "Chimera magic.",
       "words": [
         {
           "word": "Chimera",
-          "start": 122.6,
-          "end": 123.2
+          "start": 204.9,
+          "end": 205.8
         },
         {
           "word": "magic.",
-          "start": 123.2,
-          "end": 123.6
+          "start": 205.8,
+          "end": 206.4
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 123.6,
-      "end": 124.2,
+      "start": 206.75,
+      "end": 208,
       "text": "Exactly.",
       "words": [
         {
           "word": "Exactly.",
-          "start": 123.6,
-          "end": 124.2
+          "start": 206.75,
+          "end": 207.65
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 126.2,
-      "end": 131.6,
+      "start": 210,
+      "end": 219.1,
       "text": "(picks a berry, bites it, immediately spits it out) By the ancestors! That tastes like regret!",
       "words": [
         {
           "word": "(picks",
-          "start": 126.2,
-          "end": 126.4
+          "start": 210,
+          "end": 210.3
         },
         {
           "word": "a",
-          "start": 126.4,
-          "end": 126.6
+          "start": 210.3,
+          "end": 210.6
         },
         {
           "word": "berry,",
-          "start": 126.6,
-          "end": 127
+          "start": 210.6,
+          "end": 211.2
         },
         {
           "word": "bites",
-          "start": 127,
-          "end": 127.4
+          "start": 211.35,
+          "end": 211.95
         },
         {
           "word": "it,",
-          "start": 127.4,
-          "end": 127.6
+          "start": 211.95,
+          "end": 212.25
         },
         {
           "word": "immediately",
-          "start": 127.6,
-          "end": 128.6
+          "start": 212.4,
+          "end": 213.9
         },
         {
           "word": "spits",
-          "start": 128.6,
-          "end": 128.8
+          "start": 213.9,
+          "end": 214.2
         },
         {
           "word": "it",
-          "start": 128.8,
-          "end": 129
+          "start": 214.2,
+          "end": 214.5
         },
         {
           "word": "out)",
-          "start": 129,
-          "end": 129.2
+          "start": 214.5,
+          "end": 214.8
         },
         {
           "word": "By",
-          "start": 129.2,
-          "end": 129.4
+          "start": 214.8,
+          "end": 215.1
         },
         {
           "word": "the",
-          "start": 129.4,
-          "end": 129.6
+          "start": 215.1,
+          "end": 215.4
         },
         {
           "word": "ancestors!",
-          "start": 129.6,
-          "end": 130.2
+          "start": 215.4,
+          "end": 216.3
         },
         {
           "word": "That",
-          "start": 130.2,
-          "end": 130.4
+          "start": 216.65,
+          "end": 216.95
         },
         {
           "word": "tastes",
-          "start": 130.4,
-          "end": 130.8
+          "start": 216.95,
+          "end": 217.55
         },
         {
           "word": "like",
-          "start": 130.8,
-          "end": 131.2
+          "start": 217.55,
+          "end": 218.15
         },
         {
           "word": "regret!",
-          "start": 131.2,
-          "end": 131.6
+          "start": 218.15,
+          "end": 218.75
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 131.6,
-      "end": 134.2,
+      "start": 219.1,
+      "end": 223.35,
       "text": "Try not to eat the cursed wilderness next time.",
       "words": [
         {
           "word": "Try",
-          "start": 131.6,
-          "end": 131.8
+          "start": 219.1,
+          "end": 219.4
         },
         {
           "word": "not",
-          "start": 131.8,
-          "end": 132
+          "start": 219.4,
+          "end": 219.7
         },
         {
           "word": "to",
-          "start": 132,
-          "end": 132.2
+          "start": 219.7,
+          "end": 220
         },
         {
           "word": "eat",
-          "start": 132.2,
-          "end": 132.4
+          "start": 220,
+          "end": 220.3
         },
         {
           "word": "the",
-          "start": 132.4,
-          "end": 132.6
+          "start": 220.3,
+          "end": 220.6
         },
         {
           "word": "cursed",
-          "start": 132.6,
-          "end": 133
+          "start": 220.6,
+          "end": 221.2
         },
         {
           "word": "wilderness",
-          "start": 133,
-          "end": 133.6
+          "start": 221.2,
+          "end": 222.1
         },
         {
           "word": "next",
-          "start": 133.6,
-          "end": 133.8
+          "start": 222.1,
+          "end": 222.4
         },
         {
           "word": "time.",
-          "start": 133.8,
-          "end": 134.2
+          "start": 222.4,
+          "end": 223
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 134.2,
-      "end": 135,
+      "start": 223.35,
+      "end": 224.9,
       "text": "I was hungry.",
       "words": [
         {
           "word": "I",
-          "start": 134.2,
-          "end": 134.4
+          "start": 223.35,
+          "end": 223.65
         },
         {
           "word": "was",
-          "start": 134.4,
-          "end": 134.6
+          "start": 223.65,
+          "end": 223.95
         },
         {
           "word": "hungry.",
-          "start": 134.6,
-          "end": 135
+          "start": 223.95,
+          "end": 224.55
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 135,
-      "end": 136.8,
+      "start": 224.9,
+      "end": 228.1,
       "text": "If your beard falls off, I’m not helping.",
       "words": [
         {
           "word": "If",
-          "start": 135,
-          "end": 135.2
+          "start": 224.9,
+          "end": 225.2
         },
         {
           "word": "your",
-          "start": 135.2,
-          "end": 135.4
+          "start": 225.2,
+          "end": 225.5
         },
         {
           "word": "beard",
-          "start": 135.4,
-          "end": 135.6
+          "start": 225.5,
+          "end": 225.8
         },
         {
           "word": "falls",
-          "start": 135.6,
-          "end": 135.8
+          "start": 225.8,
+          "end": 226.1
         },
         {
           "word": "off,",
-          "start": 135.8,
-          "end": 136
+          "start": 226.1,
+          "end": 226.4
         },
         {
           "word": "I’m",
-          "start": 136,
-          "end": 136.2
+          "start": 226.55,
+          "end": 226.85
         },
         {
           "word": "not",
-          "start": 136.2,
-          "end": 136.4
+          "start": 226.85,
+          "end": 227.15
         },
         {
           "word": "helping.",
-          "start": 136.4,
-          "end": 136.8
+          "start": 227.15,
+          "end": 227.75
         }
       ]
     },
     {
       "speaker": "SL",
-      "start": 138.8,
-      "end": 146,
+      "start": 230.1,
+      "end": 242.1,
       "text": "The land shifts as you move. Hills give way to jagged stone and fractured cliff walls. A canyon yawns open, dotted with countless dark holes.",
       "words": [
         {
           "word": "The",
-          "start": 138.8,
-          "end": 139
+          "start": 230.1,
+          "end": 230.4
         },
         {
           "word": "land",
-          "start": 139,
-          "end": 139.2
+          "start": 230.4,
+          "end": 230.7
         },
         {
           "word": "shifts",
-          "start": 139.2,
-          "end": 139.4
+          "start": 230.7,
+          "end": 231
         },
         {
           "word": "as",
-          "start": 139.4,
-          "end": 139.6
+          "start": 231,
+          "end": 231.3
         },
         {
           "word": "you",
-          "start": 139.6,
-          "end": 139.8
+          "start": 231.3,
+          "end": 231.6
         },
         {
           "word": "move.",
-          "start": 139.8,
-          "end": 140.2
+          "start": 231.6,
+          "end": 232.2
         },
         {
           "word": "Hills",
-          "start": 140.2,
-          "end": 140.4
+          "start": 232.55,
+          "end": 232.85
         },
         {
           "word": "give",
-          "start": 140.4,
-          "end": 140.8
+          "start": 232.85,
+          "end": 233.45
         },
         {
           "word": "way",
-          "start": 140.8,
-          "end": 141
+          "start": 233.45,
+          "end": 233.75
         },
         {
           "word": "to",
-          "start": 141,
-          "end": 141.2
+          "start": 233.75,
+          "end": 234.05
         },
         {
           "word": "jagged",
-          "start": 141.2,
-          "end": 141.6
+          "start": 234.05,
+          "end": 234.65
         },
         {
           "word": "stone",
-          "start": 141.6,
-          "end": 142
+          "start": 234.65,
+          "end": 235.25
         },
         {
           "word": "and",
-          "start": 142,
-          "end": 142.2
+          "start": 235.25,
+          "end": 235.55
         },
         {
           "word": "fractured",
-          "start": 142.2,
-          "end": 142.8
+          "start": 235.55,
+          "end": 236.45
         },
         {
           "word": "cliff",
-          "start": 142.8,
-          "end": 143
+          "start": 236.45,
+          "end": 236.75
         },
         {
           "word": "walls.",
-          "start": 143,
-          "end": 143.2
+          "start": 236.75,
+          "end": 237.05
         },
         {
           "word": "A",
-          "start": 143.2,
-          "end": 143.4
+          "start": 237.4,
+          "end": 237.7
         },
         {
           "word": "canyon",
-          "start": 143.4,
-          "end": 143.8
+          "start": 237.7,
+          "end": 238.3
         },
         {
           "word": "yawns",
-          "start": 143.8,
-          "end": 144
+          "start": 238.3,
+          "end": 238.6
         },
         {
           "word": "open,",
-          "start": 144,
-          "end": 144.4
+          "start": 238.6,
+          "end": 239.2
         },
         {
           "word": "dotted",
-          "start": 144.4,
-          "end": 144.8
+          "start": 239.35,
+          "end": 239.95
         },
         {
           "word": "with",
-          "start": 144.8,
-          "end": 145
+          "start": 239.95,
+          "end": 240.25
         },
         {
           "word": "countless",
-          "start": 145,
-          "end": 145.4
+          "start": 240.25,
+          "end": 240.85
         },
         {
           "word": "dark",
-          "start": 145.4,
-          "end": 145.6
+          "start": 240.85,
+          "end": 241.15
         },
         {
           "word": "holes.",
-          "start": 145.6,
-          "end": 146
+          "start": 241.15,
+          "end": 241.75
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 146,
-      "end": 150.4,
+      "start": 242.1,
+      "end": 250.1,
       "text": "This is perfect for an ambush. Stay sharp. Move carefully. Eyes everywhere.",
       "words": [
         {
           "word": "This",
-          "start": 146,
-          "end": 146.2
+          "start": 242.1,
+          "end": 242.4
         },
         {
           "word": "is",
-          "start": 146.2,
-          "end": 146.4
+          "start": 242.4,
+          "end": 242.7
         },
         {
           "word": "perfect",
-          "start": 146.4,
-          "end": 146.8
+          "start": 242.7,
+          "end": 243.3
         },
         {
           "word": "for",
-          "start": 146.8,
-          "end": 147
+          "start": 243.3,
+          "end": 243.6
         },
         {
           "word": "an",
-          "start": 147,
-          "end": 147.2
+          "start": 243.6,
+          "end": 243.9
         },
         {
           "word": "ambush.",
-          "start": 147.2,
-          "end": 147.6
+          "start": 243.9,
+          "end": 244.5
         },
         {
           "word": "Stay",
-          "start": 147.6,
-          "end": 147.8
+          "start": 244.85,
+          "end": 245.15
         },
         {
           "word": "sharp.",
-          "start": 147.8,
-          "end": 148
+          "start": 245.15,
+          "end": 245.45
         },
         {
           "word": "Move",
-          "start": 148,
-          "end": 148.4
+          "start": 245.8,
+          "end": 246.4
         },
         {
           "word": "carefully.",
-          "start": 148.4,
-          "end": 149.2
+          "start": 246.4,
+          "end": 247.6
         },
         {
           "word": "Eyes",
-          "start": 149.2,
-          "end": 149.4
+          "start": 247.95,
+          "end": 248.25
         },
         {
           "word": "everywhere.",
-          "start": 149.4,
-          "end": 150.4
+          "start": 248.25,
+          "end": 249.75
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 150.4,
-      "end": 153.8,
+      "start": 250.1,
+      "end": 255.9,
       "text": "Or just let them try something. Saves us the trouble of looking.",
       "words": [
         {
           "word": "Or",
-          "start": 150.4,
-          "end": 150.6
+          "start": 250.1,
+          "end": 250.4
         },
         {
           "word": "just",
-          "start": 150.6,
-          "end": 150.8
+          "start": 250.4,
+          "end": 250.7
         },
         {
           "word": "let",
-          "start": 150.8,
-          "end": 151
+          "start": 250.7,
+          "end": 251
         },
         {
           "word": "them",
-          "start": 151,
-          "end": 151.2
+          "start": 251,
+          "end": 251.3
         },
         {
           "word": "try",
-          "start": 151.2,
-          "end": 151.4
+          "start": 251.3,
+          "end": 251.6
         },
         {
           "word": "something.",
-          "start": 151.4,
-          "end": 152
+          "start": 251.6,
+          "end": 252.5
         },
         {
           "word": "Saves",
-          "start": 152,
-          "end": 152.4
+          "start": 252.85,
+          "end": 253.45
         },
         {
           "word": "us",
-          "start": 152.4,
-          "end": 152.6
+          "start": 253.45,
+          "end": 253.75
         },
         {
           "word": "the",
-          "start": 152.6,
-          "end": 152.8
+          "start": 253.75,
+          "end": 254.05
         },
         {
           "word": "trouble",
-          "start": 152.8,
-          "end": 153.2
+          "start": 254.05,
+          "end": 254.65
         },
         {
           "word": "of",
-          "start": 153.2,
-          "end": 153.4
+          "start": 254.65,
+          "end": 254.95
         },
         {
           "word": "looking.",
-          "start": 153.4,
-          "end": 153.8
+          "start": 254.95,
+          "end": 255.55
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 153.8,
-      "end": 159.6,
+      "start": 255.9,
+      "end": 266.05,
       "text": "The ley-line cuts straight through the rock here. It’s not just changing the plants anymore. The stone itself feels… wrong.",
       "words": [
         {
           "word": "The",
-          "start": 153.8,
-          "end": 154
+          "start": 255.9,
+          "end": 256.2
         },
         {
           "word": "ley-line",
-          "start": 154,
-          "end": 154.6
+          "start": 256.2,
+          "end": 257.1
         },
         {
           "word": "cuts",
-          "start": 154.6,
-          "end": 154.8
+          "start": 257.1,
+          "end": 257.4
         },
         {
           "word": "straight",
-          "start": 154.8,
-          "end": 155
+          "start": 257.4,
+          "end": 257.7
         },
         {
           "word": "through",
-          "start": 155,
-          "end": 155.2
+          "start": 257.7,
+          "end": 258
         },
         {
           "word": "the",
-          "start": 155.2,
-          "end": 155.4
+          "start": 258,
+          "end": 258.3
         },
         {
           "word": "rock",
-          "start": 155.4,
-          "end": 155.6
+          "start": 258.3,
+          "end": 258.6
         },
         {
           "word": "here.",
-          "start": 155.6,
-          "end": 156
+          "start": 258.6,
+          "end": 259.2
         },
         {
           "word": "It’s",
-          "start": 156,
-          "end": 156.2
+          "start": 259.55,
+          "end": 259.85
         },
         {
           "word": "not",
-          "start": 156.2,
-          "end": 156.4
+          "start": 259.85,
+          "end": 260.15
         },
         {
           "word": "just",
-          "start": 156.4,
-          "end": 156.6
+          "start": 260.15,
+          "end": 260.45
         },
         {
           "word": "changing",
-          "start": 156.6,
-          "end": 157
+          "start": 260.45,
+          "end": 261.05
         },
         {
           "word": "the",
-          "start": 157,
-          "end": 157.2
+          "start": 261.05,
+          "end": 261.35
         },
         {
           "word": "plants",
-          "start": 157.2,
-          "end": 157.4
+          "start": 261.35,
+          "end": 261.65
         },
         {
           "word": "anymore.",
-          "start": 157.4,
-          "end": 158.2
+          "start": 261.65,
+          "end": 262.85
         },
         {
           "word": "The",
-          "start": 158.2,
-          "end": 158.4
+          "start": 263.2,
+          "end": 263.5
         },
         {
           "word": "stone",
-          "start": 158.4,
-          "end": 158.8
+          "start": 263.5,
+          "end": 264.1
         },
         {
           "word": "itself",
-          "start": 158.8,
-          "end": 159.2
+          "start": 264.1,
+          "end": 264.7
         },
         {
           "word": "feels…",
-          "start": 159.2,
-          "end": 159.4
+          "start": 264.7,
+          "end": 265
         },
         {
           "word": "wrong.",
-          "start": 159.4,
-          "end": 159.6
+          "start": 265.4,
+          "end": 265.7
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 159.6,
-      "end": 161.6,
+      "start": 266.05,
+      "end": 269.55,
       "text": "Then we stay close, but not too close.",
       "words": [
         {
           "word": "Then",
-          "start": 159.6,
-          "end": 159.8
+          "start": 266.05,
+          "end": 266.35
         },
         {
           "word": "we",
-          "start": 159.8,
-          "end": 160
+          "start": 266.35,
+          "end": 266.65
         },
         {
           "word": "stay",
-          "start": 160,
-          "end": 160.2
+          "start": 266.65,
+          "end": 266.95
         },
         {
           "word": "close,",
-          "start": 160.2,
-          "end": 160.6
+          "start": 266.95,
+          "end": 267.55
         },
         {
           "word": "but",
-          "start": 160.6,
-          "end": 160.8
+          "start": 267.7,
+          "end": 268
         },
         {
           "word": "not",
-          "start": 160.8,
-          "end": 161
+          "start": 268,
+          "end": 268.3
         },
         {
           "word": "too",
-          "start": 161,
-          "end": 161.2
+          "start": 268.3,
+          "end": 268.6
         },
         {
           "word": "close.",
-          "start": 161.2,
-          "end": 161.6
+          "start": 268.6,
+          "end": 269.2
         }
       ]
     },
     {
       "speaker": "SL",
-      "start": 163.6,
-      "end": 169.2,
+      "start": 271.55,
+      "end": 280.95,
       "text": "You round a bend. A piercing screech tears through the canyon air—part bird, part beast, part something that should never exist.",
       "words": [
         {
           "word": "You",
-          "start": 163.6,
-          "end": 163.8
+          "start": 271.55,
+          "end": 271.85
         },
         {
           "word": "round",
-          "start": 163.8,
-          "end": 164
+          "start": 271.85,
+          "end": 272.15
         },
         {
           "word": "a",
-          "start": 164,
-          "end": 164.2
+          "start": 272.15,
+          "end": 272.45
         },
         {
           "word": "bend.",
-          "start": 164.2,
-          "end": 164.4
+          "start": 272.45,
+          "end": 272.75
         },
         {
           "word": "A",
-          "start": 164.4,
-          "end": 164.6
+          "start": 273.1,
+          "end": 273.4
         },
         {
           "word": "piercing",
-          "start": 164.6,
-          "end": 165
+          "start": 273.4,
+          "end": 274
         },
         {
           "word": "screech",
-          "start": 165,
-          "end": 165.2
+          "start": 274,
+          "end": 274.3
         },
         {
           "word": "tears",
-          "start": 165.2,
-          "end": 165.4
+          "start": 274.3,
+          "end": 274.6
         },
         {
           "word": "through",
-          "start": 165.4,
-          "end": 165.6
+          "start": 274.6,
+          "end": 274.9
         },
         {
           "word": "the",
-          "start": 165.6,
-          "end": 165.8
+          "start": 274.9,
+          "end": 275.2
         },
         {
           "word": "canyon",
-          "start": 165.8,
-          "end": 166.2
+          "start": 275.2,
+          "end": 275.8
         },
         {
           "word": "air—part",
-          "start": 166.2,
-          "end": 166.6
+          "start": 275.8,
+          "end": 276.4
         },
         {
           "word": "bird,",
-          "start": 166.6,
-          "end": 166.8
+          "start": 276.4,
+          "end": 276.7
         },
         {
           "word": "part",
-          "start": 166.8,
-          "end": 167
+          "start": 276.85,
+          "end": 277.15
         },
         {
           "word": "beast,",
-          "start": 167,
-          "end": 167.2
+          "start": 277.15,
+          "end": 277.45
         },
         {
           "word": "part",
-          "start": 167.2,
-          "end": 167.4
+          "start": 277.6,
+          "end": 277.9
         },
         {
           "word": "something",
-          "start": 167.4,
-          "end": 168
+          "start": 277.9,
+          "end": 278.8
         },
         {
           "word": "that",
-          "start": 168,
-          "end": 168.2
+          "start": 278.8,
+          "end": 279.1
         },
         {
           "word": "should",
-          "start": 168.2,
-          "end": 168.4
+          "start": 279.1,
+          "end": 279.4
         },
         {
           "word": "never",
-          "start": 168.4,
-          "end": 168.8
+          "start": 279.4,
+          "end": 280
         },
         {
           "word": "exist.",
-          "start": 168.8,
-          "end": 169.2
+          "start": 280,
+          "end": 280.6
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 169.2,
-      "end": 170.2,
+      "start": 280.95,
+      "end": 283.15,
       "text": "Down! Get to cover!",
       "words": [
         {
           "word": "Down!",
-          "start": 169.2,
-          "end": 169.4
+          "start": 280.95,
+          "end": 281.25
         },
         {
           "word": "Get",
-          "start": 169.4,
-          "end": 169.6
+          "start": 281.6,
+          "end": 281.9
         },
         {
           "word": "to",
-          "start": 169.6,
-          "end": 169.8
+          "start": 281.9,
+          "end": 282.2
         },
         {
           "word": "cover!",
-          "start": 169.8,
-          "end": 170.2
+          "start": 282.2,
+          "end": 282.8
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 170.2,
-      "end": 171.6,
+      "start": 283.15,
+      "end": 285.6,
       "text": "That is not a normal bird.",
       "words": [
         {
           "word": "That",
-          "start": 170.2,
-          "end": 170.4
+          "start": 283.15,
+          "end": 283.45
         },
         {
           "word": "is",
-          "start": 170.4,
-          "end": 170.6
+          "start": 283.45,
+          "end": 283.75
         },
         {
           "word": "not",
-          "start": 170.6,
-          "end": 170.8
+          "start": 283.75,
+          "end": 284.05
         },
         {
           "word": "a",
-          "start": 170.8,
-          "end": 171
+          "start": 284.05,
+          "end": 284.35
         },
         {
           "word": "normal",
-          "start": 171,
-          "end": 171.4
+          "start": 284.35,
+          "end": 284.95
         },
         {
           "word": "bird.",
-          "start": 171.4,
-          "end": 171.6
+          "start": 284.95,
+          "end": 285.25
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 171.6,
-      "end": 172.2,
+      "start": 285.6,
+      "end": 286.85,
       "text": "Sounds angry.",
       "words": [
         {
           "word": "Sounds",
-          "start": 171.6,
-          "end": 171.8
+          "start": 285.6,
+          "end": 285.9
         },
         {
           "word": "angry.",
-          "start": 171.8,
-          "end": 172.2
+          "start": 285.9,
+          "end": 286.5
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 172.2,
-      "end": 173,
+      "start": 286.85,
+      "end": 288.4,
       "text": "Sounds like fun.",
       "words": [
         {
           "word": "Sounds",
-          "start": 172.2,
-          "end": 172.4
+          "start": 286.85,
+          "end": 287.15
         },
         {
           "word": "like",
-          "start": 172.4,
-          "end": 172.8
+          "start": 287.15,
+          "end": 287.75
         },
         {
           "word": "fun.",
-          "start": 172.8,
-          "end": 173
+          "start": 287.75,
+          "end": 288.05
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 173,
-      "end": 176.2,
+      "start": 288.4,
+      "end": 293.55,
       "text": "And how exactly do you plan to axe something that flies?",
       "words": [
         {
           "word": "And",
-          "start": 173,
-          "end": 173.2
+          "start": 288.4,
+          "end": 288.7
         },
         {
           "word": "how",
-          "start": 173.2,
-          "end": 173.4
+          "start": 288.7,
+          "end": 289
         },
         {
           "word": "exactly",
-          "start": 173.4,
-          "end": 174
+          "start": 289,
+          "end": 289.9
         },
         {
           "word": "do",
-          "start": 174,
-          "end": 174.2
+          "start": 289.9,
+          "end": 290.2
         },
         {
           "word": "you",
-          "start": 174.2,
-          "end": 174.4
+          "start": 290.2,
+          "end": 290.5
         },
         {
           "word": "plan",
-          "start": 174.4,
-          "end": 174.6
+          "start": 290.5,
+          "end": 290.8
         },
         {
           "word": "to",
-          "start": 174.6,
-          "end": 174.8
+          "start": 290.8,
+          "end": 291.1
         },
         {
           "word": "axe",
-          "start": 174.8,
-          "end": 175.2
+          "start": 291.1,
+          "end": 291.7
         },
         {
           "word": "something",
-          "start": 175.2,
-          "end": 175.8
+          "start": 291.7,
+          "end": 292.6
         },
         {
           "word": "that",
-          "start": 175.8,
-          "end": 176
+          "start": 292.6,
+          "end": 292.9
         },
         {
           "word": "flies?",
-          "start": 176,
-          "end": 176.2
+          "start": 292.9,
+          "end": 293.2
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 176.2,
-      "end": 177.2,
+      "start": 293.55,
+      "end": 295.4,
       "text": "I’ll improvise.",
       "words": [
         {
           "word": "I’ll",
-          "start": 176.2,
-          "end": 176.4
+          "start": 293.55,
+          "end": 293.85
         },
         {
           "word": "improvise.",
-          "start": 176.4,
-          "end": 177.2
+          "start": 293.85,
+          "end": 295.05
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 177.2,
-      "end": 178.2,
+      "start": 295.4,
+      "end": 297.25,
       "text": "He usually does.",
       "words": [
         {
           "word": "He",
-          "start": 177.2,
-          "end": 177.4
+          "start": 295.4,
+          "end": 295.7
         },
         {
           "word": "usually",
-          "start": 177.4,
-          "end": 178
+          "start": 295.7,
+          "end": 296.6
         },
         {
           "word": "does.",
-          "start": 178,
-          "end": 178.2
+          "start": 296.6,
+          "end": 296.9
         }
       ]
     },
     {
       "speaker": "SL",
-      "start": 180.2,
-      "end": 191.4,
+      "start": 299.25,
+      "end": 318.5,
       "text": "The sound echoes closer. Sherkan and Glymbar surge forward, momentum spell fueling their speed. Dust kicks beneath their boots. Oswin follows at a safer pace. Durrandir remains cautious, eyes scanning not just forward… but behind.",
       "words": [
         {
           "word": "The",
-          "start": 180.2,
-          "end": 180.4
+          "start": 299.25,
+          "end": 299.55
         },
         {
           "word": "sound",
-          "start": 180.4,
-          "end": 180.6
+          "start": 299.55,
+          "end": 299.85
         },
         {
           "word": "echoes",
-          "start": 180.6,
-          "end": 181
+          "start": 299.85,
+          "end": 300.45
         },
         {
           "word": "closer.",
-          "start": 181,
-          "end": 181.4
+          "start": 300.45,
+          "end": 301.05
         },
         {
           "word": "Sherkan",
-          "start": 181.4,
-          "end": 181.8
+          "start": 301.4,
+          "end": 302
         },
         {
           "word": "and",
-          "start": 181.8,
-          "end": 182
+          "start": 302,
+          "end": 302.3
         },
         {
           "word": "Glymbar",
-          "start": 182,
-          "end": 182.4
+          "start": 302.3,
+          "end": 302.9
         },
         {
           "word": "surge",
-          "start": 182.4,
-          "end": 182.8
+          "start": 302.9,
+          "end": 303.5
         },
         {
           "word": "forward,",
-          "start": 182.8,
-          "end": 183.2
+          "start": 303.5,
+          "end": 304.1
         },
         {
           "word": "momentum",
-          "start": 183.2,
-          "end": 183.8
+          "start": 304.25,
+          "end": 305.15
         },
         {
           "word": "spell",
-          "start": 183.8,
-          "end": 184
+          "start": 305.15,
+          "end": 305.45
         },
         {
           "word": "fueling",
-          "start": 184,
-          "end": 184.4
+          "start": 305.45,
+          "end": 306.05
         },
         {
           "word": "their",
-          "start": 184.4,
-          "end": 184.6
+          "start": 306.05,
+          "end": 306.35
         },
         {
           "word": "speed.",
-          "start": 184.6,
-          "end": 184.8
+          "start": 306.35,
+          "end": 306.65
         },
         {
           "word": "Dust",
-          "start": 184.8,
-          "end": 185
+          "start": 307,
+          "end": 307.3
         },
         {
           "word": "kicks",
-          "start": 185,
-          "end": 185.2
+          "start": 307.3,
+          "end": 307.6
         },
         {
           "word": "beneath",
-          "start": 185.2,
-          "end": 185.6
+          "start": 307.6,
+          "end": 308.2
         },
         {
           "word": "their",
-          "start": 185.6,
-          "end": 185.8
+          "start": 308.2,
+          "end": 308.5
         },
         {
           "word": "boots.",
-          "start": 185.8,
-          "end": 186
+          "start": 308.5,
+          "end": 308.8
         },
         {
           "word": "Oswin",
-          "start": 186,
-          "end": 186.4
+          "start": 309.15,
+          "end": 309.75
         },
         {
           "word": "follows",
-          "start": 186.4,
-          "end": 186.8
+          "start": 309.75,
+          "end": 310.35
         },
         {
           "word": "at",
-          "start": 186.8,
-          "end": 187
+          "start": 310.35,
+          "end": 310.65
         },
         {
           "word": "a",
-          "start": 187,
-          "end": 187.2
+          "start": 310.65,
+          "end": 310.95
         },
         {
           "word": "safer",
-          "start": 187.2,
-          "end": 187.6
+          "start": 310.95,
+          "end": 311.55
         },
         {
           "word": "pace.",
-          "start": 187.6,
-          "end": 188
+          "start": 311.55,
+          "end": 312.15
         },
         {
           "word": "Durrandir",
-          "start": 188,
-          "end": 188.6
+          "start": 312.5,
+          "end": 313.4
         },
         {
           "word": "remains",
-          "start": 188.6,
-          "end": 189
+          "start": 313.4,
+          "end": 314
         },
         {
           "word": "cautious,",
-          "start": 189,
-          "end": 189.4
+          "start": 314,
+          "end": 314.6
         },
         {
           "word": "eyes",
-          "start": 189.4,
-          "end": 189.6
+          "start": 314.75,
+          "end": 315.05
         },
         {
           "word": "scanning",
-          "start": 189.6,
-          "end": 190
+          "start": 315.05,
+          "end": 315.65
         },
         {
           "word": "not",
-          "start": 190,
-          "end": 190.2
+          "start": 315.65,
+          "end": 315.95
         },
         {
           "word": "just",
-          "start": 190.2,
-          "end": 190.4
+          "start": 315.95,
+          "end": 316.25
         },
         {
           "word": "forward…",
-          "start": 190.4,
-          "end": 190.8
+          "start": 316.25,
+          "end": 316.85
         },
         {
           "word": "but",
-          "start": 190.8,
-          "end": 191
+          "start": 317.25,
+          "end": 317.55
         },
         {
           "word": "behind.",
-          "start": 191,
-          "end": 191.4
+          "start": 317.55,
+          "end": 318.15
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 191.4,
-      "end": 193.4,
+      "start": 318.5,
+      "end": 322.2,
       "text": "This could be bait. Don’t get tunnel vision.",
       "words": [
         {
           "word": "This",
-          "start": 191.4,
-          "end": 191.6
+          "start": 318.5,
+          "end": 318.8
         },
         {
           "word": "could",
-          "start": 191.6,
-          "end": 191.8
+          "start": 318.8,
+          "end": 319.1
         },
         {
           "word": "be",
-          "start": 191.8,
-          "end": 192
+          "start": 319.1,
+          "end": 319.4
         },
         {
           "word": "bait.",
-          "start": 192,
-          "end": 192.2
+          "start": 319.4,
+          "end": 319.7
         },
         {
           "word": "Don’t",
-          "start": 192.2,
-          "end": 192.4
+          "start": 320.05,
+          "end": 320.35
         },
         {
           "word": "get",
-          "start": 192.4,
-          "end": 192.6
+          "start": 320.35,
+          "end": 320.65
         },
         {
           "word": "tunnel",
-          "start": 192.6,
-          "end": 193
+          "start": 320.65,
+          "end": 321.25
         },
         {
           "word": "vision.",
-          "start": 193,
-          "end": 193.4
+          "start": 321.25,
+          "end": 321.85
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 193.4,
-      "end": 195.2,
+      "start": 322.2,
+      "end": 325.6,
       "text": "Then keep up. I’m not dying alone.",
       "words": [
         {
           "word": "Then",
-          "start": 193.4,
-          "end": 193.6
+          "start": 322.2,
+          "end": 322.5
         },
         {
           "word": "keep",
-          "start": 193.6,
-          "end": 193.8
+          "start": 322.5,
+          "end": 322.8
         },
         {
           "word": "up.",
-          "start": 193.8,
-          "end": 194
+          "start": 322.8,
+          "end": 323.1
         },
         {
           "word": "I’m",
-          "start": 194,
-          "end": 194.2
+          "start": 323.45,
+          "end": 323.75
         },
         {
           "word": "not",
-          "start": 194.2,
-          "end": 194.4
+          "start": 323.75,
+          "end": 324.05
         },
         {
           "word": "dying",
-          "start": 194.4,
-          "end": 194.6
+          "start": 324.05,
+          "end": 324.35
         },
         {
           "word": "alone.",
-          "start": 194.6,
-          "end": 195.2
+          "start": 324.35,
+          "end": 325.25
         }
       ]
     },
     {
       "speaker": "SL",
-      "start": 197.2,
-      "end": 207.2,
+      "start": 327.6,
+      "end": 343.95,
       "text": "The canyon widens into a stone hollow. At its center stands an ancient altar, blackened and burning. A wild man in tattered yellow-red robes screams curses at the sky, shaking his fists.",
       "words": [
         {
           "word": "The",
-          "start": 197.2,
-          "end": 197.4
+          "start": 327.6,
+          "end": 327.9
         },
         {
           "word": "canyon",
-          "start": 197.4,
-          "end": 197.8
+          "start": 327.9,
+          "end": 328.5
         },
         {
           "word": "widens",
-          "start": 197.8,
-          "end": 198.2
+          "start": 328.5,
+          "end": 329.1
         },
         {
           "word": "into",
-          "start": 198.2,
-          "end": 198.6
+          "start": 329.1,
+          "end": 329.7
         },
         {
           "word": "a",
-          "start": 198.6,
-          "end": 198.8
+          "start": 329.7,
+          "end": 330
         },
         {
           "word": "stone",
-          "start": 198.8,
-          "end": 199.2
+          "start": 330,
+          "end": 330.6
         },
         {
           "word": "hollow.",
-          "start": 199.2,
-          "end": 199.6
+          "start": 330.6,
+          "end": 331.2
         },
         {
           "word": "At",
-          "start": 199.6,
-          "end": 199.8
+          "start": 331.55,
+          "end": 331.85
         },
         {
           "word": "its",
-          "start": 199.8,
-          "end": 200
+          "start": 331.85,
+          "end": 332.15
         },
         {
           "word": "center",
-          "start": 200,
-          "end": 200.4
+          "start": 332.15,
+          "end": 332.75
         },
         {
           "word": "stands",
-          "start": 200.4,
-          "end": 200.6
+          "start": 332.75,
+          "end": 333.05
         },
         {
           "word": "an",
-          "start": 200.6,
-          "end": 200.8
+          "start": 333.05,
+          "end": 333.35
         },
         {
           "word": "ancient",
-          "start": 200.8,
-          "end": 201.2
+          "start": 333.35,
+          "end": 333.95
         },
         {
           "word": "altar,",
-          "start": 201.2,
-          "end": 201.6
+          "start": 333.95,
+          "end": 334.55
         },
         {
           "word": "blackened",
-          "start": 201.6,
-          "end": 202.2
+          "start": 334.7,
+          "end": 335.6
         },
         {
           "word": "and",
-          "start": 202.2,
-          "end": 202.4
+          "start": 335.6,
+          "end": 335.9
         },
         {
           "word": "burning.",
-          "start": 202.4,
-          "end": 202.8
+          "start": 335.9,
+          "end": 336.5
         },
         {
           "word": "A",
-          "start": 202.8,
-          "end": 203
+          "start": 336.85,
+          "end": 337.15
         },
         {
           "word": "wild",
-          "start": 203,
-          "end": 203.2
+          "start": 337.15,
+          "end": 337.45
         },
         {
           "word": "man",
-          "start": 203.2,
-          "end": 203.4
+          "start": 337.45,
+          "end": 337.75
         },
         {
           "word": "in",
-          "start": 203.4,
-          "end": 203.6
+          "start": 337.75,
+          "end": 338.05
         },
         {
           "word": "tattered",
-          "start": 203.6,
-          "end": 204.2
+          "start": 338.05,
+          "end": 338.95
         },
         {
           "word": "yellow-red",
-          "start": 204.2,
-          "end": 204.8
+          "start": 338.95,
+          "end": 339.85
         },
         {
           "word": "robes",
-          "start": 204.8,
-          "end": 205.2
+          "start": 339.85,
+          "end": 340.45
         },
         {
           "word": "screams",
-          "start": 205.2,
-          "end": 205.4
+          "start": 340.45,
+          "end": 340.75
         },
         {
           "word": "curses",
-          "start": 205.4,
-          "end": 205.8
+          "start": 340.75,
+          "end": 341.35
         },
         {
           "word": "at",
-          "start": 205.8,
-          "end": 206
+          "start": 341.35,
+          "end": 341.65
         },
         {
           "word": "the",
-          "start": 206,
-          "end": 206.2
+          "start": 341.65,
+          "end": 341.95
         },
         {
           "word": "sky,",
-          "start": 206.2,
-          "end": 206.4
+          "start": 341.95,
+          "end": 342.25
         },
         {
           "word": "shaking",
-          "start": 206.4,
-          "end": 206.8
+          "start": 342.4,
+          "end": 343
         },
         {
           "word": "his",
-          "start": 206.8,
-          "end": 207
+          "start": 343,
+          "end": 343.3
         },
         {
           "word": "fists.",
-          "start": 207,
-          "end": 207.2
+          "start": 343.3,
+          "end": 343.6
         }
       ]
     },
     {
       "speaker": "Sherkan",
-      "start": 207.2,
-      "end": 207.8,
+      "start": 343.95,
+      "end": 345.2,
       "text": "Finally.",
       "words": [
         {
           "word": "Finally.",
-          "start": 207.2,
-          "end": 207.8
+          "start": 343.95,
+          "end": 344.85
         }
       ]
     },
     {
       "speaker": "Glymbar",
-      "start": 207.8,
-      "end": 208.4,
+      "start": 345.2,
+      "end": 346.45,
       "text": "Called it.",
       "words": [
         {
           "word": "Called",
-          "start": 207.8,
-          "end": 208.2
+          "start": 345.2,
+          "end": 345.8
         },
         {
           "word": "it.",
-          "start": 208.2,
-          "end": 208.4
+          "start": 345.8,
+          "end": 346.1
         }
       ]
     },
     {
       "speaker": "Oswin",
-      "start": 208.4,
-      "end": 210.4,
+      "start": 346.45,
+      "end": 350.15,
       "text": "This isn’t random cruelty. It’s enjoying this.",
       "words": [
         {
           "word": "This",
-          "start": 208.4,
-          "end": 208.6
+          "start": 346.45,
+          "end": 346.75
         },
         {
           "word": "isn’t",
-          "start": 208.6,
-          "end": 208.8
+          "start": 346.75,
+          "end": 347.05
         },
         {
           "word": "random",
-          "start": 208.8,
-          "end": 209.2
+          "start": 347.05,
+          "end": 347.65
         },
         {
           "word": "cruelty.",
-          "start": 209.2,
-          "end": 209.6
+          "start": 347.65,
+          "end": 348.25
         },
         {
           "word": "It’s",
-          "start": 209.6,
-          "end": 209.8
+          "start": 348.6,
+          "end": 348.9
         },
         {
           "word": "enjoying",
-          "start": 209.8,
-          "end": 210.2
+          "start": 348.9,
+          "end": 349.5
         },
         {
           "word": "this.",
-          "start": 210.2,
-          "end": 210.4
+          "start": 349.5,
+          "end": 349.8
         }
       ]
     },
     {
       "speaker": "Durrandir",
-      "start": 210.4,
-      "end": 211.6,
+      "start": 350.15,
+      "end": 352.3,
       "text": "Then let’s end the joke.",
       "words": [
         {
           "word": "Then",
-          "start": 210.4,
-          "end": 210.6
+          "start": 350.15,
+          "end": 350.45
         },
         {
           "word": "let’s",
-          "start": 210.6,
-          "end": 210.8
+          "start": 350.45,
+          "end": 350.75
         },
         {
           "word": "end",
-          "start": 210.8,
-          "end": 211
+          "start": 350.75,
+          "end": 351.05
         },
         {
           "word": "the",
-          "start": 211,
-          "end": 211.2
+          "start": 351.05,
+          "end": 351.35
         },
         {
           "word": "joke.",
-          "start": 211.2,
-          "end": 211.6
+          "start": 351.35,
+          "end": 351.95
         }
       ]
     }

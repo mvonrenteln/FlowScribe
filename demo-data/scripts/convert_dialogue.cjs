@@ -1,7 +1,7 @@
 const fs = require('fs');
 const path = require('path');
 
-// Usage: node convert_dialogue.cjs [inputPath] [outputPath]
+// Usage: node convert_dialogue.cjs [inputPath] [outputPath] [minSecondsPerSyllable]
 // Defaults:
 const repoBase = path.resolve(__dirname, '..');
 const defaultInput = path.join(repoBase, 'Dialogue.txt');
@@ -9,6 +9,8 @@ const defaultOutput = path.join(repoBase, 'Dialogue.json');
 
 const inputPath = process.argv[2] ? path.resolve(process.argv[2]) : defaultInput;
 const outputPath = process.argv[3] ? path.resolve(process.argv[3]) : defaultOutput;
+// minimal seconds per syllable (configurable). Default set to 0.3 for more natural pacing.
+const minSecondsPerSyllable = process.argv[4] ? parseFloat(process.argv[4]) : 0.3;
 
 function readFileUtf8(p){
   return fs.readFileSync(p, 'utf8').replace(/\r\n/g,'\n');
@@ -72,6 +74,25 @@ function parseSegmentsFromDialog(text){
   return segments;
 }
 
+// punctuation pause map (seconds). Different punctuation implies different pause lengths.
+const punctPause = {
+  ',': 0.15,
+  ';': 0.2,
+  ':': 0.2,
+  '—': 0.3,
+  '...': 0.4,
+  '…': 0.4,
+  '.': 0.35,
+  '?': 0.35,
+  '!': 0.35
+};
+
+function detectTrailingPunctuation(token){
+  const m = token.match(/([\.\,;:\!\?\u2014\u2026]+)$/); // . , ; : ! ? — …
+  if(!m) return null;
+  return m[1];
+}
+
 function buildSegmentsTiming(segments){
   let currentStart = 0.0;
   const out = [];
@@ -95,15 +116,31 @@ function buildSegmentsTiming(segments){
       // count syllables on cleaned token
       const cleaned = tok.replace(/^['"\(\[\{]+|['"\)\]\}.,!?:;]+$/g,'');
       const syll = syllableCount(cleaned);
-      const dur = Math.max(0.2 * syll, 0.2);
+      const dur = Math.max(minSecondsPerSyllable * syll, minSecondsPerSyllable);
       const rd = round2(dur);
       const ws = round2(t);
       const we = round2(ws + rd);
       segObj.words.push({ word: tok, start: ws, end: we });
       t = we;
+
+      // add punctuation pause if token ends with punctuation
+      const trailing = detectTrailingPunctuation(tok);
+      if(trailing){
+        // choose pause: if '...' or '…' use that, else take last char
+        let key = trailing;
+        if(trailing.length>1){
+          if(trailing.indexOf('...')>=0) key = '...';
+          else if(trailing.indexOf('…')>=0) key = '…';
+          else key = trailing[trailing.length-1];
+        } else {
+          key = trailing;
+        }
+        const pause = punctPause[key] || 0.2;
+        t = round2(t + pause);
+      }
     }
 
-    // computed end is sum
+    // computed end is sum of word durations + punctuation pauses
     const computedEnd = round2(t);
     segObj.end = computedEnd;
 
@@ -136,7 +173,7 @@ function run(){
   const timed = buildSegmentsTiming(segments);
   const out = { segments: timed };
   fs.writeFileSync(outputPath, JSON.stringify(out, null, 2), 'utf8');
-  console.log('Wrote', outputPath, 'with', timed.length, 'segments');
+  console.log('Wrote', outputPath, 'with', timed.length, 'segments (minSyll=', minSecondsPerSyllable, ')');
 }
 
 if(require.main === module){
