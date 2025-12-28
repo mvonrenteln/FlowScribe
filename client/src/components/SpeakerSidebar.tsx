@@ -199,7 +199,15 @@ export function SpeakerSidebar({
     <div className="flex flex-col h-full">
       <div className="p-4 border-b space-y-3">
         <div className="flex items-center justify-between gap-2">
-          <h2 className="text-sm font-semibold">Transcript Filter</h2>
+          <h2 className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Transcript Filter</h2>
+          <Button
+              size="sm"
+              variant="ghost"
+              onClick={() => onClearFilter?.()}
+              data-testid="button-clear-filters"
+          >
+            Clear
+          </Button>
         </div>
 
         <SearchAndReplacePanel
@@ -351,14 +359,7 @@ export function SpeakerSidebar({
               <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
                 Review
               </div>
-              <Button
-                size="sm"
-                variant="ghost"
-                onClick={() => onClearFilter?.()}
-                data-testid="button-clear-filters"
-              >
-                Clear
-              </Button>
+
             </div>
             <button
               type="button"
