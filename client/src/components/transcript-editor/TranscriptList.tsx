@@ -33,7 +33,6 @@ export function TranscriptList({
   replaceQuery,
   onReplaceCurrent,
   onMatchClick,
-  allMatches,
   findMatchIndex,
 }: TranscriptListProps) {
   return (
@@ -86,7 +85,6 @@ export function TranscriptList({
                 replaceQuery={replaceQuery}
                 onReplaceCurrent={onReplaceCurrent}
                 onMatchClick={onMatchClick}
-                allMatches={allMatches}
                 findMatchIndex={findMatchIndex}
               />
             );

@@ -64,12 +64,6 @@ interface TranscriptSegmentProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
-  readonly allMatches?: Array<{
-    segmentId: string;
-    startIndex: number;
-    endIndex: number;
-    text: string;
-  }>;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -117,7 +111,6 @@ function TranscriptSegmentComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
-  allMatches,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -439,7 +432,6 @@ function TranscriptSegmentComponent({
                       replaceQuery={replaceQuery}
                       onReplaceCurrent={onReplaceCurrent}
                       onMatchClick={onMatchClick}
-                      matches={allMatches?.filter((m) => m.segmentId === segment.id)}
                       findMatchIndex={findMatchIndex}
                     />
                   );
@@ -597,8 +589,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&
     prev.replaceQuery === next.replaceQuery &&
-    prev.currentMatch === next.currentMatch &&
-    prev.allMatches === next.allMatches
+    prev.currentMatch === next.currentMatch
   );
 };
 
