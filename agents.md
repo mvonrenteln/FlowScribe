@@ -114,3 +114,8 @@ act(() => {
 
 Changes around audio loading in `client/src/components/WaveformPlayer.tsx` have previously broken audio playback. Be extra cautious and validate loading and cleanup behavior whenever touching this area.
 Zoom handling in `client/src/components/WaveformPlayer.tsx` can cause repeated WaveSurfer re-initialization and flicker if it triggers the main init effect. Avoid wiring zoom state into the initialization dependency chain.
+
+**Performance & Responsiveness:**
+- **Handler Stability**: In `useTranscriptEditor.ts`, segment event handlers are cached in a ref (`handlerCacheRef`). **NEVER** remove `segments` from the `useMemo` dependencies of `segmentHandlers` without ensuring that the cache is properly managed, otherwise adjacency logic (merge) will stale. However, always ensure that common handlers remains stable to prevent full transcript list re-renders on every edit.
+- **Scroll Logic**: The `useScrollAndSelection.ts` hook implements an interaction-aware auto-scroll. Avoid aggressive auto-scrolling that fights user input. In pause mode, follow the active segment ONLY if the user is not actively interacting with the transcript or if the selection just changed.
+- **Virtualization & Memoization**: The `TranscriptList` and `TranscriptSegment` are heavily memoized. Avoid passing unstable anonymous functions as props to `TranscriptSegment`, as this breaks memoization and degrades performance on long transcripts.

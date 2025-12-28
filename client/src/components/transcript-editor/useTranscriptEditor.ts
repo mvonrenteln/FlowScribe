@@ -10,71 +10,7 @@ import { useScrollAndSelection } from "./useScrollAndSelection";
 import { useSearchAndReplace } from "./useSearchAndReplace";
 import { useSpellcheck } from "./useSpellcheck";
 
-const buildSegmentHandlers = (
-  segments: Segment[],
-  filteredSegments: Segment[],
-  mergeSegments: (id1: string, id2: string) => string | null,
-  setSelectedSegmentId: (id: string | null) => void,
-  handleSeek: (time: number) => void,
-  handleSplitSegment: (segmentId: string, wordIndex: number) => void,
-  updateSegmentText: (id: string, text: string) => void,
-  updateSegmentSpeaker: (id: string, speaker: string) => void,
-  confirmSegment: (id: string) => void,
-  toggleSegmentBookmark: (id: string) => void,
-  addLexiconFalsePositive: (term: string, value: string) => void,
-  deleteSegment: (id: string) => void,
-) => {
-  const segmentIndexById = new Map(segments.map((segment, index) => [segment.id, index]));
-  const areAdjacent = (idA: string, idB: string) => {
-    const indexA = segmentIndexById.get(idA);
-    const indexB = segmentIndexById.get(idB);
-    if (indexA === undefined || indexB === undefined) return false;
-    return Math.abs(indexA - indexB) === 1;
-  };
-
-  return filteredSegments.map((segment, index) => {
-    const previousSegment = filteredSegments[index - 1];
-    const nextSegment = filteredSegments[index + 1];
-
-    const onMergeWithPrevious =
-      index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
-        ? () => {
-            if (!areAdjacent(previousSegment.id, segment.id)) return;
-            const mergedId = mergeSegments(previousSegment.id, segment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
-          }
-        : undefined;
-
-    const onMergeWithNext =
-      index < filteredSegments.length - 1 && nextSegment && areAdjacent(segment.id, nextSegment.id)
-        ? () => {
-            if (!areAdjacent(segment.id, nextSegment.id)) return;
-            const mergedId = mergeSegments(segment.id, nextSegment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
-          }
-        : undefined;
-
-    return {
-      onSelect: () => {
-        setSelectedSegmentId(segment.id);
-        handleSeek(segment.start);
-      },
-      onTextChange: (text: string) => updateSegmentText(segment.id, text),
-      onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
-      onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
-      onConfirm: () => confirmSegment(segment.id),
-      onToggleBookmark: () => toggleSegmentBookmark(segment.id),
-      onIgnoreLexiconMatch: (term: string, value: string) => addLexiconFalsePositive(term, value),
-      onMergeWithPrevious,
-      onMergeWithNext,
-      onDelete: () => deleteSegment(segment.id),
-    };
-  });
-};
+// buildSegmentHandlers is moved inside useTranscriptEditor as a stable set of callbacks
 
 export const useTranscriptEditor = () => {
   const transcriptActions = useMemo(() => {
@@ -511,37 +447,90 @@ export const useTranscriptEditor = () => {
     return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [activeSegment, currentTime]);
 
-  const segmentHandlers = useMemo(
-    () =>
-      buildSegmentHandlers(
-        segments,
-        filteredSegments,
-        mergeSegments,
-        setSelectedSegmentId,
-        handleSeek,
-        handleSplitSegment,
-        updateSegmentText,
-        updateSegmentSpeaker,
-        confirmSegment,
-        toggleSegmentBookmark,
-        addLexiconFalsePositive,
-        deleteSegment,
-      ),
-    [
-      segments,
-      addLexiconFalsePositive,
-      confirmSegment,
-      deleteSegment,
-      filteredSegments,
-      handleSeek,
-      handleSplitSegment,
-      mergeSegments,
-      setSelectedSegmentId,
-      toggleSegmentBookmark,
-      updateSegmentSpeaker,
-      updateSegmentText,
-    ],
-  );
+  const handlerCacheRef = useRef<Map<string, any>>(new Map());
+
+  const segmentHandlers = useMemo(() => {
+    // Clear cache entries for segments that are no longer in segments (optional but good)
+    const currentIds = new Set(segments.map((s) => s.id));
+    for (const id of Array.from(handlerCacheRef.current.keys())) {
+      if (!currentIds.has(id)) {
+        handlerCacheRef.current.delete(id);
+      }
+    }
+
+    const segmentIndexById = new Map(segments.map((segment, idx) => [segment.id, idx]));
+
+    return filteredSegments.map((segment, index) => {
+      let handlers = handlerCacheRef.current.get(segment.id);
+
+      const previousSegment = filteredSegments[index - 1];
+      const nextSegment = filteredSegments[index + 1];
+
+      const areAdjacent = (idA: string, idB: string) => {
+        const indexA = segmentIndexById.get(idA);
+        const indexB = segmentIndexById.get(idB);
+        if (indexA === undefined || indexB === undefined) return false;
+        return Math.abs(indexA - indexB) === 1;
+      };
+
+      if (!handlers) {
+        handlers = {
+          onSelect: () => {
+            // Use stable refs/store for values that might change
+            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            if (current) {
+              setSelectedSegmentId(current.id);
+              handleSeek(current.start);
+            }
+          },
+          onTextChange: (text: string) => updateSegmentText(segment.id, text),
+          onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
+          onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
+          onConfirm: () => confirmSegment(segment.id),
+          onToggleBookmark: () => toggleSegmentBookmark(segment.id),
+          onIgnoreLexiconMatch: (term: string, value: string) =>
+            addLexiconFalsePositive(term, value),
+          onDelete: () => deleteSegment(segment.id),
+        };
+        handlerCacheRef.current.set(segment.id, handlers);
+      }
+
+      // Merge handlers are position-dependent, so we update them every time.
+      // But since they are only updated when filteredSegments changes, it's okay.
+      handlers.onMergeWithPrevious =
+        index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
+          ? () => {
+              const currentMergedId = mergeSegments(previousSegment.id, segment.id);
+              if (currentMergedId) setSelectedSegmentId(currentMergedId);
+            }
+          : undefined;
+
+      handlers.onMergeWithNext =
+        index < filteredSegments.length - 1 &&
+        nextSegment &&
+        areAdjacent(segment.id, nextSegment.id)
+          ? () => {
+              const currentMergedId = mergeSegments(segment.id, nextSegment.id);
+              if (currentMergedId) setSelectedSegmentId(currentMergedId);
+            }
+          : undefined;
+
+      return handlers;
+    });
+  }, [
+    filteredSegments,
+    mergeSegments,
+    setSelectedSegmentId,
+    handleSeek,
+    handleSplitSegment,
+    updateSegmentText,
+    updateSegmentSpeaker,
+    confirmSegment,
+    toggleSegmentBookmark,
+    addLexiconFalsePositive,
+    deleteSegment,
+    segments,
+  ]);
 
   const emptyState = useMemo(
     () =>

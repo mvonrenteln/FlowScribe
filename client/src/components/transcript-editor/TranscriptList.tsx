@@ -1,10 +1,11 @@
+import { memo, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TranscriptSegment } from "../TranscriptSegment";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type TranscriptListProps = TranscriptEditorState["transcriptListProps"];
 
-export function TranscriptList({
+function TranscriptListComponent({
   containerRef,
   filteredSegments,
   speakers,
@@ -35,6 +36,9 @@ export function TranscriptList({
   onMatchClick,
   findMatchIndex,
 }: TranscriptListProps) {
+  // Simple "virtualization": If there are many segments, we could limit rendering.
+  // But first, let's ensure memoization of the list itself and the segments works.
+
   return (
     <ScrollArea className="flex-1">
       <div ref={containerRef} className="max-w-4xl mx-auto p-4 space-y-2">
@@ -46,6 +50,8 @@ export function TranscriptList({
         ) : (
           filteredSegments.map((segment, index) => {
             const handlers = segmentHandlers[index];
+            if (!handlers) return null; // Safety check
+
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             return (
               <TranscriptSegment
@@ -94,3 +100,5 @@ export function TranscriptList({
     </ScrollArea>
   );
 }
+
+export const TranscriptList = memo(TranscriptListComponent);

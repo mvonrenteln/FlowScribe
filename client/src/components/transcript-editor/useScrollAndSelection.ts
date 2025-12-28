@@ -40,19 +40,41 @@ export function useScrollAndSelection({
     return filteredSegments.some((segment) => segment.id === activeSegment.id);
   }, [activeSegment, activeSpeakerName, filteredSegments]);
 
+  // Sync selection during playback or when time changes manually
   useEffect(() => {
     if (isTranscriptEditing()) return;
     if (!activeSegment || !isActiveSegmentVisible) return;
+
     if (activeSegment.id !== selectedSegmentId) {
       setSelectedSegmentId(activeSegment.id);
     }
   }, [
     activeSegment,
     isActiveSegmentVisible,
+    isPlaying,
     isTranscriptEditing,
     selectedSegmentId,
     setSelectedSegmentId,
   ]);
+
+  const lastInteractionTimeRef = useRef(0);
+  const lastSelectedIdRef = useRef<string | null>(null);
+  const lastActiveIdRef = useRef<string | null>(null);
+  const lastTargetIdRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const handleInteraction = () => {
+      lastInteractionTimeRef.current = Date.now();
+    };
+    window.addEventListener("mousedown", handleInteraction, { capture: true, passive: true });
+    window.addEventListener("wheel", handleInteraction, { capture: true, passive: true });
+    window.addEventListener("keydown", handleInteraction, { capture: true, passive: true });
+    return () => {
+      window.removeEventListener("mousedown", handleInteraction);
+      window.removeEventListener("wheel", handleInteraction);
+      window.removeEventListener("keydown", handleInteraction);
+    };
+  }, []);
 
   const scrollSegmentIntoView = useCallback(
     (segmentId: string, options: { block: ScrollLogicalPosition; behavior: ScrollBehavior }) => {
@@ -60,11 +82,24 @@ export function useScrollAndSelection({
       if (!container) return;
       const target = container.querySelector<HTMLElement>(`[data-segment-id="${segmentId}"]`);
       if (!target) return;
+
       const now = globalThis.performance?.now?.() ?? Date.now();
       const last = lastScrollRef.current;
-      if (last?.id === segmentId && now - last.at < 250) {
+
+      // Stricter throttling for same-segment scrolling
+      if (last?.id === segmentId && now - last.at < 500) {
         return;
       }
+
+      // Check if it's already in a reasonable position to avoid micro-adjustments
+      // but only for smooth (auto) scrolling during playback
+      if (options.behavior === "smooth") {
+        const rect = target.getBoundingClientRect();
+        const containerRect = container.getBoundingClientRect();
+        const isVisible = rect.top >= containerRect.top + 100 && rect.bottom <= containerRect.bottom - 100;
+        if (isVisible) return;
+      }
+
       lastScrollRef.current = { id: segmentId, at: now };
       requestAnimationFrame(() => {
         target.scrollIntoView({ block: options.block, behavior: options.behavior });
@@ -75,14 +110,46 @@ export function useScrollAndSelection({
 
   useEffect(() => {
     if (isTranscriptEditing()) return;
-    const scrollTargetId = isPlaying
-      ? activeSegment?.id
-      : (activeSegment?.id ?? selectedSegmentId ?? null);
-    if (!scrollTargetId) return;
+
+    const now = Date.now();
+    const isInteracting = now - lastInteractionTimeRef.current < 2000;
+
+    let scrollTargetId: string | null = null;
+
+    if (isPlaying) {
+      scrollTargetId = activeSegment?.id ?? null;
+    } else {
+      // In pause mode: if user recently interacted (keys/mouse), follow selection.
+      // Otherwise (initial load, clicking wave), follow active segment.
+      if (isInteracting && selectedSegmentId) {
+        scrollTargetId = selectedSegmentId;
+      } else {
+        scrollTargetId = activeSegment?.id ?? selectedSegmentId ?? null;
+      }
+    }
+
+    // Update tracking refs (kept for other logic if needed)
+    lastSelectedIdRef.current = selectedSegmentId;
+    lastActiveIdRef.current = activeSegment?.id ?? null;
+
+    if (!scrollTargetId) {
+      lastTargetIdRef.current = null;
+      return;
+    }
+
+    // Skip auto-scroll if it's the SAME target and we are still interacting (prevents stutter)
+    if (isInteracting && scrollTargetId === lastTargetIdRef.current) {
+      return;
+    }
+
+    // Update last target tracker
+    lastTargetIdRef.current = scrollTargetId;
+
     if (isPlaying && !isActiveSegmentVisible) return;
+
     scrollSegmentIntoView(scrollTargetId, {
       block: "center",
-      behavior: "smooth",
+      behavior: isPlaying ? "smooth" : "auto",
     });
   }, [
     activeSegment,
