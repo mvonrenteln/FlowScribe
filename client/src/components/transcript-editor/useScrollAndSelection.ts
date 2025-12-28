@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Segment } from "@/lib/store";
+import { isElementVisible } from "./visibility";
 
 interface UseScrollAndSelectionOptions {
   segments: Segment[];
@@ -36,9 +37,9 @@ export function useScrollAndSelection({
   const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
   const isActiveSegmentVisible = useMemo(() => {
     if (!activeSegment) return false;
-    if (!activeSpeakerName) return true;
+    // Check if the segment is in the filtered list
     return filteredSegments.some((segment) => segment.id === activeSegment.id);
-  }, [activeSegment, activeSpeakerName, filteredSegments]);
+  }, [activeSegment, filteredSegments]);
 
   // Sync selection during playback or when time changes manually
   useEffect(() => {
@@ -61,6 +62,7 @@ export function useScrollAndSelection({
   const lastSelectedIdRef = useRef<string | null>(null);
   const lastActiveIdRef = useRef<string | null>(null);
   const lastTargetIdRef = useRef<string | null>(null);
+  const lastTimeRef = useRef(currentTime);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -92,12 +94,9 @@ export function useScrollAndSelection({
       }
 
       // Check if it's already in a reasonable position to avoid micro-adjustments
-      // but only for smooth (auto) scrolling during playback
+      // but only for smooth (auto) scrolling during playback. 
       if (options.behavior === "smooth") {
-        const rect = target.getBoundingClientRect();
-        const containerRect = container.getBoundingClientRect();
-        const isVisible = rect.top >= containerRect.top + 100 && rect.bottom <= containerRect.bottom - 100;
-        if (isVisible) return;
+        if (isElementVisible(target, container)) return;
       }
 
       lastScrollRef.current = { id: segmentId, at: now };
@@ -114,50 +113,66 @@ export function useScrollAndSelection({
     const now = Date.now();
     const isInteracting = now - lastInteractionTimeRef.current < 2000;
 
-    let scrollTargetId: string | null = null;
+    // Detect "seek" (significant jump in time)
+    const timeDiff = Math.abs(currentTime - lastTimeRef.current);
+    const isSeeking = timeDiff > 1.5; // Threshold for considering it a manual jump/seek
+    lastTimeRef.current = currentTime;
 
-    if (isPlaying) {
-      scrollTargetId = activeSegment?.id ?? null;
-    } else {
-      // In pause mode: if user recently interacted (keys/mouse), follow selection.
-      // Otherwise (initial load, clicking wave), follow active segment.
-      if (isInteracting && selectedSegmentId) {
-        scrollTargetId = selectedSegmentId;
-      } else {
-        scrollTargetId = activeSegment?.id ?? selectedSegmentId ?? null;
-      }
+    // Determine the ideal segment to show. 
+    // If we have an active segment, use it.
+    // If we are in a gap (silence), find the next upcoming visible segment.
+    let targetSegment = activeSegment || null;
+    if (!targetSegment && filteredSegments.length > 0) {
+      targetSegment = filteredSegments.find(s => s.start > currentTime) || null;
     }
 
-    // Update tracking refs (kept for other logic if needed)
-    lastSelectedIdRef.current = selectedSegmentId;
-    lastActiveIdRef.current = activeSegment?.id ?? null;
+    // During playback, always follow the active (or next) segment.
+    // In pause mode, prefer selection if interacting, else active/next.
+    const scrollTargetId = isPlaying
+      ? (targetSegment?.id ?? null)
+      : (isInteracting && selectedSegmentId ? selectedSegmentId : (targetSegment?.id ?? selectedSegmentId ?? null));
 
     if (!scrollTargetId) {
       lastTargetIdRef.current = null;
       return;
     }
 
-    // Skip auto-scroll if it's the SAME target and we are still interacting (prevents stutter)
-    if (isInteracting && scrollTargetId === lastTargetIdRef.current) {
+    // Determine behavior
+    // Manual seeks or jumps always use instantaneous "auto" behavior
+    const behavior = isSeeking ? "auto" : (isPlaying ? "smooth" : "auto");
+
+    // Skip auto-scroll only if it's the SAME target AND we are interacting AND not seeking.
+    // During playback, we always allow the check to proceed to ensure we follow the audio.
+    if (scrollTargetId === lastTargetIdRef.current && isInteracting && !isPlaying && !isSeeking) {
       return;
     }
 
-    // Update last target tracker
+    // Update tracking refs
     lastTargetIdRef.current = scrollTargetId;
+    lastSelectedIdRef.current = selectedSegmentId;
+    lastActiveIdRef.current = activeSegment?.id ?? null;
 
-    if (isPlaying && !isActiveSegmentVisible) return;
+    // For natural playback (continuous time), check visibility to avoid micro-adjustments.
+    // For manual seeks, we ALWAYS scroll to ensure recentering.
+    if (behavior === "smooth") {
+      const container = transcriptListRef.current;
+      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
+      if (target && isElementVisible(target, container)) return;
+    }
 
     scrollSegmentIntoView(scrollTargetId, {
       block: "center",
-      behavior: isPlaying ? "smooth" : "auto",
+      behavior,
     });
   }, [
-    activeSegment,
+    activeSegment?.id,
+    currentTime,
     isActiveSegmentVisible,
     isPlaying,
     isTranscriptEditing,
     scrollSegmentIntoView,
     selectedSegmentId,
+    filteredSegments,
   ]);
 
   useEffect(() => {
