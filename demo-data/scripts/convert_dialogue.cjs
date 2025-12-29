@@ -1,5 +1,5 @@
-const fs = require("fs");
-const path = require("path");
+const fs = require("node:fs");
+const path = require("node:path");
 
 // Usage: node convert_dialogue.cjs [inputPath] [outputPath] [minSecondsPerSyllable]
 // Defaults:
@@ -169,11 +169,11 @@ function run() {
 
   // backup existing output if present
   if (fs.existsSync(outputPath)) {
-    const bak = outputPath.replace(/(\.json)$/, "") + ".original.json";
+    const bak = `${outputPath.replace(/(\.json)$/, "")}.original.json`;
     try {
       fs.copyFileSync(outputPath, bak, fs.constants.COPYFILE_EXCL);
       console.log("Backup created:", bak);
-    } catch (e) {
+    } catch (_e) {
       /* ignore if exists */
     }
   }

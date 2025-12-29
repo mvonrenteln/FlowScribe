@@ -1,4 +1,4 @@
-import { memo, useMemo } from "react";
+import { memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { TranscriptSegment } from "../TranscriptSegment";
 import type { TranscriptEditorState } from "./useTranscriptEditor";

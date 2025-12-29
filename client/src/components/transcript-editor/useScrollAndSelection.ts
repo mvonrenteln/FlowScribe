@@ -23,7 +23,7 @@ export function useScrollAndSelection({
   selectedSegmentId,
   isPlaying,
   isTranscriptEditing,
-  activeSpeakerName,
+  activeSpeakerName: _activeSpeakerName,
   filteredSegments,
   restrictPlaybackToFiltered,
   lowConfidenceThreshold,
@@ -52,7 +52,6 @@ export function useScrollAndSelection({
   }, [
     activeSegment,
     isActiveSegmentVisible,
-    isPlaying,
     isTranscriptEditing,
     selectedSegmentId,
     setSelectedSegmentId,
@@ -180,9 +179,8 @@ export function useScrollAndSelection({
       behavior,
     });
   }, [
-    activeSegment?.id,
+    activeSegment,
     currentTime,
-    isActiveSegmentVisible,
     isPlaying,
     isTranscriptEditing,
     scrollSegmentIntoView,

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
-import { type Segment, type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
+import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
@@ -441,14 +441,14 @@ export const useTranscriptEditor = () => {
     onShowShortcuts: () => setShowShortcuts(true),
   });
 
-  const handleClearEditRequest = useCallback(() => setEditRequestId(null), [setEditRequestId]);
+  const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
   const activeSegmentId = activeSegment?.id ?? null;
   const activeWordIndex = useMemo(() => {
     if (!activeSegment) return -1;
     return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [activeSegment, currentTime]);
 
-  const handlerCacheRef = useRef<Map<string, any>>(new Map());
+  const handlerCacheRef = useRef<Map<string, Record<string, unknown>>>(new Map());
 
   const segmentHandlers = useMemo(() => {
     // Clear cache entries for segments that are no longer in segments (optional but good)
@@ -851,6 +851,7 @@ export const useTranscriptEditor = () => {
       onMatchClick,
       findMatchIndex,
       allMatches,
+      handleClearEditRequest,
     ],
   );
 
