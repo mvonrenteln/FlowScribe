@@ -15,6 +15,7 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   spellcheckLanguages: SpellcheckLanguage[];
   spellcheckIgnoreWords: string[];
   spellcheckCustomEnabled: boolean;
+  aiSpeakerConfig: PersistedGlobalState["aiSpeakerConfig"];
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -27,4 +28,5 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   spellcheckLanguages: state.spellcheckLanguages,
   spellcheckIgnoreWords: state.spellcheckIgnoreWords,
   spellcheckCustomEnabled: state.spellcheckCustomEnabled,
+  aiSpeakerConfig: state.aiSpeakerConfig,
 });

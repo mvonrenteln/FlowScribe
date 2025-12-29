@@ -25,6 +25,7 @@ import {
   createAISpeakerSlice,
   initialAISpeakerState,
 } from "./store/slices/aiSpeakerSlice";
+import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import type {
   AISpeakerConfig,
   AISpeakerSuggestion,
@@ -103,8 +104,8 @@ const initialState: InitialStoreState = {
   spellcheckCustomDictionaries: [],
   spellcheckCustomDictionariesLoaded: false,
   spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
-  // AI Speaker initial state
   ...initialAISpeakerState,
+  aiSpeakerConfig: normalizeAISpeakerConfig(globalState?.aiSpeakerConfig),
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -220,7 +221,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
-        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled;
+        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled ||
+        lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(

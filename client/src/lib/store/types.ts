@@ -82,6 +82,7 @@ export interface PersistedGlobalState {
   spellcheckLanguages?: SpellcheckLanguage[];
   spellcheckIgnoreWords?: string[];
   spellcheckCustomEnabled?: boolean;
+  aiSpeakerConfig?: AISpeakerConfig;
 }
 
 export interface RecentSessionSummary {

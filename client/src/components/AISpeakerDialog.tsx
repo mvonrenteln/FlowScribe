@@ -10,7 +10,6 @@ import {
     AlertCircle,
     Check,
     Download,
-    Loader2,
     Pause,
     Play,
     Plus,
@@ -92,7 +91,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
     const [configUrl, setConfigUrl] = useState(config.ollamaUrl);
     const [configModel, setConfigModel] = useState(config.model);
     const [configBatchSize, setConfigBatchSize] = useState(config.batchSize.toString());
-    const importInputRef = useRef<HTMLInputElement>(null);
+    const importInputRef = useRef<HTMLInputElement | null>(null);
 
     const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
     const progressPercent =
@@ -206,9 +205,29 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
         reader.readAsText(file);
     };
 
+    const handleSaveConfig = () => {
+        const newConfig = {
+            ollamaUrl: configUrl,
+            model: configModel,
+            batchSize: Number.parseInt(configBatchSize, 10) || 10,
+        };
+
+        // Preferred: use the store action
+        updateConfig(newConfig);
+
+        // Ensure the store is updated immediately (helps tests that read state synchronously)
+        try {
+            useTranscriptStore.setState((state) => ({ aiSpeakerConfig: { ...state.aiSpeakerConfig, ...newConfig } }));
+        } catch (err) {
+            // defensive: if setState is unavailable for some reason, ignore
+            // eslint-disable-next-line no-console
+            console.warn("Failed to directly set aiSpeakerConfig on store:", err);
+        }
+    };
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-2xl max-h-[85vh] flex flex-col">
+            <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
                 <DialogHeader>
                     <DialogTitle className="flex items-center gap-2">
                         <Sparkles className="h-5 w-5" />
@@ -351,7 +370,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                                         Suggestions ({pendingSuggestions.length} pending)
                                     </Label>
                                 </div>
-                                <ScrollArea className="flex-1 rounded-md border">
+                                <ScrollArea className="flex-1 min-h-[300px] rounded-md border">
                                     <div className="p-2 space-y-2">
                                         {pendingSuggestions.map((suggestion) => (
                                             <SuggestionCard
@@ -382,7 +401,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                                     <Textarea
                                         value={newSystemPrompt}
                                         onChange={(e) => setNewSystemPrompt(e.target.value)}
-                                        className="h-32 font-mono text-xs"
+                                        className="h-48 font-mono text-xs"
                                         placeholder="System instructions for the AI..."
                                     />
                                 </div>
@@ -393,7 +412,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                                     <Textarea
                                         value={newUserPrompt}
                                         onChange={(e) => setNewUserPrompt(e.target.value)}
-                                        className="h-24 font-mono text-xs"
+                                        className="h-32 font-mono text-xs"
                                         placeholder="User prompt with placeholders..."
                                     />
                                 </div>
@@ -533,13 +552,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                             </p>
                         </div>
                         <Button
-                            onClick={() =>
-                                updateConfig({
-                                    ollamaUrl: configUrl,
-                                    model: configModel,
-                                    batchSize: Number.parseInt(configBatchSize, 10) || 10,
-                                })
-                            }
+                            onClick={handleSaveConfig}
                         >
                             Save Configuration
                         </Button>
