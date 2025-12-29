@@ -1,3 +1,4 @@
+import { AISpeakerDialog } from "../AISpeakerDialog";
 import { CustomDictionariesDialog } from "../CustomDictionariesDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
@@ -29,6 +30,8 @@ export function EditorDialogs({
   activeSessionKind,
   existingRevisionNames,
   defaultRevisionName,
+  showAISpeaker,
+  onAISpeakerChange,
 }: DialogProps) {
   return (
     <>
@@ -55,6 +58,8 @@ export function EditorDialogs({
         existingRevisionNames={existingRevisionNames}
         defaultRevisionName={defaultRevisionName}
       />
+      <AISpeakerDialog open={showAISpeaker} onOpenChange={onAISpeakerChange} />
     </>
   );
 }
+

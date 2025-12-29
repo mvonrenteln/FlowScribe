@@ -124,6 +124,14 @@ export interface InitialStoreState {
   spellcheckCustomDictionaries: SpellcheckCustomDictionary[];
   spellcheckCustomDictionariesLoaded: boolean;
   spellcheckCustomEnabled: boolean;
+  // AI Speaker state
+  aiSpeakerSuggestions: AISpeakerSuggestion[];
+  aiSpeakerIsProcessing: boolean;
+  aiSpeakerProcessedCount: number;
+  aiSpeakerTotalToProcess: number;
+  aiSpeakerConfig: AISpeakerConfig;
+  aiSpeakerError: string | null;
+  aiSpeakerAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -133,7 +141,8 @@ export type TranscriptStore = InitialStoreState &
   SegmentsSlice &
   SpeakersSlice &
   LexiconSlice &
-  SpellcheckSlice;
+  SpellcheckSlice &
+  AISpeakerSlice;
 
 export interface SessionSlice {
   setAudioFile: (file: File | null) => void;
@@ -216,4 +225,57 @@ export interface SpellcheckSlice {
   removeSpellcheckCustomDictionary: (id: string) => Promise<void>;
 }
 
+// ==================== AI Speaker Suggestion Types ====================
+
+export type AISpeakerSuggestionStatus = "pending" | "accepted" | "rejected";
+
+export interface AISpeakerSuggestion {
+  segmentId: string;
+  currentSpeaker: string;
+  suggestedSpeaker: string;
+  status: AISpeakerSuggestionStatus;
+  confidence?: number;
+  reason?: string;
+}
+
+export interface PromptTemplate {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  isDefault?: boolean;
+}
+
+export interface PromptTemplateExport {
+  version: 1;
+  templates: Omit<PromptTemplate, "id">[];
+}
+
+export interface AISpeakerConfig {
+  ollamaUrl: string;
+  model: string;
+  batchSize: number;
+  templates: PromptTemplate[];
+  activeTemplateId: string;
+}
+
+// Note: AI Speaker state is stored in InitialStoreState with aiSpeaker* prefix
+// This slice only provides actions that work with that state
+export interface AISpeakerSlice {
+  startAnalysis: (selectedSpeakers: string[], excludeConfirmed: boolean) => void;
+  cancelAnalysis: () => void;
+  addSuggestions: (suggestions: AISpeakerSuggestion[]) => void;
+  acceptSuggestion: (segmentId: string) => void;
+  rejectSuggestion: (segmentId: string) => void;
+  clearSuggestions: () => void;
+  updateConfig: (config: Partial<AISpeakerConfig>) => void;
+  addTemplate: (template: Omit<PromptTemplate, "id">) => void;
+  updateTemplate: (id: string, updates: Partial<PromptTemplate>) => void;
+  deleteTemplate: (id: string) => void;
+  setActiveTemplate: (id: string) => void;
+  setProcessingProgress: (processed: number, total: number) => void;
+  setError: (error: string | null) => void;
+}
+
 export type SessionKind = "current" | "revision";
+

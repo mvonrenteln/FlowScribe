@@ -17,10 +17,16 @@ vi.mock("wavesurfer.js", () => ({
 }));
 vi.mock("wavesurfer.js/dist/plugins/minimap.js", () => ({ default: { create: () => ({}) } }));
 vi.mock("wavesurfer.js/dist/plugins/regions.js", () => ({ default: { create: () => ({}) } }));
-vi.mock("react-hotkeys-hook", () => ({ useHotkeys: () => {} }));
+vi.mock("react-hotkeys-hook", () => ({ useHotkeys: () => { } }));
 vi.mock("@/components/FileUpload", () => ({ FileUpload: () => null }));
 vi.mock("@/components/PlaybackControls", () => ({ PlaybackControls: () => null }));
 vi.mock("@/components/ThemeToggle", () => ({ ThemeToggle: () => null }));
+vi.mock("@/components/ExportDialog", () => ({ ExportDialog: () => null }));
+vi.mock("@/components/KeyboardShortcuts", () => ({ KeyboardShortcuts: () => null }));
+vi.mock("@/components/GlossaryDialog", () => ({ GlossaryDialog: () => null }));
+vi.mock("@/components/SpellcheckDialog", () => ({ SpellcheckDialog: () => null }));
+vi.mock("@/components/CustomDictionariesDialog", () => ({ CustomDictionariesDialog: () => null }));
+vi.mock("@/components/AISpeakerDialog", () => ({ AISpeakerDialog: () => null }));
 
 describe("Performance and Scrolling Logic", () => {
   beforeEach(() => {

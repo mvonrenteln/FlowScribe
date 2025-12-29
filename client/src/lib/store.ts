@@ -21,9 +21,16 @@ import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
 import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
+import {
+  createAISpeakerSlice,
+  initialAISpeakerState,
+} from "./store/slices/aiSpeakerSlice";
 import type {
+  AISpeakerConfig,
+  AISpeakerSuggestion,
   InitialStoreState,
   LexiconEntry,
+  PromptTemplate,
   SearchMatch,
   Segment,
   SessionKind,
@@ -59,10 +66,10 @@ const activeSessionKey =
 const initialHistoryState = buildInitialHistory(
   activeSession?.segments.length && activeSession.speakers.length
     ? {
-        segments: activeSession.segments,
-        speakers: activeSession.speakers,
-        selectedSegmentId: activeSession.selectedSegmentId,
-      }
+      segments: activeSession.segments,
+      speakers: activeSession.speakers,
+      selectedSegmentId: activeSession.selectedSegmentId,
+    }
     : null,
 );
 
@@ -96,6 +103,8 @@ const initialState: InitialStoreState = {
   spellcheckCustomDictionaries: [],
   spellcheckCustomDictionariesLoaded: false,
   spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
+  // AI Speaker initial state
+  ...initialAISpeakerState,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -124,6 +133,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createLexiconSlice(set, get),
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
+      ...createAISpeakerSlice(set, get),
     };
   }),
 );
@@ -204,9 +214,9 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
-          nextGlobalPayload.lexiconHighlightUnderline ||
+        nextGlobalPayload.lexiconHighlightUnderline ||
         lastGlobalPayload.lexiconHighlightBackground !==
-          nextGlobalPayload.lexiconHighlightBackground ||
+        nextGlobalPayload.lexiconHighlightBackground ||
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
@@ -304,9 +314,31 @@ export const useSegments = () => useTranscriptStore((state) => state.segments);
 export const usePlaybackState = () => useTranscriptStore(selectPlaybackState);
 export const useSpeakers = () => useTranscriptStore((state) => state.speakers);
 
+export const selectAISpeakerState = (state: TranscriptStore) => ({
+  suggestions: state.aiSpeakerSuggestions,
+  isProcessing: state.aiSpeakerIsProcessing,
+  processedCount: state.aiSpeakerProcessedCount,
+  totalToProcess: state.aiSpeakerTotalToProcess,
+  config: state.aiSpeakerConfig,
+  error: state.aiSpeakerError,
+  startAnalysis: state.startAnalysis,
+  cancelAnalysis: state.cancelAnalysis,
+  acceptSuggestion: state.acceptSuggestion,
+  rejectSuggestion: state.rejectSuggestion,
+  clearSuggestions: state.clearSuggestions,
+  updateConfig: state.updateConfig,
+  addTemplate: state.addTemplate,
+  updateTemplate: state.updateTemplate,
+  deleteTemplate: state.deleteTemplate,
+  setActiveTemplate: state.setActiveTemplate,
+});
+
 export type {
+  AISpeakerConfig,
+  AISpeakerSuggestion,
   FileReference,
   LexiconEntry,
+  PromptTemplate,
   SearchMatch,
   Segment,
   Speaker,
@@ -315,3 +347,4 @@ export type {
   SessionKind,
   Word,
 };
+

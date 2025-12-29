@@ -12,6 +12,7 @@ import {
   PanelLeftClose,
   Redo2,
   ScanText,
+  Sparkles,
   SpellCheck,
   Trash2,
   Undo2,
@@ -84,6 +85,7 @@ export function Toolbar({
   spellcheckHighlightActive,
   glossaryHighlightActive,
   onShowGlossary,
+  onShowAISpeaker,
 }: ToolbarProps) {
   const revisionName = sessionKind === "revision" ? (sessionLabel ?? "Revision") : null;
 
@@ -541,6 +543,22 @@ export function Toolbar({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>Glossary settings</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onShowAISpeaker}
+                  aria-label="AI Speaker Classification"
+                  data-testid="button-ai-speaker"
+                  className="px-2 gap-2"
+                >
+                  <Sparkles className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">AI Speaker</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Speaker Classification</TooltipContent>
             </Tooltip>
           </div>
         </div>
