@@ -326,10 +326,12 @@ describe("useScrollAndSelection", () => {
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
 
-    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
-      callback(0);
-      return 0;
-    });
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
 
     const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
       initialProps: {
@@ -356,11 +358,20 @@ describe("useScrollAndSelection", () => {
     const viewport = document.createElement("div");
     viewport.appendChild(container);
 
-    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({ top: 0, bottom: 100, height: 100 } as DOMRect);
-    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({ top: 150, bottom: 200, height: 50 } as DOMRect);
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 100,
+      height: 100,
+    } as DOMRect);
+    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({
+      top: 150,
+      bottom: 200,
+      height: 50,
+    } as DOMRect);
 
     act(() => {
-      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
       transcriptListRef.current = container;
     });
 
@@ -395,10 +406,12 @@ describe("useScrollAndSelection", () => {
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
 
-    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
-      callback(0);
-      return 0;
-    });
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
 
     const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
       initialProps: {
@@ -423,7 +436,8 @@ describe("useScrollAndSelection", () => {
     container.appendChild(segment2);
 
     act(() => {
-      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
       transcriptListRef.current = container;
     });
 
@@ -459,10 +473,12 @@ describe("useScrollAndSelection", () => {
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
     HTMLElement.prototype.scrollIntoView = scrollIntoView;
 
-    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation((callback: FrameRequestCallback) => {
-      callback(0);
-      return 0;
-    });
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
 
     const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
       initialProps: {
@@ -490,11 +506,20 @@ describe("useScrollAndSelection", () => {
     // but because it's a SEEK (0.5 -> 2.5), we expect it to scroll anyway (with "auto")
     const viewport = document.createElement("div");
     viewport.appendChild(container);
-    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({ top: 0, bottom: 100, height: 100 } as DOMRect);
-    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({ top: 30, bottom: 70, height: 40 } as DOMRect);
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 100,
+      height: 100,
+    } as DOMRect);
+    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({
+      top: 30,
+      bottom: 70,
+      height: 40,
+    } as DOMRect);
 
     act(() => {
-      const transcriptListRef = result.current.transcriptListRef as MutableRefObject<HTMLElement | null>;
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
       transcriptListRef.current = container;
     });
 

@@ -112,19 +112,21 @@ export function useScrollAndSelection({
     const isSeeking = timeDiff > 1.5; // Threshold for considering it a manual jump/seek
     lastTimeRef.current = currentTime;
 
-    // Determine the ideal segment to show. 
+    // Determine the ideal segment to show.
     // If we have an active segment, use it.
     // If we are in a gap (silence), find the next upcoming visible segment.
     let targetSegment = activeSegment || null;
     if (!targetSegment && filteredSegments.length > 0) {
-      targetSegment = filteredSegments.find(s => s.start > currentTime) || null;
+      targetSegment = filteredSegments.find((s) => s.start > currentTime) || null;
     }
 
     // During playback, always follow the active (or next) segment.
     // In pause mode, prefer selection if interacting, else active/next.
     const scrollTargetId = isPlaying
       ? (targetSegment?.id ?? null)
-      : (isInteracting && selectedSegmentId ? selectedSegmentId : (targetSegment?.id ?? selectedSegmentId ?? null));
+      : isInteracting && selectedSegmentId
+        ? selectedSegmentId
+        : (targetSegment?.id ?? selectedSegmentId ?? null);
 
     if (!scrollTargetId) {
       lastTargetIdRef.current = null;
@@ -135,7 +137,7 @@ export function useScrollAndSelection({
 
     // Determine behavior
     // Manual seeks or jumps always use instantaneous "auto" behavior
-    const behavior = isSeeking ? "auto" : (isPlaying ? "smooth" : "auto");
+    const behavior = isSeeking ? "auto" : isPlaying ? "smooth" : "auto";
 
     // Decision: Should we actually execute the scroll?
     let shouldScroll = false;
