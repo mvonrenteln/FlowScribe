@@ -14,6 +14,7 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
@@ -21,11 +22,6 @@ import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
 import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
-import {
-  createAISpeakerSlice,
-  initialAISpeakerState,
-} from "./store/slices/aiSpeakerSlice";
-import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import type {
   AISpeakerConfig,
   AISpeakerSuggestion,
@@ -41,6 +37,7 @@ import type {
   TranscriptStore,
   Word,
 } from "./store/types";
+import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
@@ -67,10 +64,10 @@ const activeSessionKey =
 const initialHistoryState = buildInitialHistory(
   activeSession?.segments.length && activeSession.speakers.length
     ? {
-      segments: activeSession.segments,
-      speakers: activeSession.speakers,
-      selectedSegmentId: activeSession.selectedSegmentId,
-    }
+        segments: activeSession.segments,
+        speakers: activeSession.speakers,
+        selectedSegmentId: activeSession.selectedSegmentId,
+      }
     : null,
 );
 
@@ -215,9 +212,9 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
-        nextGlobalPayload.lexiconHighlightUnderline ||
+          nextGlobalPayload.lexiconHighlightUnderline ||
         lastGlobalPayload.lexiconHighlightBackground !==
-        nextGlobalPayload.lexiconHighlightBackground ||
+          nextGlobalPayload.lexiconHighlightBackground ||
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
@@ -349,4 +346,3 @@ export type {
   SessionKind,
   Word,
 };
-

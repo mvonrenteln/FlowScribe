@@ -65,7 +65,7 @@ vi.mock("wavesurfer.js/dist/plugins/regions.js", () => ({
 }));
 
 vi.mock("react-hotkeys-hook", () => ({
-  useHotkeys: () => { },
+  useHotkeys: () => {},
 }));
 
 vi.mock("@/components/FileUpload", () => ({

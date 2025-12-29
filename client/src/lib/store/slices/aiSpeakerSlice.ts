@@ -32,10 +32,7 @@ export const initialAISpeakerState = {
 
 // ==================== Slice Implementation ====================
 
-export const createAISpeakerSlice = (
-  set: StoreSetter,
-  get: StoreGetter,
-): AISpeakerSlice => ({
+export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpeakerSlice => ({
   // Actions only - state is in InitialStoreState with aiSpeaker* prefix
   startAnalysis: (selectedSpeakers, excludeConfirmed) => {
     const state = get();
@@ -51,9 +48,7 @@ export const createAISpeakerSlice = (
     const segmentsToAnalyze = state.segments.filter((segment) => {
       if (excludeConfirmed && segment.confirmed) return false;
       if (selectedSpeakers.length > 0) {
-        return selectedSpeakers.some(
-          (s) => s.toLowerCase() === segment.speaker.toLowerCase(),
-        );
+        return selectedSpeakers.some((s) => s.toLowerCase() === segment.speaker.toLowerCase());
       }
       return true;
     });
@@ -181,9 +176,7 @@ export const createAISpeakerSlice = (
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
         ...aiSpeakerConfig,
-        templates: aiSpeakerConfig.templates.map((t) =>
-          t.id === id ? { ...t, ...updates } : t,
-        ),
+        templates: aiSpeakerConfig.templates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
       }),
     });
   },
@@ -199,9 +192,7 @@ export const createAISpeakerSlice = (
         ...aiSpeakerConfig,
         templates: newTemplates,
         activeTemplateId:
-          aiSpeakerConfig.activeTemplateId === id
-            ? "default"
-            : aiSpeakerConfig.activeTemplateId,
+          aiSpeakerConfig.activeTemplateId === id ? "default" : aiSpeakerConfig.activeTemplateId,
       }),
     });
   },
@@ -227,4 +218,3 @@ export const createAISpeakerSlice = (
     set({ aiSpeakerError: error });
   },
 });
-

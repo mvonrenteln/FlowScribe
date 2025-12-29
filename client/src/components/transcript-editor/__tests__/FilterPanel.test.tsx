@@ -7,7 +7,7 @@ import { useTranscriptStore } from "@/lib/store";
 let mockTranscriptData: unknown;
 
 vi.mock("react-hotkeys-hook", () => ({
-  useHotkeys: () => { },
+  useHotkeys: () => {},
 }));
 
 vi.mock("@/components/FileUpload", () => ({
