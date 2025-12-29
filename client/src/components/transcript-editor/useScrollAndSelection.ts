@@ -93,12 +93,6 @@ export function useScrollAndSelection({
         return;
       }
 
-      // Check if it's already in a reasonable position to avoid micro-adjustments
-      // but only for smooth (auto) scrolling during playback. 
-      if (options.behavior === "smooth") {
-        if (isElementVisible(target, container)) return;
-      }
-
       lastScrollRef.current = { id: segmentId, at: now };
       requestAnimationFrame(() => {
         target.scrollIntoView({ block: options.block, behavior: options.behavior });
@@ -137,13 +131,40 @@ export function useScrollAndSelection({
       return;
     }
 
+    const targetIdChanged = scrollTargetId !== lastTargetIdRef.current;
+
     // Determine behavior
     // Manual seeks or jumps always use instantaneous "auto" behavior
     const behavior = isSeeking ? "auto" : (isPlaying ? "smooth" : "auto");
 
-    // Skip auto-scroll only if it's the SAME target AND we are interacting AND not seeking.
-    // During playback, we always allow the check to proceed to ensure we follow the audio.
-    if (scrollTargetId === lastTargetIdRef.current && isInteracting && !isPlaying && !isSeeking) {
+    // Decision: Should we actually execute the scroll?
+    let shouldScroll = false;
+
+    if (isSeeking) {
+      // Always scroll on manual seek to re-center
+      shouldScroll = true;
+    } else if (targetIdChanged) {
+      // Always scroll when the target segment changes (boundary hit)
+      shouldScroll = true;
+    } else if (isPlaying) {
+      // During playback of the same segment, only scroll if it's no longer visible (snap back)
+      const container = transcriptListRef.current;
+      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
+      if (target && !isElementVisible(target, container)) {
+        shouldScroll = true;
+      }
+    } else if (!isInteracting && !isPlaying) {
+      // If we are paused and not interacting, ensure the target is visible.
+      // This handles initial load, "snap back" after pausing, or stale selections.
+      const container = transcriptListRef.current;
+      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
+      if (target && !isElementVisible(target, container)) {
+        shouldScroll = true;
+      }
+    }
+
+    if (!shouldScroll) {
+      lastTargetIdRef.current = scrollTargetId;
       return;
     }
 
@@ -151,14 +172,6 @@ export function useScrollAndSelection({
     lastTargetIdRef.current = scrollTargetId;
     lastSelectedIdRef.current = selectedSegmentId;
     lastActiveIdRef.current = activeSegment?.id ?? null;
-
-    // For natural playback (continuous time), check visibility to avoid micro-adjustments.
-    // For manual seeks, we ALWAYS scroll to ensure recentering.
-    if (behavior === "smooth") {
-      const container = transcriptListRef.current;
-      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
-      if (target && isElementVisible(target, container)) return;
-    }
 
     scrollSegmentIntoView(scrollTargetId, {
       block: "center",
