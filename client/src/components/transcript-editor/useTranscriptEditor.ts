@@ -10,7 +10,79 @@ import { useScrollAndSelection } from "./useScrollAndSelection";
 import { useSearchAndReplace } from "./useSearchAndReplace";
 import { useSpellcheck } from "./useSpellcheck";
 
-// buildSegmentHandlers is moved inside useTranscriptEditor as a stable set of callbacks
+/**
+ * SegmentHandlers
+ *
+ * Stable callback handlers for manipulating a single transcript segment.
+ * These callbacks are intended to be passed directly to UI components
+ * (for example `TranscriptSegment`) and should remain referentially
+ * stable so child components can rely on memoization.
+ *
+ * Contract (inputs/outputs):
+ * - onSelect(): void
+ *     Selects the segment in the global store and typically causes the
+ *     player to seek to the segment start time. No args, no return value.
+ *
+ * - onTextChange(text: string): void
+ *     Replaces the segment's text with `text`. Implementations should
+ *     call the appropriate store/update action and keep the UI in sync.
+ *
+ * - onSpeakerChange(speaker: string): void
+ *     Changes the speaker for the segment. The string is the new speaker
+ *     name (not id) as shown in the UI. Implementations should update
+ *     the store and maintain consistent speaker lists.
+ *
+ * - onSplit(wordIndex: number): void
+ *     Splits the segment at the given word index. `wordIndex` is the
+ *     zero-based index of the word inside the segment at which the split
+ *     should occur. Implementations should perform the split action and
+ *     keep playback position / selection behaviour consistent.
+ *
+ * - onConfirm(): void
+ *     Marks the segment as confirmed (accepted). No args.
+ *
+ * - onToggleBookmark(): void
+ *     Toggles the bookmarked state for this segment.
+ *
+ * - onIgnoreLexiconMatch?(term: string, value: string): void
+ *     Optional handler used to mark a lexicon match as a false positive
+ *     (ignore for future matches). Parameters are the lexicon `term` and
+ *     the matched `value` from the segment.
+ *
+ * - onMergeWithPrevious?(): void
+ *     Optional handler to merge this segment with the previous adjacent
+ *     segment. Present only when a merge-with-previous action is valid.
+ *
+ * - onMergeWithNext?(): void
+ *     Optional handler to merge this segment with the next adjacent
+ *     segment. Present only when a merge-with-next action is valid.
+ *
+ * - onDelete(): void
+ *     Deletes the segment from the transcript.
+ *
+ * Usage notes / expectations:
+ * - Handlers should be side-effecting: they typically call store actions
+ *   (e.g. `updateSegmentText`, `splitSegment`, `mergeSegments`) and may
+ *   update selection or playback state as appropriate.
+ * - Optional handlers should be omitted when the corresponding action is
+ *   not available (e.g. merging when segments are not adjacent). The UI
+ *   can guard by checking for presence before rendering actionable items.
+ * - Implementations should try to remain cheap and stable (use refs or
+ *   store getters inside the handler) to avoid causing unnecessary re-renders
+ *   in memoized children.
+ */
+interface SegmentHandlers {
+  onSelect: () => void;
+  onTextChange: (text: string) => void;
+  onSpeakerChange: (speaker: string) => void;
+  onSplit: (wordIndex: number) => void;
+  onConfirm: () => void;
+  onToggleBookmark: () => void;
+  onIgnoreLexiconMatch?: (term: string, value: string) => void;
+  onMergeWithPrevious?: () => void;
+  onMergeWithNext?: () => void;
+  onDelete: () => void;
+}
 
 export const useTranscriptEditor = () => {
   const transcriptActions = useMemo(() => {
@@ -448,7 +520,7 @@ export const useTranscriptEditor = () => {
     return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [activeSegment, currentTime]);
 
-  const handlerCacheRef = useRef<Map<string, Record<string, unknown>>>(new Map());
+  const handlerCacheRef = useRef<Map<string, SegmentHandlers>>(new Map());
 
   const segmentHandlers = useMemo(() => {
     // Clear cache entries for segments that are no longer in segments (optional but good)
@@ -462,7 +534,7 @@ export const useTranscriptEditor = () => {
     const segmentIndexById = new Map(segments.map((segment, idx) => [segment.id, idx]));
 
     return filteredSegments.map((segment, index) => {
-      let handlers = handlerCacheRef.current.get(segment.id);
+      let handlers = handlerCacheRef.current.get(segment.id) as SegmentHandlers | undefined;
 
       const previousSegment = filteredSegments[index - 1];
       const nextSegment = filteredSegments[index + 1];
