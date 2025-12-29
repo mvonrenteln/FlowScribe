@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
-import { type Segment, type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
+import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
@@ -10,71 +10,79 @@ import { useScrollAndSelection } from "./useScrollAndSelection";
 import { useSearchAndReplace } from "./useSearchAndReplace";
 import { useSpellcheck } from "./useSpellcheck";
 
-const buildSegmentHandlers = (
-  segments: Segment[],
-  filteredSegments: Segment[],
-  mergeSegments: (id1: string, id2: string) => string | null,
-  setSelectedSegmentId: (id: string | null) => void,
-  handleSeek: (time: number) => void,
-  handleSplitSegment: (segmentId: string, wordIndex: number) => void,
-  updateSegmentText: (id: string, text: string) => void,
-  updateSegmentSpeaker: (id: string, speaker: string) => void,
-  confirmSegment: (id: string) => void,
-  toggleSegmentBookmark: (id: string) => void,
-  addLexiconFalsePositive: (term: string, value: string) => void,
-  deleteSegment: (id: string) => void,
-) => {
-  const segmentIndexById = new Map(segments.map((segment, index) => [segment.id, index]));
-  const areAdjacent = (idA: string, idB: string) => {
-    const indexA = segmentIndexById.get(idA);
-    const indexB = segmentIndexById.get(idB);
-    if (indexA === undefined || indexB === undefined) return false;
-    return Math.abs(indexA - indexB) === 1;
-  };
-
-  return filteredSegments.map((segment, index) => {
-    const previousSegment = filteredSegments[index - 1];
-    const nextSegment = filteredSegments[index + 1];
-
-    const onMergeWithPrevious =
-      index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
-        ? () => {
-            if (!areAdjacent(previousSegment.id, segment.id)) return;
-            const mergedId = mergeSegments(previousSegment.id, segment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
-          }
-        : undefined;
-
-    const onMergeWithNext =
-      index < filteredSegments.length - 1 && nextSegment && areAdjacent(segment.id, nextSegment.id)
-        ? () => {
-            if (!areAdjacent(segment.id, nextSegment.id)) return;
-            const mergedId = mergeSegments(segment.id, nextSegment.id);
-            if (mergedId) {
-              setSelectedSegmentId(mergedId);
-            }
-          }
-        : undefined;
-
-    return {
-      onSelect: () => {
-        setSelectedSegmentId(segment.id);
-        handleSeek(segment.start);
-      },
-      onTextChange: (text: string) => updateSegmentText(segment.id, text),
-      onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
-      onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
-      onConfirm: () => confirmSegment(segment.id),
-      onToggleBookmark: () => toggleSegmentBookmark(segment.id),
-      onIgnoreLexiconMatch: (term: string, value: string) => addLexiconFalsePositive(term, value),
-      onMergeWithPrevious,
-      onMergeWithNext,
-      onDelete: () => deleteSegment(segment.id),
-    };
-  });
-};
+/**
+ * SegmentHandlers
+ *
+ * Stable callback handlers for manipulating a single transcript segment.
+ * These callbacks are intended to be passed directly to UI components
+ * (for example `TranscriptSegment`) and should remain referentially
+ * stable so child components can rely on memoization.
+ *
+ * Contract (inputs/outputs):
+ * - onSelect(): void
+ *     Selects the segment in the global store and typically causes the
+ *     player to seek to the segment start time. No args, no return value.
+ *
+ * - onTextChange(text: string): void
+ *     Replaces the segment's text with `text`. Implementations should
+ *     call the appropriate store/update action and keep the UI in sync.
+ *
+ * - onSpeakerChange(speaker: string): void
+ *     Changes the speaker for the segment. The string is the new speaker
+ *     name (not id) as shown in the UI. Implementations should update
+ *     the store and maintain consistent speaker lists.
+ *
+ * - onSplit(wordIndex: number): void
+ *     Splits the segment at the given word index. `wordIndex` is the
+ *     zero-based index of the word inside the segment at which the split
+ *     should occur. Implementations should perform the split action and
+ *     keep playback position / selection behaviour consistent.
+ *
+ * - onConfirm(): void
+ *     Marks the segment as confirmed (accepted). No args.
+ *
+ * - onToggleBookmark(): void
+ *     Toggles the bookmarked state for this segment.
+ *
+ * - onIgnoreLexiconMatch?(term: string, value: string): void
+ *     Optional handler used to mark a lexicon match as a false positive
+ *     (ignore for future matches). Parameters are the lexicon `term` and
+ *     the matched `value` from the segment.
+ *
+ * - onMergeWithPrevious?(): void
+ *     Optional handler to merge this segment with the previous adjacent
+ *     segment. Present only when a merge-with-previous action is valid.
+ *
+ * - onMergeWithNext?(): void
+ *     Optional handler to merge this segment with the next adjacent
+ *     segment. Present only when a merge-with-next action is valid.
+ *
+ * - onDelete(): void
+ *     Deletes the segment from the transcript.
+ *
+ * Usage notes / expectations:
+ * - Handlers should be side-effecting: they typically call store actions
+ *   (e.g. `updateSegmentText`, `splitSegment`, `mergeSegments`) and may
+ *   update selection or playback state as appropriate.
+ * - Optional handlers should be omitted when the corresponding action is
+ *   not available (e.g. merging when segments are not adjacent). The UI
+ *   can guard by checking for presence before rendering actionable items.
+ * - Implementations should try to remain cheap and stable (use refs or
+ *   store getters inside the handler) to avoid causing unnecessary re-renders
+ *   in memoized children.
+ */
+interface SegmentHandlers {
+  onSelect: () => void;
+  onTextChange: (text: string) => void;
+  onSpeakerChange: (speaker: string) => void;
+  onSplit: (wordIndex: number) => void;
+  onConfirm: () => void;
+  onToggleBookmark: () => void;
+  onIgnoreLexiconMatch?: (term: string, value: string) => void;
+  onMergeWithPrevious?: () => void;
+  onMergeWithNext?: () => void;
+  onDelete: () => void;
+}
 
 export const useTranscriptEditor = () => {
   const transcriptActions = useMemo(() => {
@@ -505,43 +513,97 @@ export const useTranscriptEditor = () => {
     onShowShortcuts: () => setShowShortcuts(true),
   });
 
+  const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
   const activeSegmentId = activeSegment?.id ?? null;
   const activeWordIndex = useMemo(() => {
     if (!activeSegment) return -1;
     return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [activeSegment, currentTime]);
 
-  const segmentHandlers = useMemo(
-    () =>
-      buildSegmentHandlers(
-        segments,
-        filteredSegments,
-        mergeSegments,
-        setSelectedSegmentId,
-        handleSeek,
-        handleSplitSegment,
-        updateSegmentText,
-        updateSegmentSpeaker,
-        confirmSegment,
-        toggleSegmentBookmark,
-        addLexiconFalsePositive,
-        deleteSegment,
-      ),
-    [
-      segments,
-      addLexiconFalsePositive,
-      confirmSegment,
-      deleteSegment,
-      filteredSegments,
-      handleSeek,
-      handleSplitSegment,
-      mergeSegments,
-      setSelectedSegmentId,
-      toggleSegmentBookmark,
-      updateSegmentSpeaker,
-      updateSegmentText,
-    ],
-  );
+  const handlerCacheRef = useRef<Map<string, SegmentHandlers>>(new Map());
+
+  const segmentHandlers = useMemo(() => {
+    // Clear cache entries for segments that are no longer in segments (optional but good)
+    const currentIds = new Set(segments.map((s) => s.id));
+    for (const id of Array.from(handlerCacheRef.current.keys())) {
+      if (!currentIds.has(id)) {
+        handlerCacheRef.current.delete(id);
+      }
+    }
+
+    const segmentIndexById = new Map(segments.map((segment, idx) => [segment.id, idx]));
+
+    return filteredSegments.map((segment, index) => {
+      let handlers = handlerCacheRef.current.get(segment.id) as SegmentHandlers | undefined;
+
+      const previousSegment = filteredSegments[index - 1];
+      const nextSegment = filteredSegments[index + 1];
+
+      const areAdjacent = (idA: string, idB: string) => {
+        const indexA = segmentIndexById.get(idA);
+        const indexB = segmentIndexById.get(idB);
+        if (indexA === undefined || indexB === undefined) return false;
+        return Math.abs(indexA - indexB) === 1;
+      };
+
+      if (!handlers) {
+        handlers = {
+          onSelect: () => {
+            // Use stable refs/store for values that might change
+            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            if (current) {
+              setSelectedSegmentId(current.id);
+              handleSeek(current.start);
+            }
+          },
+          onTextChange: (text: string) => updateSegmentText(segment.id, text),
+          onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
+          onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
+          onConfirm: () => confirmSegment(segment.id),
+          onToggleBookmark: () => toggleSegmentBookmark(segment.id),
+          onIgnoreLexiconMatch: (term: string, value: string) =>
+            addLexiconFalsePositive(term, value),
+          onDelete: () => deleteSegment(segment.id),
+        };
+        handlerCacheRef.current.set(segment.id, handlers);
+      }
+
+      // Merge handlers are position-dependent, so we update them every time.
+      // But since they are only updated when filteredSegments changes, it's okay.
+      handlers.onMergeWithPrevious =
+        index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
+          ? () => {
+              const currentMergedId = mergeSegments(previousSegment.id, segment.id);
+              if (currentMergedId) setSelectedSegmentId(currentMergedId);
+            }
+          : undefined;
+
+      handlers.onMergeWithNext =
+        index < filteredSegments.length - 1 &&
+        nextSegment &&
+        areAdjacent(segment.id, nextSegment.id)
+          ? () => {
+              const currentMergedId = mergeSegments(segment.id, nextSegment.id);
+              if (currentMergedId) setSelectedSegmentId(currentMergedId);
+            }
+          : undefined;
+
+      return handlers;
+    });
+  }, [
+    filteredSegments,
+    mergeSegments,
+    setSelectedSegmentId,
+    handleSeek,
+    handleSplitSegment,
+    updateSegmentText,
+    updateSegmentSpeaker,
+    confirmSegment,
+    toggleSegmentBookmark,
+    addLexiconFalsePositive,
+    deleteSegment,
+    segments,
+  ]);
 
   const emptyState = useMemo(
     () =>
@@ -816,7 +878,7 @@ export const useTranscriptEditor = () => {
       highlightLowConfidence,
       lowConfidenceThreshold,
       editRequestId,
-      onClearEditRequest: () => setEditRequestId(null),
+      onClearEditRequest: handleClearEditRequest,
       segmentHandlers,
       onSeek: handleSeek,
       onIgnoreSpellcheckMatch: addSpellcheckIgnoreWord,
@@ -861,6 +923,7 @@ export const useTranscriptEditor = () => {
       onMatchClick,
       findMatchIndex,
       allMatches,
+      handleClearEditRequest,
     ],
   );
 

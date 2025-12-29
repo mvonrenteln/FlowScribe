@@ -317,4 +317,235 @@ describe("useScrollAndSelection", () => {
     rafSpy.mockRestore();
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
+
+  it("scrolls during playback even if visibility check is strict", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const requestSeek = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 0.5,
+        selectedSegmentId: "segment-1",
+        isPlaying: true,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        requestSeek,
+        setIsPlaying,
+      },
+    });
+
+    const container = document.createElement("div");
+    const segment2 = document.createElement("div");
+    segment2.dataset.segmentId = "segment-2";
+    container.appendChild(segment2);
+
+    const viewport = document.createElement("div");
+    viewport.appendChild(container);
+
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 100,
+      height: 100,
+    } as DOMRect);
+    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({
+      top: 150,
+      bottom: 200,
+      height: 50,
+    } as DOMRect);
+
+    act(() => {
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
+    });
+
+    rerender({
+      segments,
+      currentTime: 2.5,
+      selectedSegmentId: "segment-1",
+      isPlaying: true,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      requestSeek,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    vi.restoreAllMocks();
+  });
+
+  it("scrolls to the next segment when in a silent gap during playback", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const requestSeek = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 0.5,
+        selectedSegmentId: "segment-1",
+        isPlaying: true,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        requestSeek,
+        setIsPlaying,
+      },
+    });
+
+    const container = document.createElement("div");
+    const segment2 = document.createElement("div");
+    segment2.dataset.segmentId = "segment-2";
+    container.appendChild(segment2);
+
+    act(() => {
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
+    });
+
+    rerender({
+      segments,
+      currentTime: 1.5,
+      selectedSegmentId: "segment-1",
+      isPlaying: true,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      requestSeek,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      const [firstInstance] = scrollIntoView.mock.instances as HTMLElement[];
+      expect(firstInstance?.dataset.segmentId).toBe("segment-2");
+    });
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    vi.restoreAllMocks();
+  });
+
+  it("forces a jump (auto) scroll when a significant time seek is detected", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const requestSeek = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    vi.spyOn(globalThis, "requestAnimationFrame").mockImplementation(
+      (callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      },
+    );
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 0.5,
+        selectedSegmentId: "segment-1",
+        isPlaying: true,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        requestSeek,
+        setIsPlaying,
+      },
+    });
+
+    const container = document.createElement("div");
+    const segment2 = document.createElement("div");
+    segment2.dataset.segmentId = "segment-2";
+    container.appendChild(segment2);
+
+    // Viewport and segment are mocked such that segment2 is already visible
+    // but because it's a SEEK (0.5 -> 2.5), we expect it to scroll anyway (with "auto")
+    const viewport = document.createElement("div");
+    viewport.appendChild(container);
+    vi.spyOn(viewport, "getBoundingClientRect").mockReturnValue({
+      top: 0,
+      bottom: 100,
+      height: 100,
+    } as DOMRect);
+    vi.spyOn(segment2, "getBoundingClientRect").mockReturnValue({
+      top: 30,
+      bottom: 70,
+      height: 40,
+    } as DOMRect);
+
+    act(() => {
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
+    });
+
+    // Manual seek: 0.5 -> 2.5
+    rerender({
+      segments,
+      currentTime: 2.5,
+      selectedSegmentId: "segment-1",
+      isPlaying: true,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      requestSeek,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+      const options = scrollIntoView.mock.calls[0][0];
+      expect(options.behavior).toBe("auto");
+    });
+
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+    vi.restoreAllMocks();
+  });
 });
