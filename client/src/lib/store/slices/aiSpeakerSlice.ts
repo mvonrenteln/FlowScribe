@@ -268,9 +268,19 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
 
 function summarizeAiSpeakerError(error: Error): string {
   if ("details" in error && error.details && typeof error.details === "object") {
-    const issues = (error.details as Record<string, unknown>).issues;
-    if (Array.isArray(issues) && issues.length > 0) {
-      return `${error.message}: ${issues[0]}`;
+    const details = error.details as Record<string, unknown>;
+    const rawIssues = details.issues;
+    if (Array.isArray(rawIssues) && rawIssues.length > 0) {
+      // Try to coerce to BatchIssue[] if possible
+      try {
+        const batchIssues = rawIssues.map((i) =>
+          typeof i === "string" ? { level: "error", message: i } : (i as any),
+        ) as unknown as import("@/lib/aiSpeakerService").BatchIssue[];
+        const summary = summarizeIssues(batchIssues as any);
+        return `${error.message}: ${summary || String(rawIssues[0])}`;
+      } catch {
+        return `${error.message}: ${String(rawIssues[0])}`;
+      }
     }
   }
   return error.message;

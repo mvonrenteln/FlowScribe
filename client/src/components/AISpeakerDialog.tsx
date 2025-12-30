@@ -20,7 +20,6 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -408,8 +407,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                     Suggestions ({pendingSuggestions.length} pending)
                   </Label>
                   {batchInsights.length > 0 && (
-                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Badge variant="outline">Batch Log</Badge>
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground w-full">
                       <span>
                         {batchInsights.length} runs, last update at{" "}
                         {new Date(
@@ -417,72 +415,68 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                         ).toLocaleTimeString()}
                       </span>
 
-                      {/* Drawer trigger to open detailed batch log */}
-                      <Drawer>
-                        <DrawerTrigger asChild>
-                          <Button variant="ghost" size="sm">
-                            Log ({batchLog.length})
-                          </Button>
-                        </DrawerTrigger>
-                        <DrawerContent className="max-h-[70vh]">
-                          <DrawerHeader>
-                            <DrawerTitle>Batch Log</DrawerTitle>
-                          </DrawerHeader>
-                          <div className="px-6 pb-6 overflow-auto">
-                            <Table>
-                              <TableHeader>
-                                <TableRow>
-                                  <TableHead>Batch</TableHead>
-                                  <TableHead>Expected</TableHead>
-                                  <TableHead>Returned</TableHead>
-                                  <TableHead>Used</TableHead>
-                                  <TableHead>Ignored</TableHead>
-                                  <TableHead>Suggestions</TableHead>
-                                  <TableHead>Unchanged</TableHead>
-                                  <TableHead>Processed</TableHead>
-                                  <TableHead>Issues</TableHead>
-                                  <TableHead>Time</TableHead>
-                                </TableRow>
-                              </TableHeader>
-                              <TableBody>
-                                {batchLog.map((entry, idx) => {
-                                  const returned = entry.rawItemCount;
-                                  const expected = entry.batchSize;
-                                  const ignored =
-                                    entry.ignoredCount ?? Math.max(0, returned - expected);
-                                  const used = Math.min(returned, expected);
-                                  const issueSummary =
-                                    entry.issues && entry.issues.length > 0
-                                      ? entry.issues[0].message
-                                      : "—";
-                                  return (
-                                    <TableRow key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}>
-                                      <TableCell>{entry.batchIndex + 1}</TableCell>
-                                      <TableCell>{expected}</TableCell>
-                                      <TableCell>
-                                        <span className={returned > expected ? "text-red-600" : ""}>
-                                          {returned}
-                                        </span>
-                                      </TableCell>
-                                      <TableCell>{used}</TableCell>
-                                      <TableCell>{ignored}</TableCell>
-                                      <TableCell>{entry.suggestionCount}</TableCell>
-                                      <TableCell>{entry.unchangedAssignments}</TableCell>
-                                      <TableCell>
-                                        {entry.processedTotal}/{entry.totalExpected}
-                                      </TableCell>
-                                      <TableCell>{entry.fatal ? "FATAL" : issueSummary}</TableCell>
-                                      <TableCell>
-                                        {new Date(entry.loggedAt).toLocaleTimeString()}
-                                      </TableCell>
-                                    </TableRow>
-                                  );
-                                })}
-                              </TableBody>
-                            </Table>
-                          </div>
-                        </DrawerContent>
-                      </Drawer>
+                      <div className="ml-auto">
+                        <Drawer>
+                          <DrawerTrigger asChild>
+                            <Button variant="ghost" size="sm">
+                              Batch Log ({batchLog.length})
+                            </Button>
+                          </DrawerTrigger>
+                          <DrawerContent className="max-h-[70vh]">
+                            <DrawerHeader>
+                              <DrawerTitle>Batch Log</DrawerTitle>
+                            </DrawerHeader>
+                            <div className="px-6 pb-6 overflow-auto">
+                              <Table>
+                                <TableHeader>
+                                  <TableRow>
+                                    <TableHead>Batch</TableHead>
+                                    <TableHead>Expected</TableHead>
+                                    <TableHead>Returned</TableHead>
+                                    <TableHead>Used</TableHead>
+                                    <TableHead>Ignored</TableHead>
+                                    <TableHead>Suggestions</TableHead>
+                                    <TableHead>Unchanged</TableHead>
+                                    <TableHead>Processed</TableHead>
+                                    <TableHead>Issues</TableHead>
+                                    <TableHead>Time</TableHead>
+                                  </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                  {batchLog.map((entry, idx) => {
+                                    const returned = entry.rawItemCount;
+                                    const expected = entry.batchSize;
+                                    const ignored = entry.ignoredCount ?? Math.max(0, returned - expected);
+                                    const used = Math.min(returned, expected);
+                                    const issueSummary = entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
+                                    return (
+                                      <TableRow key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}>
+                                        <TableCell>{entry.batchIndex + 1}</TableCell>
+                                        <TableCell>{expected}</TableCell>
+                                        <TableCell>
+                                          <span className={returned !== expected ? "text-red-600" : ""}>
+                                            {returned}
+                                            {ignored > 0 && (
+                                              <span className="ml-2 text-[11px] text-muted-foreground">(+{ignored})</span>
+                                            )}
+                                          </span>
+                                        </TableCell>
+                                        <TableCell>{used}</TableCell>
+                                        <TableCell>{ignored}</TableCell>
+                                        <TableCell>{entry.suggestionCount}</TableCell>
+                                        <TableCell>{entry.unchangedAssignments}</TableCell>
+                                        <TableCell>{entry.processedTotal}/{entry.totalExpected}</TableCell>
+                                        <TableCell>{entry.fatal ? "FATAL" : issueSummary}</TableCell>
+                                        <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
+                                      </TableRow>
+                                    );
+                                  })}
+                                </TableBody>
+                              </Table>
+                            </div>
+                          </DrawerContent>
+                        </Drawer>
+                      </div>
                     </div>
                   )}
                 </div>
