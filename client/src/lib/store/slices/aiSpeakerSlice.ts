@@ -6,12 +6,12 @@
  */
 
 import type { StoreApi } from "zustand";
-import { runAnalysis } from "@/lib/aiSpeakerService";
+import { runAnalysis, summarizeIssues } from "@/lib/aiSpeakerService";
 
 import type {
+  AISpeakerBatchInsight,
   AISpeakerSlice,
   AISpeakerSuggestion,
-  AISpeakerBatchInsight,
   PromptTemplate,
   TranscriptStore,
 } from "../types";
@@ -99,9 +99,18 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
         const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, entry];
         let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
         if (insight.fatal) {
-          discrepancyNotice = `Batch ${insight.batchIndex + 1} ist fehlgeschlagen (${insight.issues?.[0]?.message ?? "unbekannt"}).`;
+          const summary = summarizeIssues(insight.issues);
+          discrepancyNotice = `Batch ${insight.batchIndex + 1} failed: ${summary || "unknown"}. See batch log.`;
+        } else if (insight.ignoredCount && insight.ignoredCount > 0) {
+          const returned = insight.rawItemCount;
+          const expected = insight.batchSize;
+          const used = Math.min(returned, expected);
+          const ignored = insight.ignoredCount ?? 0;
+          const summary = summarizeIssues(insight.issues);
+          discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned ${returned} (expected ${expected}, used ${used}, ignored ${ignored}). ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
         } else if (insight.rawItemCount < insight.batchSize) {
-          discrepancyNotice = `Modell lieferte nur ${insight.rawItemCount} von ${insight.batchSize} Antworten für Batch ${insight.batchIndex + 1}.`;
+          const summary = summarizeIssues(insight.issues);
+          discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
         }
         set({
           aiSpeakerBatchInsights: updatedInsights,

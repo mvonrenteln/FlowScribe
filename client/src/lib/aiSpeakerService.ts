@@ -102,10 +102,11 @@ interface BatchIssue {
 
 interface ParsedSuggestionsResult {
   suggestions: AISpeakerSuggestion[];
-  rawItemCount: number;
+  rawItemCount: number; // actual items returned by model
   issues: BatchIssue[];
   unchangedAssignments: number;
   fatal: boolean;
+  ignoredCount?: number;
 }
 
 export class AISpeakerResponseError extends Error {
@@ -242,7 +243,7 @@ export function parseOllamaResponse(
 
   const suggestions: AISpeakerSuggestion[] = [];
   let unchangedAssignments = 0;
-  let fatal = false;
+  const fatal = false;
 
   const speakerPool = new Set(availableSpeakers);
   for (const speaker of currentSpeakers.values()) {
@@ -268,7 +269,7 @@ export function parseOllamaResponse(
     }
 
     const currentSpeaker = currentSpeakers.get(segmentId) ?? "";
-    const cleanedTag = rawTag.replace(/^[\[<(\s]+|[\]>)(\s]+$/g, "").trim();
+    const cleanedTag = rawTag.replace(/^[[<(\s]+|[\]>)(\s]+$/g, "").trim();
     if (!cleanedTag) {
       recordIssue(issues, "warn", `Empty speaker tag after cleanup for segment ${segmentId}`, {
         rawTag,
@@ -306,12 +307,23 @@ export function parseOllamaResponse(
   }
 
   if (items.length > batch.length) {
-    recordIssue(issues, "warn", `Model returned ${items.length - batch.length} weitere Einträge, die ignoriert wurden`, {
+    const extra = items.length - batch.length;
+    recordIssue(issues, "warn", `Model returned ${extra} extra entries which were ignored`, {
       rawPreview: previewResponse(raw),
+      returned: items.length,
+      batchSize: batch.length,
+      ignoredCount: extra,
     });
   }
 
-  return { suggestions, rawItemCount: Math.min(items.length, batch.length), issues, unchangedAssignments, fatal };
+  return {
+    suggestions,
+    rawItemCount: items.length,
+    issues,
+    unchangedAssignments,
+    fatal,
+    ignoredCount: Math.max(0, items.length - batch.length),
+  };
 }
 
 // ==================== Ollama API Communication ====================
@@ -396,9 +408,7 @@ function prepareBatch(segments: Segment[], startIndex: number, batchSize: number
  * Formats batch segments for the prompt.
  */
 function formatSegmentsForPrompt(batch: BatchSegment[]): string {
-  return batch
-    .map((s, idx) => `Section #${idx + 1}: [${s.speaker}] "${s.text}"`)
-    .join("\n");
+  return batch.map((s, idx) => `Section #${idx + 1}: [${s.speaker}] "${s.text}"`).join("\n");
 }
 
 /**
@@ -440,6 +450,7 @@ export interface AnalysisOptions {
     issues?: BatchIssue[];
     fatal?: boolean;
     rawResponsePreview?: string;
+    ignoredCount?: number;
   }) => void;
 }
 
@@ -548,6 +559,7 @@ export async function* analyzeSegmentsBatched(
         issues,
         fatal,
         rawResponsePreview: previewResponse(response),
+        ignoredCount: parseResult.ignoredCount ?? 0,
       });
 
       if (fatal) {
@@ -607,31 +619,18 @@ function previewResponse(raw: string, maxLength = 600): string {
   return raw.length <= maxLength ? raw : `${raw.slice(0, maxLength)}…`;
 }
 
-function summarizeIssues(issues: string[]): string {
-  if (issues.length <= 3) {
-    return issues.join("; ");
-  }
-  const head = issues.slice(0, 3).join("; ");
-  return `${head} (+${issues.length - 3} more)`;
-}
-
-function buildResponseError(
-  issues: string[],
-  rawResponse: string,
-  meta?: Record<string, unknown>,
-): AISpeakerResponseError {
-  const message = `AI speaker response invalid: ${summarizeIssues(issues)}`;
-  return new AISpeakerResponseError(message, {
-    issues,
-    rawResponsePreview: previewResponse(rawResponse),
-    ...meta,
-  });
+export function summarizeIssues(issues: BatchIssue[] | undefined): string {
+  const msgs = (issues || []).map((i) => String(i.message)).filter(Boolean);
+  if (msgs.length === 0) return "";
+  if (msgs.length <= 3) return msgs.join("; ");
+  const head = msgs.slice(0, 3).join("; ");
+  return `${head} (+${msgs.length - 3} more)`;
 }
 
 function normalizeConfidence(
   confidenceValue: unknown,
   responseId: number,
-  issues: string[],
+  issues: BatchIssue[],
 ): number | undefined {
   if (confidenceValue === undefined || confidenceValue === null) {
     return undefined;

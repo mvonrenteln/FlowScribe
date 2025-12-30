@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useRef, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -30,6 +31,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from "@/components/ui/drawer";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
@@ -41,14 +49,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { type AISpeakerSuggestion, type PromptTemplate, useTranscriptStore } from "@/lib/store";
 import type { PromptTemplateExport } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
-import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface AISpeakerDialogProps {
   open: boolean;
@@ -360,8 +373,8 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm">
                   <AlertCircle className="h-4 w-4" />
                   {discrepancyNotice}
-                  <Button variant="link" size="sm" onClick={() => setDiscrepancyNotice(null)}>
-                    Verstanden
+                  <Button variant="ghost" size="sm" onClick={() => setDiscrepancyNotice(null)}>
+                    Got it
                   </Button>
                 </div>
               )}
@@ -396,12 +409,80 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                   </Label>
                   {batchInsights.length > 0 && (
                     <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                      <Badge variant="outline">Batch-Protokoll</Badge>
+                      <Badge variant="outline">Batch Log</Badge>
                       <span>
-                        {batchInsights.length} Läufe, letzte Aktualisierung vor {new Date(
+                        {batchInsights.length} runs, last update at{" "}
+                        {new Date(
                           batchInsights[batchInsights.length - 1].loggedAt,
                         ).toLocaleTimeString()}
                       </span>
+
+                      {/* Drawer trigger to open detailed batch log */}
+                      <Drawer>
+                        <DrawerTrigger asChild>
+                          <Button variant="ghost" size="sm">
+                            Log ({batchLog.length})
+                          </Button>
+                        </DrawerTrigger>
+                        <DrawerContent className="max-h-[70vh]">
+                          <DrawerHeader>
+                            <DrawerTitle>Batch Log</DrawerTitle>
+                          </DrawerHeader>
+                          <div className="px-6 pb-6 overflow-auto">
+                            <Table>
+                              <TableHeader>
+                                <TableRow>
+                                  <TableHead>Batch</TableHead>
+                                  <TableHead>Expected</TableHead>
+                                  <TableHead>Returned</TableHead>
+                                  <TableHead>Used</TableHead>
+                                  <TableHead>Ignored</TableHead>
+                                  <TableHead>Suggestions</TableHead>
+                                  <TableHead>Unchanged</TableHead>
+                                  <TableHead>Processed</TableHead>
+                                  <TableHead>Issues</TableHead>
+                                  <TableHead>Time</TableHead>
+                                </TableRow>
+                              </TableHeader>
+                              <TableBody>
+                                {batchLog.map((entry, idx) => {
+                                  const returned = entry.rawItemCount;
+                                  const expected = entry.batchSize;
+                                  const ignored =
+                                    entry.ignoredCount ?? Math.max(0, returned - expected);
+                                  const used = Math.min(returned, expected);
+                                  const issueSummary =
+                                    entry.issues && entry.issues.length > 0
+                                      ? entry.issues[0].message
+                                      : "—";
+                                  return (
+                                    <TableRow key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}>
+                                      <TableCell>{entry.batchIndex + 1}</TableCell>
+                                      <TableCell>{expected}</TableCell>
+                                      <TableCell>
+                                        <span className={returned > expected ? "text-red-600" : ""}>
+                                          {returned}
+                                        </span>
+                                      </TableCell>
+                                      <TableCell>{used}</TableCell>
+                                      <TableCell>{ignored}</TableCell>
+                                      <TableCell>{entry.suggestionCount}</TableCell>
+                                      <TableCell>{entry.unchangedAssignments}</TableCell>
+                                      <TableCell>
+                                        {entry.processedTotal}/{entry.totalExpected}
+                                      </TableCell>
+                                      <TableCell>{entry.fatal ? "FATAL" : issueSummary}</TableCell>
+                                      <TableCell>
+                                        {new Date(entry.loggedAt).toLocaleTimeString()}
+                                      </TableCell>
+                                    </TableRow>
+                                  );
+                                })}
+                              </TableBody>
+                            </Table>
+                          </div>
+                        </DrawerContent>
+                      </Drawer>
                     </div>
                   )}
                 </div>
@@ -569,7 +650,9 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 placeholder="llama3.2"
               />
               <p className="text-xs text-muted-foreground">
-                Best result so far: qwen3:30b-instruct and deepseek-r1:32b (slow). Try different instruct-class models and adjust batch size—smaller models usually need smaller batches.
+                Best result so far: qwen3:30b-instruct and deepseek-r1:32b (slow). Try different
+                instruct-class models and adjust batch size—smaller models usually need smaller
+                batches.
               </p>
             </div>
             <div className="space-y-2">
@@ -583,7 +666,8 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 onChange={(e) => setConfigBatchSize(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Default is 10. Larger batches often confuse models and mix answers; the smaller the model, the smaller the batch should be.
+                Default is 10. Larger batches often confuse models and mix answers; the smaller the
+                model, the smaller the batch should be.
               </p>
             </div>
             <Button onClick={handleSaveConfig}>Save Configuration</Button>
@@ -624,7 +708,7 @@ function SuggestionCard({ suggestion, segments, onAccept, onReject }: Suggestion
             <span className="text-xs font-medium text-primary">{suggestion.suggestedSpeaker}</span>
             {suggestion.isNewSpeaker && (
               <span className="text-[10px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded border border-dashed border-primary/40 text-primary/70 bg-background/80">
-                Neu
+                New
               </span>
             )}
             {suggestion.confidence !== undefined && (
