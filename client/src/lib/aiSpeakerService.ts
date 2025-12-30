@@ -96,6 +96,40 @@ interface BatchSegment {
   text: string;
 }
 
+// ==================== Helpers ====================
+
+function normalizeSpeakerTag(tag: string): string {
+  return tag.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+}
+
+function resolveSuggestedSpeaker(
+  rawTag: string,
+  availableSpeakers: Iterable<string>,
+): string | null {
+  const normalizedRaw = normalizeSpeakerTag(rawTag);
+  if (!normalizedRaw) return null;
+
+  let match: string | null = null;
+  for (const speaker of availableSpeakers) {
+    const normalizedSpeaker = normalizeSpeakerTag(speaker);
+    if (!normalizedSpeaker) {
+      continue;
+    }
+    if (normalizedRaw === normalizedSpeaker || normalizedSpeaker.includes(normalizedRaw)) {
+      if (match && match !== speaker) {
+        return null;
+      }
+      match = speaker;
+    }
+  }
+
+  return match;
+}
+function markNewSpeaker(tag: string): { name: string; isNew: boolean } {
+  const cleaned = tag.replace(/^\[|\]$/g, "").trim();
+  return { name: cleaned, isNew: true };
+}
+
 // ==================== Lenient JSON Parsing ====================
 
 /**
@@ -161,8 +195,13 @@ export function parseOllamaResponse(
   raw: string,
   idMapping: Map<number, string>,
   currentSpeakers: Map<string, string>,
+  availableSpeakers: Iterable<string>,
 ): AISpeakerSuggestion[] {
   const items = extractJsonArray(raw);
+  const speakerPool = new Set(availableSpeakers);
+  for (const speaker of currentSpeakers.values()) {
+    speakerPool.add(speaker);
+  }
   const suggestions: AISpeakerSuggestion[] = [];
 
   for (const item of items) {
@@ -172,17 +211,28 @@ export function parseOllamaResponse(
     }
 
     const currentSpeaker = currentSpeakers.get(segmentId) ?? "";
-    const suggestedSpeaker = item.tag.replace(/^\[|\]$/g, "").trim();
+    const cleanedTag = item.tag.replace(/^\[|\]$/g, "").trim();
+    const resolvedSpeaker = resolveSuggestedSpeaker(cleanedTag, speakerPool);
+    const targetSpeakerInfo = resolvedSpeaker
+      ? { name: resolvedSpeaker, isNew: false }
+      : markNewSpeaker(cleanedTag);
+    if (!resolvedSpeaker) {
+      console.warn(
+        "AI speaker suggestion introduces new speaker",
+        JSON.stringify({ segmentId, tag: item.tag }),
+      );
+    }
 
     // Only create suggestion if speaker is different
-    if (suggestedSpeaker.toLowerCase() !== currentSpeaker.toLowerCase()) {
+    if (targetSpeakerInfo.name.toLowerCase() !== currentSpeaker.toLowerCase()) {
       suggestions.push({
         segmentId,
         currentSpeaker,
-        suggestedSpeaker,
+        suggestedSpeaker: targetSpeakerInfo.name,
         status: "pending",
         confidence: item.confidence,
         reason: item.reason,
+        isNewSpeaker: targetSpeakerInfo.isNew,
       });
     }
   }
@@ -363,7 +413,7 @@ export async function* analyzeSegmentsBatched(
       );
 
       // Parse response
-      const suggestions = parseOllamaResponse(response, idMapping, currentSpeakers);
+      const suggestions = parseOllamaResponse(response, idMapping, currentSpeakers, speakers);
 
       processed = Math.min(i + config.batchSize, total);
       onProgress?.(processed, total);

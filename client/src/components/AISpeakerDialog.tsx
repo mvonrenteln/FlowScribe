@@ -378,7 +378,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                     Suggestions ({pendingSuggestions.length} pending)
                   </Label>
                 </div>
-                <ScrollArea className="flex-1 min-h-[300px] rounded-md border">
+                <div className="flex-1 min-h-[300px] rounded-md border overflow-y-auto">
                   <div className="p-2 space-y-2">
                     {pendingSuggestions.map((suggestion) => (
                       <SuggestionCard
@@ -390,7 +390,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                       />
                     ))}
                   </div>
-                </ScrollArea>
+                </div>
               </div>
             )}
           </TabsContent>
@@ -593,6 +593,11 @@ function SuggestionCard({ suggestion, segments, onAccept, onReject }: Suggestion
             <span className="text-xs font-medium">{suggestion.currentSpeaker}</span>
             <span className="text-xs text-muted-foreground">→</span>
             <span className="text-xs font-medium text-primary">{suggestion.suggestedSpeaker}</span>
+            {suggestion.isNewSpeaker && (
+              <span className="text-[10px] font-semibold uppercase tracking-wide px-1 py-0.5 rounded border border-dashed border-primary/40 text-primary/70 bg-background/80">
+                Neu
+              </span>
+            )}
             {suggestion.confidence !== undefined && (
               <span
                 className={cn(

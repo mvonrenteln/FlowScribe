@@ -237,6 +237,7 @@ export interface AISpeakerSuggestion {
   status: AISpeakerSuggestionStatus;
   confidence?: number;
   reason?: string;
+  isNewSpeaker?: boolean;
 }
 
 export interface PromptTemplate {
