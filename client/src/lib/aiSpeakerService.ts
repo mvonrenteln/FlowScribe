@@ -96,10 +96,33 @@ interface BatchSegment {
   text: string;
 }
 
+interface ParsedSuggestionsResult {
+  suggestions: AISpeakerSuggestion[];
+  rawItemCount: number;
+  issues: string[];
+}
+
+export class AISpeakerResponseError extends Error {
+  constructor(
+    message: string,
+    public details?: Record<string, unknown>,
+  ) {
+    super(message);
+    this.name = "AISpeakerResponseError";
+  }
+}
+
 // ==================== Helpers ====================
 
 function normalizeSpeakerTag(tag: string): string {
-  return tag.replace(/[^\p{L}\p{N}]+/gu, "").toLowerCase();
+  let result = "";
+  for (let i = 0; i < tag.length; i++) {
+    const code = tag.charCodeAt(i);
+    if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
+      result += tag[i].toLowerCase();
+    }
+  }
+  return result;
 }
 
 function resolveSuggestedSpeaker(
@@ -110,7 +133,9 @@ function resolveSuggestedSpeaker(
   if (!normalizedRaw) return null;
 
   let match: string | null = null;
-  for (const speaker of availableSpeakers) {
+  const iterator = availableSpeakers[Symbol.iterator]();
+  for (let next = iterator.next(); !next.done; next = iterator.next()) {
+    const speaker = next.value;
     const normalizedSpeaker = normalizeSpeakerTag(speaker);
     if (!normalizedSpeaker) {
       continue;
@@ -196,48 +221,93 @@ export function parseOllamaResponse(
   idMapping: Map<number, string>,
   currentSpeakers: Map<string, string>,
   availableSpeakers: Iterable<string>,
-): AISpeakerSuggestion[] {
+): ParsedSuggestionsResult {
   const items = extractJsonArray(raw);
   const speakerPool = new Set(availableSpeakers);
-  for (const speaker of currentSpeakers.values()) {
-    speakerPool.add(speaker);
+  const currentIterator = currentSpeakers.values();
+  for (let next = currentIterator.next(); !next.done; next = currentIterator.next()) {
+    speakerPool.add(next.value);
   }
   const suggestions: AISpeakerSuggestion[] = [];
+  const issues: string[] = [];
 
-  for (const item of items) {
-    const segmentId = idMapping.get(item.id);
+  if (items.length === 0) {
+    recordIssue(issues, "error", "Response did not contain any parseable speaker entries", {
+      rawPreview: previewResponse(raw),
+    });
+    return { suggestions, rawItemCount: 0, issues };
+  }
+
+  const seenIds = new Set<number>();
+
+  for (let index = 0; index < items.length; index++) {
+    const item = items[index];
+    const entryLabel = `item #${index + 1}`;
+
+    const numericId =
+      typeof item.id === "number" ? item.id : Number.parseInt(String(item.id ?? Number.NaN), 10);
+    if (!Number.isFinite(numericId)) {
+      recordIssue(issues, "warn", `${entryLabel} is missing a numeric "id" attribute`, { item });
+      continue;
+    }
+
+    if (seenIds.has(numericId)) {
+      recordIssue(issues, "warn", `Duplicate response id ${numericId} detected`, { item });
+      continue;
+    }
+    seenIds.add(numericId);
+
+    const segmentId = idMapping.get(numericId);
     if (!segmentId) {
-      continue; // Skip items with unknown IDs
+      recordIssue(issues, "warn", `No segment matches response id ${numericId}`, {
+        expectedIds: Array.from(idMapping.keys()),
+      });
+      continue;
+    }
+
+    const rawTag = typeof item.tag === "string" ? item.tag : "";
+    if (!rawTag.trim()) {
+      recordIssue(issues, "warn", `Missing speaker "tag" for segment ${segmentId}`, { item });
+      continue;
     }
 
     const currentSpeaker = currentSpeakers.get(segmentId) ?? "";
-    const cleanedTag = item.tag.replace(/^\[|\]$/g, "").trim();
+    const cleanedTag = rawTag.replace(/^\[|\]$/g, "").trim();
+    if (!cleanedTag) {
+      recordIssue(issues, "warn", `Empty speaker tag after cleanup for segment ${segmentId}`, {
+        rawTag,
+      });
+      continue;
+    }
+
     const resolvedSpeaker = resolveSuggestedSpeaker(cleanedTag, speakerPool);
     const targetSpeakerInfo = resolvedSpeaker
       ? { name: resolvedSpeaker, isNew: false }
       : markNewSpeaker(cleanedTag);
     if (!resolvedSpeaker) {
-      console.warn(
-        "AI speaker suggestion introduces new speaker",
-        JSON.stringify({ segmentId, tag: item.tag }),
-      );
+      console.warn("[AI Speaker] AI speaker suggestion introduces new speaker", {
+        segmentId,
+        tag: item.tag,
+      });
     }
 
-    // Only create suggestion if speaker is different
+    const confidence = normalizeConfidence(item.confidence, numericId, issues);
+    const reason = typeof item.reason === "string" ? item.reason : undefined;
+
     if (targetSpeakerInfo.name.toLowerCase() !== currentSpeaker.toLowerCase()) {
       suggestions.push({
         segmentId,
         currentSpeaker,
         suggestedSpeaker: targetSpeakerInfo.name,
         status: "pending",
-        confidence: item.confidence,
-        reason: item.reason,
+        confidence,
+        reason,
         isNewSpeaker: targetSpeakerInfo.isNew,
       });
     }
   }
 
-  return suggestions;
+  return { suggestions, rawItemCount: items.length, issues };
 }
 
 // ==================== Ollama API Communication ====================
@@ -254,27 +324,48 @@ export async function callOllama(
 ): Promise<string> {
   const apiUrl = `${url.replace(/\/$/, "")}/api/generate`;
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      model,
-      prompt: userPrompt,
-      system: systemPrompt,
-      stream: false,
-    }),
-    signal,
-  });
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model,
+        prompt: userPrompt,
+        system: systemPrompt,
+        stream: false,
+      }),
+      signal,
+    });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => "Unknown error");
-    throw new Error(`Ollama API error (${response.status}): ${errorText}`);
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      const message = `Ollama API error (${response.status}): ${errorText}`;
+      console.error("[AI Speaker] Ollama API responded with an error", {
+        status: response.status,
+        body: errorText,
+      });
+      throw new AISpeakerResponseError(message, {
+        status: response.status,
+        body: errorText,
+      });
+    }
+
+    const data = await response.json();
+    return data.response ?? "";
+  } catch (error) {
+    if (signal.aborted) {
+      throw error;
+    }
+    if (error instanceof AISpeakerResponseError) {
+      throw error;
+    }
+    console.error("[AI Speaker] Failed to communicate with the Ollama API", error);
+    throw new AISpeakerResponseError("Failed to communicate with the Ollama API", {
+      causeMessage: error instanceof Error ? error.message : String(error),
+    });
   }
-
-  const data = await response.json();
-  return data.response ?? "";
 }
 
 // ==================== Batch Processing ====================
@@ -413,7 +504,31 @@ export async function* analyzeSegmentsBatched(
       );
 
       // Parse response
-      const suggestions = parseOllamaResponse(response, idMapping, currentSpeakers, speakers);
+      const parseResult = parseOllamaResponse(response, idMapping, currentSpeakers, speakers);
+      const responseIssues = [...parseResult.issues];
+
+      if (parseResult.rawItemCount !== batch.length) {
+        recordIssue(
+          responseIssues,
+          "warn",
+          `Expected ${batch.length} response items but received ${parseResult.rawItemCount}`,
+          {
+            batchSize: batch.length,
+            receivedItems: parseResult.rawItemCount,
+          },
+        );
+      }
+
+      if (responseIssues.length > 0) {
+        const error = buildResponseError(responseIssues, response, {
+          batchSize: batch.length,
+          receivedItems: parseResult.rawItemCount,
+        });
+        console.error("[AI Speaker] Aborting batch due to response issues", error.details);
+        throw error;
+      }
+
+      const suggestions = parseResult.suggestions;
 
       processed = Math.min(i + config.batchSize, total);
       onProgress?.(processed, total);
@@ -425,7 +540,9 @@ export async function* analyzeSegmentsBatched(
       if (signal.aborted) {
         return;
       }
-      // Re-throw to let caller handle
+      if (!(error instanceof AISpeakerResponseError)) {
+        console.error("[AI Speaker] Unexpected error while processing AI speaker batch", error);
+      }
       throw error;
     }
   }
@@ -447,7 +564,69 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
     }
   } catch (_error) {
     if (!signal.aborted) {
+      console.error("[AI Speaker] Analysis failed", _error);
       onError?.(_error instanceof Error ? _error : new Error(String(_error)));
     }
   }
+}
+
+function recordIssue(
+  list: string[],
+  level: "warn" | "error",
+  message: string,
+  context?: Record<string, unknown>,
+): void {
+  list.push(message);
+  const log = level === "error" ? console.error : console.warn;
+  log(`[AI Speaker] ${message}`, context);
+}
+
+function previewResponse(raw: string, maxLength = 600): string {
+  if (!raw) return "<empty>";
+  return raw.length <= maxLength ? raw : `${raw.slice(0, maxLength)}…`;
+}
+
+function summarizeIssues(issues: string[]): string {
+  if (issues.length <= 3) {
+    return issues.join("; ");
+  }
+  const head = issues.slice(0, 3).join("; ");
+  return `${head} (+${issues.length - 3} more)`;
+}
+
+function buildResponseError(
+  issues: string[],
+  rawResponse: string,
+  meta?: Record<string, unknown>,
+): AISpeakerResponseError {
+  const message = `AI speaker response invalid: ${summarizeIssues(issues)}`;
+  return new AISpeakerResponseError(message, {
+    issues,
+    rawResponsePreview: previewResponse(rawResponse),
+    ...meta,
+  });
+}
+
+function normalizeConfidence(
+  confidenceValue: unknown,
+  responseId: number,
+  issues: string[],
+): number | undefined {
+  if (confidenceValue === undefined || confidenceValue === null) {
+    return undefined;
+  }
+
+  const normalized =
+    typeof confidenceValue === "number"
+      ? confidenceValue
+      : Number.parseFloat(String(confidenceValue));
+
+  if (Number.isFinite(normalized)) {
+    return normalized;
+  }
+
+  recordIssue(issues, "warn", `Invalid confidence value for response id ${responseId}`, {
+    confidence: confidenceValue,
+  });
+  return undefined;
 }

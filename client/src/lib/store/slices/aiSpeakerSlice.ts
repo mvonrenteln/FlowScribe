@@ -7,6 +7,7 @@
 
 import type { StoreApi } from "zustand";
 import { runAnalysis } from "@/lib/aiSpeakerService";
+
 import type {
   AISpeakerSlice,
   AISpeakerSuggestion,
@@ -83,7 +84,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       },
       onError: (error) => {
         set({
-          aiSpeakerError: error.message,
+          aiSpeakerError: summarizeAiSpeakerError(error),
           aiSpeakerIsProcessing: false,
         });
       },
@@ -218,3 +219,13 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     set({ aiSpeakerError: error });
   },
 });
+
+function summarizeAiSpeakerError(error: Error): string {
+  if ("details" in error && error.details && typeof error.details === "object") {
+    const issues = (error.details as Record<string, unknown>).issues;
+    if (Array.isArray(issues) && issues.length > 0) {
+      return `${error.message}: ${issues[0]}`;
+    }
+  }
+  return error.message;
+}
