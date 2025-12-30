@@ -83,6 +83,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
   const discrepancyNotice = useTranscriptStore((s) => s.aiSpeakerDiscrepancyNotice);
   const batchLog = useTranscriptStore((s) => s.aiSpeakerBatchLog);
   const setDiscrepancyNotice = useTranscriptStore((s) => s.setDiscrepancyNotice);
+  const [isLogOpen, setIsLogOpen] = useState(false);
 
   // AI Speaker actions
   const startAnalysis = useTranscriptStore((s) => s.startAnalysis);
@@ -371,7 +372,12 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
               {discrepancyNotice && processedCount === totalToProcess && (
                 <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm">
                   <AlertCircle className="h-4 w-4" />
-                  {discrepancyNotice}
+                  <div className="flex-1">
+                    {discrepancyNotice.replace(/See batch log\.?/i, "").trim()}
+                  </div>
+                  <Button variant="outline" size="sm" onClick={() => setIsLogOpen(true)}>
+                    See batch log
+                  </Button>
                   <Button variant="ghost" size="sm" onClick={() => setDiscrepancyNotice(null)}>
                     Got it
                   </Button>
@@ -416,7 +422,13 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                       </span>
 
                       <div className="ml-auto">
-                        <Drawer>
+                        <div className="mr-4 text-xs text-muted-foreground">
+                          Total elapsed:{" "}
+                          {batchLog.length > 0
+                            ? `${((batchLog[batchLog.length - 1].elapsedMs ?? 0) / 1000).toFixed(2)}s`
+                            : "-"}
+                        </div>
+                        <Drawer open={isLogOpen} onOpenChange={setIsLogOpen}>
                           <DrawerTrigger asChild>
                             <Button variant="ghost" size="sm">
                               Batch Log ({batchLog.length})
@@ -433,6 +445,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                                     <TableHead>Batch</TableHead>
                                     <TableHead>Expected</TableHead>
                                     <TableHead>Returned</TableHead>
+                                    <TableHead>Duration</TableHead>
                                     <TableHead>Used</TableHead>
                                     <TableHead>Ignored</TableHead>
                                     <TableHead>Suggestions</TableHead>
@@ -446,28 +459,49 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                                   {batchLog.map((entry, idx) => {
                                     const returned = entry.rawItemCount;
                                     const expected = entry.batchSize;
-                                    const ignored = entry.ignoredCount ?? Math.max(0, returned - expected);
+                                    const ignored =
+                                      entry.ignoredCount ?? Math.max(0, returned - expected);
                                     const used = Math.min(returned, expected);
-                                    const issueSummary = entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
+                                    const issueSummary =
+                                      entry.issues && entry.issues.length > 0
+                                        ? entry.issues[0].message
+                                        : "—";
                                     return (
-                                      <TableRow key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}>
+                                      <TableRow
+                                        key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}
+                                      >
                                         <TableCell>{entry.batchIndex + 1}</TableCell>
                                         <TableCell>{expected}</TableCell>
                                         <TableCell>
-                                          <span className={returned !== expected ? "text-red-600" : ""}>
+                                          <span
+                                            className={returned !== expected ? "text-red-600" : ""}
+                                          >
                                             {returned}
                                             {ignored > 0 && (
-                                              <span className="ml-2 text-[11px] text-muted-foreground">(+{ignored})</span>
+                                              <span className="ml-2 text-[11px] text-muted-foreground">
+                                                (+{ignored})
+                                              </span>
                                             )}
                                           </span>
+                                        </TableCell>
+                                        <TableCell>
+                                          {entry.batchDurationMs
+                                            ? `${(entry.batchDurationMs / 1000).toFixed(2)}s`
+                                            : "-"}
                                         </TableCell>
                                         <TableCell>{used}</TableCell>
                                         <TableCell>{ignored}</TableCell>
                                         <TableCell>{entry.suggestionCount}</TableCell>
                                         <TableCell>{entry.unchangedAssignments}</TableCell>
-                                        <TableCell>{entry.processedTotal}/{entry.totalExpected}</TableCell>
-                                        <TableCell>{entry.fatal ? "FATAL" : issueSummary}</TableCell>
-                                        <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
+                                        <TableCell>
+                                          {entry.processedTotal}/{entry.totalExpected}
+                                        </TableCell>
+                                        <TableCell>
+                                          {entry.fatal ? "FATAL" : issueSummary}
+                                        </TableCell>
+                                        <TableCell>
+                                          {new Date(entry.loggedAt).toLocaleTimeString()}
+                                        </TableCell>
                                       </TableRow>
                                     );
                                   })}

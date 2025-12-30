@@ -271,16 +271,25 @@ function summarizeAiSpeakerError(error: Error): string {
     const details = error.details as Record<string, unknown>;
     const rawIssues = details.issues;
     if (Array.isArray(rawIssues) && rawIssues.length > 0) {
-      // Try to coerce to BatchIssue[] if possible
-      try {
-        const batchIssues = rawIssues.map((i) =>
-          typeof i === "string" ? { level: "error", message: i } : (i as any),
-        ) as unknown as import("@/lib/aiSpeakerService").BatchIssue[];
-        const summary = summarizeIssues(batchIssues as any);
-        return `${error.message}: ${summary || String(rawIssues[0])}`;
-      } catch {
-        return `${error.message}: ${String(rawIssues[0])}`;
-      }
+      // Build a safe summary from rawIssues (which may be strings or objects)
+      const msgs: string[] = rawIssues
+        .map((i) => {
+          if (typeof i === "string") return i;
+          if (i && typeof i === "object") {
+            const rec = i as Record<string, unknown>;
+            const candidate =
+              rec.message ?? rec.msg ?? rec.msgText ?? rec.error ?? JSON.stringify(rec);
+            return String(candidate);
+          }
+          return String(i);
+        })
+        .filter(Boolean);
+      if (msgs.length === 0) return `${error.message}: ${String(rawIssues[0])}`;
+      const summary =
+        msgs.length <= 3
+          ? msgs.join("; ")
+          : `${msgs.slice(0, 3).join("; ")} (+${msgs.length - 3} more)`;
+      return `${error.message}: ${summary}`;
     }
   }
   return error.message;

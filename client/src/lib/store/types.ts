@@ -262,6 +262,8 @@ export interface AISpeakerBatchInsight {
   fatal: boolean;
   rawResponsePreview?: string;
   ignoredCount?: number;
+  batchDurationMs?: number;
+  elapsedMs?: number;
 }
 
 export interface PromptTemplate {

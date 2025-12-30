@@ -451,6 +451,8 @@ export interface AnalysisOptions {
     fatal?: boolean;
     rawResponsePreview?: string;
     ignoredCount?: number;
+    batchDurationMs?: number;
+    elapsedMs?: number;
   }) => void;
 }
 
@@ -510,6 +512,7 @@ export async function* analyzeSegmentsBatched(
 
   const total = filteredSegments.length;
   let processed = 0;
+  const overallStart = Date.now();
 
   for (let i = 0; i < total; i += config.batchSize) {
     if (signal.aborted) {
@@ -526,6 +529,7 @@ export async function* analyzeSegmentsBatched(
     // Build prompt
     const userPrompt = buildUserPrompt(userPromptTemplate, speakers, batch);
 
+    const batchStart = Date.now();
     try {
       // Call Ollama
       const response = await callOllama(
@@ -547,6 +551,9 @@ export async function* analyzeSegmentsBatched(
       const suggestions = parseResult.suggestions;
 
       processed = Math.min(i + config.batchSize, total);
+      const batchEnd = Date.now();
+      const batchDurationMs = batchEnd - batchStart;
+      const elapsedMs = batchEnd - overallStart;
       onProgress?.(processed, total);
       onBatchInfo?.({
         batchIndex: Math.floor(i / config.batchSize),
@@ -560,6 +567,8 @@ export async function* analyzeSegmentsBatched(
         fatal,
         rawResponsePreview: previewResponse(response),
         ignoredCount: parseResult.ignoredCount ?? 0,
+        batchDurationMs,
+        elapsedMs,
       });
 
       if (fatal) {
