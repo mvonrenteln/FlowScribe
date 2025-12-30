@@ -138,15 +138,17 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
   const objectPattern =
     /\{\s*"id"\s*:\s*(\d+)\s*,\s*"tag"\s*:\s*"([^"]+)"(?:\s*,\s*"confidence"\s*:\s*([\d.]+))?(?:\s*,\s*"reason"\s*:\s*"([^"]*)")?\s*\}/gi;
   const items: OllamaResponseItem[] = [];
-  let match: RegExpExecArray | null;
+  let match: RegExpExecArray | null = objectPattern.exec(trimmed);
 
-  while ((match = objectPattern.exec(trimmed)) !== null) {
+  while (match) {
     items.push({
       id: Number.parseInt(match[1], 10),
       tag: match[2],
       confidence: match[3] ? Number.parseFloat(match[3]) : undefined,
       reason: match[4] || undefined,
     });
+
+    match = objectPattern.exec(trimmed);
   }
 
   return items;
@@ -200,7 +202,7 @@ export async function callOllama(
   userPrompt: string,
   signal: AbortSignal,
 ): Promise<string> {
-  const apiUrl = url.replace(/\/$/, "") + "/api/generate";
+  const apiUrl = `${url.replace(/\/$/, "")}/api/generate`;
 
   const response = await fetch(apiUrl, {
     method: "POST",
@@ -393,9 +395,9 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
       }
       onBatchComplete?.(suggestions);
     }
-  } catch (error) {
+  } catch (_error) {
     if (!signal.aborted) {
-      onError?.(error instanceof Error ? error : new Error(String(error)));
+      onError?.(_error instanceof Error ? _error : new Error(String(_error)));
     }
   }
 }

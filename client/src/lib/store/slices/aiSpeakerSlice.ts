@@ -113,7 +113,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
   },
 
   acceptSuggestion: (segmentId) => {
-    const { aiSpeakerSuggestions, segments, speakers, updateSegmentSpeaker, addSpeaker } = get();
+    const { aiSpeakerSuggestions, speakers, updateSegmentSpeaker, addSpeaker } = get();
     const suggestion = aiSpeakerSuggestions.find((s) => s.segmentId === segmentId);
 
     if (suggestion) {

@@ -255,27 +255,36 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 </Button>
               </div>
               <div className="flex flex-wrap gap-2">
-                {speakers.map((speaker) => (
-                  <label
-                    key={speaker.id}
-                    className={cn(
-                      "flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors",
-                      selectedSpeakers.includes(speaker.name)
-                        ? "bg-primary/10 border-primary"
-                        : "hover:bg-accent",
-                    )}
-                  >
-                    <Checkbox
-                      checked={selectedSpeakers.includes(speaker.name)}
-                      onCheckedChange={() => handleSpeakerToggle(speaker.name)}
-                    />
-                    <span
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: speaker.color }}
-                    />
-                    <span className="text-sm">{speaker.name}</span>
-                  </label>
-                ))}
+                {speakers.map((speaker) => {
+                  const checkboxId = `speaker-${speaker.id}`;
+                  return (
+                    <div
+                      key={speaker.id}
+                      className={cn(
+                        "flex items-center gap-2 px-3 py-1.5 rounded-md border cursor-pointer transition-colors",
+                        selectedSpeakers.includes(speaker.name)
+                          ? "bg-primary/10 border-primary"
+                          : "hover:bg-accent",
+                      )}
+                    >
+                      <Checkbox
+                        id={checkboxId}
+                        checked={selectedSpeakers.includes(speaker.name)}
+                        onCheckedChange={() => handleSpeakerToggle(speaker.name)}
+                      />
+                      <label
+                        htmlFor={checkboxId}
+                        className="flex items-center gap-2 cursor-pointer"
+                      >
+                        <span
+                          className="w-3 h-3 rounded-full"
+                          style={{ backgroundColor: speaker.color }}
+                        />
+                        <span className="text-sm">{speaker.name}</span>
+                      </label>
+                    </div>
+                  );
+                })}
               </div>
               {selectedSpeakers.length === 0 && (
                 <p className="text-xs text-muted-foreground">
@@ -286,13 +295,16 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
 
             {/* Options */}
             <div className="flex items-center gap-4">
-              <label className="flex items-center gap-2 cursor-pointer">
+              <div className="flex items-center gap-2">
                 <Checkbox
+                  id="exclude-confirmed"
                   checked={excludeConfirmed}
                   onCheckedChange={(checked) => setExcludeConfirmed(Boolean(checked))}
                 />
-                <span className="text-sm">Exclude confirmed segments</span>
-              </label>
+                <Label htmlFor="exclude-confirmed" className="text-sm cursor-pointer">
+                  Exclude confirmed segments
+                </Label>
+              </div>
             </div>
 
             {/* Template Selection */}

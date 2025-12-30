@@ -53,7 +53,7 @@ export function useSearchAndReplace(
       }
     }
     return matches;
-  }, [segments, regex, searchQuery, isRegexSearch]);
+  }, [segments, regex, searchQuery]);
 
   // Reset current match when allMatches change (e.g. search query change)
   useEffect(() => {
