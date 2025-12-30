@@ -243,6 +243,12 @@ export interface AISpeakerSuggestion {
   isNewSpeaker?: boolean;
 }
 
+export interface AISpeakerBatchIssue {
+  level: "warn" | "error";
+  message: string;
+  context?: Record<string, unknown>;
+}
+
 export interface AISpeakerBatchInsight {
   batchIndex: number;
   batchSize: number;
@@ -252,6 +258,9 @@ export interface AISpeakerBatchInsight {
   suggestionCount: number;
   processedTotal: number;
   totalExpected: number;
+  issues: AISpeakerBatchIssue[];
+  fatal: boolean;
+  rawResponsePreview?: string;
 }
 
 export interface PromptTemplate {

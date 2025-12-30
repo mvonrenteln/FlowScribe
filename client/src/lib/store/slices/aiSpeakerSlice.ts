@@ -84,28 +84,29 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
         });
       },
       onBatchComplete: (suggestions) => {
-        const current = get().aiSpeakerSuggestions;
+        const stateSnapshot = get();
+        if (!stateSnapshot.aiSpeakerIsProcessing) {
+          return;
+        }
         set({
-          aiSpeakerSuggestions: [...current, ...suggestions],
+          aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
         });
       },
       onBatchInfo: (insight) => {
         const stateSnapshot = get();
-        const updatedInsights = [
-          ...stateSnapshot.aiSpeakerBatchInsights,
-          { ...insight, loggedAt: Date.now() },
-        ];
-        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, { ...insight, loggedAt: Date.now() }];
-        const processedExpectation = insight.processedTotal;
-        const discrepancyExists = insight.rawItemCount < insight.batchSize;
+        const entry = { ...insight, loggedAt: Date.now() } as AISpeakerBatchInsight;
+        const updatedInsights = [...stateSnapshot.aiSpeakerBatchInsights, entry];
+        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, entry];
         let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
-        if (discrepancyExists) {
-          discrepancyNotice = `Modell lieferte nur ${insight.rawItemCount} von ${insight.batchSize} Antworten für Batch ${insight.batchIndex + 1} (${processedExpectation} verarbeitet).`;
+        if (insight.fatal) {
+          discrepancyNotice = `Batch ${insight.batchIndex + 1} ist fehlgeschlagen (${insight.issues?.[0]?.message ?? "unbekannt"}).`;
+        } else if (insight.rawItemCount < insight.batchSize) {
+          discrepancyNotice = `Modell lieferte nur ${insight.rawItemCount} von ${insight.batchSize} Antworten für Batch ${insight.batchIndex + 1}.`;
         }
         set({
           aiSpeakerBatchInsights: updatedInsights,
-          aiSpeakerDiscrepancyNotice: discrepancyNotice,
           aiSpeakerBatchLog: updatedLog,
+          aiSpeakerDiscrepancyNotice: discrepancyNotice,
         });
       },
       onError: (error) => {

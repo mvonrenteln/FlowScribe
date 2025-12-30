@@ -23,7 +23,6 @@ Return ONLY valid JSON:
 
 [
   {
-    "id": <number from input>,
     "tag": "<one of the available tags>",
     "confidence": <number between 0 and 1>,
     "reason": "<brief reasoning in one sentence>"
@@ -32,8 +31,9 @@ Return ONLY valid JSON:
 ]
 
 IMPORTANT:
+- Output order MUST match the order of the provided sections 1:1.
+- Do not skip or add entries.
 - Only JSON, NO additional text.
-- Use the ID exactly as provided in the input.
 - "confidence": 0.9-1.0 = very confident, 0.6-0.89 = medium, below = uncertain.
 - "reason" should be kept brief (one sentence max).
 - If unsure, prefer lower confidence over guessing.
@@ -83,24 +83,29 @@ Respond with ONLY the JSON array as specified.`;
 // ==================== Types for Internal Use ====================
 
 interface OllamaResponseItem {
-  id: number;
   tag: string;
   confidence?: number;
   reason?: string;
 }
 
 interface BatchSegment {
-  simpleId: number;
   segmentId: string;
   speaker: string;
   text: string;
 }
 
+interface BatchIssue {
+  level: "warn" | "error";
+  message: string;
+  context?: Record<string, unknown>;
+}
+
 interface ParsedSuggestionsResult {
   suggestions: AISpeakerSuggestion[];
   rawItemCount: number;
-  issues: string[];
+  issues: BatchIssue[];
   unchangedAssignments: number;
+  fatal: boolean;
 }
 
 export class AISpeakerResponseError extends Error {
@@ -172,7 +177,7 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
   try {
     const parsed = JSON.parse(trimmed);
     if (Array.isArray(parsed)) {
-      return parsed;
+      return parsed as OllamaResponseItem[];
     }
   } catch {
     // Continue to next strategy
@@ -187,25 +192,24 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
     try {
       const parsed = JSON.parse(jsonPart);
       if (Array.isArray(parsed)) {
-        return parsed;
+        return parsed as OllamaResponseItem[];
       }
     } catch {
-      // Continue to next strategy
+      // Continue
     }
   }
 
-  // Strategy 3: Regex extraction for individual objects
+  // Strategy 3: Regex extraction order-based
   const objectPattern =
-    /\{\s*"id"\s*:\s*(\d+)\s*,\s*"tag"\s*:\s*"([^"]+)"(?:\s*,\s*"confidence"\s*:\s*([\d.]+))?(?:\s*,\s*"reason"\s*:\s*"([^"]*)")?\s*\}/gi;
+    /\{\s*"tag"\s*:\s*"([^"]+)"(?:\s*,\s*"confidence"\s*:\s*([\d.]+))?(?:\s*,\s*"reason"\s*:\s*"([^"]*)")?\s*\}/gi;
   const items: OllamaResponseItem[] = [];
   let match: RegExpExecArray | null = objectPattern.exec(trimmed);
 
   while (match) {
     items.push({
-      id: Number.parseInt(match[1], 10),
-      tag: match[2],
-      confidence: match[3] ? Number.parseFloat(match[3]) : undefined,
-      reason: match[4] || undefined,
+      tag: match[1],
+      confidence: match[2] ? Number.parseFloat(match[2]) : undefined,
+      reason: match[3] || undefined,
     });
 
     match = objectPattern.exec(trimmed);
@@ -214,55 +218,45 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
   return items;
 }
 
-/**
- * Parses Ollama response and maps back to actual segment IDs.
- */
 export function parseOllamaResponse(
   raw: string,
-  idMapping: Map<number, string>,
+  batch: BatchSegment[],
   currentSpeakers: Map<string, string>,
   availableSpeakers: Iterable<string>,
 ): ParsedSuggestionsResult {
   const items = extractJsonArray(raw);
-  const speakerPool = new Set(availableSpeakers);
-  const currentIterator = currentSpeakers.values();
-  for (let next = currentIterator.next(); !next.done; next = currentIterator.next()) {
-    speakerPool.add(next.value);
-  }
-  const suggestions: AISpeakerSuggestion[] = [];
-  const issues: string[] = [];
-  let unchangedAssignments = 0;
+  const issues: BatchIssue[] = [];
 
   if (items.length === 0) {
     recordIssue(issues, "error", "Response did not contain any parseable speaker entries", {
       rawPreview: previewResponse(raw),
     });
-    return { suggestions, rawItemCount: 0, issues };
+    return { suggestions: [], rawItemCount: 0, issues, unchangedAssignments: 0, fatal: true };
   }
 
-  const seenIds = new Set<number>();
+  if (items.length !== batch.length) {
+    recordIssue(issues, "warn", `Expected ${batch.length} entries but received ${items.length}`, {
+      rawPreview: previewResponse(raw),
+    });
+  }
 
-  for (let index = 0; index < items.length; index++) {
+  const suggestions: AISpeakerSuggestion[] = [];
+  let unchangedAssignments = 0;
+  let fatal = false;
+
+  const speakerPool = new Set(availableSpeakers);
+  for (const speaker of currentSpeakers.values()) {
+    speakerPool.add(speaker);
+  }
+
+  for (let index = 0; index < batch.length; index++) {
+    const segmentEntry = batch[index];
+    const segmentId = segmentEntry.segmentId;
+
     const item = items[index];
-    const entryLabel = `item #${index + 1}`;
-
-    const numericId =
-      typeof item.id === "number" ? item.id : Number.parseInt(String(item.id ?? Number.NaN), 10);
-    if (!Number.isFinite(numericId)) {
-      recordIssue(issues, "warn", `${entryLabel} is missing a numeric "id" attribute`, { item });
-      continue;
-    }
-
-    if (seenIds.has(numericId)) {
-      recordIssue(issues, "warn", `Duplicate response id ${numericId} detected`, { item });
-      continue;
-    }
-    seenIds.add(numericId);
-
-    const segmentId = idMapping.get(numericId);
-    if (!segmentId) {
-      recordIssue(issues, "warn", `No segment matches response id ${numericId}`, {
-        expectedIds: Array.from(idMapping.keys()),
+    if (!item) {
+      recordIssue(issues, "warn", `Missing response entry for segment ${segmentId}`, {
+        position: index + 1,
       });
       continue;
     }
@@ -274,7 +268,7 @@ export function parseOllamaResponse(
     }
 
     const currentSpeaker = currentSpeakers.get(segmentId) ?? "";
-    const cleanedTag = rawTag.replace(/^\[|\]$/g, "").trim();
+    const cleanedTag = rawTag.replace(/^[\[\s]+|[\]\s]+$/g, "").trim();
     if (!cleanedTag) {
       recordIssue(issues, "warn", `Empty speaker tag after cleanup for segment ${segmentId}`, {
         rawTag,
@@ -293,7 +287,7 @@ export function parseOllamaResponse(
       });
     }
 
-    const confidence = normalizeConfidence(item.confidence, numericId, issues);
+    const confidence = normalizeConfidence(item.confidence, index + 1, issues);
     const reason = typeof item.reason === "string" ? item.reason : undefined;
 
     if (targetSpeakerInfo.name.toLowerCase() !== currentSpeaker.toLowerCase()) {
@@ -311,7 +305,7 @@ export function parseOllamaResponse(
     }
   }
 
-  return { suggestions, rawItemCount: items.length, issues, unchangedAssignments };
+  return { suggestions, rawItemCount: items.length, issues, unchangedAssignments, fatal };
 }
 
 // ==================== Ollama API Communication ====================
@@ -383,7 +377,6 @@ function prepareBatch(segments: Segment[], startIndex: number, batchSize: number
 
   for (let i = startIndex; i < endIndex; i++) {
     batch.push({
-      simpleId: i - startIndex + 1, // 1-based simple ID
       segmentId: segments[i].id,
       speaker: segments[i].speaker,
       text: segments[i].text,
@@ -397,7 +390,9 @@ function prepareBatch(segments: Segment[], startIndex: number, batchSize: number
  * Formats batch segments for the prompt.
  */
 function formatSegmentsForPrompt(batch: BatchSegment[]): string {
-  return batch.map((s) => `ID ${s.simpleId}: [${s.speaker}] "${s.text}"`).join("\n");
+  return batch
+    .map((s, idx) => `Section #${idx + 1}: [${s.speaker}] "${s.text}"`)
+    .join("\n");
 }
 
 /**
@@ -436,6 +431,9 @@ export interface AnalysisOptions {
     suggestionCount: number;
     processedTotal: number;
     totalExpected: number;
+    issues?: BatchIssue[];
+    fatal?: boolean;
+    rawResponsePreview?: string;
   }) => void;
 }
 
@@ -503,11 +501,8 @@ export async function* analyzeSegmentsBatched(
 
     const batch = prepareBatch(filteredSegments, i, config.batchSize);
 
-    // Build ID mapping (simple ID -> actual segment ID)
-    const idMapping = new Map<number, string>();
     const currentSpeakers = new Map<string, string>();
     for (const item of batch) {
-      idMapping.set(item.simpleId, item.segmentId);
       currentSpeakers.set(item.segmentId, item.speaker);
     }
 
@@ -525,28 +520,11 @@ export async function* analyzeSegmentsBatched(
       );
 
       // Parse response
-      const parseResult = parseOllamaResponse(response, idMapping, currentSpeakers, speakers);
-      const responseIssues = [...parseResult.issues];
+      const parseResult = parseOllamaResponse(response, batch, currentSpeakers, speakers);
+      const { issues, fatal } = parseResult;
 
-      if (parseResult.rawItemCount !== batch.length) {
-        recordIssue(
-          responseIssues,
-          "warn",
-          `Expected ${batch.length} response items but received ${parseResult.rawItemCount}`,
-          {
-            batchSize: batch.length,
-            receivedItems: parseResult.rawItemCount,
-          },
-        );
-      }
-
-      if (responseIssues.length > 0) {
-        const error = buildResponseError(responseIssues, response, {
-          batchSize: batch.length,
-          receivedItems: parseResult.rawItemCount,
-        });
-        console.error("[AI Speaker] Aborting batch due to response issues", error.details);
-        throw error;
+      if (issues.some((issue) => issue.level === "error") || fatal) {
+        console.warn("[AI Speaker] Batch returned issues", { batch: i / config.batchSize, issues });
       }
 
       const suggestions = parseResult.suggestions;
@@ -561,7 +539,14 @@ export async function* analyzeSegmentsBatched(
         suggestionCount: suggestions.length,
         processedTotal: processed,
         totalExpected: total,
+        issues,
+        fatal,
+        rawResponsePreview: previewResponse(response),
       });
+
+      if (fatal) {
+        continue;
+      }
 
       if (suggestions.length > 0) {
         yield suggestions;
@@ -601,12 +586,12 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
 }
 
 function recordIssue(
-  list: string[],
+  list: BatchIssue[],
   level: "warn" | "error",
   message: string,
   context?: Record<string, unknown>,
 ): void {
-  list.push(message);
+  list.push({ level, message, context });
   const log = level === "error" ? console.error : console.warn;
   log(`[AI Speaker] ${message}`, context);
 }
