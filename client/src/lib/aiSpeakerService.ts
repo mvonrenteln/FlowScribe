@@ -179,6 +179,9 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
     if (Array.isArray(parsed)) {
       return parsed as OllamaResponseItem[];
     }
+    if (parsed && typeof parsed === "object") {
+      return [parsed as OllamaResponseItem];
+    }
   } catch {
     // Continue to next strategy
   }
@@ -193,6 +196,9 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
       const parsed = JSON.parse(jsonPart);
       if (Array.isArray(parsed)) {
         return parsed as OllamaResponseItem[];
+      }
+      if (parsed && typeof parsed === "object") {
+        return [parsed as OllamaResponseItem];
       }
     } catch {
       // Continue
@@ -234,12 +240,6 @@ export function parseOllamaResponse(
     return { suggestions: [], rawItemCount: 0, issues, unchangedAssignments: 0, fatal: true };
   }
 
-  if (items.length !== batch.length) {
-    recordIssue(issues, "warn", `Expected ${batch.length} entries but received ${items.length}`, {
-      rawPreview: previewResponse(raw),
-    });
-  }
-
   const suggestions: AISpeakerSuggestion[] = [];
   let unchangedAssignments = 0;
   let fatal = false;
@@ -268,7 +268,7 @@ export function parseOllamaResponse(
     }
 
     const currentSpeaker = currentSpeakers.get(segmentId) ?? "";
-    const cleanedTag = rawTag.replace(/^[\[\s]+|[\]\s]+$/g, "").trim();
+    const cleanedTag = rawTag.replace(/^[\[<(\s]+|[\]>)(\s]+$/g, "").trim();
     if (!cleanedTag) {
       recordIssue(issues, "warn", `Empty speaker tag after cleanup for segment ${segmentId}`, {
         rawTag,
@@ -305,7 +305,13 @@ export function parseOllamaResponse(
     }
   }
 
-  return { suggestions, rawItemCount: items.length, issues, unchangedAssignments, fatal };
+  if (items.length > batch.length) {
+    recordIssue(issues, "warn", `Model returned ${items.length - batch.length} weitere Einträge, die ignoriert wurden`, {
+      rawPreview: previewResponse(raw),
+    });
+  }
+
+  return { suggestions, rawItemCount: Math.min(items.length, batch.length), issues, unchangedAssignments, fatal };
 }
 
 // ==================== Ollama API Communication ====================

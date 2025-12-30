@@ -234,7 +234,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            AI Speaker Classification
+            AI Speaker Classification (Experimental)
           </DialogTitle>
           <DialogDescription>
             Use AI to suggest correct speaker assignments for transcript segments.
@@ -568,7 +568,9 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 onChange={(e) => setConfigModel(e.target.value)}
                 placeholder="llama3.2"
               />
-              <p className="text-xs text-muted-foreground">Examples: llama3.2, mistral, qwen2.5</p>
+              <p className="text-xs text-muted-foreground">
+                Best result so far: qwen3:30b-instruct and deepseek-r1:32b (slow). Try different instruct-class models and adjust batch size—smaller models usually need smaller batches.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="batch-size">Batch Size</Label>
@@ -581,7 +583,7 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 onChange={(e) => setConfigBatchSize(e.target.value)}
               />
               <p className="text-xs text-muted-foreground">
-                Number of segments to analyze per API call
+                Default is 10. Larger batches often confuse models and mix answers; the smaller the model, the smaller the batch should be.
               </p>
             </div>
             <Button onClick={handleSaveConfig}>Save Configuration</Button>
