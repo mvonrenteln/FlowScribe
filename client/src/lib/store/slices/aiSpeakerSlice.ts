@@ -266,7 +266,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
   },
 });
 
-function summarizeAiSpeakerError(error: Error): string {
+export function summarizeAiSpeakerError(error: Error): string {
   if ("details" in error && error.details && typeof error.details === "object") {
     const details = error.details as Record<string, unknown>;
     const rawIssues = details.issues;
