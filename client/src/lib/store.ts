@@ -14,6 +14,7 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
@@ -22,8 +23,11 @@ import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionS
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
 import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
 import type {
+  AISpeakerConfig,
+  AISpeakerSuggestion,
   InitialStoreState,
   LexiconEntry,
+  PromptTemplate,
   SearchMatch,
   Segment,
   SessionKind,
@@ -33,6 +37,7 @@ import type {
   TranscriptStore,
   Word,
 } from "./store/types";
+import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
@@ -96,6 +101,8 @@ const initialState: InitialStoreState = {
   spellcheckCustomDictionaries: [],
   spellcheckCustomDictionariesLoaded: false,
   spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
+  ...initialAISpeakerState,
+  aiSpeakerConfig: normalizeAISpeakerConfig(globalState?.aiSpeakerConfig),
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -124,6 +131,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createLexiconSlice(set, get),
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
+      ...createAISpeakerSlice(set, get),
     };
   }),
 );
@@ -210,7 +218,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
-        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled;
+        lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled ||
+        lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(
@@ -304,9 +313,31 @@ export const useSegments = () => useTranscriptStore((state) => state.segments);
 export const usePlaybackState = () => useTranscriptStore(selectPlaybackState);
 export const useSpeakers = () => useTranscriptStore((state) => state.speakers);
 
+export const selectAISpeakerState = (state: TranscriptStore) => ({
+  suggestions: state.aiSpeakerSuggestions,
+  isProcessing: state.aiSpeakerIsProcessing,
+  processedCount: state.aiSpeakerProcessedCount,
+  totalToProcess: state.aiSpeakerTotalToProcess,
+  config: state.aiSpeakerConfig,
+  error: state.aiSpeakerError,
+  startAnalysis: state.startAnalysis,
+  cancelAnalysis: state.cancelAnalysis,
+  acceptSuggestion: state.acceptSuggestion,
+  rejectSuggestion: state.rejectSuggestion,
+  clearSuggestions: state.clearSuggestions,
+  updateConfig: state.updateConfig,
+  addTemplate: state.addTemplate,
+  updateTemplate: state.updateTemplate,
+  deleteTemplate: state.deleteTemplate,
+  setActiveTemplate: state.setActiveTemplate,
+});
+
 export type {
+  AISpeakerConfig,
+  AISpeakerSuggestion,
   FileReference,
   LexiconEntry,
+  PromptTemplate,
   SearchMatch,
   Segment,
   Speaker,

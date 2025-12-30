@@ -194,6 +194,7 @@ export const useTranscriptEditor = () => {
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
   const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
+  const [showAISpeaker, setShowAISpeaker] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -732,6 +733,7 @@ export const useTranscriptEditor = () => {
       spellcheckHighlightActive: showSpellcheckMatches,
       glossaryHighlightActive: showLexiconMatches,
       onShowGlossary: () => setShowLexicon(true),
+      onShowAISpeaker: () => setShowAISpeaker(true),
     }),
     [
       activateSession,
@@ -963,6 +965,8 @@ export const useTranscriptEditor = () => {
           : (recentSessions
               .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
               .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
+      showAISpeaker,
+      onAISpeakerChange: setShowAISpeaker,
     }),
     [
       audioFile?.name,
@@ -980,6 +984,7 @@ export const useTranscriptEditor = () => {
       recentSessions,
       sessionKey,
       sessionLabel,
+      showAISpeaker,
     ],
   );
 

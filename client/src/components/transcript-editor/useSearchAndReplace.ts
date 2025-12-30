@@ -31,11 +31,8 @@ export function useSearchAndReplace(
     for (const segment of segments) {
       const text = segment.text;
       // Create a global version of the regex to find all matches
-      const _flags = "gi";
-      if (isRegexSearch) {
-        // If regex search, use original flags but ensure 'g' is present
-        // Simple searchUtils.ts createSearchRegex uses 'gi' by default for non-regex
-      }
+      // If regex search, use original flags but ensure 'g' is present
+      // Simple searchUtils.ts createSearchRegex uses 'gi' by default for non-regex
 
       // We use matchAll or a loop with exec
       const searchRegex = new RegExp(
@@ -56,7 +53,7 @@ export function useSearchAndReplace(
       }
     }
     return matches;
-  }, [segments, regex, searchQuery, isRegexSearch]);
+  }, [segments, regex, searchQuery]);
 
   // Reset current match when allMatches change (e.g. search query change)
   useEffect(() => {

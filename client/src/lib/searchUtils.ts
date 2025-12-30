@@ -30,12 +30,26 @@ export function createSearchRegex(query: string, isRegex: boolean): RegExp | nul
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return null;
 
+  // Treat obviously "match-everything" patterns as invalid so the app
+  // doesn't try to execute expensive/global matches on transient input.
+  // Examples:
+  //  - ".*" or ".+" (optionally wrapped with ^ and $)
+  //  - "^.*$" or "^. +$" (with anchors)
+  //  - Repeated wildcard groups like ".*.*"
+  // We use a simple heuristic rather than full regex parsing.
+  const normalized = trimmedQuery.replace(/^\^/, "").replace(/\$$/, "");
+  const matchEverythingPatterns = [".*", ".+", ".*.*", ".+.+"];
+  if (matchEverythingPatterns.includes(normalized)) return null;
+
   try {
     if (isRegex) {
-      return new RegExp(`(${trimmedQuery})`, "gi");
+      const rx = new RegExp(`(${trimmedQuery})`, "gi");
+      // Reject clear "match everything" regexes like (.*) or (.+),
+      // possibly wrapped with anchors like (^.*$) which would result in '(^.*$)'.
+      if (/^\(\^?\.([*+])\$?\)$/.test(rx.source)) return null;
+      return rx;
     }
-    const escaped = escapeRegExp(trimmedQuery);
-    return new RegExp(`(${escaped})`, "gi");
+    return new RegExp(`(${escapeRegExp(trimmedQuery)})`, "gi");
   } catch (e) {
     console.warn("Invalid search regex:", e);
     return null;

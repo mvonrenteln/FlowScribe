@@ -58,6 +58,10 @@ vi.mock("@/components/CustomDictionariesDialog", () => ({
   CustomDictionariesDialog: () => null,
 }));
 
+vi.mock("@/components/AISpeakerDialog", () => ({
+  AISpeakerDialog: () => null,
+}));
+
 vi.mock("@/lib/spellcheck", async () => {
   const actual = await vi.importActual<typeof import("@/lib/spellcheck")>("@/lib/spellcheck");
   return {
@@ -108,6 +112,20 @@ const resetStore = () => {
     spellcheckCustomDictionaries: [],
     spellcheckCustomDictionariesLoaded: false,
     recentSessions: [],
+    // AI Speaker state
+    aiSpeakerSuggestions: [],
+    aiSpeakerIsProcessing: false,
+    aiSpeakerProcessedCount: 0,
+    aiSpeakerTotalToProcess: 0,
+    aiSpeakerConfig: {
+      ollamaUrl: "http://localhost:11434",
+      model: "llama3.2",
+      batchSize: 10,
+      templates: [],
+      activeTemplateId: "default",
+    },
+    aiSpeakerError: null,
+    aiSpeakerAbortController: null,
   });
 };
 
