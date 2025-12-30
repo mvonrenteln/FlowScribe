@@ -287,7 +287,7 @@ export function parseOllamaResponse(
       ? { name: resolvedSpeaker, isNew: false }
       : markNewSpeaker(cleanedTag);
     if (!resolvedSpeaker) {
-      console.warn("[AI Speaker] AI speaker suggestion introduces new speaker", {
+      console.info("[AI Speaker] AI speaker suggestion introduces new speaker", {
         segmentId,
         tag: item.tag,
       });
