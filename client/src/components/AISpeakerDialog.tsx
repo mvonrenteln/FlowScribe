@@ -46,6 +46,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { type AISpeakerSuggestion, type PromptTemplate, useTranscriptStore } from "@/lib/store";
 import type { PromptTemplateExport } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 interface AISpeakerDialogProps {
   open: boolean;
@@ -64,6 +67,10 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
   const totalToProcess = useTranscriptStore((s) => s.aiSpeakerTotalToProcess);
   const config = useTranscriptStore((s) => s.aiSpeakerConfig);
   const error = useTranscriptStore((s) => s.aiSpeakerError);
+  const batchInsights = useTranscriptStore((s) => s.aiSpeakerBatchInsights);
+  const discrepancyNotice = useTranscriptStore((s) => s.aiSpeakerDiscrepancyNotice);
+  const batchLog = useTranscriptStore((s) => s.aiSpeakerBatchLog);
+  const setDiscrepancyNotice = useTranscriptStore((s) => s.setDiscrepancyNotice);
 
   // AI Speaker actions
   const startAnalysis = useTranscriptStore((s) => s.startAnalysis);
@@ -349,6 +356,16 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 </div>
               )}
 
+              {discrepancyNotice && processedCount === totalToProcess && (
+                <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm">
+                  <AlertCircle className="h-4 w-4" />
+                  {discrepancyNotice}
+                  <Button variant="link" size="sm" onClick={() => setDiscrepancyNotice(null)}>
+                    Verstanden
+                  </Button>
+                </div>
+              )}
+
               <div className="flex items-center gap-2">
                 {isProcessing ? (
                   <Button onClick={cancelAnalysis} variant="destructive">
@@ -377,6 +394,16 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                   <Label className="text-sm font-medium">
                     Suggestions ({pendingSuggestions.length} pending)
                   </Label>
+                  {batchInsights.length > 0 && (
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                      <Badge variant="outline">Batch-Protokoll</Badge>
+                      <span>
+                        {batchInsights.length} Läufe, letzte Aktualisierung vor {new Date(
+                          batchInsights[batchInsights.length - 1].loggedAt,
+                        ).toLocaleTimeString()}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex-1 min-h-[300px] rounded-md border overflow-y-auto">
                   <div className="p-2 space-y-2">

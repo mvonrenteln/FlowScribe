@@ -100,6 +100,7 @@ interface ParsedSuggestionsResult {
   suggestions: AISpeakerSuggestion[];
   rawItemCount: number;
   issues: string[];
+  unchangedAssignments: number;
 }
 
 export class AISpeakerResponseError extends Error {
@@ -230,6 +231,7 @@ export function parseOllamaResponse(
   }
   const suggestions: AISpeakerSuggestion[] = [];
   const issues: string[] = [];
+  let unchangedAssignments = 0;
 
   if (items.length === 0) {
     recordIssue(issues, "error", "Response did not contain any parseable speaker entries", {
@@ -304,10 +306,12 @@ export function parseOllamaResponse(
         reason,
         isNewSpeaker: targetSpeakerInfo.isNew,
       });
+    } else {
+      unchangedAssignments++;
     }
   }
 
-  return { suggestions, rawItemCount: items.length, issues };
+  return { suggestions, rawItemCount: items.length, issues, unchangedAssignments };
 }
 
 // ==================== Ollama API Communication ====================
@@ -424,6 +428,15 @@ export interface AnalysisOptions {
   onProgress?: (processed: number, total: number) => void;
   onBatchComplete?: (suggestions: AISpeakerSuggestion[]) => void;
   onError?: (error: Error) => void;
+  onBatchInfo?: (info: {
+    batchIndex: number;
+    batchSize: number;
+    rawItemCount: number;
+    unchangedAssignments: number;
+    suggestionCount: number;
+    processedTotal: number;
+    totalExpected: number;
+  }) => void;
 }
 
 /**
@@ -457,8 +470,16 @@ export function filterSegmentsForAnalysis(
 export async function* analyzeSegmentsBatched(
   options: AnalysisOptions,
 ): AsyncGenerator<AISpeakerSuggestion[], void, unknown> {
-  const { segments, speakers, config, selectedSpeakers, excludeConfirmed, signal, onProgress } =
-    options;
+  const {
+    segments,
+    speakers,
+    config,
+    selectedSpeakers,
+    excludeConfirmed,
+    signal,
+    onProgress,
+    onBatchInfo,
+  } = options;
 
   // Filter segments
   const filteredSegments = filterSegmentsForAnalysis(segments, selectedSpeakers, excludeConfirmed);
@@ -532,6 +553,15 @@ export async function* analyzeSegmentsBatched(
 
       processed = Math.min(i + config.batchSize, total);
       onProgress?.(processed, total);
+      onBatchInfo?.({
+        batchIndex: Math.floor(i / config.batchSize),
+        batchSize: batch.length,
+        rawItemCount: parseResult.rawItemCount,
+        unchangedAssignments: parseResult.unchangedAssignments,
+        suggestionCount: suggestions.length,
+        processedTotal: processed,
+        totalExpected: total,
+      });
 
       if (suggestions.length > 0) {
         yield suggestions;

@@ -133,6 +133,9 @@ export interface InitialStoreState {
   aiSpeakerConfig: AISpeakerConfig;
   aiSpeakerError: string | null;
   aiSpeakerAbortController: AbortController | null;
+  aiSpeakerBatchInsights: AISpeakerBatchInsight[];
+  aiSpeakerDiscrepancyNotice: string | null;
+  aiSpeakerBatchLog: AISpeakerBatchInsight[];
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -240,6 +243,17 @@ export interface AISpeakerSuggestion {
   isNewSpeaker?: boolean;
 }
 
+export interface AISpeakerBatchInsight {
+  batchIndex: number;
+  batchSize: number;
+  rawItemCount: number;
+  unchangedAssignments: number;
+  loggedAt: number;
+  suggestionCount: number;
+  processedTotal: number;
+  totalExpected: number;
+}
+
 export interface PromptTemplate {
   id: string;
   name: string;
@@ -277,6 +291,9 @@ export interface AISpeakerSlice {
   setActiveTemplate: (id: string) => void;
   setProcessingProgress: (processed: number, total: number) => void;
   setError: (error: string | null) => void;
+  setBatchInsights: (insights: AISpeakerBatchInsight[]) => void;
+  setDiscrepancyNotice: (notice: string | null) => void;
+  setBatchLog: (entries: AISpeakerBatchInsight[]) => void;
 }
 
 export type SessionKind = "current" | "revision";

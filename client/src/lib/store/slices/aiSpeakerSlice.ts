@@ -11,6 +11,7 @@ import { runAnalysis } from "@/lib/aiSpeakerService";
 import type {
   AISpeakerSlice,
   AISpeakerSuggestion,
+  AISpeakerBatchInsight,
   PromptTemplate,
   TranscriptStore,
 } from "../types";
@@ -29,6 +30,9 @@ export const initialAISpeakerState = {
   aiSpeakerConfig: normalizeAISpeakerConfig(),
   aiSpeakerError: null as string | null,
   aiSpeakerAbortController: null as AbortController | null,
+  aiSpeakerBatchInsights: [] as AISpeakerBatchInsight[],
+  aiSpeakerDiscrepancyNotice: null as string | null,
+  aiSpeakerBatchLog: [] as AISpeakerBatchInsight[],
 };
 
 // ==================== Slice Implementation ====================
@@ -60,6 +64,9 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       aiSpeakerTotalToProcess: segmentsToAnalyze.length,
       aiSpeakerError: null,
       aiSpeakerAbortController: abortController,
+      aiSpeakerBatchInsights: [],
+      aiSpeakerDiscrepancyNotice: null,
+      aiSpeakerBatchLog: [],
     });
 
     // Run analysis asynchronously
@@ -80,6 +87,25 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
         const current = get().aiSpeakerSuggestions;
         set({
           aiSpeakerSuggestions: [...current, ...suggestions],
+        });
+      },
+      onBatchInfo: (insight) => {
+        const stateSnapshot = get();
+        const updatedInsights = [
+          ...stateSnapshot.aiSpeakerBatchInsights,
+          { ...insight, loggedAt: Date.now() },
+        ];
+        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, { ...insight, loggedAt: Date.now() }];
+        const processedExpectation = insight.processedTotal;
+        const discrepancyExists = insight.rawItemCount < insight.batchSize;
+        let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
+        if (discrepancyExists) {
+          discrepancyNotice = `Modell lieferte nur ${insight.rawItemCount} von ${insight.batchSize} Antworten für Batch ${insight.batchIndex + 1} (${processedExpectation} verarbeitet).`;
+        }
+        set({
+          aiSpeakerBatchInsights: updatedInsights,
+          aiSpeakerDiscrepancyNotice: discrepancyNotice,
+          aiSpeakerBatchLog: updatedLog,
         });
       },
       onError: (error) => {
@@ -217,6 +243,16 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
 
   setError: (error) => {
     set({ aiSpeakerError: error });
+  },
+
+  setBatchInsights: (insights) => {
+    set({ aiSpeakerBatchInsights: insights });
+  },
+  setDiscrepancyNotice: (notice) => {
+    set({ aiSpeakerDiscrepancyNotice: notice });
+  },
+  setBatchLog: (entries) => {
+    set({ aiSpeakerBatchLog: entries });
   },
 });
 
