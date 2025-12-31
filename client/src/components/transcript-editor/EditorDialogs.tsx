@@ -1,11 +1,10 @@
 import { AISpeakerDialog } from "../AISpeakerDialog";
-import { CustomDictionariesDialog } from "../CustomDictionariesDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
-import { SpellcheckDialog } from "../SpellcheckDialog";
 import { SettingsSheet } from "../settings";
+import { SpellcheckDialog } from "../SpellcheckDialog";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];
@@ -21,8 +20,6 @@ export function EditorDialogs({
   onLexiconChange,
   showSpellcheckDialog,
   onSpellcheckDialogChange,
-  showCustomDictionariesDialog,
-  onCustomDictionariesDialogChange,
   showRevisionDialog,
   onRevisionDialogChange,
   onCreateRevision,
@@ -48,10 +45,6 @@ export function EditorDialogs({
       />
       <GlossaryDialog open={showLexicon} onOpenChange={onLexiconChange} />
       <SpellcheckDialog open={showSpellcheckDialog} onOpenChange={onSpellcheckDialogChange} />
-      <CustomDictionariesDialog
-        open={showCustomDictionariesDialog}
-        onOpenChange={onCustomDictionariesDialogChange}
-      />
       <RevisionDialog
         open={showRevisionDialog}
         onOpenChange={onRevisionDialogChange}

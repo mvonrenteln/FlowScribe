@@ -192,7 +192,6 @@ export const useTranscriptEditor = () => {
   const [showExport, setShowExport] = useState(false);
   const [showLexicon, setShowLexicon] = useState(false);
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
-  const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showAISpeaker, setShowAISpeaker] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
@@ -725,7 +724,7 @@ export const useTranscriptEditor = () => {
         setSpellcheckLanguages(languages),
       spellcheckCustomEnabled,
       onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
-      onShowCustomDictionaries: () => setShowCustomDictionariesDialog(true),
+      onShowCustomDictionaries: () => setShowSettings(true),
       spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
       onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
       spellcheckDebugEnabled,
@@ -942,8 +941,6 @@ export const useTranscriptEditor = () => {
       onLexiconChange: setShowLexicon,
       showSpellcheckDialog,
       onSpellcheckDialogChange: setShowSpellcheckDialog,
-      showCustomDictionariesDialog,
-      onCustomDictionariesDialogChange: setShowCustomDictionariesDialog,
       showRevisionDialog,
       onRevisionDialogChange: setShowRevisionDialog,
       onCreateRevision: handleCreateRevision,
@@ -979,7 +976,6 @@ export const useTranscriptEditor = () => {
       handleCreateRevision,
       sessionKind,
       segments,
-      showCustomDictionariesDialog,
       showExport,
       showRevisionDialog,
       showLexicon,

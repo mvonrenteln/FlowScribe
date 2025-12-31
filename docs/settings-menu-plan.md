@@ -23,7 +23,10 @@ Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modular
 - Batch-Size bleibt im Dialog (Use-Case-spezifisch)
 - Provider unterstützen Liste verfügbarer Modelle (manuell oder via API-Fetch)
 - Spellcheck Settings: Sprachen, Ignorierte Wörter, Custom Dictionaries
+- Custom Dictionaries: Vollständige Migration inkl. .oxt/.aff/.dic Import
+- Custom Dictionaries ersetzen die Built-in Sprachen (de/en) wenn aktiviert
 - Glossary Settings: Fuzzy-Matching, Highlighting, Term-Management
+- "Manage dictionaries" Button in Toolbar öffnet jetzt Settings
 
 ---
 
