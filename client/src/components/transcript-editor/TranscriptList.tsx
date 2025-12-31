@@ -39,6 +39,7 @@ function TranscriptListComponent({
 }: TranscriptListProps) {
   // Get pending revisions from store
   const pendingRevisions = useTranscriptStore((s) => s.aiRevisionSuggestions);
+  const lastRevisionResult = useTranscriptStore((s) => s.aiRevisionLastResult);
   const acceptRevision = useTranscriptStore((s) => s.acceptRevision);
   const rejectRevision = useTranscriptStore((s) => s.rejectRevision);
 
@@ -114,6 +115,11 @@ function TranscriptListComponent({
                 } : undefined}
                 onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
                 onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
+                lastRevisionResult={
+                  lastRevisionResult?.segmentId === segment.id
+                    ? lastRevisionResult
+                    : undefined
+                }
               />
             );
           })

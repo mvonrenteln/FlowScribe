@@ -92,10 +92,10 @@ describe("diffUtils", () => {
   });
 
   describe("summarizeChanges", () => {
-    it("returns 'Keine Änderungen' for identical texts", () => {
-      const changes = computeTextChanges("hello", "hello");
-      const summary = summarizeChanges(changes, "hello", "hello");
-      expect(summary).toBe("Keine Änderungen");
+it("returns 'No changes' for identical texts", () => {
+      const changes = computeTextChanges("hello world", "hello world");
+      const summary = summarizeChanges(changes, "hello world", "hello world");
+      expect(summary).toBe("No changes");
     });
 
     it("returns count for multiple changes", () => {

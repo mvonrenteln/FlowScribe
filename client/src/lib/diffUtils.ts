@@ -222,20 +222,20 @@ export function summarizeChanges(
   revised: string,
 ): string {
   if (original === revised) {
-    return "Keine Änderungen";
+    return "No changes";
   }
 
   const meaningfulChanges = countChanges(changes);
 
   if (meaningfulChanges === 0) {
-    return "Nur Leerzeichen-Änderungen";
+    return "Whitespace changes only";
   }
 
   if (meaningfulChanges === 1) {
-    return "1 Änderung";
+    return "1 change";
   }
 
-  return `${meaningfulChanges} Änderungen`;
+  return `${meaningfulChanges} changes`;
 }
 
 // ==================== Display Helpers ====================

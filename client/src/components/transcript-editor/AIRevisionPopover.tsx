@@ -5,7 +5,7 @@
  * Shows configurable quick-access templates and a "More..." option.
  */
 
-import { AlertCircle, Check, ChevronRight, Loader2, MoreHorizontal, Sparkles } from "lucide-react";
+import { AlertCircle, Check, ChevronRight, Loader2, Minus, MoreHorizontal, Sparkles } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -17,17 +17,19 @@ interface AIRevisionPopoverProps {
   disabled?: boolean;
 }
 
+// How long to show status indicators (in ms)
+const STATUS_DISPLAY_TIME = 3000;
+
 export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProps) {
   const [open, setOpen] = useState(false);
   const [localProcessing, setLocalProcessing] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
-  const [showError, setShowError] = useState(false);
+  const [displayStatus, setDisplayStatus] = useState<"idle" | "success" | "no-changes" | "error">("idle");
 
   // Store state
   const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
   const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessTemplateIds);
   const suggestions = useTranscriptStore((s) => s.aiRevisionSuggestions);
-  const globalError = useTranscriptStore((s) => s.aiRevisionError);
+  const lastResult = useTranscriptStore((s) => s.aiRevisionLastResult);
   const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
 
@@ -36,25 +38,20 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
     (s) => s.segmentId === segmentId && s.status === "pending"
   );
 
-  // Track when processing finishes
+  // Track when processing finishes and show appropriate status
   useEffect(() => {
-    if (localProcessing && !isGlobalProcessing) {
+    if (localProcessing && !isGlobalProcessing && lastResult?.segmentId === segmentId) {
       setLocalProcessing(false);
+      setDisplayStatus(lastResult.status);
 
-      // Check if we got a suggestion or an error
-      const hasNewSuggestion = suggestions.some(
-        (s) => s.segmentId === segmentId && s.status === "pending"
-      );
+      // Auto-hide status after timeout (except for pending suggestions which are shown differently)
+      const timer = setTimeout(() => {
+        setDisplayStatus("idle");
+      }, STATUS_DISPLAY_TIME);
 
-      if (hasNewSuggestion) {
-        setShowSuccess(true);
-        setTimeout(() => setShowSuccess(false), 1500);
-      } else if (globalError) {
-        setShowError(true);
-        setTimeout(() => setShowError(false), 3000);
-      }
+      return () => clearTimeout(timer);
     }
-  }, [isGlobalProcessing, localProcessing, suggestions, segmentId, globalError]);
+  }, [isGlobalProcessing, localProcessing, lastResult, segmentId]);
 
   // Get quick-access templates
   const quickAccessTemplates = templates.filter((t) => quickAccessIds.includes(t.id));
@@ -62,12 +59,60 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
   const handleSelectTemplate = (templateId: string) => {
     setLocalProcessing(true);
-    setShowError(false);
+    setDisplayStatus("idle");
     startSingleRevision(segmentId, templateId);
     setOpen(false);
   };
 
   const isProcessingThis = localProcessing;
+
+  // Determine icon and styling based on current status
+  const getStatusDisplay = () => {
+    if (isProcessingThis) {
+      return {
+        icon: <Loader2 className="h-4 w-4 animate-spin" />,
+        className: "animate-pulse text-primary",
+        title: "AI Revision in progress...",
+      };
+    }
+
+    if (hasPendingSuggestion) {
+      return {
+        icon: <Sparkles className="h-4 w-4" />,
+        className: "text-amber-500 hover:text-amber-600 ring-2 ring-amber-500/50",
+        title: "Suggestion available - click to view",
+      };
+    }
+
+    switch (displayStatus) {
+      case "success":
+        return {
+          icon: <Check className="h-4 w-4" />,
+          className: "text-green-500 hover:text-green-600",
+          title: "Suggestion created",
+        };
+      case "no-changes":
+        return {
+          icon: <Minus className="h-4 w-4" />,
+          className: "text-muted-foreground",
+          title: "No changes needed",
+        };
+      case "error":
+        return {
+          icon: <AlertCircle className="h-4 w-4" />,
+          className: "text-destructive hover:text-destructive",
+          title: lastResult?.message ?? "Processing error",
+        };
+      default:
+        return {
+          icon: <Sparkles className="h-4 w-4" />,
+          className: "text-muted-foreground hover:text-foreground",
+          title: "AI Revision",
+        };
+    }
+  };
+
+  const statusDisplay = getStatusDisplay();
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -76,39 +121,30 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           variant="ghost"
           size="icon"
           className={cn(
-            "h-7 w-7 text-muted-foreground hover:text-foreground transition-colors",
-            isProcessingThis && "animate-pulse",
-            hasPendingSuggestion && "text-amber-500 hover:text-amber-600",
-            showError && "text-destructive hover:text-destructive",
+            "h-7 w-7 transition-all duration-200",
+            statusDisplay.className,
           )}
           disabled={disabled || isProcessingThis}
-          aria-label="AI Revision (Alt+R für Standard)"
-          title={
-            showError
-              ? `Fehler: ${globalError ?? "Unbekannter Fehler"}`
-              : hasPendingSuggestion
-                ? "AI Revision vorgeschlagen - klicken zum Anzeigen"
-                : "AI Revision (Alt+R für Standard)"
-          }
+          aria-label={statusDisplay.title}
+          title={statusDisplay.title}
         >
-          {isProcessingThis ? (
-            <Loader2 className="h-4 w-4 animate-spin" />
-          ) : showSuccess ? (
-            <Check className="h-4 w-4 text-green-500" />
-          ) : showError ? (
-            <AlertCircle className="h-4 w-4 text-destructive" />
-          ) : (
-            <Sparkles className="h-4 w-4" />
-          )}
+          {statusDisplay.icon}
         </Button>
       </PopoverTrigger>
 
       <PopoverContent className="w-56 p-1" align="end">
         <div className="flex flex-col">
-          {/* Error message if present */}
-          {showError && globalError && (
-            <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 rounded-sm mb-1">
-              {globalError}
+          {/* Status message if not idle */}
+          {displayStatus === "no-changes" && (
+            <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-sm mb-1 flex items-center gap-2">
+              <Minus className="h-3 w-3" />
+              No changes needed
+            </div>
+          )}
+          {displayStatus === "error" && lastResult?.message && (
+            <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 rounded-sm mb-1 flex items-center gap-2">
+              <AlertCircle className="h-3 w-3" />
+              {lastResult.message}
             </div>
           )}
 
@@ -146,9 +182,9 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           {/* Empty state */}
           {templates.length === 0 && (
             <div className="px-3 py-4 text-sm text-muted-foreground text-center">
-              Keine Templates konfiguriert.
+              No templates configured.
               <br />
-              Erstellen Sie Templates in den Einstellungen.
+              Create templates in Settings.
             </div>
           )}
         </div>
@@ -178,7 +214,7 @@ function MoreTemplatesSubmenu({ templates, onSelect }: MoreTemplatesSubmenuProps
         onClick={() => setShowMore(true)}
       >
         <MoreHorizontal className="h-4 w-4" />
-        <span className="flex-1">Weitere Templates...</span>
+        <span className="flex-1">More templates...</span>
         <ChevronRight className="h-4 w-4" />
       </button>
     );
@@ -197,7 +233,7 @@ function MoreTemplatesSubmenu({ templates, onSelect }: MoreTemplatesSubmenuProps
         onClick={() => setShowMore(false)}
       >
         <ChevronRight className="h-4 w-4 rotate-180" />
-        <span>Zurück</span>
+        <span>Back</span>
       </button>
       <div className="h-px bg-border my-1" />
       {templates.map((template) => (

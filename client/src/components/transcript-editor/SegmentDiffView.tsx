@@ -221,7 +221,7 @@ export function RevisionIndicator({
       )}
       onClick={onClick}
     >
-      ✨ {changeSummary ?? "Änderung vorgeschlagen"}
+      ✨ {changeSummary ?? "Change suggested"}
     </button>
   );
 }

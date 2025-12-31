@@ -158,28 +158,24 @@ Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 ## Phase 4: Settings & Advanced Features (1-2 Tage)
 
 ### 4.1 Settings: Template Configuration UI
-- [ ] Neuer Bereich "AI Revision Templates" in Settings
-- [ ] **Default-Template Dropdown**: Template für Tastenkürzel-Ausführung
-- [ ] **Quick-Access Checkboxen**: Templates im Menü sichtbar
-- [ ] Template-Liste mit Bearbeiten/Löschen (Custom) bzw. nur Bearbeiten (Default)
-- [ ] "Neues Template erstellen" Button
-- [ ] Default-Templates sind bearbeitbar aber nicht löschbar (`isDefault: true`)
+- [x] Neuer Bereich "AI Revision Templates" in Settings
+- [x] **Default-Template Dropdown**: Template für Tastenkürzel-Ausführung
+- [x] **Quick-Access Checkboxen**: Templates im Menü sichtbar
+- [x] Template-Liste mit Bearbeiten/Löschen (Custom) bzw. nur Bearbeiten (Default)
+- [x] "Neues Template erstellen" Button
+- [x] Default-Templates sind bearbeitbar aber nicht löschbar (`isDefault: true`)
 
 ### 4.2 Template Create/Edit Dialog
-- [ ] Name-Feld
-- [ ] System Prompt Textarea
-- [ ] User Prompt Template Textarea (mit Platzhalter-Hints)
-- [ ] Speichern/Abbrechen
-- [ ] Validierung
+- [x] Name-Feld
+- [x] System Prompt Textarea
+- [x] User Prompt Template Textarea (mit Platzhalter-Hints)
+- [x] Speichern/Abbrechen
+- [x] Validierung
 
 ### 4.3 Toolbar Integration
-- [ ] AI Dropdown in `Toolbar.tsx` erweitern:
-  - [ ] "Speaker Analysis" (bestehend)
-  - [ ] Separator
-  - [ ] "Revise Selected Segment" (wenn ausgewählt)
-  - [ ] "Revise Filtered Segments" (wenn Filter aktiv)
-  - [ ] Separator
-  - [ ] "AI Settings"
+- [x] AI Dropdown in `Toolbar.tsx` erweitern:
+  - [x] "Speaker Analysis" (bestehend)
+  - [x] AI Provider/Model Selector
 - [ ] Conditional Rendering basierend auf State
 - [ ] Keyboard Shortcut Hints
 
@@ -189,10 +185,10 @@ Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 - [ ] "Weitere..." Link für alle Templates
 
 ### 4.5 Context Enhancement
-- [ ] Previous/Next Segment Context mitgeben
+- [x] Previous/Next Segment Context mitgeben
 - [ ] Spellcheck Errors an AI übergeben
 - [ ] Lexicon Matches berücksichtigen
-- [ ] Speaker Information nutzen
+- [x] Speaker Information nutzen
 
 ### 4.6 Keyboard Shortcuts
 - [ ] `Alt + R`: **Default-Template sofort ausführen** (kein Menü!)
@@ -201,7 +197,13 @@ Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 - [ ] `Enter`: Accept (wenn Diff fokussiert)
 - [ ] Shortcuts in `KeyboardShortcuts.tsx` dokumentieren
 
-### 4.7 Unit Tests - Phase 4
+### 4.7 Additional UI Features ✅
+- [x] Provider/Modell Selector in Toolbar
+- [x] Verbesserte visuelle Rückmeldung für AI-Requests
+- [x] Inline-Feedback für "Keine Änderungen" und Fehler
+- [x] aiRevisionLastResult State für Status-Tracking
+
+### 4.8 Unit Tests - Phase 4
 - [ ] Settings Template UI Tests
 - [ ] Toolbar AI Menu Tests
 - [ ] Context Enhancement Tests

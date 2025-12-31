@@ -1,10 +1,12 @@
 import {
+  AlertCircle,
   Bookmark,
   BookmarkCheck,
   Check,
   CheckCircle2,
   Edit,
   Merge,
+  Minus,
   MoreVertical,
   Scissors,
   Trash2,
@@ -73,6 +75,12 @@ interface TranscriptSegmentProps {
   };
   readonly onAcceptRevision?: () => void;
   readonly onRejectRevision?: () => void;
+  /** Last AI revision result for inline feedback */
+  readonly lastRevisionResult?: {
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  } | null;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -123,6 +131,7 @@ function TranscriptSegmentComponent({
   pendingRevision,
   onAcceptRevision,
   onRejectRevision,
+  lastRevisionResult,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -464,6 +473,11 @@ function TranscriptSegmentComponent({
               />
             </div>
           )}
+
+          {/* Show inline feedback for "no changes" or error (when no pending revision) */}
+          {!pendingRevision && lastRevisionResult && (
+            <InlineRevisionFeedback result={lastRevisionResult} />
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -617,8 +631,62 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&
     prev.replaceQuery === next.replaceQuery &&
-    prev.currentMatch === next.currentMatch
+    prev.currentMatch === next.currentMatch &&
+    prev.lastRevisionResult?.timestamp === next.lastRevisionResult?.timestamp
   );
 };
 
 export const TranscriptSegment = memo(TranscriptSegmentComponent, arePropsEqual);
+
+// ==================== Inline Revision Feedback ====================
+
+interface InlineRevisionFeedbackProps {
+  result: {
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  };
+}
+
+const FEEDBACK_DISPLAY_TIME = 4000; // 4 seconds
+
+function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
+  const [visible, setVisible] = useState(true);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setVisible(false);
+    }, FEEDBACK_DISPLAY_TIME);
+
+    return () => clearTimeout(timer);
+  }, [result.timestamp]);
+
+  if (!visible) return null;
+
+  // Don't show feedback for success since there will be a diff view
+  if (result.status === "success") return null;
+
+  return (
+    <div
+      className={cn(
+        "mt-2 px-3 py-2 text-xs rounded-md flex items-center gap-2 transition-all",
+        result.status === "no-changes" && "bg-muted/50 text-muted-foreground",
+        result.status === "error" && "bg-destructive/10 text-destructive",
+      )}
+    >
+      {result.status === "no-changes" && (
+        <>
+          <Minus className="h-3 w-3 flex-shrink-0" />
+          <span>No changes needed – the text is already correct.</span>
+        </>
+      )}
+      {result.status === "error" && (
+        <>
+          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+          <span>{result.message ?? "An error occurred."}</span>
+        </>
+      )}
+    </div>
+  );
+}
+

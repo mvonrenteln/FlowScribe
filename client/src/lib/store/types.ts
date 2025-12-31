@@ -152,6 +152,12 @@ export interface InitialStoreState {
   aiRevisionConfig: AIRevisionConfig;
   aiRevisionError: string | null;
   aiRevisionAbortController: AbortController | null;
+  aiRevisionLastResult: {
+    segmentId: string;
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  } | null;
 }
 
 export type TranscriptStore = InitialStoreState &

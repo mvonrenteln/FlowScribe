@@ -26,60 +26,60 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 export const DEFAULT_REVISION_TEMPLATES: AIRevisionTemplate[] = [
   {
     id: "default-transcript-cleanup",
-    name: "Transkript-Bereinigung",
+    name: "Transcript Cleanup",
     isDefault: true,
     isQuickAccess: true,
-    systemPrompt: `Du bist ein Experte für Transkript-Korrektur. Korrigiere den gegebenen Text.
+    systemPrompt: `You are an expert in transcript correction. Correct the given text.
 
-AUFGABEN:
-1. Korrigiere Rechtschreibfehler
-2. Korrigiere Grammatikfehler (z.B. "das" vs "dass")
-3. Entferne Füllwörter (ähm, äh, also, halt, sozusagen) wenn sie stören
-4. Korrigiere Transkriptionsfehler
+TASKS:
+1. Fix spelling errors
+2. Fix grammar errors
+3. Remove filler words (um, uh, like, you know) when they disrupt flow
+4. Fix transcription errors
 
-REGELN:
-- Behalte Inhalt und Bedeutung exakt bei
-- Antworte NUR mit dem korrigierten Text, keine Erklärungen`,
-    userPromptTemplate: `Korrigiere diesen Text:
+RULES:
+- Keep the content and meaning exactly the same
+- Reply ONLY with the corrected text, no explanations`,
+    userPromptTemplate: `Correct this text:
 
 "{{text}}"`,
   },
   {
     id: "default-improve-clarity",
-    name: "Formulierung verbessern",
+    name: "Improve Clarity",
     isDefault: true,
     isQuickAccess: true,
-    systemPrompt: `Du bist ein Lektor. Verbessere die Formulierung des gegebenen Textes.
+    systemPrompt: `You are an editor. Improve the phrasing of the given text.
 
-AUFGABEN:
-1. Verbessere die Satzstruktur
-2. Vereinfache komplizierte Formulierungen
-3. Korrigiere Grammatik und Rechtschreibung
+TASKS:
+1. Improve sentence structure
+2. Simplify complex formulations
+3. Fix grammar and spelling
 
-REGELN:
-- Behalte die Bedeutung exakt bei
-- Antworte NUR mit dem verbesserten Text, keine Erklärungen`,
-    userPromptTemplate: `Verbessere die Formulierung:
+RULES:
+- Keep the meaning exactly the same
+- Reply ONLY with the improved text, no explanations`,
+    userPromptTemplate: `Improve the phrasing:
 
 "{{text}}"`,
   },
   {
     id: "default-formalize",
-    name: "Formalisieren",
+    name: "Formalize",
     isDefault: true,
     isQuickAccess: false,
-    systemPrompt: `Du bist ein Experte für professionelle Kommunikation. Wandle informelle Sprache in formellen Stil um.
+    systemPrompt: `You are an expert in professional communication. Convert informal language to formal style.
 
-AUFGABEN:
-1. Ersetze Umgangssprache durch Standardsprache
-2. Verwende professionellen Ton
-3. Korrigiere Grammatik und Rechtschreibung
+TASKS:
+1. Replace colloquial language with standard language
+2. Use professional tone
+3. Fix grammar and spelling
 
-REGELN:
-- Behalte die Bedeutung bei
-- Natürlich professionell, nicht übertrieben förmlich
-- Antworte NUR mit dem formalisierten Text, keine Erklärungen`,
-    userPromptTemplate: `Formuliere formeller:
+RULES:
+- Keep the meaning the same
+- Naturally professional, not overly formal
+- Reply ONLY with the formalized text, no explanations`,
+    userPromptTemplate: `Formalize this text:
 
 "{{text}}"`,
   },
@@ -99,6 +99,13 @@ export const initialAIRevisionState = {
   } as AIRevisionConfig,
   aiRevisionError: null as string | null,
   aiRevisionAbortController: null as AbortController | null,
+  // Track last result per segment for UI feedback
+  aiRevisionLastResult: null as {
+    segmentId: string;
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  } | null,
 };
 
 /**
@@ -221,13 +228,18 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           const trimmedRevised = result.revisedText.trim();
 
           if (trimmedOriginal === trimmedRevised) {
-            // No changes - don't create a suggestion, just show success message
+            // No changes - don't create a suggestion, show "no changes" status
             console.log("[AIRevision] No changes needed for segment:", segmentId);
             set({
               aiRevisionIsProcessing: false,
               aiRevisionProcessedCount: 1,
               aiRevisionError: null,
-              // We could add a separate state for this, but reusing error with a prefix works
+              aiRevisionLastResult: {
+                segmentId,
+                status: "no-changes",
+                message: "No changes needed",
+                timestamp: Date.now(),
+              },
             });
             return;
           }
@@ -247,13 +259,25 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
             aiRevisionSuggestions: [...currentState.aiRevisionSuggestions, suggestion],
             aiRevisionIsProcessing: false,
             aiRevisionProcessedCount: 1,
+            aiRevisionLastResult: {
+              segmentId,
+              status: "success",
+              timestamp: Date.now(),
+            },
           });
         })
         .catch((error: Error) => {
           if (error.name === "AbortError") return;
+          const errorMessage = error.message ?? "Revision fehlgeschlagen";
           set({
-            aiRevisionError: error.message ?? "Revision failed",
+            aiRevisionError: errorMessage,
             aiRevisionIsProcessing: false,
+            aiRevisionLastResult: {
+              segmentId,
+              status: "error",
+              message: errorMessage,
+              timestamp: Date.now(),
+            },
           });
         });
     });

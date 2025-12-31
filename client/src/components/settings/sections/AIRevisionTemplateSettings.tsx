@@ -47,17 +47,17 @@ interface TemplateFormData {
 
 const EMPTY_FORM: TemplateFormData = {
   name: "",
-  systemPrompt: `Du bist ein Experte für Textüberarbeitung. Deine Aufgabe ist es, den gegebenen Text zu verbessern.
+  systemPrompt: `You are an expert in text revision. Your task is to improve the given text.
 
-WICHTIG:
-- Behalte den originalen Stil und Ton bei
-- Verändere NICHT den Inhalt oder die Bedeutung
-- Antworte NUR mit dem verbesserten Text, keine Erklärungen`,
-  userPromptTemplate: `Überarbeite den folgenden Text:
+IMPORTANT:
+- Keep the original style and tone
+- Do NOT change the content or meaning
+- Reply ONLY with the improved text, no explanations`,
+  userPromptTemplate: `Revise the following text:
 
 {{text}}
 
-Antworte NUR mit dem überarbeiteten Text, keine Erklärungen oder Anführungszeichen.`,
+Reply ONLY with the revised text, no explanations or quotes.`,
 };
 
 interface TemplateFormProps {
@@ -78,13 +78,13 @@ function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: T
   const validate = (): string[] => {
     const errs: string[] = [];
     if (!form.name.trim()) {
-      errs.push("Template-Name ist erforderlich");
+      errs.push("Template name is required");
     }
     if (!form.systemPrompt.trim()) {
-      errs.push("System Prompt ist erforderlich");
+      errs.push("System Prompt is required");
     }
     if (!form.userPromptTemplate.trim()) {
-      errs.push("User Prompt Template ist erforderlich");
+      errs.push("User Prompt Template is required");
     }
     return errs;
   };
@@ -121,7 +121,7 @@ function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: T
           id="template-name"
           value={form.name}
           onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder="z.B. Grammatik-Korrektur"
+          placeholder="e.g. Grammar Correction"
         />
       </div>
 
@@ -131,11 +131,11 @@ function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: T
           id="system-prompt"
           value={form.systemPrompt}
           onChange={(e) => setForm((prev) => ({ ...prev, systemPrompt: e.target.value }))}
-          placeholder="Anweisungen für das AI-Modell..."
+          placeholder="Instructions for the AI model..."
           className="min-h-[120px] font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          Definiert das Verhalten und die Rolle des AI-Modells.
+          Defines the behavior and role of the AI model.
         </p>
       </div>
 
@@ -145,11 +145,11 @@ function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: T
           id="user-prompt"
           value={form.userPromptTemplate}
           onChange={(e) => setForm((prev) => ({ ...prev, userPromptTemplate: e.target.value }))}
-          placeholder="Vorlage für die Benutzeranfrage..."
+          placeholder="Template for the user request..."
           className="min-h-[150px] font-mono text-sm"
         />
         <p className="text-xs text-muted-foreground">
-          Verfügbare Platzhalter: <code className="bg-muted px-1 rounded">{"{{text}}"}</code>,{" "}
+          Available placeholders: <code className="bg-muted px-1 rounded">{"{{text}}"}</code>,{" "}
           <code className="bg-muted px-1 rounded">{"{{previousText}}"}</code>,{" "}
           <code className="bg-muted px-1 rounded">{"{{nextText}}"}</code>,{" "}
           <code className="bg-muted px-1 rounded">{"{{speaker}}"}</code>
@@ -159,11 +159,11 @@ function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: T
       <div className="flex justify-end gap-2 pt-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           <X className="h-4 w-4 mr-1" />
-          Abbrechen
+          Cancel
         </Button>
         <Button type="submit">
           <Check className="h-4 w-4 mr-1" />
-          {isEditing ? "Speichern" : "Erstellen"}
+          {isEditing ? "Save" : "Create"}
         </Button>
       </div>
     </form>
@@ -202,12 +202,12 @@ function TemplateCard({
               <CardTitle className="text-base font-medium">{template.name}</CardTitle>
               {template.isDefault && (
                 <Badge variant="secondary" className="text-xs">
-                  Standard-Template
+                  Default Template
                 </Badge>
               )}
               {isDefaultTemplate && (
                 <Badge variant="default" className="text-xs">
-                  Tastenkürzel
+                  Hotkey
                 </Badge>
               )}
               {isQuickAccess && (
@@ -224,7 +224,7 @@ function TemplateCard({
               size="icon"
               className="h-8 w-8"
               onClick={() => setExpanded(!expanded)}
-              aria-label={expanded ? "Einklappen" : "Ausklappen"}
+              aria-label={expanded ? "Collapse" : "Expand"}
             >
               {expanded ? (
                 <ChevronUp className="h-4 w-4" />
@@ -252,7 +252,7 @@ function TemplateCard({
                 htmlFor={`quick-access-${template.id}`}
                 className="text-sm font-normal cursor-pointer"
               >
-                Im Quick-Access Menü anzeigen
+                Show in Quick-Access menu
               </Label>
             </div>
 
@@ -264,7 +264,7 @@ function TemplateCard({
                 className="h-8"
               >
                 <Sparkles className="h-3 w-3 mr-1" />
-                Als Tastenkürzel-Standard setzen
+                Set as hotkey default
               </Button>
             )}
           </div>
@@ -289,7 +289,7 @@ function TemplateCard({
           <div className="flex justify-end gap-2 pt-2">
             <Button variant="outline" size="sm" onClick={onEdit}>
               <Edit2 className="h-4 w-4 mr-1" />
-              Bearbeiten
+              Edit
             </Button>
             {!template.isDefault && (
               <Button
@@ -299,7 +299,7 @@ function TemplateCard({
                 className="text-destructive hover:text-destructive"
               >
                 <Trash2 className="h-4 w-4 mr-1" />
-                Löschen
+                Delete
               </Button>
             )}
           </div>
@@ -369,8 +369,8 @@ export function AIRevisionTemplateSettings() {
       <div>
         <h3 className="text-lg font-medium">AI Revision Templates</h3>
         <p className="text-sm text-muted-foreground">
-          Verwalten Sie Ihre Prompt-Templates für die AI-Textüberarbeitung.
-          Standard-Templates können bearbeitet, aber nicht gelöscht werden.
+          Manage your prompt templates for AI text revision.
+          Default templates can be edited but not deleted.
         </p>
       </div>
 
@@ -378,13 +378,13 @@ export function AIRevisionTemplateSettings() {
 
       {/* Default Template Selection */}
       <div className="space-y-2">
-        <Label>Tastenkürzel-Standard (Alt+R)</Label>
+        <Label>Hotkey Default (Alt+R)</Label>
         <Select
           value={defaultTemplateId ?? ""}
           onValueChange={(id) => setDefaultTemplate(id)}
         >
           <SelectTrigger className="w-full max-w-xs">
-            <SelectValue placeholder="Template wählen..." />
+            <SelectValue placeholder="Select template..." />
           </SelectTrigger>
           <SelectContent>
             {templates.map((template) => (
@@ -395,7 +395,7 @@ export function AIRevisionTemplateSettings() {
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          Dieses Template wird ausgeführt, wenn Sie Alt+R drücken.
+          This template will be executed when you press Alt+R.
         </p>
       </div>
 
@@ -405,7 +405,7 @@ export function AIRevisionTemplateSettings() {
       {!showForm && !editingId && (
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          Neues Template erstellen
+          Create New Template
         </Button>
       )}
 
@@ -413,7 +413,7 @@ export function AIRevisionTemplateSettings() {
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Neues Template erstellen</CardTitle>
+            <CardTitle className="text-base">Create New Template</CardTitle>
           </CardHeader>
           <CardContent>
             <TemplateForm
@@ -427,13 +427,13 @@ export function AIRevisionTemplateSettings() {
       {/* Standard Templates */}
       {defaultTemplates.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Standard-Templates</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Default Templates</h4>
           <div className="space-y-2">
             {defaultTemplates.map((template) =>
               editingId === template.id ? (
                 <Card key={template.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">Template bearbeiten</CardTitle>
+                    <CardTitle className="text-base">Edit Template</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TemplateForm
@@ -469,13 +469,13 @@ export function AIRevisionTemplateSettings() {
       {/* Custom Templates */}
       {customTemplates.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Eigene Templates</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Custom Templates</h4>
           <div className="space-y-2">
             {customTemplates.map((template) =>
               editingId === template.id ? (
                 <Card key={template.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">Template bearbeiten</CardTitle>
+                    <CardTitle className="text-base">Edit Template</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TemplateForm
@@ -510,7 +510,7 @@ export function AIRevisionTemplateSettings() {
       {/* Empty state for custom templates */}
       {customTemplates.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground py-4">
-          Sie haben noch keine eigenen Templates erstellt. Klicken Sie auf "Neues Template erstellen" um zu beginnen.
+          You haven't created any custom templates yet. Click "Create New Template" to get started.
         </p>
       )}
     </div>
