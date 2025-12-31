@@ -5,11 +5,16 @@
  * Provides a vertical menu to switch between settings sections.
  */
 
-import { Bot, FileText, Palette } from "lucide-react";
+import { Book, Bot, FileText, Palette, SpellCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-export type SettingsSection = "ai-server" | "ai-templates" | "appearance";
+export type SettingsSection =
+  | "ai-server"
+  | "ai-templates"
+  | "appearance"
+  | "spellcheck"
+  | "glossary";
 
 export interface SettingsSectionItem {
   id: SettingsSection;
@@ -30,6 +35,18 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
     label: "AI Templates",
     description: "Manage prompt templates",
     icon: FileText,
+  },
+  {
+    id: "spellcheck",
+    label: "Spellcheck",
+    description: "Languages & ignored words",
+    icon: SpellCheck,
+  },
+  {
+    id: "glossary",
+    label: "Glossary",
+    description: "Terms & fuzzy matching",
+    icon: Book,
   },
   {
     id: "appearance",

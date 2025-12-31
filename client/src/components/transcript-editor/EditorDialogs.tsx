@@ -5,6 +5,7 @@ import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
 import { SpellcheckDialog } from "../SpellcheckDialog";
+import { SettingsSheet } from "../settings";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];
@@ -32,6 +33,9 @@ export function EditorDialogs({
   defaultRevisionName,
   showAISpeaker,
   onAISpeakerChange,
+  showSettings,
+  onSettingsChange,
+  onOpenSettings,
 }: DialogProps) {
   return (
     <>
@@ -58,7 +62,12 @@ export function EditorDialogs({
         existingRevisionNames={existingRevisionNames}
         defaultRevisionName={defaultRevisionName}
       />
-      <AISpeakerDialog open={showAISpeaker} onOpenChange={onAISpeakerChange} />
+      <AISpeakerDialog
+        open={showAISpeaker}
+        onOpenChange={onAISpeakerChange}
+        onOpenSettings={onOpenSettings}
+      />
+      <SettingsSheet open={showSettings} onOpenChange={onSettingsChange} showTrigger={false} />
     </>
   );
 }

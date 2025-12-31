@@ -335,28 +335,42 @@ export function parseOllamaResponse(
 /**
  * Resolves which AI provider to use based on config.
  * Priority: selectedProviderId > default provider > first provider
+ * Also applies selectedModel override if specified.
  */
 function resolveAIProvider(config: AISpeakerConfig): AIProviderConfig | null {
   const settings = initializeSettings();
 
+  let provider: AIProviderConfig | null = null;
+
   // 1. Try selectedProviderId from config
   if (config.selectedProviderId) {
-    const provider = settings.aiProviders.find((p) => p.id === config.selectedProviderId);
-    if (provider) return provider;
+    provider = settings.aiProviders.find((p) => p.id === config.selectedProviderId) ?? null;
   }
 
   // 2. Try default provider
-  if (settings.defaultAIProviderId) {
-    const provider = settings.aiProviders.find((p) => p.id === settings.defaultAIProviderId);
-    if (provider) return provider;
+  if (!provider && settings.defaultAIProviderId) {
+    provider = settings.aiProviders.find((p) => p.id === settings.defaultAIProviderId) ?? null;
   }
 
   // 3. Try any provider marked as default
-  const defaultProvider = settings.aiProviders.find((p) => p.isDefault);
-  if (defaultProvider) return defaultProvider;
+  if (!provider) {
+    provider = settings.aiProviders.find((p) => p.isDefault) ?? null;
+  }
 
   // 4. Fall back to first provider
-  return settings.aiProviders[0] ?? null;
+  if (!provider) {
+    provider = settings.aiProviders[0] ?? null;
+  }
+
+  // Apply model override if specified
+  if (provider && config.selectedModel) {
+    return {
+      ...provider,
+      model: config.selectedModel,
+    };
+  }
+
+  return provider;
 }
 
 /**

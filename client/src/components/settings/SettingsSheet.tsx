@@ -20,6 +20,8 @@ import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
+import { GlossarySettings } from "./sections/GlossarySettings";
+import { SpellcheckSettings } from "./sections/SpellcheckSettings";
 
 interface SettingsSheetProps {
   /** Controlled open state (optional) */
@@ -57,6 +59,10 @@ export function SettingsSheet({
         return <AITemplateSettings />;
       case "appearance":
         return <AppearanceSettings />;
+      case "spellcheck":
+        return <SpellcheckSettings />;
+      case "glossary":
+        return <GlossarySettings />;
       default:
         return <AIServerSettings />;
     }

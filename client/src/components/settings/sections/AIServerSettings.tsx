@@ -57,6 +57,7 @@ interface ProviderFormData {
   baseUrl: string;
   apiKey: string;
   model: string;
+  availableModels: string[];
   isDefault: boolean;
 }
 
@@ -66,6 +67,7 @@ const EMPTY_FORM: ProviderFormData = {
   baseUrl: "http://localhost:11434",
   apiKey: "",
   model: "",
+  availableModels: [],
   isDefault: false,
 };
 
@@ -88,8 +90,60 @@ function ProviderForm({ initialData, onSave, onCancel, isEditing }: ProviderForm
     ...initialData,
   });
   const [errors, setErrors] = useState<string[]>([]);
+  const [fetchingModels, setFetchingModels] = useState(false);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const [manualModelInput, setManualModelInput] = useState("");
 
   const needsApiKey = form.type === "openai" || form.type === "custom";
+
+  // Fetch available models from the provider API
+  const handleFetchModels = async () => {
+    setFetchingModels(true);
+    setFetchError(null);
+    try {
+      const tempConfig = createProviderConfig({
+        type: form.type,
+        name: form.name || "temp",
+        baseUrl: form.baseUrl,
+        apiKey: form.apiKey || undefined,
+        model: form.model || "temp",
+      });
+      const provider = createAIProvider(tempConfig);
+      const models = await provider.listModels();
+      setForm((prev) => ({
+        ...prev,
+        availableModels: models,
+        // Auto-select first model if none selected
+        model: prev.model || models[0] || "",
+      }));
+    } catch (err) {
+      setFetchError(err instanceof Error ? err.message : "Failed to fetch models");
+    } finally {
+      setFetchingModels(false);
+    }
+  };
+
+  // Add a model manually
+  const handleAddManualModel = () => {
+    const trimmed = manualModelInput.trim();
+    if (trimmed && !form.availableModels.includes(trimmed)) {
+      setForm((prev) => ({
+        ...prev,
+        availableModels: [...prev.availableModels, trimmed],
+        model: prev.model || trimmed,
+      }));
+      setManualModelInput("");
+    }
+  };
+
+  // Remove a model from the list
+  const handleRemoveModel = (modelToRemove: string) => {
+    setForm((prev) => ({
+      ...prev,
+      availableModels: prev.availableModels.filter((m) => m !== modelToRemove),
+      model: prev.model === modelToRemove ? prev.availableModels[0] || "" : prev.model,
+    }));
+  };
 
   const handleTypeChange = (type: AIProviderType) => {
     const baseUrl =
@@ -198,15 +252,81 @@ function ProviderForm({ initialData, onSave, onCancel, isEditing }: ProviderForm
         </div>
       )}
 
+      {/* Models Management */}
       <div className="space-y-2">
-        <Label htmlFor="provider-model">Model</Label>
-        <Input
-          id="provider-model"
-          value={form.model}
-          onChange={(e) => setForm((prev) => ({ ...prev, model: e.target.value }))}
-          placeholder="e.g., llama3.2, gpt-4o, mistral"
-          data-testid="input-provider-model"
-        />
+        <Label>Models</Label>
+        <div className="flex gap-2">
+          <Input
+            value={manualModelInput}
+            onChange={(e) => setManualModelInput(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                handleAddManualModel();
+              }
+            }}
+            placeholder="Add model manually..."
+            className="flex-1"
+            data-testid="input-manual-model"
+          />
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleAddManualModel}
+            disabled={!manualModelInput.trim()}
+          >
+            <Plus className="h-4 w-4" />
+          </Button>
+          <Button
+            type="button"
+            variant="outline"
+            onClick={handleFetchModels}
+            disabled={fetchingModels || !form.baseUrl}
+            data-testid="button-fetch-models"
+          >
+            {fetchingModels ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Zap className="h-4 w-4" />
+            )}
+            <span className="ml-1 hidden sm:inline">Fetch</span>
+          </Button>
+        </div>
+        {fetchError && <p className="text-xs text-destructive">{fetchError}</p>}
+
+        {form.availableModels.length > 0 ? (
+          <div className="flex flex-wrap gap-1 mt-2">
+            {form.availableModels.map((model) => (
+              <Badge
+                key={model}
+                variant={model === form.model ? "default" : "secondary"}
+                className="cursor-pointer group"
+                onClick={() => setForm((prev) => ({ ...prev, model }))}
+              >
+                {model === form.model && "★ "}
+                {model}
+                <button
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveModel(model);
+                  }}
+                  className="ml-1 opacity-60 hover:opacity-100"
+                  aria-label={`Remove ${model}`}
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </div>
+        ) : (
+          <p className="text-sm text-muted-foreground py-2">
+            No models configured. Add manually or click "Fetch" to load from server.
+          </p>
+        )}
+        <p className="text-xs text-muted-foreground">
+          Click a model to set it as default (★). Use "Fetch" to load models from the server.
+        </p>
       </div>
 
       <div className="flex items-center justify-between">
@@ -397,6 +517,7 @@ export function AIServerSettings() {
       baseUrl: data.baseUrl,
       apiKey: data.apiKey || undefined,
       model: data.model,
+      availableModels: data.availableModels,
       isDefault: data.isDefault,
     });
 
@@ -412,6 +533,7 @@ export function AIServerSettings() {
         baseUrl: data.baseUrl,
         apiKey: data.apiKey || undefined,
         model: data.model,
+        availableModels: data.availableModels,
         isDefault: data.isDefault,
       }),
     );
@@ -492,6 +614,7 @@ export function AIServerSettings() {
                       baseUrl: provider.baseUrl,
                       apiKey: provider.apiKey ?? "",
                       model: provider.model,
+                      availableModels: provider.availableModels ?? [],
                       isDefault: provider.isDefault ?? false,
                     }}
                     onSave={(data) => handleEditProvider(provider.id, data)}

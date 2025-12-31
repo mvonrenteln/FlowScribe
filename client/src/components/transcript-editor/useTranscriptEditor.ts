@@ -195,6 +195,7 @@ export const useTranscriptEditor = () => {
   const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showAISpeaker, setShowAISpeaker] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -967,6 +968,9 @@ export const useTranscriptEditor = () => {
               .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
       showAISpeaker,
       onAISpeakerChange: setShowAISpeaker,
+      showSettings,
+      onSettingsChange: setShowSettings,
+      onOpenSettings: () => setShowSettings(true),
     }),
     [
       audioFile?.name,
@@ -985,6 +989,7 @@ export const useTranscriptEditor = () => {
       sessionKey,
       sessionLabel,
       showAISpeaker,
+      showSettings,
     ],
   );
 

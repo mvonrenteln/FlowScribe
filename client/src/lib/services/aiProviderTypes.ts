@@ -23,6 +23,8 @@ export interface AIProviderConfig {
   apiKey?: string;
   /** Default model to use */
   model: string;
+  /** Available models for this provider (manually set or fetched via API) */
+  availableModels?: string[];
   /** Whether this is the default provider */
   isDefault?: boolean;
   /** Timestamp of last connection test */

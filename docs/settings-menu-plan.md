@@ -12,15 +12,18 @@ Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modular
 | Phase 2 | ✅ Fertig | AI Settings (Provider, OpenAI, Ollama, Templates) |
 | Phase 3 | 🔄 Teilweise | Template System (Basis vorhanden, Kategorien ausstehend) |
 | Phase 4 | ✅ Fertig | Appearance Settings (Theme-Toggle integriert) |
-| Phase 5 | ⏳ Ausstehend | Spellcheck & Glossar Migration |
+| Phase 5 | ✅ Fertig | Spellcheck & Glossar Migration |
 | Phase 6 | ⏳ Ausstehend | Polish & Accessibility |
-| Phase 7 | 🔄 Teilweise | Legacy Cleanup (Config-Tab entfernt) |
+| Phase 7 | ✅ Fertig | Legacy Cleanup |
 
 **Highlights:**
 - AI Provider sind vollständig Provider-agnostisch (Ollama, OpenAI, Custom)
 - Provider-Tests sind echte Verbindungstests (nicht gemockt)
-- AISpeakerDialog nutzt jetzt Provider aus Settings
+- AISpeakerDialog: Provider und Modell getrennt auswählbar, Templates-Tab entfernt
 - Batch-Size bleibt im Dialog (Use-Case-spezifisch)
+- Provider unterstützen Liste verfügbarer Modelle (manuell oder via API-Fetch)
+- Spellcheck Settings: Sprachen, Ignorierte Wörter, Custom Dictionaries
+- Glossary Settings: Fuzzy-Matching, Highlighting, Term-Management
 
 ---
 
@@ -362,10 +365,10 @@ export function migrateFromLegacy(): PersistedSettings { ... }
 - [x] **4.2** Appearance Settings Section (`AppearanceSettings.tsx`)
 - [ ] **4.3** System-Theme-Detection verbessern (optional)
 
-### Phase 5: Spellcheck & Glossar Migration
-- [ ] **5.1** Spellcheck Settings extrahieren (`SpellcheckSettings.tsx`)
-- [ ] **5.2** Glossar Settings extrahieren (`GlossarySettings.tsx`)
-- [ ] **5.3** Bestehende Dialoge auf Settings verlinken
+### Phase 5: Spellcheck & Glossar Migration ✅
+- [x] **5.1** Spellcheck Settings extrahieren (`SpellcheckSettings.tsx`)
+- [x] **5.2** Glossar Settings extrahieren (`GlossarySettings.tsx`)
+- [x] **5.3** Navigation um Spellcheck & Glossary erweitert
 
 ### Phase 6: Polish & Accessibility
 - [ ] **6.1** ARIA-Labels und Rollen überprüfen
@@ -374,11 +377,12 @@ export function migrateFromLegacy(): PersistedSettings { ... }
 - [ ] **6.4** Settings-Suche implementieren (optional)
 - [ ] **6.5** Keyboard Shortcuts Dokumentation
 
-### Phase 7: Legacy Cleanup (teilweise erledigt)
+### Phase 7: Legacy Cleanup ✅
 - [x] **7.1** Alte Config-Teile aus AISpeakerDialog entfernt (Config-Tab entfernt)
-- [x] **7.2** Storage-Migration implementieren (Legacy-Migration vorhanden)
-- [ ] **7.3** Deprecation-Warnungen entfernen (nach vollständiger Migration)
-- [ ] **7.4** Dokumentation aktualisieren
+- [x] **7.2** Templates-Tab aus AISpeakerDialog entfernt
+- [x] **7.3** Storage-Migration implementieren (Legacy-Migration vorhanden)
+- [x] **7.4** Provider und Modell getrennt auswählbar
+- [ ] **7.5** Dokumentation aktualisieren (usage.md etc.)
 
 ---
 

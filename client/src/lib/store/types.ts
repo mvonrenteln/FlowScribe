@@ -289,6 +289,8 @@ export interface AISpeakerConfig {
   activeTemplateId: string;
   /** ID of the selected AI provider from settings */
   selectedProviderId?: string;
+  /** Selected model (overrides provider default if set) */
+  selectedModel?: string;
 }
 
 // Note: AI Speaker state is stored in InitialStoreState with aiSpeaker* prefix
