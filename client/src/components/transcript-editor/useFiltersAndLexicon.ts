@@ -13,6 +13,11 @@ interface UseFiltersAndLexiconOptions {
   lexiconHighlightBackground: boolean;
   spellcheckEnabled: boolean;
   spellcheckMatchesBySegment: Map<string, Map<number, unknown>>;
+  // Confidence from store
+  highlightLowConfidence: boolean;
+  manualConfidenceThreshold: number | null;
+  setHighlightLowConfidence: (enabled: boolean) => void;
+  setManualConfidenceThreshold: (threshold: number | null) => void;
 }
 
 export interface FiltersAndLexiconState {
@@ -45,6 +50,10 @@ export function useFiltersAndLexicon({
   lexiconHighlightBackground,
   spellcheckEnabled,
   spellcheckMatchesBySegment,
+  highlightLowConfidence,
+  manualConfidenceThreshold,
+  setHighlightLowConfidence,
+  setManualConfidenceThreshold,
 }: UseFiltersAndLexiconOptions) {
   const [filterSpeakerId, setFilterSpeakerId] = useState<string | undefined>();
   const [filterLowConfidence, setFilterLowConfidence] = useState(false);
@@ -52,8 +61,6 @@ export function useFiltersAndLexicon({
   const [filterLexicon, setFilterLexicon] = useState(false);
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
-  const [highlightLowConfidence, setHighlightLowConfidence] = useState(true);
-  const [manualConfidenceThreshold, setManualConfidenceThreshold] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
 

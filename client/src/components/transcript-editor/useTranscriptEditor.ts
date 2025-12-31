@@ -154,6 +154,15 @@ export const useTranscriptEditor = () => {
     (state) => state.spellcheckCustomDictionaries,
   );
   const spellcheckCustomEnabled = useTranscriptStore((state) => state.spellcheckCustomEnabled);
+  const highlightLowConfidence = useTranscriptStore((state) => state.highlightLowConfidence);
+  const manualConfidenceThreshold = useTranscriptStore((state) => state.manualConfidenceThreshold);
+  const setHighlightLowConfidence = useTranscriptStore((state) => state.setHighlightLowConfidence);
+  const setManualConfidenceThreshold = useTranscriptStore(
+    (state) => state.setManualConfidenceThreshold,
+  );
+  const toggleHighlightLowConfidence = useTranscriptStore(
+    (state) => state.toggleHighlightLowConfidence,
+  );
   const { setAudioFile, setAudioUrl, setAudioReference, activateSession, loadTranscript } =
     transcriptActions;
   const {
@@ -318,9 +327,7 @@ export const useTranscriptEditor = () => {
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
-    highlightLowConfidence,
-    setHighlightLowConfidence,
-    setManualConfidenceThreshold,
+    // highlightLowConfidence, setHighlightLowConfidence, setManualConfidenceThreshold from store
     activeSpeakerName,
     lowConfidenceThreshold,
     lexiconMatchesBySegment,
@@ -345,6 +352,10 @@ export const useTranscriptEditor = () => {
     lexiconHighlightBackground,
     spellcheckEnabled,
     spellcheckMatchesBySegment,
+    highlightLowConfidence,
+    manualConfidenceThreshold,
+    setHighlightLowConfidence,
+    setManualConfidenceThreshold,
   });
 
   const {
@@ -706,7 +717,7 @@ export const useTranscriptEditor = () => {
       onShowShortcuts: () => setShowShortcuts(true),
       onShowExport: () => setShowExport(true),
       highlightLowConfidence,
-      onToggleHighlightLowConfidence: () => setHighlightLowConfidence((current) => !current),
+      onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
       confidencePopoverOpen,
       onConfidencePopoverChange: setConfidencePopoverOpen,
       lowConfidenceThreshold,
@@ -771,6 +782,7 @@ export const useTranscriptEditor = () => {
       sessionLabel,
       canCreateRevision,
       transcriptActions.deleteSession,
+      toggleHighlightLowConfidence,
     ],
   );
 

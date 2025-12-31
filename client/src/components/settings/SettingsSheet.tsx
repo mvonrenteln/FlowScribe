@@ -20,6 +20,7 @@ import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
+import { ConfidenceSettings } from "./sections/ConfidenceSettings";
 import { GlossarySettings } from "./sections/GlossarySettings";
 import { SpellcheckSettings } from "./sections/SpellcheckSettings";
 
@@ -63,6 +64,8 @@ export function SettingsSheet({
         return <SpellcheckSettings />;
       case "glossary":
         return <GlossarySettings />;
+      case "confidence":
+        return <ConfidenceSettings />;
       default:
         return <AIServerSettings />;
     }
@@ -99,7 +102,7 @@ export function SettingsSheet({
 
         <div className="flex h-[calc(100vh-120px)]">
           {/* Navigation Sidebar */}
-          <div className="w-48 border-r bg-muted/30">
+          <div className="w-56 border-r bg-muted/30 shrink-0">
             <SettingsNav activeSection={activeSection} onSectionChange={handleSectionChange} />
           </div>
 

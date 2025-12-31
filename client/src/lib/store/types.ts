@@ -83,6 +83,9 @@ export interface PersistedGlobalState {
   spellcheckIgnoreWords?: string[];
   spellcheckCustomEnabled?: boolean;
   aiSpeakerConfig?: AISpeakerConfig;
+  // Confidence highlighting
+  highlightLowConfidence?: boolean;
+  manualConfidenceThreshold?: number | null;
 }
 
 export interface RecentSessionSummary {
@@ -136,6 +139,9 @@ export interface InitialStoreState {
   aiSpeakerBatchInsights: AISpeakerBatchInsight[];
   aiSpeakerDiscrepancyNotice: string | null;
   aiSpeakerBatchLog: AISpeakerBatchInsight[];
+  // Confidence highlighting
+  highlightLowConfidence: boolean;
+  manualConfidenceThreshold: number | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -146,7 +152,14 @@ export type TranscriptStore = InitialStoreState &
   SpeakersSlice &
   LexiconSlice &
   SpellcheckSlice &
-  AISpeakerSlice;
+  AISpeakerSlice &
+  ConfidenceSlice;
+
+export interface ConfidenceSlice {
+  setHighlightLowConfidence: (enabled: boolean) => void;
+  setManualConfidenceThreshold: (threshold: number | null) => void;
+  toggleHighlightLowConfidence: () => void;
+}
 
 export interface SessionSlice {
   setAudioFile: (file: File | null) => void;

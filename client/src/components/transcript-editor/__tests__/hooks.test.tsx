@@ -5,6 +5,14 @@ import type { Segment } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "../useFiltersAndLexicon";
 import { useScrollAndSelection } from "../useScrollAndSelection";
 
+// Base confidence props for all tests
+const confidenceProps = {
+  highlightLowConfidence: false,
+  manualConfidenceThreshold: null,
+  setHighlightLowConfidence: vi.fn(),
+  setManualConfidenceThreshold: vi.fn(),
+};
+
 describe("useFiltersAndLexicon", () => {
   const baseSegments: Segment[] = [
     {
@@ -47,6 +55,7 @@ describe("useFiltersAndLexicon", () => {
         lexiconHighlightBackground: false,
         spellcheckEnabled: false,
         spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
       }),
     );
 
@@ -82,6 +91,7 @@ describe("useFiltersAndLexicon", () => {
         lexiconHighlightBackground: false,
         spellcheckEnabled: false,
         spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
       }),
     );
 
@@ -112,6 +122,7 @@ describe("useFiltersAndLexicon", () => {
         lexiconHighlightBackground: false,
         spellcheckEnabled: false,
         spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
       }),
     );
 
@@ -132,6 +143,7 @@ describe("useFiltersAndLexicon", () => {
         lexiconHighlightBackground: false,
         spellcheckEnabled: false,
         spellcheckMatchesBySegment: spellcheckMatches,
+        ...confidenceProps,
       }),
     );
 
@@ -156,6 +168,7 @@ describe("useFiltersAndLexicon", () => {
         lexiconHighlightBackground: false,
         spellcheckEnabled: true,
         spellcheckMatchesBySegment: spellcheckMatches,
+        ...confidenceProps,
       }),
     );
 

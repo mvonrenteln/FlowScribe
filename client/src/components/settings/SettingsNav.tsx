@@ -5,7 +5,7 @@
  * Provides a vertical menu to switch between settings sections.
  */
 
-import { Book, Bot, FileText, Palette, SpellCheck } from "lucide-react";
+import { Book, Bot, FileText, Gauge, Palette, SpellCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -14,7 +14,8 @@ export type SettingsSection =
   | "ai-templates"
   | "appearance"
   | "spellcheck"
-  | "glossary";
+  | "glossary"
+  | "confidence";
 
 export interface SettingsSectionItem {
   id: SettingsSection;
@@ -47,6 +48,12 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
     label: "Glossary",
     description: "Terms & fuzzy matching",
     icon: Book,
+  },
+  {
+    id: "confidence",
+    label: "Confidence",
+    description: "Low confidence highlighting",
+    icon: Gauge,
   },
   {
     id: "appearance",
@@ -82,9 +89,13 @@ export function SettingsNav({ activeSection, onSectionChange }: SettingsNavProps
             aria-current={isActive ? "page" : undefined}
           >
             <Icon className="h-4 w-4 shrink-0" aria-hidden="true" />
-            <div className="flex flex-col items-start text-left">
-              <span className="text-sm font-medium">{section.label}</span>
-              <span className="text-xs text-muted-foreground">{section.description}</span>
+            <div className="flex flex-col items-start text-left min-w-0 w-full">
+              <span className="text-sm font-medium leading-tight break-words w-full">
+                {section.label}
+              </span>
+              <span className="text-xs text-muted-foreground leading-tight break-words w-full">
+                {section.description}
+              </span>
             </div>
           </Button>
         );

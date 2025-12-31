@@ -62,20 +62,28 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
 };
 
 describe("Toolbar", () => {
-  it("highlights the spellcheck button when spellcheck highlighting is active", () => {
+  it("highlights the Highlights button when any highlighting is active", () => {
     render(<Toolbar {...baseProps} spellcheckHighlightActive={true} />);
 
-    const spellcheckButton = screen.getByTestId("button-spellcheck");
+    const highlightsButton = screen.getByTestId("button-highlights");
 
-    expect(spellcheckButton).toHaveAttribute("aria-pressed", "true");
+    expect(highlightsButton).toHaveClass("bg-accent");
   });
 
-  it("highlights the glossary button when glossary highlighting is active", () => {
+  it("highlights the Highlights button when glossary highlighting is active", () => {
     render(<Toolbar {...baseProps} glossaryHighlightActive={true} />);
 
-    const glossaryButton = screen.getByTestId("button-glossary");
+    const highlightsButton = screen.getByTestId("button-highlights");
 
-    expect(glossaryButton).toHaveAttribute("aria-pressed", "true");
+    expect(highlightsButton).toHaveClass("bg-accent");
+  });
+
+  it("highlights the Highlights button when confidence highlighting is active", () => {
+    render(<Toolbar {...baseProps} highlightLowConfidence={true} />);
+
+    const highlightsButton = screen.getByTestId("button-highlights");
+
+    expect(highlightsButton).toHaveClass("bg-accent");
   });
 
   it("renders revision entries with a Revision badge", async () => {

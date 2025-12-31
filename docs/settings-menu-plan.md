@@ -15,6 +15,7 @@ Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modular
 | Phase 5 | ✅ Fertig | Spellcheck & Glossar Migration |
 | Phase 6 | ⏳ Ausstehend | Polish & Accessibility |
 | Phase 7 | ✅ Fertig | Legacy Cleanup |
+| Phase 8 | ✅ Fertig | Toolbar-Konsolidierung (Highlights-Dropdown) |
 
 **Highlights:**
 - AI Provider sind vollständig Provider-agnostisch (Ollama, OpenAI, Custom)
@@ -26,7 +27,12 @@ Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modular
 - Custom Dictionaries: Vollständige Migration inkl. .oxt/.aff/.dic Import
 - Custom Dictionaries ersetzen die Built-in Sprachen (de/en) wenn aktiviert
 - Glossary Settings: Fuzzy-Matching, Highlighting, Term-Management
-- "Manage dictionaries" Button in Toolbar öffnet jetzt Settings
+- **Toolbar**: 3 separate Buttons (Confidence, Spellcheck, Glossary) durch einen "Highlights"-Dropdown ersetzt
+- "Highlights"-Dropdown enthält Toggles für alle 3 Optionen + Link zu Settings
+- **Confidence Settings**: Jetzt im globalen Store persistiert und in Settings konfigurierbar
+  - Enable/Disable Confidence Highlighting
+  - Manueller Threshold-Slider (0-100%)
+  - Auto-Mode (berechnet 10. Perzentile, max 40%)
 
 ---
 
