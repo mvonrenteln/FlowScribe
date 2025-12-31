@@ -2,11 +2,11 @@
  * AI Batch Revision Section
  *
  * Collapsible section in the FilterPanel for batch AI revision.
- * Shows template selector and start button when expanded.
+ * Shows template selector, provider/model selection, and start button when expanded.
  */
 
-import { ChevronDown, ChevronRight, Loader2, Sparkles, X } from "lucide-react";
-import { useState } from "react";
+import { ChevronDown, ChevronRight, Loader2, Settings2, Sparkles, X } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -16,6 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { initializeSettings, type PersistedSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -27,6 +28,16 @@ interface AIBatchRevisionSectionProps {
 export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [settings, setSettings] = useState<PersistedSettings | null>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>("");
+  const [selectedModel, setSelectedModel] = useState<string>("");
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadedSettings = initializeSettings();
+    setSettings(loadedSettings);
+    setSelectedProviderId(loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "");
+  }, []);
 
   // Store state
   const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
@@ -37,6 +48,11 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
   const error = useTranscriptStore((s) => s.aiRevisionError);
   const startBatchRevision = useTranscriptStore((s) => s.startBatchRevision);
   const cancelRevision = useTranscriptStore((s) => s.cancelRevision);
+
+  // Provider and model state
+  const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
+  const availableModels = selectedProvider?.availableModels ?? [];
+  const effectiveModel = selectedModel || selectedProvider?.model || "";
 
   // Use default template if none selected
   const effectiveTemplateId = selectedTemplateId || defaultTemplateId || templates[0]?.id;
@@ -80,6 +96,68 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
       {/* Expanded Content */}
       {isExpanded && (
         <div className="mt-3 space-y-3 pl-6">
+          {/* Provider Selector */}
+          {settings && settings.aiProviders.length > 0 && (
+            <div className="space-y-1.5">
+              <label htmlFor="revision-provider" className="text-xs text-muted-foreground">
+                AI Provider
+              </label>
+              <Select
+                value={selectedProviderId}
+                onValueChange={(id) => {
+                  setSelectedProviderId(id);
+                  setSelectedModel(""); // Reset model when provider changes
+                }}
+                disabled={isProcessing}
+              >
+                <SelectTrigger id="revision-provider" className="h-8 text-sm">
+                  <SelectValue placeholder="Provider wählen..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {settings.aiProviders.map((provider) => (
+                    <SelectItem key={provider.id} value={provider.id}>
+                      {provider.name}
+                      {provider.isDefault && (
+                        <span className="ml-2 text-xs text-muted-foreground">(Standard)</span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Model Selector (if provider has available models) */}
+          {selectedProvider && (
+            <div className="space-y-1.5">
+              <label htmlFor="revision-model" className="text-xs text-muted-foreground">
+                Modell
+              </label>
+              {availableModels.length > 0 ? (
+                <Select
+                  value={effectiveModel}
+                  onValueChange={setSelectedModel}
+                  disabled={isProcessing}
+                >
+                  <SelectTrigger id="revision-model" className="h-8 text-sm">
+                    <SelectValue placeholder="Modell wählen..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {availableModels.map((model) => (
+                      <SelectItem key={model} value={model}>
+                        {model}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              ) : (
+                <div className="text-xs text-muted-foreground bg-muted rounded px-2 py-1.5">
+                  {selectedProvider.model || "Kein Modell konfiguriert"}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Template Selector */}
           <div className="space-y-1.5">
             <label htmlFor="revision-template" className="text-xs text-muted-foreground">

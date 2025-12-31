@@ -19,29 +19,39 @@ interface AIRevisionPopoverProps {
 
 export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProps) {
   const [open, setOpen] = useState(false);
+  const [localProcessing, setLocalProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
 
   // Store state
   const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
   const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessTemplateIds);
-  const isProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
+  const suggestions = useTranscriptStore((s) => s.aiRevisionSuggestions);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
+
+  // Check if this specific segment has a pending suggestion
+  const hasPendingSuggestion = suggestions.some(
+    (s) => s.segmentId === segmentId && s.status === "pending"
+  );
 
   // Get quick-access templates
   const quickAccessTemplates = templates.filter((t) => quickAccessIds.includes(t.id));
   const otherTemplates = templates.filter((t) => !quickAccessIds.includes(t.id));
 
   const handleSelectTemplate = (templateId: string) => {
+    setLocalProcessing(true);
     startSingleRevision(segmentId, templateId);
     setOpen(false);
 
-    // Show success animation after processing
-    // This is simplified - ideally we'd track the specific segment's processing state
+    // The processing state will be updated by the store
+    // We use a timeout to show feedback, but ideally we'd subscribe to the specific segment's state
     setTimeout(() => {
+      setLocalProcessing(false);
       setShowSuccess(true);
       setTimeout(() => setShowSuccess(false), 1500);
-    }, 100);
+    }, 2000);
   };
+
+  const isProcessingThis = localProcessing;
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -51,13 +61,14 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           size="icon"
           className={cn(
             "h-7 w-7 text-muted-foreground hover:text-foreground",
-            isProcessing && "animate-pulse",
+            isProcessingThis && "animate-pulse",
+            hasPendingSuggestion && "text-amber-500 hover:text-amber-600",
           )}
-          disabled={disabled || isProcessing}
+          disabled={disabled || isProcessingThis}
           aria-label="AI Revision (Alt+R für Standard)"
-          title="AI Revision (Alt+R für Standard)"
+          title={hasPendingSuggestion ? "AI Revision vorgeschlagen - klicken zum Anzeigen" : "AI Revision (Alt+R für Standard)"}
         >
-          {isProcessing ? (
+          {isProcessingThis ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : showSuccess ? (
             <Check className="h-4 w-4 text-green-500" />

@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { useTranscriptStore } from "@/lib/store";
 import { TranscriptSegment } from "../TranscriptSegment";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -36,6 +37,18 @@ function TranscriptListComponent({
   onMatchClick,
   findMatchIndex,
 }: TranscriptListProps) {
+  // Get pending revisions from store
+  const pendingRevisions = useTranscriptStore((s) => s.aiRevisionSuggestions);
+  const acceptRevision = useTranscriptStore((s) => s.acceptRevision);
+  const rejectRevision = useTranscriptStore((s) => s.rejectRevision);
+
+  // Create a map for fast lookup
+  const pendingRevisionBySegmentId = new Map(
+    pendingRevisions
+      .filter((r) => r.status === "pending")
+      .map((r) => [r.segmentId, r])
+  );
+
   // Simple "virtualization": If there are many segments, we could limit rendering.
   // But first, let's ensure memoization of the list itself and the segments works.
 
@@ -53,6 +66,8 @@ function TranscriptListComponent({
             if (!handlers) return null; // Safety check
 
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
+            const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
+
             return (
               <TranscriptSegment
                 key={segment.id}
@@ -92,6 +107,13 @@ function TranscriptListComponent({
                 onReplaceCurrent={onReplaceCurrent}
                 onMatchClick={onMatchClick}
                 findMatchIndex={findMatchIndex}
+                // AI Revision props
+                pendingRevision={pendingRevision ? {
+                  revisedText: pendingRevision.revisedText,
+                  changeSummary: pendingRevision.changeSummary,
+                } : undefined}
+                onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
+                onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
               />
             );
           })
