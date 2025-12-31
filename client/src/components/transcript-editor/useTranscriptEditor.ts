@@ -832,6 +832,7 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       onReplaceCurrent: replaceCurrent,
       onReplaceAll: replaceAll,
+      filteredSegmentIds: filteredSegments.map((s) => s.id),
     }),
     [
       addSpeaker,
@@ -872,6 +873,7 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       replaceCurrent,
       replaceAll,
+      filteredSegments,
     ],
   );
 

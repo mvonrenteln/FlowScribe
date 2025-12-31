@@ -25,6 +25,8 @@ import type { SearchMatch, Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 import { TranscriptWord } from "./TranscriptWord";
+import { AIRevisionPopover } from "./transcript-editor/AIRevisionPopover";
+import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 
 interface TranscriptSegmentProps {
   readonly segment: Segment;
@@ -64,6 +66,13 @@ interface TranscriptSegmentProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  /** Pending AI revision for this segment */
+  readonly pendingRevision?: {
+    revisedText: string;
+    changeSummary?: string;
+  };
+  readonly onAcceptRevision?: () => void;
+  readonly onRejectRevision?: () => void;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -111,6 +120,9 @@ function TranscriptSegmentComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  pendingRevision,
+  onAcceptRevision,
+  onRejectRevision,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -439,6 +451,19 @@ function TranscriptSegmentComponent({
               })()}
             </div>
           )}
+
+          {/* Show diff view if there's a pending revision */}
+          {pendingRevision && onAcceptRevision && onRejectRevision && (
+            <div className="mt-3">
+              <SegmentDiffView
+                originalText={segment.text}
+                revisedText={pendingRevision.revisedText}
+                changeSummary={pendingRevision.changeSummary}
+                onAccept={onAcceptRevision}
+                onReject={onRejectRevision}
+              />
+            </div>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -490,6 +515,9 @@ function TranscriptSegmentComponent({
               <Scissors className="h-4 w-4" />
             </Button>
           )}
+
+          {/* AI Revision Button */}
+          <AIRevisionPopover segmentId={segment.id} disabled={isEditing} />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>

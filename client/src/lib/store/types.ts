@@ -142,6 +142,14 @@ export interface InitialStoreState {
   // Confidence highlighting
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  // AI Revision state
+  aiRevisionSuggestions: AIRevisionSuggestion[];
+  aiRevisionIsProcessing: boolean;
+  aiRevisionProcessedCount: number;
+  aiRevisionTotalToProcess: number;
+  aiRevisionConfig: AIRevisionConfig;
+  aiRevisionError: string | null;
+  aiRevisionAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -153,7 +161,8 @@ export type TranscriptStore = InitialStoreState &
   LexiconSlice &
   SpellcheckSlice &
   AISpeakerSlice &
-  ConfidenceSlice;
+  ConfidenceSlice &
+  AIRevisionSlice;
 
 export interface ConfidenceSlice {
   setHighlightLowConfidence: (enabled: boolean) => void;
@@ -331,3 +340,62 @@ export interface AISpeakerSlice {
 }
 
 export type SessionKind = "current" | "revision";
+
+// ==================== AI Revision Types ====================
+
+export type AIRevisionSuggestionStatus = "pending" | "accepted" | "rejected";
+
+export interface TextChange {
+  type: "insert" | "delete" | "replace";
+  position: number;
+  length?: number;
+  oldText?: string;
+  newText?: string;
+}
+
+export interface AIRevisionSuggestion {
+  segmentId: string;
+  templateId: string;
+  originalText: string;
+  revisedText: string;
+  status: AIRevisionSuggestionStatus;
+  changes: TextChange[];
+  changeSummary?: string;
+  reasoning?: string;
+}
+
+export interface AIRevisionTemplate {
+  id: string;
+  name: string;
+  systemPrompt: string;
+  userPromptTemplate: string;
+  isDefault?: boolean;
+  isQuickAccess?: boolean;
+}
+
+export interface AIRevisionConfig {
+  templates: AIRevisionTemplate[];
+  defaultTemplateId: string | null;
+  quickAccessTemplateIds: string[];
+}
+
+export interface AIRevisionSlice {
+  // State is in InitialStoreState with aiRevision* prefix
+  // Actions
+  startSingleRevision: (segmentId: string, templateId: string) => void;
+  startBatchRevision: (segmentIds: string[], templateId: string) => void;
+  cancelRevision: () => void;
+  acceptRevision: (segmentId: string) => void;
+  rejectRevision: (segmentId: string) => void;
+  acceptAllRevisions: () => void;
+  rejectAllRevisions: () => void;
+  clearRevisions: () => void;
+  // Template management
+  addRevisionTemplate: (template: Omit<AIRevisionTemplate, "id">) => void;
+  updateRevisionTemplate: (id: string, updates: Partial<AIRevisionTemplate>) => void;
+  deleteRevisionTemplate: (id: string) => void;
+  setDefaultRevisionTemplate: (id: string | null) => void;
+  setQuickAccessTemplates: (ids: string[]) => void;
+  toggleQuickAccessTemplate: (id: string) => void;
+}
+

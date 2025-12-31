@@ -13,6 +13,7 @@ import { Slider } from "@/components/ui/slider";
 import type { Segment, Speaker } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
+import { AIBatchRevisionSection, BatchResultsSummary } from "./transcript-editor/AIBatchRevisionSection";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
@@ -52,6 +53,8 @@ interface SpeakerSidebarProps {
   goToPrevMatch?: () => void;
   onReplaceCurrent?: () => void;
   onReplaceAll?: () => void;
+  /** IDs of segments matching current filters (for AI batch revision) */
+  filteredSegmentIds?: string[];
 }
 
 export function SpeakerSidebar({
@@ -92,6 +95,7 @@ export function SpeakerSidebar({
   goToPrevMatch,
   onReplaceCurrent,
   onReplaceAll,
+  filteredSegmentIds = [],
 }: Readonly<SpeakerSidebarProps>) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editValue, setEditValue] = useState("");
@@ -472,6 +476,9 @@ export function SpeakerSidebar({
               <span>Bookmarked</span>
               <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
             </button>
+
+            {/* AI Batch Revision Section */}
+            <AIBatchRevisionSection filteredSegmentIds={filteredSegmentIds} />
           </div>
         </div>
       </ScrollArea>

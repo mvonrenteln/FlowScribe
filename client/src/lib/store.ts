@@ -15,6 +15,7 @@ import {
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
+import { createAIRevisionSlice, initialAIRevisionState } from "./store/slices/aiRevisionSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
@@ -107,6 +108,8 @@ const initialState: InitialStoreState = {
   // Confidence highlighting
   highlightLowConfidence: globalState?.highlightLowConfidence ?? true,
   manualConfidenceThreshold: globalState?.manualConfidenceThreshold ?? null,
+  // AI Revision state
+  ...initialAIRevisionState,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -137,6 +140,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createHistorySlice(set, get),
       ...createAISpeakerSlice(set, get),
       ...createConfidenceSlice(set, get),
+      ...createAIRevisionSlice(set, get),
     };
   }),
 );

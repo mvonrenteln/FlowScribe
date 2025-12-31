@@ -50,6 +50,7 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         goToPrevMatch={props.goToPrevMatch}
         onReplaceCurrent={props.onReplaceCurrent}
         onReplaceAll={props.onReplaceAll}
+        filteredSegmentIds={props.filteredSegmentIds}
       />
     </aside>
   );
