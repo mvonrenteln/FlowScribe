@@ -210,7 +210,7 @@ describe("aiRevisionSlice", () => {
         expect(state.aiRevisionSuggestions).toHaveLength(0);
       });
 
-      it("acceptRevision marks suggestion as accepted and updates text", () => {
+      it("acceptRevision removes suggestion and updates text", () => {
         mockStore.set({
           aiRevisionSuggestions: [
             {
@@ -227,12 +227,14 @@ describe("aiRevisionSlice", () => {
         slice.acceptRevision("seg-1");
 
         const state = mockStore.getState();
+        // Suggestion should be removed, not just marked as accepted
         const suggestion = state.aiRevisionSuggestions?.find(s => s.segmentId === "seg-1");
-        expect(suggestion?.status).toBe("accepted");
+        expect(suggestion).toBeUndefined();
+        expect(state.aiRevisionSuggestions?.length).toBe(0);
         expect(state.updateSegmentText).toHaveBeenCalledWith("seg-1", "Hello universe");
       });
 
-      it("rejectRevision marks suggestion as rejected without updating text", () => {
+      it("rejectRevision removes suggestion without updating text", () => {
         mockStore.set({
           aiRevisionSuggestions: [
             {
@@ -249,12 +251,13 @@ describe("aiRevisionSlice", () => {
         slice.rejectRevision("seg-1");
 
         const state = mockStore.getState();
+        // Suggestion should be removed
         const suggestion = state.aiRevisionSuggestions?.find(s => s.segmentId === "seg-1");
-        expect(suggestion?.status).toBe("rejected");
+        expect(suggestion).toBeUndefined();
         expect(state.updateSegmentText).not.toHaveBeenCalled();
       });
 
-      it("acceptAllRevisions marks all pending as accepted", () => {
+      it("acceptAllRevisions removes all pending suggestions", () => {
         mockStore.set({
           aiRevisionSuggestions: [
             { segmentId: "seg-1", templateId: "test", originalText: "A", revisedText: "B", status: "pending", changes: [] },
@@ -265,12 +268,12 @@ describe("aiRevisionSlice", () => {
         slice.acceptAllRevisions();
 
         const state = mockStore.getState();
-        const allAccepted = state.aiRevisionSuggestions?.every(s => s.status === "accepted");
-        expect(allAccepted).toBe(true);
+        // All pending suggestions should be removed
+        expect(state.aiRevisionSuggestions?.length).toBe(0);
         expect(state.updateSegmentsTexts).toHaveBeenCalled();
       });
 
-      it("rejectAllRevisions marks all pending as rejected", () => {
+      it("rejectAllRevisions removes all pending suggestions", () => {
         mockStore.set({
           aiRevisionSuggestions: [
             { segmentId: "seg-1", templateId: "test", originalText: "A", revisedText: "B", status: "pending", changes: [] },
@@ -281,8 +284,8 @@ describe("aiRevisionSlice", () => {
         slice.rejectAllRevisions();
 
         const state = mockStore.getState();
-        const allRejected = state.aiRevisionSuggestions?.every(s => s.status === "rejected");
-        expect(allRejected).toBe(true);
+        // All pending suggestions should be removed
+        expect(state.aiRevisionSuggestions?.length).toBe(0);
       });
     });
 

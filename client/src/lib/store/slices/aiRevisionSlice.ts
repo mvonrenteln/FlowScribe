@@ -29,92 +29,59 @@ export const DEFAULT_REVISION_TEMPLATES: AIRevisionTemplate[] = [
     name: "Transkript-Bereinigung",
     isDefault: true,
     isQuickAccess: true,
-    systemPrompt: `Du bist ein Experte für Transkript-Korrektur. Deine Aufgabe ist es, gesprochenen Text zu bereinigen.
+    systemPrompt: `Du bist ein Experte für Transkript-Korrektur. Korrigiere den gegebenen Text.
 
 AUFGABEN:
-- Korrigiere Rechtschreibfehler
-- Korrigiere Grammatikfehler (z.B. "das" vs "dass")
-- Entferne Füllwörter (ähm, äh, also, halt, sozusagen) nur wenn sie keinen Sinn tragen
-- Korrigiere offensichtliche Transkriptionsfehler
+1. Korrigiere Rechtschreibfehler
+2. Korrigiere Grammatikfehler (z.B. "das" vs "dass")
+3. Entferne Füllwörter (ähm, äh, also, halt, sozusagen) wenn sie stören
+4. Korrigiere Transkriptionsfehler
 
-WICHTIG:
-- Behalte den originalen Stil und Ton bei
-- Verändere NICHT den Inhalt oder die Bedeutung
-- Behalte Dialekt und Umgangssprache bei, wenn beabsichtigt
-- Wenn nichts zu korrigieren ist, gib den Text unverändert zurück`,
-    userPromptTemplate: `Bereinige den folgenden Transkript-Text:
+REGELN:
+- Behalte Inhalt und Bedeutung exakt bei
+- Antworte NUR mit dem korrigierten Text, keine Erklärungen`,
+    userPromptTemplate: `Korrigiere diesen Text:
 
-{{#if previousText}}
-KONTEXT (vorheriges Segment, nicht verändern):
-{{previousText}}
-{{/if}}
-
-ZU KORRIGIEREN:
-{{text}}
-
-{{#if nextText}}
-KONTEXT (nächstes Segment, nicht verändern):
-{{nextText}}
-{{/if}}
-
-Antworte NUR mit dem korrigierten Text, keine Erklärungen oder Anführungszeichen.`,
+"{{text}}"`,
   },
   {
     id: "default-improve-clarity",
     name: "Formulierung verbessern",
     isDefault: true,
     isQuickAccess: true,
-    systemPrompt: `Du bist ein Lektor. Deine Aufgabe ist es, Texte klarer und verständlicher zu formulieren.
+    systemPrompt: `Du bist ein Lektor. Verbessere die Formulierung des gegebenen Textes.
 
 AUFGABEN:
-- Verbessere die Satzstruktur für bessere Lesbarkeit
-- Vereinfache komplizierte Formulierungen
-- Korrigiere Grammatik und Rechtschreibung
-- Verbessere den Textfluss
+1. Verbessere die Satzstruktur
+2. Vereinfache komplizierte Formulierungen
+3. Korrigiere Grammatik und Rechtschreibung
 
-WICHTIG:
-- Behalte die Kernaussage und Bedeutung bei
-- Der Stil sollte dem Original entsprechen
-- Keine inhaltlichen Ergänzungen oder Interpretationen`,
-    userPromptTemplate: `Verbessere die Formulierung des folgenden Textes für bessere Klarheit und Lesbarkeit:
+REGELN:
+- Behalte die Bedeutung exakt bei
+- Antworte NUR mit dem verbesserten Text, keine Erklärungen`,
+    userPromptTemplate: `Verbessere die Formulierung:
 
-{{#if previousText}}
-KONTEXT (vorheriges Segment, nicht verändern):
-{{previousText}}
-{{/if}}
-
-ZU VERBESSERN:
-{{text}}
-
-{{#if nextText}}
-KONTEXT (nächstes Segment, nicht verändern):
-{{nextText}}
-{{/if}}
-
-Antworte NUR mit dem verbesserten Text, keine Erklärungen oder Anführungszeichen.`,
+"{{text}}"`,
   },
   {
     id: "default-formalize",
     name: "Formalisieren",
     isDefault: true,
     isQuickAccess: false,
-    systemPrompt: `Du bist ein Experte für professionelle Kommunikation. Deine Aufgabe ist es, informelle Sprache in einen formellen Stil zu überführen.
+    systemPrompt: `Du bist ein Experte für professionelle Kommunikation. Wandle informelle Sprache in formellen Stil um.
 
 AUFGABEN:
-- Wandle Umgangssprache in Standardsprache um
-- Ersetze informelle Ausdrücke durch formelle Entsprechungen
-- Verbessere die Satzstruktur für einen professionellen Ton
-- Korrigiere Grammatik und Rechtschreibung
+1. Ersetze Umgangssprache durch Standardsprache
+2. Verwende professionellen Ton
+3. Korrigiere Grammatik und Rechtschreibung
 
-WICHTIG:
-- Behalte die Kernaussage und Bedeutung bei
-- Nicht übertrieben förmlich - natürlich professionell`,
-    userPromptTemplate: `Formuliere den folgenden Text in einen formelleren, professionelleren Stil um:
+REGELN:
+- Behalte die Bedeutung bei
+- Natürlich professionell, nicht übertrieben förmlich
+- Antworte NUR mit dem formalisierten Text, keine Erklärungen`,
+    userPromptTemplate: `Formuliere formeller:
 
-ZU FORMALISIEREN:
-{{text}}
-
-Antworte NUR mit dem formalisierten Text, keine Erklärungen oder Anführungszeichen.`,
+"{{text}}"`,
   },
 ];
 
@@ -249,6 +216,22 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           const currentState = get();
           if (!currentState.aiRevisionIsProcessing) return; // Cancelled
 
+          // Check if the text is actually different
+          const trimmedOriginal = segment.text.trim();
+          const trimmedRevised = result.revisedText.trim();
+
+          if (trimmedOriginal === trimmedRevised) {
+            // No changes - don't create a suggestion, just show success message
+            console.log("[AIRevision] No changes needed for segment:", segmentId);
+            set({
+              aiRevisionIsProcessing: false,
+              aiRevisionProcessedCount: 1,
+              aiRevisionError: null,
+              // We could add a separate state for this, but reusing error with a prefix works
+            });
+            return;
+          }
+
           const suggestion: AIRevisionSuggestion = {
             segmentId,
             templateId,
@@ -326,6 +309,16 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           const segment = segments.find((s) => s.id === result.segmentId);
           if (!segment) return;
 
+          // Check if the text is actually different
+          const trimmedOriginal = segment.text.trim();
+          const trimmedRevised = result.revisedText.trim();
+
+          if (trimmedOriginal === trimmedRevised) {
+            // No changes needed for this segment, skip creating suggestion
+            console.log("[AIRevision] No changes needed for segment:", result.segmentId);
+            return;
+          }
+
           const suggestion: AIRevisionSuggestion = {
             segmentId: result.segmentId,
             templateId,
@@ -377,19 +370,20 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     // Update segment text through the segments slice (includes history)
     state.updateSegmentText(segmentId, suggestion.revisedText);
 
-    // Mark suggestion as accepted
+    // Remove the suggestion from the list
     set({
-      aiRevisionSuggestions: state.aiRevisionSuggestions.map((s) =>
-        s.segmentId === segmentId && s.status === "pending" ? { ...s, status: "accepted" } : s,
+      aiRevisionSuggestions: state.aiRevisionSuggestions.filter(
+        (s) => !(s.segmentId === segmentId && s.status === "pending"),
       ),
     });
   },
 
   rejectRevision: (segmentId) => {
     const state = get();
+    // Remove the suggestion from the list
     set({
-      aiRevisionSuggestions: state.aiRevisionSuggestions.map((s) =>
-        s.segmentId === segmentId && s.status === "pending" ? { ...s, status: "rejected" } : s,
+      aiRevisionSuggestions: state.aiRevisionSuggestions.filter(
+        (s) => !(s.segmentId === segmentId && s.status === "pending"),
       ),
     });
   },
@@ -408,20 +402,17 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       state.updateSegmentsTexts(updates);
     }
 
-    // Mark all as accepted
+    // Remove all pending suggestions
     set({
-      aiRevisionSuggestions: state.aiRevisionSuggestions.map((s) =>
-        s.status === "pending" ? { ...s, status: "accepted" } : s,
-      ),
+      aiRevisionSuggestions: state.aiRevisionSuggestions.filter((s) => s.status !== "pending"),
     });
   },
 
   rejectAllRevisions: () => {
     const state = get();
+    // Remove all pending suggestions
     set({
-      aiRevisionSuggestions: state.aiRevisionSuggestions.map((s) =>
-        s.status === "pending" ? { ...s, status: "rejected" } : s,
-      ),
+      aiRevisionSuggestions: state.aiRevisionSuggestions.filter((s) => s.status !== "pending"),
     });
   },
 
