@@ -1,4 +1,3 @@
-import { memo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranscriptStore } from "@/lib/store";
 import { TranscriptSegment } from "../TranscriptSegment";
@@ -129,4 +128,4 @@ function TranscriptListComponent({
   );
 }
 
-export const TranscriptList = memo(TranscriptListComponent);
+export const TranscriptList = TranscriptListComponent;

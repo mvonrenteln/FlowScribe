@@ -29,7 +29,7 @@ export function SegmentDiffView({
 }: SegmentDiffViewProps) {
   const { t } = useTranslation();
   const [showDiff, setShowDiff] = useState(true);
-  const [animationState, setAnimationState] = useState<"idle" | "accepting" | "rejecting">("idle");
+  const [animationState, setAnimationState] = useState<"idle" | "accepting">("idle");
 
   const originalSegments = getOriginalDiffSegments(originalText, revisedText);
   const revisedSegments = getRevisedDiffSegments(originalText, revisedText);
@@ -43,11 +43,8 @@ export function SegmentDiffView({
   }, [onAccept]);
 
   const handleReject = useCallback(() => {
-    setAnimationState("rejecting");
-    // Small delay for animation before calling the actual handler
-    setTimeout(() => {
-      onReject();
-    }, 200);
+    // Call reject immediately - no animation delay needed
+    onReject();
   }, [onReject]);
 
   return (
@@ -56,8 +53,6 @@ export function SegmentDiffView({
         "border rounded-lg overflow-hidden bg-muted/30 transition-all duration-200",
         animationState === "accepting" &&
           "scale-[0.98] opacity-0 border-green-500 bg-green-50 dark:bg-green-950/20",
-        animationState === "rejecting" &&
-          "scale-[0.98] opacity-0 border-red-500 bg-red-50 dark:bg-red-950/20",
       )}
     >
       {/* Header with actions */}
@@ -73,10 +68,7 @@ export function SegmentDiffView({
           <Button
             variant="ghost"
             size="sm"
-            className={cn(
-              "h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all",
-              animationState === "rejecting" && "scale-110 bg-destructive/20",
-            )}
+            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all"
             onClick={handleReject}
             disabled={animationState !== "idle"}
           >

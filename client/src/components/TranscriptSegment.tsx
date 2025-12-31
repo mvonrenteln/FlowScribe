@@ -401,6 +401,15 @@ function TranscriptSegmentComponent({
                 </Button>
               </div>
             </div>
+          ) : pendingRevision && onAcceptRevision && onRejectRevision ? (
+            /* Show diff view instead of text when there's a pending revision */
+            <SegmentDiffView
+              originalText={segment.text}
+              revisedText={pendingRevision.revisedText}
+              changeSummary={pendingRevision.changeSummary}
+              onAccept={onAcceptRevision}
+              onReject={onRejectRevision}
+            />
           ) : (
             // biome-ignore lint/a11y/noStaticElementInteractions: Double click to edit text
             <div // NOSONAR
@@ -458,19 +467,6 @@ function TranscriptSegmentComponent({
                   );
                 });
               })()}
-            </div>
-          )}
-
-          {/* Show diff view if there's a pending revision */}
-          {pendingRevision && onAcceptRevision && onRejectRevision && (
-            <div className="mt-3">
-              <SegmentDiffView
-                originalText={segment.text}
-                revisedText={pendingRevision.revisedText}
-                changeSummary={pendingRevision.changeSummary}
-                onAccept={onAcceptRevision}
-                onReject={onRejectRevision}
-              />
             </div>
           )}
 
@@ -632,6 +628,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.isRegexSearch === next.isRegexSearch &&
     prev.replaceQuery === next.replaceQuery &&
     prev.currentMatch === next.currentMatch &&
+    prev.pendingRevision === next.pendingRevision &&
     prev.lastRevisionResult?.timestamp === next.lastRevisionResult?.timestamp
   );
 };
