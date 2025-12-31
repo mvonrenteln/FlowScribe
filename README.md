@@ -19,10 +19,13 @@ Built for people who live inside transcripts: researchers, journalists, podcaste
 - Word‑level highlighting during playback
 - Inline editing with undo/redo
 - Speaker management (rename, merge, assign)
+- **AI-powered speaker classification** (Ollama, OpenAI, Custom providers)
 - Split/merge segments with precision
 - Low‑confidence and glossary‑match review filters
-- privacy first local workflow - the app stores everything locally in your browser
-- saves your changes automatically in your local browser - you can resume at any timeb (even when leaving the page or shutting down the app itself)
+- **Centralized Settings menu** with comprehensive configuration
+- **Multi-provider AI support** for flexible model selection
+- Privacy first local workflow - the app stores everything locally in your browser
+- Saves your changes automatically in your local browser - you can resume at any time (even when leaving the page or shutting down the app itself)
 - Bookmarks and confirmations for review workflows
 - Export to JSON / SRT / TXT
 
@@ -62,6 +65,9 @@ The app runs locally as a frontend‑only Vite project.
 - `docs/shortcuts.md` — complete keyboard shortcut list
 - `docs/formats.md` — transcript input/output formats
 - `docs/design.md` — UI/UX principles and visual language
+- `docs/features/settings.md` — comprehensive settings guide
+- `docs/features/ai-speaker-classification.md` — AI speaker classification guide
+- `docs/settings-menu-plan.md` — technical architecture and implementation plan
 - `LICENSE` — project license
 
 ## Contributing

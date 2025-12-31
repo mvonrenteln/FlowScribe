@@ -88,7 +88,7 @@ Export your cleaned transcript as JSON, SRT, or plain text.
 
 ## 9) Settings
 
-Access the centralized Settings menu via the gear icon in the toolbar. The Settings panel provides:
+Access the centralized Settings menu via the gear icon in the toolbar or press **Cmd/Ctrl + ,**. The Settings panel provides:
 
 ### AI Providers
 - Configure multiple AI providers (Ollama, OpenAI, Custom)
@@ -118,4 +118,8 @@ Access the centralized Settings menu via the gear icon in the toolbar. The Setti
 
 ### Appearance
 - Switch between Light, Dark, or System theme
+
+**📖 For detailed information, see:**
+- [Complete Settings Guide](features/settings.md)
+- [AI Speaker Classification Guide](features/ai-speaker-classification.md)
 
