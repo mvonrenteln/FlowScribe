@@ -4,6 +4,24 @@
 
 Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modularen Settings-Menüs für FlowScribe. Das Ziel ist eine skalierbare, benutzerfreundliche und accessible Lösung, die alle aktuellen und zukünftigen Einstellungen aufnehmen kann.
 
+### 🚀 Aktueller Status (31.12.2025)
+
+| Phase | Status | Beschreibung |
+|-------|--------|--------------|
+| Phase 1 | ✅ Fertig | Settings Shell (Sheet, Navigation, Content) |
+| Phase 2 | ✅ Fertig | AI Settings (Provider, OpenAI, Ollama, Templates) |
+| Phase 3 | 🔄 Teilweise | Template System (Basis vorhanden, Kategorien ausstehend) |
+| Phase 4 | ✅ Fertig | Appearance Settings (Theme-Toggle integriert) |
+| Phase 5 | ⏳ Ausstehend | Spellcheck & Glossar Migration |
+| Phase 6 | ⏳ Ausstehend | Polish & Accessibility |
+| Phase 7 | 🔄 Teilweise | Legacy Cleanup (Config-Tab entfernt) |
+
+**Highlights:**
+- AI Provider sind vollständig Provider-agnostisch (Ollama, OpenAI, Custom)
+- Provider-Tests sind echte Verbindungstests (nicht gemockt)
+- AISpeakerDialog nutzt jetzt Provider aus Settings
+- Batch-Size bleibt im Dialog (Use-Case-spezifisch)
+
 ---
 
 ## 1. Motivation
@@ -307,39 +325,42 @@ export function migrateFromLegacy(): PersistedSettings { ... }
 
 ## 5. Aufgabenliste
 
-### Phase 1: Grundstruktur (Settings Shell)
-- [ ] **1.1** Settings-Sheet Grundgerüst erstellen (`SettingsSheet.tsx`)
-- [ ] **1.2** Navigation mit Tab-Struktur (`SettingsNav.tsx`)
-- [ ] **1.3** Content-Container mit Lazy Loading (`SettingsContent.tsx`)
-- [ ] **1.4** Settings-Button in App-Header integrieren
-- [ ] **1.5** Keyboard-Navigation und Focus-Management
-- [ ] **1.6** Unit-Tests für Shell-Komponenten
+### Phase 1: Grundstruktur (Settings Shell) ✅
+- [x] **1.1** Settings-Sheet Grundgerüst erstellen (`SettingsSheet.tsx`)
+- [x] **1.2** Navigation mit Tab-Struktur (`SettingsNav.tsx`)
+- [x] **1.3** Content-Container mit Lazy Loading (`SettingsContent.tsx`)
+- [x] **1.4** Settings-Button in App-Header integrieren
+- [x] **1.5** Keyboard-Navigation und Focus-Management
+- [x] **1.6** Unit-Tests für Shell-Komponenten
 
-### Phase 2: AI Settings Migration
-- [ ] **2.1** AI Provider Abstraktion implementieren (`aiProviderService.ts`)
-- [ ] **2.2** OpenAI Service mit offizieller Lib (`openaiService.ts`)
-- [ ] **2.3** Ollama Service extrahieren (`ollamaService.ts`)
-- [ ] **2.4** Multi-Provider State im Store (`settingsSlice.ts`)
-- [ ] **2.5** AI Server Settings UI (`AIServerSettings.tsx`)
-  - [ ] Provider hinzufügen/bearbeiten/löschen
-  - [ ] Verbindungstest mit visueller Rückmeldung
-  - [ ] API-Key Input (Password-Feld, nie in Logs)
-  - [ ] Modell-Dropdown (dynamisch geladen)
-- [ ] **2.6** Unit-Tests für AI Services
-- [ ] **2.7** Integration-Tests für Provider-Wechsel
+### Phase 2: AI Settings Migration ✅
+- [x] **2.1** AI Provider Abstraktion implementieren (`aiProviderService.ts`)
+- [x] **2.2** OpenAI Service mit offizieller Lib (`openaiProvider.ts`)
+- [x] **2.3** Ollama Service extrahieren (`ollamaProvider.ts`)
+- [x] **2.4** Multi-Provider State im Settings Storage (`settingsStorage.ts`)
+- [x] **2.5** AI Server Settings UI (`AIServerSettings.tsx`)
+  - [x] Provider hinzufügen/bearbeiten/löschen
+  - [x] Verbindungstest mit visueller Rückmeldung (echte Tests, nicht gemockt)
+  - [x] API-Key Input (Password-Feld, nie in Logs)
+  - [x] Modell-Dropdown (dynamisch geladen)
+- [x] **2.6** Unit-Tests für AI Services
+- [x] **2.7** AISpeakerDialog auf neue Provider-Auswahl umgestellt
+  - [x] Config-Tab entfernt
+  - [x] Provider-Dropdown im Analyze-Tab
+  - [x] Batch-Size im Dialog belassen (Use-Case-spezifisch)
 
 ### Phase 3: Template System erweitern
 - [ ] **3.1** Template-Kategorien einführen (Speaker, Grammar, Summary)
-- [ ] **3.2** Template Settings UI (`AITemplateSettings.tsx`)
+- [x] **3.2** Template Settings UI (`AITemplateSettings.tsx`) - Basis vorhanden
 - [ ] **3.3** Template-Editor mit Syntax-Highlighting (optional)
 - [ ] **3.4** Variablen-Referenz und Validierung
 - [ ] **3.5** Import/Export für Templates
 - [ ] **3.6** Unit-Tests für Template-Management
 
-### Phase 4: Appearance Settings
-- [ ] **4.1** Theme-Toggle aus Header migrieren
-- [ ] **4.2** Appearance Settings Section (`AppearanceSettings.tsx`)
-- [ ] **4.3** System-Theme-Detection verbessern
+### Phase 4: Appearance Settings ✅
+- [x] **4.1** Theme-Toggle in Settings integriert
+- [x] **4.2** Appearance Settings Section (`AppearanceSettings.tsx`)
+- [ ] **4.3** System-Theme-Detection verbessern (optional)
 
 ### Phase 5: Spellcheck & Glossar Migration
 - [ ] **5.1** Spellcheck Settings extrahieren (`SpellcheckSettings.tsx`)
@@ -353,10 +374,10 @@ export function migrateFromLegacy(): PersistedSettings { ... }
 - [ ] **6.4** Settings-Suche implementieren (optional)
 - [ ] **6.5** Keyboard Shortcuts Dokumentation
 
-### Phase 7: Legacy Cleanup
-- [ ] **7.1** Alte Config-Teile aus AISpeakerDialog entfernen
-- [ ] **7.2** Storage-Migration implementieren
-- [ ] **7.3** Deprecation-Warnungen entfernen
+### Phase 7: Legacy Cleanup (teilweise erledigt)
+- [x] **7.1** Alte Config-Teile aus AISpeakerDialog entfernt (Config-Tab entfernt)
+- [x] **7.2** Storage-Migration implementieren (Legacy-Migration vorhanden)
+- [ ] **7.3** Deprecation-Warnungen entfernen (nach vollständiger Migration)
 - [ ] **7.4** Dokumentation aktualisieren
 
 ---

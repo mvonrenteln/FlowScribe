@@ -1,9 +1,11 @@
 /**
  * AI Speaker Dialog
  *
- * Main dialog for configuring and running AI-powered speaker classification.
- * Features: Ollama configuration, prompt templates, speaker filters, progress
+ * Main dialog for running AI-powered speaker classification.
+ * Features: AI provider selection, prompt templates, speaker filters, progress
  * tracking, and suggestions list with accept/reject controls.
+ *
+ * AI Provider and Template configuration is managed in Settings.
  */
 
 import {
@@ -19,7 +21,7 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -58,8 +60,15 @@ import {
 } from "@/components/ui/table";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { type AISpeakerSuggestion, type PromptTemplate, useTranscriptStore } from "@/lib/store";
 import type { PromptTemplateExport } from "@/lib/store/types";
+import { initializeSettings, type PersistedSettings } from "@/lib/settings/settingsStorage";
 import { cn } from "@/lib/utils";
 
 interface AISpeakerDialogProps {
@@ -104,10 +113,25 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
   const [newTemplateName, setNewTemplateName] = useState("");
   const [newSystemPrompt, setNewSystemPrompt] = useState("");
   const [newUserPrompt, setNewUserPrompt] = useState("");
-  const [configUrl, setConfigUrl] = useState(config.ollamaUrl);
-  const [configModel, setConfigModel] = useState(config.model);
-  const [configBatchSize, setConfigBatchSize] = useState(config.batchSize.toString());
+  const [batchSize, setBatchSize] = useState(config.batchSize.toString());
+  const [settings, setSettings] = useState<PersistedSettings | null>(null);
+  const [selectedProviderId, setSelectedProviderId] = useState<string>(
+    config.selectedProviderId ?? "",
+  );
   const importInputRef = useRef<HTMLInputElement | null>(null);
+
+  // Load settings on mount
+  useEffect(() => {
+    const loadedSettings = initializeSettings();
+    setSettings(loadedSettings);
+    // Set initial provider from config or default
+    if (!selectedProviderId && loadedSettings.defaultAIProviderId) {
+      setSelectedProviderId(loadedSettings.defaultAIProviderId);
+    }
+  }, [selectedProviderId]);
+
+  // Get selected provider info
+  const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
 
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
   const progressPercent =
@@ -115,11 +139,10 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
 
   // Handlers
   const handleStartAnalysis = () => {
-    // Save config changes first
+    // Save config changes
     updateConfig({
-      ollamaUrl: configUrl,
-      model: configModel,
-      batchSize: Number.parseInt(configBatchSize, 10) || 10,
+      batchSize: Number.parseInt(batchSize, 10) || 10,
+      selectedProviderId: selectedProviderId || undefined,
     });
     startAnalysis(selectedSpeakers, excludeConfirmed);
   };
@@ -219,28 +242,6 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
     reader.readAsText(file);
   };
 
-  const handleSaveConfig = () => {
-    const newConfig = {
-      ollamaUrl: configUrl,
-      model: configModel,
-      batchSize: Number.parseInt(configBatchSize, 10) || 10,
-    };
-
-    // Preferred: use the store action
-    updateConfig(newConfig);
-
-    // Ensure the store is updated immediately (helps tests that read state synchronously)
-    try {
-      useTranscriptStore.setState((state) => ({
-        aiSpeakerConfig: { ...state.aiSpeakerConfig, ...newConfig },
-      }));
-    } catch (err) {
-      // defensive: if setState is unavailable for some reason, ignore
-      // eslint-disable-next-line no-console
-      console.warn("Failed to directly set aiSpeakerConfig on store:", err);
-    }
-  };
-
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-3xl max-h-[90vh] flex flex-col">
@@ -255,13 +256,9 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
         </DialogHeader>
 
         <Tabs defaultValue="analyze" className="flex-1 min-h-0 flex flex-col">
-          <TabsList className="grid w-full grid-cols-3">
+          <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="analyze">Analyze</TabsTrigger>
             <TabsTrigger value="templates">Templates</TabsTrigger>
-            <TabsTrigger value="config">
-              <Settings2 className="h-4 w-4 mr-1" />
-              Config
-            </TabsTrigger>
           </TabsList>
 
           {/* Analyze Tab */}
@@ -326,6 +323,67 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 </Label>
               </div>
             </div>
+
+            {/* AI Provider & Batch Size Selection */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2 flex-1">
+                <Label className="text-sm whitespace-nowrap">AI Provider:</Label>
+                <Select value={selectedProviderId} onValueChange={setSelectedProviderId}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue placeholder="Select AI provider..." />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {settings?.aiProviders.map((provider) => (
+                      <SelectItem key={provider.id} value={provider.id}>
+                        {provider.name} ({provider.model})
+                        {provider.isDefault && " ⭐"}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <TooltipProvider>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8"
+                        onClick={() => {
+                          // Open settings - this would require a way to open settings
+                          // For now, just show a hint
+                        }}
+                      >
+                        <Settings2 className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>
+                      <p>Configure AI providers in Settings</p>
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              </div>
+              <div className="flex items-center gap-2">
+                <Label htmlFor="batch-size" className="text-sm whitespace-nowrap">
+                  Batch:
+                </Label>
+                <Input
+                  id="batch-size"
+                  type="number"
+                  min={1}
+                  max={50}
+                  value={batchSize}
+                  onChange={(e) => setBatchSize(e.target.value)}
+                  className="w-16"
+                />
+              </div>
+            </div>
+
+            {!selectedProviderId && settings?.aiProviders.length === 0 && (
+              <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                <span>No AI provider configured. Add one in Settings → AI → Server & Models.</span>
+              </div>
+            )}
 
             {/* Template Selection */}
             <div className="flex items-center gap-2">
@@ -656,49 +714,6 @@ export function AISpeakerDialog({ open, onOpenChange }: AISpeakerDialogProps) {
                 </ScrollArea>
               </>
             )}
-          </TabsContent>
-
-          {/* Config Tab */}
-          <TabsContent value="config" className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="ollama-url">Ollama URL</Label>
-              <Input
-                id="ollama-url"
-                value={configUrl}
-                onChange={(e) => setConfigUrl(e.target.value)}
-                placeholder="http://localhost:11434"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="model">Model</Label>
-              <Input
-                id="model"
-                value={configModel}
-                onChange={(e) => setConfigModel(e.target.value)}
-                placeholder="llama3.2"
-              />
-              <p className="text-xs text-muted-foreground">
-                Best result so far: qwen3:30b-instruct and deepseek-r1:32b (slow). Try different
-                instruct-class models and adjust batch size—smaller models usually need smaller
-                batches.
-              </p>
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="batch-size">Batch Size</Label>
-              <Input
-                id="batch-size"
-                type="number"
-                min={1}
-                max={50}
-                value={configBatchSize}
-                onChange={(e) => setConfigBatchSize(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Default is 10. Larger batches often confuse models and mix answers; the smaller the
-                model, the smaller the batch should be.
-              </p>
-            </div>
-            <Button onClick={handleSaveConfig}>Save Configuration</Button>
           </TabsContent>
         </Tabs>
 

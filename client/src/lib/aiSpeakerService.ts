@@ -1,11 +1,15 @@
 /**
  * AI Speaker Service
  *
- * Pure service module for communicating with Ollama API to classify
+ * Pure service module for communicating with AI providers to classify
  * transcript segment speakers. Uses iterative batching and lenient
  * JSON parsing to handle various LLM response formats.
+ *
+ * Provider-agnostic: Uses the unified AIProviderService interface.
  */
 
+import { type AIProviderConfig, createAIProvider } from "./services/aiProviderService";
+import { initializeSettings } from "./settings/settingsStorage";
 import type { AISpeakerConfig, AISpeakerSuggestion, Segment } from "./store/types";
 
 // ==================== Default Prompt Template ====================
@@ -326,7 +330,69 @@ export function parseOllamaResponse(
   };
 }
 
-// ==================== Ollama API Communication ====================
+// ==================== AI Provider Communication ====================
+
+/**
+ * Resolves which AI provider to use based on config.
+ * Priority: selectedProviderId > default provider > first provider
+ */
+function resolveAIProvider(config: AISpeakerConfig): AIProviderConfig | null {
+  const settings = initializeSettings();
+
+  // 1. Try selectedProviderId from config
+  if (config.selectedProviderId) {
+    const provider = settings.aiProviders.find((p) => p.id === config.selectedProviderId);
+    if (provider) return provider;
+  }
+
+  // 2. Try default provider
+  if (settings.defaultAIProviderId) {
+    const provider = settings.aiProviders.find((p) => p.id === settings.defaultAIProviderId);
+    if (provider) return provider;
+  }
+
+  // 3. Try any provider marked as default
+  const defaultProvider = settings.aiProviders.find((p) => p.isDefault);
+  if (defaultProvider) return defaultProvider;
+
+  // 4. Fall back to first provider
+  return settings.aiProviders[0] ?? null;
+}
+
+/**
+ * Calls an AI provider with the given prompt.
+ * Uses the unified AIProviderService interface for provider-agnostic communication.
+ */
+export async function callAIProvider(
+  providerConfig: AIProviderConfig,
+  systemPrompt: string,
+  userPrompt: string,
+  signal: AbortSignal,
+): Promise<string> {
+  try {
+    const provider = createAIProvider(providerConfig);
+    const response = await provider.chat(
+      [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: userPrompt },
+      ],
+      { signal },
+    );
+    return response.content;
+  } catch (error) {
+    if (signal.aborted) {
+      throw error;
+    }
+    console.error("[AI Speaker] Failed to communicate with AI provider", error);
+    throw new AISpeakerResponseError("Failed to communicate with AI provider", {
+      causeMessage: error instanceof Error ? error.message : String(error),
+      providerType: providerConfig.type,
+      providerName: providerConfig.name,
+    });
+  }
+}
+
+// ==================== Ollama API Communication (Legacy) ====================
 
 /**
  * Calls Ollama API with the given prompt.
@@ -505,6 +571,15 @@ export async function* analyzeSegmentsBatched(
     return;
   }
 
+  // Resolve AI provider
+  const providerConfig = resolveAIProvider(config);
+  if (!providerConfig) {
+    throw new AISpeakerResponseError(
+      "No AI provider configured. Please add a provider in Settings.",
+      { config },
+    );
+  }
+
   // Get active template
   const activeTemplate = config.templates.find((t) => t.id === config.activeTemplateId);
   const systemPrompt = activeTemplate?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
@@ -531,14 +606,8 @@ export async function* analyzeSegmentsBatched(
 
     const batchStart = Date.now();
     try {
-      // Call Ollama
-      const response = await callOllama(
-        config.ollamaUrl,
-        config.model,
-        systemPrompt,
-        userPrompt,
-        signal,
-      );
+      // Call AI provider (provider-agnostic)
+      const response = await callAIProvider(providerConfig, systemPrompt, userPrompt, signal);
 
       // Parse response
       const parseResult = parseOllamaResponse(response, batch, currentSpeakers, speakers);

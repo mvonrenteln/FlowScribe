@@ -280,11 +280,15 @@ export interface PromptTemplateExport {
 }
 
 export interface AISpeakerConfig {
+  /** @deprecated Use selectedProviderId with settings providers instead */
   ollamaUrl: string;
+  /** @deprecated Use selectedProviderId with settings providers instead */
   model: string;
   batchSize: number;
   templates: PromptTemplate[];
   activeTemplateId: string;
+  /** ID of the selected AI provider from settings */
+  selectedProviderId?: string;
 }
 
 // Note: AI Speaker state is stored in InitialStoreState with aiSpeaker* prefix
