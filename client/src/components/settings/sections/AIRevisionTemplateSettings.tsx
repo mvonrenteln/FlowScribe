@@ -226,11 +226,7 @@ function TemplateCard({
               onClick={() => setExpanded(!expanded)}
               aria-label={expanded ? "Collapse" : "Expand"}
             >
-              {expanded ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+              {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
             </Button>
           </div>
         </div>
@@ -257,12 +253,7 @@ function TemplateCard({
             </div>
 
             {!isDefaultTemplate && (
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={onSetAsDefault}
-                className="h-8"
-              >
+              <Button variant="outline" size="sm" onClick={onSetAsDefault} className="h-8">
                 <Sparkles className="h-3 w-3 mr-1" />
                 Set as hotkey default
               </Button>
@@ -369,8 +360,8 @@ export function AIRevisionTemplateSettings() {
       <div>
         <h3 className="text-lg font-medium">AI Revision Templates</h3>
         <p className="text-sm text-muted-foreground">
-          Manage your prompt templates for AI text revision.
-          Default templates can be edited but not deleted.
+          Manage your prompt templates for AI text revision. Default templates can be edited but not
+          deleted.
         </p>
       </div>
 
@@ -379,10 +370,7 @@ export function AIRevisionTemplateSettings() {
       {/* Default Template Selection */}
       <div className="space-y-2">
         <Label>Hotkey Default (Alt+R)</Label>
-        <Select
-          value={defaultTemplateId ?? ""}
-          onValueChange={(id) => setDefaultTemplate(id)}
-        >
+        <Select value={defaultTemplateId ?? ""} onValueChange={(id) => setDefaultTemplate(id)}>
           <SelectTrigger className="w-full max-w-xs">
             <SelectValue placeholder="Select template..." />
           </SelectTrigger>
@@ -416,10 +404,7 @@ export function AIRevisionTemplateSettings() {
             <CardTitle className="text-base">Create New Template</CardTitle>
           </CardHeader>
           <CardContent>
-            <TemplateForm
-              onSave={handleAddTemplate}
-              onCancel={() => setShowForm(false)}
-            />
+            <TemplateForm onSave={handleAddTemplate} onCancel={() => setShowForm(false)} />
           </CardContent>
         </Card>
       )}
@@ -516,4 +501,3 @@ export function AIRevisionTemplateSettings() {
     </div>
   );
 }
-

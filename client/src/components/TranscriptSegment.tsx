@@ -689,4 +689,3 @@ function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
     </div>
   );
 }
-

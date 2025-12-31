@@ -216,11 +216,7 @@ export function countChanges(changes: TextChange[]): number {
 /**
  * Create a human-readable summary of changes.
  */
-export function summarizeChanges(
-  changes: TextChange[],
-  original: string,
-  revised: string,
-): string {
+export function summarizeChanges(changes: TextChange[], original: string, revised: string): string {
   if (original === revised) {
     return "No changes";
   }
@@ -262,4 +258,3 @@ export function getRevisedDiffSegments(original: string, revised: string): DiffS
 export function hasDifferences(original: string, revised: string): boolean {
   return original !== revised;
 }
-

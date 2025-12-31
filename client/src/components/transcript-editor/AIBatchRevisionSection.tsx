@@ -36,7 +36,9 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
   useEffect(() => {
     const loadedSettings = initializeSettings();
     setSettings(loadedSettings);
-    setSelectedProviderId(loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "");
+    setSelectedProviderId(
+      loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "",
+    );
   }, []);
 
   // Store state
@@ -79,11 +81,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
         onClick={() => setIsExpanded(!isExpanded)}
         aria-expanded={isExpanded}
       >
-        {isExpanded ? (
-          <ChevronDown className="h-4 w-4" />
-        ) : (
-          <ChevronRight className="h-4 w-4" />
-        )}
+        {isExpanded ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />}
         <Sparkles className="h-4 w-4" />
         <span>AI Batch Revision</span>
         {segmentCount > 0 && !isExpanded && (
@@ -187,9 +185,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
           {/* Segment Count */}
           <div className="text-sm text-muted-foreground">
             {segmentCount === 0 ? (
-              <span className="text-amber-600 dark:text-amber-400">
-                Keine Segmente gefiltert
-              </span>
+              <span className="text-amber-600 dark:text-amber-400">Keine Segmente gefiltert</span>
             ) : (
               <span>
                 {segmentCount} Segment{segmentCount !== 1 ? "e" : ""} (gefiltert)
@@ -220,12 +216,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
           {/* Action Buttons */}
           <div className="flex gap-2">
             {isProcessing ? (
-              <Button
-                variant="outline"
-                size="sm"
-                className="flex-1"
-                onClick={cancelRevision}
-              >
+              <Button variant="outline" size="sm" className="flex-1" onClick={cancelRevision}>
                 <X className="h-4 w-4 mr-1" />
                 Abbrechen
               </Button>
@@ -292,12 +283,7 @@ export function BatchResultsSummary({
           >
             Alle ablehnen
           </Button>
-          <Button
-            variant="default"
-            size="sm"
-            className="flex-1"
-            onClick={acceptAllRevisions}
-          >
+          <Button variant="default" size="sm" className="flex-1" onClick={acceptAllRevisions}>
             Alle übernehmen
           </Button>
         </div>
@@ -316,4 +302,3 @@ export function BatchResultsSummary({
     </div>
   );
 }
-

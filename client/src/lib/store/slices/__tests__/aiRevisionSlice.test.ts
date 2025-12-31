@@ -1,6 +1,10 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { DEFAULT_REVISION_TEMPLATES, initialAIRevisionState, createAIRevisionSlice } from "../aiRevisionSlice";
 import type { AIRevisionSlice, TranscriptStore } from "../../types";
+import {
+  createAIRevisionSlice,
+  DEFAULT_REVISION_TEMPLATES,
+  initialAIRevisionState,
+} from "../aiRevisionSlice";
 
 // Mock store setter and getter
 const createMockStore = () => {
@@ -15,7 +19,9 @@ const createMockStore = () => {
     updateSegmentsTexts: vi.fn(),
   };
 
-  const set = (partial: Partial<TranscriptStore> | ((s: TranscriptStore) => Partial<TranscriptStore>)) => {
+  const set = (
+    partial: Partial<TranscriptStore> | ((s: TranscriptStore) => Partial<TranscriptStore>),
+  ) => {
     if (typeof partial === "function") {
       state = { ...state, ...partial(state as TranscriptStore) };
     } else {
@@ -35,12 +41,18 @@ describe("aiRevisionSlice", () => {
     });
 
     it("has a default template ID set", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.defaultTemplateId).toBe("default-transcript-cleanup");
+      expect(initialAIRevisionState.aiRevisionConfig.defaultTemplateId).toBe(
+        "default-transcript-cleanup",
+      );
     });
 
     it("has quick access template IDs", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain("default-transcript-cleanup");
-      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain("default-improve-clarity");
+      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain(
+        "default-transcript-cleanup",
+      );
+      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain(
+        "default-improve-clarity",
+      );
     });
 
     it("is not processing by default", () => {
@@ -53,24 +65,26 @@ describe("aiRevisionSlice", () => {
   });
 
   describe("DEFAULT_REVISION_TEMPLATES", () => {
-    it("includes Transkript-Bereinigung template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find(t => t.id === "default-transcript-cleanup");
+    it("includes Transcript Cleanup template", () => {
+      const template = DEFAULT_REVISION_TEMPLATES.find(
+        (t) => t.id === "default-transcript-cleanup",
+      );
       expect(template).toBeDefined();
-      expect(template?.name).toBe("Transkript-Bereinigung");
+      expect(template?.name).toBe("Transcript Cleanup");
       expect(template?.isDefault).toBe(true);
     });
 
-    it("includes Formulierung verbessern template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find(t => t.id === "default-improve-clarity");
+    it("includes Improve Clarity template", () => {
+      const template = DEFAULT_REVISION_TEMPLATES.find((t) => t.id === "default-improve-clarity");
       expect(template).toBeDefined();
-      expect(template?.name).toBe("Formulierung verbessern");
+      expect(template?.name).toBe("Improve Clarity");
       expect(template?.isDefault).toBe(true);
     });
 
-    it("includes Formalisieren template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find(t => t.id === "default-formalize");
+    it("includes Formalize template", () => {
+      const template = DEFAULT_REVISION_TEMPLATES.find((t) => t.id === "default-formalize");
       expect(template).toBeDefined();
-      expect(template?.name).toBe("Formalisieren");
+      expect(template?.name).toBe("Formalize");
       expect(template?.isDefault).toBe(true);
     });
 
@@ -103,7 +117,7 @@ describe("aiRevisionSlice", () => {
         const templates = state.aiRevisionConfig?.templates ?? [];
         expect(templates.length).toBe(4); // 3 default + 1 new
 
-        const newTemplate = templates.find(t => t.name === "Custom Template");
+        const newTemplate = templates.find((t) => t.name === "Custom Template");
         expect(newTemplate).toBeDefined();
         expect(newTemplate?.isDefault).toBe(false);
       });
@@ -114,7 +128,9 @@ describe("aiRevisionSlice", () => {
         });
 
         const state = mockStore.getState();
-        const template = state.aiRevisionConfig?.templates.find(t => t.id === "default-transcript-cleanup");
+        const template = state.aiRevisionConfig?.templates.find(
+          (t) => t.id === "default-transcript-cleanup",
+        );
         expect(template?.name).toBe("Updated Name");
         expect(template?.isDefault).toBe(true); // isDefault cannot be changed
       });
@@ -128,14 +144,18 @@ describe("aiRevisionSlice", () => {
         });
 
         const stateAfterAdd = mockStore.getState();
-        const customTemplate = stateAfterAdd.aiRevisionConfig?.templates.find(t => t.name === "Custom Template");
+        const customTemplate = stateAfterAdd.aiRevisionConfig?.templates.find(
+          (t) => t.name === "Custom Template",
+        );
         expect(customTemplate).toBeDefined();
 
         // Now delete it
         slice.deleteRevisionTemplate(customTemplate!.id);
 
         const stateAfterDelete = mockStore.getState();
-        const deletedTemplate = stateAfterDelete.aiRevisionConfig?.templates.find(t => t.id === customTemplate!.id);
+        const deletedTemplate = stateAfterDelete.aiRevisionConfig?.templates.find(
+          (t) => t.id === customTemplate!.id,
+        );
         expect(deletedTemplate).toBeUndefined();
       });
 
@@ -143,7 +163,9 @@ describe("aiRevisionSlice", () => {
         slice.deleteRevisionTemplate("default-transcript-cleanup");
 
         const state = mockStore.getState();
-        const template = state.aiRevisionConfig?.templates.find(t => t.id === "default-transcript-cleanup");
+        const template = state.aiRevisionConfig?.templates.find(
+          (t) => t.id === "default-transcript-cleanup",
+        );
         expect(template).toBeDefined(); // Still exists
       });
 
@@ -175,7 +197,9 @@ describe("aiRevisionSlice", () => {
 
         const state = mockStore.getState();
         expect(state.aiRevisionConfig?.quickAccessTemplateIds).not.toContain("default-formalize");
-        expect(state.aiRevisionConfig?.quickAccessTemplateIds).toContain("default-transcript-cleanup");
+        expect(state.aiRevisionConfig?.quickAccessTemplateIds).toContain(
+          "default-transcript-cleanup",
+        );
       });
     });
 
@@ -228,7 +252,7 @@ describe("aiRevisionSlice", () => {
 
         const state = mockStore.getState();
         // Suggestion should be removed, not just marked as accepted
-        const suggestion = state.aiRevisionSuggestions?.find(s => s.segmentId === "seg-1");
+        const suggestion = state.aiRevisionSuggestions?.find((s) => s.segmentId === "seg-1");
         expect(suggestion).toBeUndefined();
         expect(state.aiRevisionSuggestions?.length).toBe(0);
         expect(state.updateSegmentText).toHaveBeenCalledWith("seg-1", "Hello universe");
@@ -252,7 +276,7 @@ describe("aiRevisionSlice", () => {
 
         const state = mockStore.getState();
         // Suggestion should be removed
-        const suggestion = state.aiRevisionSuggestions?.find(s => s.segmentId === "seg-1");
+        const suggestion = state.aiRevisionSuggestions?.find((s) => s.segmentId === "seg-1");
         expect(suggestion).toBeUndefined();
         expect(state.updateSegmentText).not.toHaveBeenCalled();
       });
@@ -260,8 +284,22 @@ describe("aiRevisionSlice", () => {
       it("acceptAllRevisions removes all pending suggestions", () => {
         mockStore.set({
           aiRevisionSuggestions: [
-            { segmentId: "seg-1", templateId: "test", originalText: "A", revisedText: "B", status: "pending", changes: [] },
-            { segmentId: "seg-2", templateId: "test", originalText: "C", revisedText: "D", status: "pending", changes: [] },
+            {
+              segmentId: "seg-1",
+              templateId: "test",
+              originalText: "A",
+              revisedText: "B",
+              status: "pending",
+              changes: [],
+            },
+            {
+              segmentId: "seg-2",
+              templateId: "test",
+              originalText: "C",
+              revisedText: "D",
+              status: "pending",
+              changes: [],
+            },
           ],
         });
 
@@ -276,8 +314,22 @@ describe("aiRevisionSlice", () => {
       it("rejectAllRevisions removes all pending suggestions", () => {
         mockStore.set({
           aiRevisionSuggestions: [
-            { segmentId: "seg-1", templateId: "test", originalText: "A", revisedText: "B", status: "pending", changes: [] },
-            { segmentId: "seg-2", templateId: "test", originalText: "C", revisedText: "D", status: "pending", changes: [] },
+            {
+              segmentId: "seg-1",
+              templateId: "test",
+              originalText: "A",
+              revisedText: "B",
+              status: "pending",
+              changes: [],
+            },
+            {
+              segmentId: "seg-2",
+              templateId: "test",
+              originalText: "C",
+              revisedText: "D",
+              status: "pending",
+              changes: [],
+            },
           ],
         });
 
@@ -316,4 +368,3 @@ describe("aiRevisionSlice", () => {
     });
   });
 });
-

@@ -406,4 +406,3 @@ export interface AIRevisionSlice {
   setQuickAccessTemplates: (ids: string[]) => void;
   toggleQuickAccessTemplate: (id: string) => void;
 }
-

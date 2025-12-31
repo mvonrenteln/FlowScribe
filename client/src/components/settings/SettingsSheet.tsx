@@ -17,9 +17,9 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SettingsNav, type SettingsSection } from "./SettingsNav";
+import { AIRevisionTemplateSettings } from "./sections/AIRevisionTemplateSettings";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
-import { AIRevisionTemplateSettings } from "./sections/AIRevisionTemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
 import { ConfidenceSettings } from "./sections/ConfidenceSettings";
 import { GlossarySettings } from "./sections/GlossarySettings";

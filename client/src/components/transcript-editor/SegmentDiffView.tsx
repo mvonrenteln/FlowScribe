@@ -6,9 +6,10 @@
  */
 
 import { Check, X } from "lucide-react";
-import { useState, useCallback } from "react";
+import { useCallback, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { getOriginalDiffSegments, getRevisedDiffSegments, type DiffSegment } from "@/lib/diffUtils";
+import { type DiffSegment, getOriginalDiffSegments, getRevisedDiffSegments } from "@/lib/diffUtils";
 import { cn } from "@/lib/utils";
 
 interface SegmentDiffViewProps {
@@ -26,6 +27,7 @@ export function SegmentDiffView({
   onAccept,
   onReject,
 }: SegmentDiffViewProps) {
+  const { t } = useTranslation();
   const [showDiff, setShowDiff] = useState(true);
   const [animationState, setAnimationState] = useState<"idle" | "accepting" | "rejecting">("idle");
 
@@ -52,8 +54,10 @@ export function SegmentDiffView({
     <div
       className={cn(
         "border rounded-lg overflow-hidden bg-muted/30 transition-all duration-200",
-        animationState === "accepting" && "scale-[0.98] opacity-0 border-green-500 bg-green-50 dark:bg-green-950/20",
-        animationState === "rejecting" && "scale-[0.98] opacity-0 border-red-500 bg-red-50 dark:bg-red-950/20",
+        animationState === "accepting" &&
+          "scale-[0.98] opacity-0 border-green-500 bg-green-50 dark:bg-green-950/20",
+        animationState === "rejecting" &&
+          "scale-[0.98] opacity-0 border-red-500 bg-red-50 dark:bg-red-950/20",
       )}
     >
       {/* Header with actions */}
@@ -63,7 +67,7 @@ export function SegmentDiffView({
           className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setShowDiff(!showDiff)}
         >
-          {showDiff ? "Kompakt anzeigen" : "Diff anzeigen"}
+          {showDiff ? t("diffView.showCompact") : t("diffView.showDiff")}
         </button>
         <div className="flex items-center gap-1">
           <Button
@@ -77,7 +81,7 @@ export function SegmentDiffView({
             disabled={animationState !== "idle"}
           >
             <X className="h-4 w-4 mr-1" />
-            Ablehnen
+            {t("diffView.reject")}
           </Button>
           <Button
             variant="default"
@@ -90,7 +94,7 @@ export function SegmentDiffView({
             disabled={animationState !== "idle"}
           >
             <Check className="h-4 w-4 mr-1" />
-            Übernehmen
+            {t("diffView.accept")}
           </Button>
         </div>
       </div>
@@ -99,12 +103,11 @@ export function SegmentDiffView({
         /* Side-by-side diff view */
         <div className="grid grid-cols-2 divide-x">
           {/* Original */}
-          <div className={cn(
-            "p-3 transition-opacity",
-            animationState === "accepting" && "opacity-50",
-          )}>
+          <div
+            className={cn("p-3 transition-opacity", animationState === "accepting" && "opacity-50")}
+          >
             <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-              Original
+              {t("diffView.original")}
             </div>
             <div className="text-sm leading-relaxed">
               <DiffText segments={originalSegments} type="original" />
@@ -112,12 +115,14 @@ export function SegmentDiffView({
           </div>
 
           {/* Revised */}
-          <div className={cn(
-            "p-3 transition-all",
-            animationState === "accepting" && "bg-green-50 dark:bg-green-950/20",
-          )}>
+          <div
+            className={cn(
+              "p-3 transition-all",
+              animationState === "accepting" && "bg-green-50 dark:bg-green-950/20",
+            )}
+          >
             <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
-              Überarbeitet
+              {t("diffView.revised")}
             </div>
             <div className="text-sm leading-relaxed">
               <DiffText segments={revisedSegments} type="revised" />
@@ -221,8 +226,7 @@ export function RevisionIndicator({
       )}
       onClick={onClick}
     >
-      ✨ {changeSummary ?? "Change suggested"}
+      ✨ {changeSummary ?? t("diffView.changeSuggested")}
     </button>
   );
 }
-

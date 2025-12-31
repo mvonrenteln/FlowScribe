@@ -45,9 +45,7 @@ function TranscriptListComponent({
 
   // Create a map for fast lookup
   const pendingRevisionBySegmentId = new Map(
-    pendingRevisions
-      .filter((r) => r.status === "pending")
-      .map((r) => [r.segmentId, r])
+    pendingRevisions.filter((r) => r.status === "pending").map((r) => [r.segmentId, r]),
   );
 
   // Simple "virtualization": If there are many segments, we could limit rendering.
@@ -109,16 +107,18 @@ function TranscriptListComponent({
                 onMatchClick={onMatchClick}
                 findMatchIndex={findMatchIndex}
                 // AI Revision props
-                pendingRevision={pendingRevision ? {
-                  revisedText: pendingRevision.revisedText,
-                  changeSummary: pendingRevision.changeSummary,
-                } : undefined}
+                pendingRevision={
+                  pendingRevision
+                    ? {
+                        revisedText: pendingRevision.revisedText,
+                        changeSummary: pendingRevision.changeSummary,
+                      }
+                    : undefined
+                }
                 onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
                 onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
                 lastRevisionResult={
-                  lastRevisionResult?.segmentId === segment.id
-                    ? lastRevisionResult
-                    : undefined
+                  lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
                 }
               />
             );

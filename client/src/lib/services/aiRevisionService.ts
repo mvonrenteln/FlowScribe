@@ -5,11 +5,11 @@
  * Uses the unified AI Provider interface for backend communication.
  */
 
-import { createAIProvider } from "./aiProviderService";
-import type { AIProviderConfig } from "./aiProviderTypes";
+import { computeTextChanges, summarizeChanges } from "@/lib/diffUtils";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import type { AIRevisionTemplate, Segment, TextChange } from "@/lib/store/types";
-import { computeTextChanges, summarizeChanges } from "@/lib/diffUtils";
+import { createAIProvider } from "./aiProviderService";
+import type { AIProviderConfig } from "./aiProviderTypes";
 
 // ==================== Types ====================
 
@@ -90,7 +90,10 @@ function parseRevisionResponse(response: string, originalText: string): string {
 
   // Remove common wrapper artifacts
   // Remove leading/trailing quotes
-  if ((text.startsWith('"') && text.endsWith('"')) || (text.startsWith("'") && text.endsWith("'"))) {
+  if (
+    (text.startsWith('"') && text.endsWith('"')) ||
+    (text.startsWith("'") && text.endsWith("'"))
+  ) {
     text = text.slice(1, -1);
   }
 
@@ -214,4 +217,3 @@ export async function runBatchRevision(params: BatchRevisionParams): Promise<voi
     onProgress?.(i + 1, total);
   }
 }
-

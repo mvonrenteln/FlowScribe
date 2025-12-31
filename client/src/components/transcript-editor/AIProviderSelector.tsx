@@ -19,14 +19,11 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import {
-  type AIProviderConfig,
-  createAIProvider,
-} from "@/lib/services/aiProviderService";
+import { type AIProviderConfig, createAIProvider } from "@/lib/services/aiProviderService";
 import {
   initializeSettings,
-  updateSettingsDefaultProvider,
   updateProviderModel,
+  updateSettingsDefaultProvider,
 } from "@/lib/settings/settingsStorage";
 import { cn } from "@/lib/utils";
 
@@ -41,9 +38,9 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
   const [loadingModels, setLoadingModels] = useState<Set<string>>(new Set());
 
   // Get current provider
-  const currentProvider = settings.aiProviders.find(
-    (p) => p.id === settings.defaultAIProviderId
-  ) ?? settings.aiProviders[0];
+  const currentProvider =
+    settings.aiProviders.find((p) => p.id === settings.defaultAIProviderId) ??
+    settings.aiProviders[0];
 
   // Fetch models for a provider
   const fetchModelsForProvider = async (provider: AIProviderConfig) => {
@@ -58,8 +55,8 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
     } catch (error) {
       console.warn("[AIProviderSelector] Failed to fetch models:", error);
       // Use the currently configured model as fallback
-      setAvailableModels((prev) =>
-        new Map([...prev, [provider.id, provider.model ? [provider.model] : []]])
+      setAvailableModels(
+        (prev) => new Map([...prev, [provider.id, provider.model ? [provider.model] : []]]),
       );
     } finally {
       setLoadingModels((prev) => {
@@ -89,12 +86,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
 
   if (!currentProvider) {
     return (
-      <Button
-        variant="ghost"
-        size="sm"
-        className={cn("text-muted-foreground", className)}
-        disabled
-      >
+      <Button variant="ghost" size="sm" className={cn("text-muted-foreground", className)} disabled>
         <Server className="h-4 w-4 mr-1" />
         No Provider
       </Button>
@@ -110,10 +102,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
         <Button
           variant="ghost"
           size="sm"
-          className={cn(
-            "text-muted-foreground hover:text-foreground gap-1",
-            className
-          )}
+          className={cn("text-muted-foreground hover:text-foreground gap-1", className)}
         >
           <Bot className="h-4 w-4" />
           {!compact && (
@@ -133,9 +122,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
         {settings.aiProviders.map((provider) => (
           <DropdownMenuSub key={provider.id}>
             <DropdownMenuSubTrigger
-              className={cn(
-                provider.id === currentProvider.id && "bg-accent"
-              )}
+              className={cn(provider.id === currentProvider.id && "bg-accent")}
               onPointerEnter={() => fetchModelsForProvider(provider)}
             >
               <Server className="h-4 w-4 mr-2" />
@@ -146,19 +133,13 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
             </DropdownMenuSubTrigger>
 
             <DropdownMenuSubContent className="w-48">
-              <DropdownMenuLabel className="text-xs">
-                Select Model
-              </DropdownMenuLabel>
+              <DropdownMenuLabel className="text-xs">Select Model</DropdownMenuLabel>
               <DropdownMenuSeparator />
 
               {isLoadingModels ? (
-                <DropdownMenuItem disabled>
-                  Loading models...
-                </DropdownMenuItem>
+                <DropdownMenuItem disabled>Loading models...</DropdownMenuItem>
               ) : providerModels.length === 0 ? (
-                <DropdownMenuItem disabled>
-                  No models available
-                </DropdownMenuItem>
+                <DropdownMenuItem disabled>No models available</DropdownMenuItem>
               ) : (
                 providerModels.map((model) => (
                   <DropdownMenuItem
@@ -168,9 +149,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
                       handleSelectModel(provider.id, model);
                     }}
                     className={cn(
-                      provider.id === currentProvider.id &&
-                        provider.model === model &&
-                        "bg-accent"
+                      provider.id === currentProvider.id && provider.model === model && "bg-accent",
                     )}
                   >
                     <Bot className="h-4 w-4 mr-2" />
@@ -191,4 +170,3 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
     </DropdownMenu>
   );
 }
-

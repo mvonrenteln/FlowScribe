@@ -1,12 +1,12 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   computeDiff,
   computeTextChanges,
   countChanges,
-  summarizeChanges,
   getOriginalDiffSegments,
   getRevisedDiffSegments,
   hasDifferences,
+  summarizeChanges,
 } from "../diffUtils";
 
 describe("diffUtils", () => {
@@ -92,7 +92,7 @@ describe("diffUtils", () => {
   });
 
   describe("summarizeChanges", () => {
-it("returns 'No changes' for identical texts", () => {
+    it("returns 'No changes' for identical texts", () => {
       const changes = computeTextChanges("hello world", "hello world");
       const summary = summarizeChanges(changes, "hello world", "hello world");
       expect(summary).toBe("No changes");
@@ -103,7 +103,7 @@ it("returns 'No changes' for identical texts", () => {
       const revised = "goodbye universe";
       const changes = computeTextChanges(original, revised);
       const summary = summarizeChanges(changes, original, revised);
-      expect(summary).toMatch(/\d+ Änderungen?/);
+      expect(summary).toMatch(/\d+ changes?/);
     });
   });
 
@@ -149,4 +149,3 @@ it("returns 'No changes' for identical texts", () => {
     });
   });
 });
-

@@ -14,8 +14,12 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import {
+  createAIRevisionSlice,
+  initialAIRevisionState,
+  normalizeAIRevisionConfig,
+} from "./store/slices/aiRevisionSlice";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
-import { createAIRevisionSlice, initialAIRevisionState, normalizeAIRevisionConfig } from "./store/slices/aiRevisionSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";

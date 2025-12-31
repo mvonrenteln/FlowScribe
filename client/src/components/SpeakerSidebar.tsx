@@ -12,8 +12,11 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import type { Segment, Speaker } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import {
+  AIBatchRevisionSection,
+  BatchResultsSummary,
+} from "./transcript-editor/AIBatchRevisionSection";
 import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
-import { AIBatchRevisionSection, BatchResultsSummary } from "./transcript-editor/AIBatchRevisionSection";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];

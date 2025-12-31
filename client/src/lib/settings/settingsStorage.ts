@@ -298,11 +298,8 @@ export function updateProviderModel(providerId: string, model: string): Persiste
   const settings = initializeSettings();
   const updated: PersistedSettings = {
     ...settings,
-    aiProviders: settings.aiProviders.map((p) =>
-      p.id === providerId ? { ...p, model } : p
-    ),
+    aiProviders: settings.aiProviders.map((p) => (p.id === providerId ? { ...p, model } : p)),
   };
   writeSettings(updated);
   return updated;
 }
-
