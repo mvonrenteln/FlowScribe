@@ -33,6 +33,7 @@ import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { FileUpload } from "../FileUpload";
+import { SettingsButton } from "../settings";
 import { ThemeToggle } from "../ThemeToggle";
 import { formatAudioName, formatTranscriptName, getFileExtension } from "./ToolbarUtils";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
@@ -602,6 +603,14 @@ export function Toolbar({
               </span>
             </TooltipTrigger>
             <TooltipContent>Toggle theme</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <SettingsButton />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>
