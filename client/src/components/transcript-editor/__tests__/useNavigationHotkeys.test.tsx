@@ -62,6 +62,7 @@ describe("useNavigationHotkeys", () => {
     selectNextSegment,
     onShowExport: vi.fn(),
     onShowShortcuts: vi.fn(),
+    onShowSettings: vi.fn(),
   };
 
   beforeEach(() => {

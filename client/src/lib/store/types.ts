@@ -83,6 +83,9 @@ export interface PersistedGlobalState {
   spellcheckIgnoreWords?: string[];
   spellcheckCustomEnabled?: boolean;
   aiSpeakerConfig?: AISpeakerConfig;
+  // Confidence highlighting
+  highlightLowConfidence?: boolean;
+  manualConfidenceThreshold?: number | null;
 }
 
 export interface RecentSessionSummary {
@@ -136,6 +139,9 @@ export interface InitialStoreState {
   aiSpeakerBatchInsights: AISpeakerBatchInsight[];
   aiSpeakerDiscrepancyNotice: string | null;
   aiSpeakerBatchLog: AISpeakerBatchInsight[];
+  // Confidence highlighting
+  highlightLowConfidence: boolean;
+  manualConfidenceThreshold: number | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -146,7 +152,14 @@ export type TranscriptStore = InitialStoreState &
   SpeakersSlice &
   LexiconSlice &
   SpellcheckSlice &
-  AISpeakerSlice;
+  AISpeakerSlice &
+  ConfidenceSlice;
+
+export interface ConfidenceSlice {
+  setHighlightLowConfidence: (enabled: boolean) => void;
+  setManualConfidenceThreshold: (threshold: number | null) => void;
+  toggleHighlightLowConfidence: () => void;
+}
 
 export interface SessionSlice {
   setAudioFile: (file: File | null) => void;
@@ -266,9 +279,12 @@ export interface AISpeakerBatchInsight {
   elapsedMs?: number;
 }
 
+export type TemplateCategory = "speaker" | "grammar" | "summary" | "custom";
+
 export interface PromptTemplate {
   id: string;
   name: string;
+  category?: TemplateCategory;
   systemPrompt: string;
   userPromptTemplate: string;
   isDefault?: boolean;
@@ -280,11 +296,17 @@ export interface PromptTemplateExport {
 }
 
 export interface AISpeakerConfig {
+  /** @deprecated Use selectedProviderId with settings providers instead */
   ollamaUrl: string;
+  /** @deprecated Use selectedProviderId with settings providers instead */
   model: string;
   batchSize: number;
   templates: PromptTemplate[];
   activeTemplateId: string;
+  /** ID of the selected AI provider from settings */
+  selectedProviderId?: string;
+  /** Selected model (overrides provider default if set) */
+  selectedModel?: string;
 }
 
 // Note: AI Speaker state is stored in InitialStoreState with aiSpeaker* prefix

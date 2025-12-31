@@ -16,6 +16,8 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   spellcheckIgnoreWords: string[];
   spellcheckCustomEnabled: boolean;
   aiSpeakerConfig: PersistedGlobalState["aiSpeakerConfig"];
+  highlightLowConfidence: boolean;
+  manualConfidenceThreshold: number | null;
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -29,4 +31,6 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   spellcheckIgnoreWords: state.spellcheckIgnoreWords,
   spellcheckCustomEnabled: state.spellcheckCustomEnabled,
   aiSpeakerConfig: state.aiSpeakerConfig,
+  highlightLowConfidence: state.highlightLowConfidence,
+  manualConfidenceThreshold: state.manualConfidenceThreshold,
 });

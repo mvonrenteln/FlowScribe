@@ -46,7 +46,11 @@ export function useSpellcheck({
   const [spellcheckMatchLimitReached, setSpellcheckMatchLimitReached] = useState(false);
   const spellcheckRunIdRef = useRef(0);
 
-  const effectiveSpellcheckLanguages = useMemo(() => spellcheckLanguages, [spellcheckLanguages]);
+  // When custom dictionaries are enabled, they replace built-in languages
+  const effectiveSpellcheckLanguages = useMemo(
+    () => (spellcheckCustomEnabled ? [] : spellcheckLanguages),
+    [spellcheckLanguages, spellcheckCustomEnabled],
+  );
 
   const spellcheckDebugEnabled = useMemo(() => {
     if (typeof window === "undefined") return false;

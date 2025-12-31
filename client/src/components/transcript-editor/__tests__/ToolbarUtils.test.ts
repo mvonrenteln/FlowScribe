@@ -3,7 +3,7 @@ import {
   formatTranscriptName,
   getFileExtension,
   getFileNameWithoutExtension,
-} from "./ToolbarUtils";
+} from "../ToolbarUtils";
 
 describe("ToolbarUtils", () => {
   describe("getFileNameWithoutExtension", () => {

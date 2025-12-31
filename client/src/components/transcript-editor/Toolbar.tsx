@@ -7,11 +7,13 @@ import {
   Clock,
   Download,
   FilePenLine,
+  Highlighter,
   Keyboard,
   PanelLeft,
   PanelLeftClose,
   Redo2,
   ScanText,
+  Settings,
   Sparkles,
   SpellCheck,
   Trash2,
@@ -27,12 +29,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import { FileUpload } from "../FileUpload";
+import { SettingsButton } from "../settings";
 import { ThemeToggle } from "../ThemeToggle";
 import { formatAudioName, formatTranscriptName, getFileExtension } from "./ToolbarUtils";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
@@ -63,25 +64,9 @@ export function Toolbar({
   onShowExport,
   highlightLowConfidence,
   onToggleHighlightLowConfidence,
-  confidencePopoverOpen,
-  onConfidencePopoverChange,
-  lowConfidenceThreshold,
-  onManualConfidenceChange,
-  onResetConfidenceThreshold,
-  spellcheckPopoverOpen,
-  onSpellcheckPopoverChange,
   spellcheckEnabled,
   onToggleSpellcheck,
-  spellcheckLanguages,
-  onSpellcheckLanguageChange,
-  spellcheckCustomEnabled,
-  onToggleSpellcheckCustom,
   onShowCustomDictionaries,
-  spellcheckCustomDictionariesCount,
-  onShowSpellcheckDialog,
-  spellcheckDebugEnabled,
-  effectiveSpellcheckLanguages,
-  spellcheckerLanguages,
   spellcheckHighlightActive,
   glossaryHighlightActive,
   onShowGlossary,
@@ -356,194 +341,72 @@ export function Toolbar({
           <Separator orientation="vertical" className="h-6" />
 
           <div className="flex items-center gap-2">
-            <Popover open={confidencePopoverOpen} onOpenChange={onConfidencePopoverChange}>
+            {/* Highlights Dropdown - combines Confidence, Spellcheck, Glossary */}
+            <DropdownMenu>
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
+                  <DropdownMenuTrigger asChild>
                     <Button
                       size="sm"
                       variant="ghost"
-                      onClick={() => {
-                        onToggleHighlightLowConfidence();
-                        onConfidencePopoverChange(true);
-                      }}
-                      aria-pressed={highlightLowConfidence}
-                      aria-label="Toggle low confidence highlight"
-                      data-testid="button-toggle-confidence"
-                      className={
-                        highlightLowConfidence
-                          ? "px-2 gap-2 bg-accent text-accent-foreground"
-                          : "px-2 gap-2"
-                      }
-                    >
-                      <ScanText className="h-4 w-4" aria-hidden="true" />
-                      <span className="hidden sm:inline">Confidence</span>
-                    </Button>
-                  </PopoverTrigger>
-                </TooltipTrigger>
-                <TooltipContent>Low confidence highlight</TooltipContent>
-              </Tooltip>
-              <PopoverContent className="w-64" align="end">
-                <div className="space-y-3">
-                  <div className="text-xs text-muted-foreground">Low confidence threshold</div>
-                  <Slider
-                    value={[lowConfidenceThreshold ?? 0.4]}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    disabled={lowConfidenceThreshold === null}
-                    onValueChange={(value) => {
-                      onManualConfidenceChange(value[0] ?? 0.4);
-                    }}
-                  />
-                  <div className="flex items-center justify-between text-xs text-muted-foreground">
-                    <span>
-                      {lowConfidenceThreshold === null
-                        ? "No scores"
-                        : `Now: ${lowConfidenceThreshold.toFixed(2)}`}
-                    </span>
-                    <Button size="sm" variant="ghost" onClick={onResetConfidenceThreshold}>
-                      Auto
-                    </Button>
-                  </div>
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Popover open={spellcheckPopoverOpen} onOpenChange={onSpellcheckPopoverChange}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <PopoverTrigger asChild>
-                    <Button
-                      size="sm"
-                      variant="ghost"
-                      onClick={() => onSpellcheckPopoverChange(true)}
-                      aria-label="Spellcheck settings"
-                      data-testid="button-spellcheck"
-                      aria-pressed={spellcheckHighlightActive}
+                      aria-label="Highlights settings"
+                      data-testid="button-highlights"
                       className={cn(
                         "px-2 gap-2",
-                        spellcheckHighlightActive && "bg-accent text-accent-foreground",
+                        (highlightLowConfidence ||
+                          spellcheckHighlightActive ||
+                          glossaryHighlightActive) &&
+                          "bg-accent text-accent-foreground",
                       )}
                     >
-                      <SpellCheck className="h-4 w-4" aria-hidden="true" />
-                      <span className="hidden sm:inline">Spellcheck</span>
+                      <Highlighter className="h-4 w-4" aria-hidden="true" />
+                      <span className="hidden sm:inline">Highlights</span>
                     </Button>
-                  </PopoverTrigger>
+                  </DropdownMenuTrigger>
                 </TooltipTrigger>
-                <TooltipContent>Spellcheck settings</TooltipContent>
+                <TooltipContent>Toggle highlight options</TooltipContent>
               </Tooltip>
-              <PopoverContent className="w-72" align="end">
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="text-sm font-medium">Spellcheck</div>
-                    <Button
-                      size="sm"
-                      variant={spellcheckEnabled ? "secondary" : "outline"}
-                      onClick={onToggleSpellcheck}
-                    >
-                      {spellcheckEnabled ? "On" : "Off"}
-                    </Button>
-                  </div>
-                  <div className="space-y-2">
-                    <div className="text-xs text-muted-foreground">Languages</div>
-                    <div className="flex items-center gap-2">
-                      <Button
-                        size="sm"
-                        variant={spellcheckLanguages.includes("de") ? "secondary" : "outline"}
-                        onClick={() => onSpellcheckLanguageChange(["de"])}
-                      >
-                        DE
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant={spellcheckLanguages.includes("en") ? "secondary" : "outline"}
-                        onClick={() => onSpellcheckLanguageChange(["en"])}
-                      >
-                        EN
-                      </Button>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="sm"
-                            variant={spellcheckCustomEnabled ? "secondary" : "outline"}
-                          >
-                            Custom
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuItem
-                            onClick={onToggleSpellcheckCustom}
-                            className={
-                              spellcheckCustomEnabled
-                                ? "border border-border font-medium"
-                                : "border border-muted-foreground/40 text-muted-foreground"
-                            }
-                          >
-                            {spellcheckCustomEnabled ? (
-                              <Check className="h-4 w-4 mr-2" />
-                            ) : (
-                              <span className="w-4 h-4 mr-2" />
-                            )}
-                            {spellcheckCustomEnabled ? "Activated" : "Deactivated"}
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={onShowCustomDictionaries}>
-                            Manage dictionaries
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </div>
-                  </div>
-                  <Button size="sm" variant="ghost" onClick={onShowSpellcheckDialog}>
-                    Manage ignore list
-                  </Button>
-                  {!spellcheckEnabled && (
-                    <div className="text-xs text-muted-foreground">
-                      Enable spellcheck to highlight and filter spelling issues.
-                    </div>
-                  )}
-                  {spellcheckDebugEnabled && (
-                    <div className="rounded-md border border-dashed px-2 py-1 text-[11px] text-muted-foreground">
-                      <div>
-                        enabled: {spellcheckEnabled ? "on" : "off"} | custom:{" "}
-                        {spellcheckCustomEnabled ? "on" : "off"}
-                      </div>
-                      <div>
-                        languages:{" "}
-                        {effectiveSpellcheckLanguages.length > 0
-                          ? effectiveSpellcheckLanguages.join(",")
-                          : "none"}
-                      </div>
-                      <div>
-                        custom dicts: {spellcheckCustomDictionariesCount} | checkers:{" "}
-                        {spellcheckerLanguages.length > 0
-                          ? spellcheckerLanguages.join(",")
-                          : "none"}
-                      </div>
-                    </div>
-                  )}
-                </div>
-              </PopoverContent>
-            </Popover>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={onShowGlossary}
-                  aria-label="Glossary settings"
-                  data-testid="button-glossary"
-                  aria-pressed={glossaryHighlightActive}
-                  className={cn(
-                    "px-2 gap-2",
-                    glossaryHighlightActive && "bg-accent text-accent-foreground",
-                  )}
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem
+                  onClick={onToggleHighlightLowConfidence}
+                  className="flex items-center justify-between"
                 >
-                  <BookOpenText className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">Glossary</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Glossary settings</TooltipContent>
-            </Tooltip>
+                  <div className="flex items-center gap-2">
+                    <ScanText className="h-4 w-4" />
+                    <span>Confidence</span>
+                  </div>
+                  {highlightLowConfidence && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={onToggleSpellcheck}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <SpellCheck className="h-4 w-4" />
+                    <span>Spellcheck</span>
+                  </div>
+                  {spellcheckEnabled && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  onClick={() => {
+                    // Toggle glossary highlight (uses lexiconHighlightUnderline from store)
+                    onShowGlossary();
+                  }}
+                  className="flex items-center justify-between"
+                >
+                  <div className="flex items-center gap-2">
+                    <BookOpenText className="h-4 w-4" />
+                    <span>Glossary</span>
+                  </div>
+                  {glossaryHighlightActive && <Check className="h-4 w-4" />}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem onClick={onShowCustomDictionaries}>
+                  <Settings className="h-4 w-4 mr-2" />
+                  Configure in Settings...
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button
@@ -602,6 +465,14 @@ export function Toolbar({
               </span>
             </TooltipTrigger>
             <TooltipContent>Toggle theme</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <span>
+                <SettingsButton />
+              </span>
+            </TooltipTrigger>
+            <TooltipContent>Settings</TooltipContent>
           </Tooltip>
         </div>
       </TooltipProvider>

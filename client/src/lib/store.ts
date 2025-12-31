@@ -15,6 +15,7 @@ import {
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
+import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
@@ -103,6 +104,9 @@ const initialState: InitialStoreState = {
   spellcheckCustomEnabled: resolvedSpellcheckSelection.customEnabled,
   ...initialAISpeakerState,
   aiSpeakerConfig: normalizeAISpeakerConfig(globalState?.aiSpeakerConfig),
+  // Confidence highlighting
+  highlightLowConfidence: globalState?.highlightLowConfidence ?? true,
+  manualConfidenceThreshold: globalState?.manualConfidenceThreshold ?? null,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -132,6 +136,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
       ...createAISpeakerSlice(set, get),
+      ...createConfidenceSlice(set, get),
     };
   }),
 );

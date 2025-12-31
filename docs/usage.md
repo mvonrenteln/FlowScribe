@@ -85,3 +85,41 @@ Hover a highlighted word to open the tooltip.
 Export your cleaned transcript as JSON, SRT, or plain text.
 
 ![Export dialog](screenshots/export-dialog.png)
+
+## 9) Settings
+
+Access the centralized Settings menu via the gear icon in the toolbar or press **Cmd/Ctrl + ,**. The Settings panel provides:
+
+### AI Providers
+- Configure multiple AI providers (Ollama, OpenAI, Custom)
+- Test connections and manage API keys
+- Select default models for each provider
+
+### AI Templates
+- Create and manage prompt templates for speaker classification
+- Import/export templates for sharing
+- Organize templates by category (Speaker, Grammar, Summary, Custom)
+
+### Spellcheck
+- Enable/disable spellchecking
+- Configure languages (German, English)
+- Manage ignored words and custom dictionaries
+- Import .oxt/.aff/.dic dictionary files
+
+### Glossary
+- Manage glossary terms with variants and false positives
+- Adjust fuzzy matching threshold
+- Configure highlighting styles (underline, background)
+
+### Confidence
+- Enable/disable confidence highlighting
+- Adjust threshold manually or use auto-detection
+- Auto mode calculates threshold from transcript distribution
+
+### Appearance
+- Switch between Light, Dark, or System theme
+
+**📖 For detailed information, see:**
+- [Complete Settings Guide](features/settings.md)
+- [AI Speaker Classification Guide](features/ai-speaker-classification.md)
+

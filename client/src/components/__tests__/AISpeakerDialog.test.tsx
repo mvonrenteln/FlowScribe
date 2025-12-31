@@ -66,50 +66,43 @@ describe("AISpeakerDialog configuration persistence", () => {
     });
   });
 
-  it("saves configuration changes to the store", async () => {
+  it("renders batch size input and allows changes", async () => {
     const onOpenChange = vi.fn();
     const user = userEvent.setup();
 
-    // spy on updateConfig to ensure it's called
-    const updateSpy = vi.spyOn(useTranscriptStore.getState(), "updateConfig");
+    render(<AISpeakerDialog open={true} onOpenChange={onOpenChange} />);
+
+    // Batch Size input should be visible (this is still in the dialog)
+    const batchInput = screen.getByRole("spinbutton", { name: /batch size/i }) as HTMLInputElement;
+    expect(batchInput).toBeInTheDocument();
+
+    // Should have default value
+    expect(batchInput.value).toBe("10");
+
+    // Change Batch Size
+    await user.clear(batchInput);
+    await user.type(batchInput, "25");
+
+    // Value should be updated
+    expect(batchInput.value).toBe("25");
+  });
+
+  it("shows provider and model selection", () => {
+    const onOpenChange = vi.fn();
 
     render(<AISpeakerDialog open={true} onOpenChange={onOpenChange} />);
 
-    // Switch to the Config tab so the inputs are rendered
-    const configTab = screen.getByText("Config");
-    await user.click(configTab);
+    // Should show provider and model labels
+    expect(screen.getByText("AI Provider")).toBeInTheDocument();
+    expect(screen.getByText("Model")).toBeInTheDocument();
+  });
 
-    // Change Ollama URL
-    const urlInput = (await screen.findByLabelText("Ollama URL")) as HTMLInputElement;
-    await user.clear(urlInput);
-    await user.type(urlInput, "http://my-ollama:1234");
+  it("shows settings button", () => {
+    const onOpenChange = vi.fn();
 
-    // Change Model
-    const modelInput = (await screen.findByLabelText("Model")) as HTMLInputElement;
-    await user.clear(modelInput);
-    await user.type(modelInput, "my-model");
+    render(<AISpeakerDialog open={true} onOpenChange={onOpenChange} />);
 
-    // Change Batch Size
-    const batchInput = (await screen.findByLabelText("Batch Size")) as HTMLInputElement;
-    await user.clear(batchInput);
-    await user.type(batchInput, "20");
-
-    // Click Save Configuration button
-    const saveButton = screen.getByRole("button", { name: "Save Configuration" });
-    await user.click(saveButton);
-
-    // Expect updateConfig was called with the new values
-    expect(updateSpy).toHaveBeenCalledWith({
-      ollamaUrl: "http://my-ollama:1234",
-      model: "my-model",
-      batchSize: 20,
-    });
-
-    const config = useTranscriptStore.getState().aiSpeakerConfig;
-    expect(config.ollamaUrl).toBe("http://my-ollama:1234");
-    expect(config.model).toBe("my-model");
-    expect(config.batchSize).toBe(20);
-
-    updateSpy.mockRestore();
+    // Should show settings button
+    expect(screen.getByRole("button", { name: /settings/i })).toBeInTheDocument();
   });
 });

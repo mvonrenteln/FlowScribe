@@ -154,6 +154,15 @@ export const useTranscriptEditor = () => {
     (state) => state.spellcheckCustomDictionaries,
   );
   const spellcheckCustomEnabled = useTranscriptStore((state) => state.spellcheckCustomEnabled);
+  const highlightLowConfidence = useTranscriptStore((state) => state.highlightLowConfidence);
+  const manualConfidenceThreshold = useTranscriptStore((state) => state.manualConfidenceThreshold);
+  const setHighlightLowConfidence = useTranscriptStore((state) => state.setHighlightLowConfidence);
+  const setManualConfidenceThreshold = useTranscriptStore(
+    (state) => state.setManualConfidenceThreshold,
+  );
+  const toggleHighlightLowConfidence = useTranscriptStore(
+    (state) => state.toggleHighlightLowConfidence,
+  );
   const { setAudioFile, setAudioUrl, setAudioReference, activateSession, loadTranscript } =
     transcriptActions;
   const {
@@ -192,9 +201,9 @@ export const useTranscriptEditor = () => {
   const [showExport, setShowExport] = useState(false);
   const [showLexicon, setShowLexicon] = useState(false);
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
-  const [showCustomDictionariesDialog, setShowCustomDictionariesDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showAISpeaker, setShowAISpeaker] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [playbackRate, setPlaybackRate] = useState(1);
@@ -318,9 +327,7 @@ export const useTranscriptEditor = () => {
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
-    highlightLowConfidence,
-    setHighlightLowConfidence,
-    setManualConfidenceThreshold,
+    // highlightLowConfidence, setHighlightLowConfidence, setManualConfidenceThreshold from store
     activeSpeakerName,
     lowConfidenceThreshold,
     lexiconMatchesBySegment,
@@ -345,6 +352,10 @@ export const useTranscriptEditor = () => {
     lexiconHighlightBackground,
     spellcheckEnabled,
     spellcheckMatchesBySegment,
+    highlightLowConfidence,
+    manualConfidenceThreshold,
+    setHighlightLowConfidence,
+    setManualConfidenceThreshold,
   });
 
   const {
@@ -512,6 +523,7 @@ export const useTranscriptEditor = () => {
     selectNextSegment,
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
+    onShowSettings: () => setShowSettings(true),
   });
 
   const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
@@ -706,7 +718,7 @@ export const useTranscriptEditor = () => {
       onShowShortcuts: () => setShowShortcuts(true),
       onShowExport: () => setShowExport(true),
       highlightLowConfidence,
-      onToggleHighlightLowConfidence: () => setHighlightLowConfidence((current) => !current),
+      onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
       confidencePopoverOpen,
       onConfidencePopoverChange: setConfidencePopoverOpen,
       lowConfidenceThreshold,
@@ -724,7 +736,7 @@ export const useTranscriptEditor = () => {
         setSpellcheckLanguages(languages),
       spellcheckCustomEnabled,
       onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
-      onShowCustomDictionaries: () => setShowCustomDictionariesDialog(true),
+      onShowCustomDictionaries: () => setShowSettings(true),
       spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
       onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
       spellcheckDebugEnabled,
@@ -771,6 +783,7 @@ export const useTranscriptEditor = () => {
       sessionLabel,
       canCreateRevision,
       transcriptActions.deleteSession,
+      toggleHighlightLowConfidence,
     ],
   );
 
@@ -941,8 +954,6 @@ export const useTranscriptEditor = () => {
       onLexiconChange: setShowLexicon,
       showSpellcheckDialog,
       onSpellcheckDialogChange: setShowSpellcheckDialog,
-      showCustomDictionariesDialog,
-      onCustomDictionariesDialogChange: setShowCustomDictionariesDialog,
       showRevisionDialog,
       onRevisionDialogChange: setShowRevisionDialog,
       onCreateRevision: handleCreateRevision,
@@ -967,6 +978,9 @@ export const useTranscriptEditor = () => {
               .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
       showAISpeaker,
       onAISpeakerChange: setShowAISpeaker,
+      showSettings,
+      onSettingsChange: setShowSettings,
+      onOpenSettings: () => setShowSettings(true),
     }),
     [
       audioFile?.name,
@@ -975,7 +989,6 @@ export const useTranscriptEditor = () => {
       handleCreateRevision,
       sessionKind,
       segments,
-      showCustomDictionariesDialog,
       showExport,
       showRevisionDialog,
       showLexicon,
@@ -985,6 +998,7 @@ export const useTranscriptEditor = () => {
       sessionKey,
       sessionLabel,
       showAISpeaker,
+      showSettings,
     ],
   );
 

@@ -1,7 +1,15 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { Segment } from "@/lib/store";
 import { useFiltersAndLexicon } from "../useFiltersAndLexicon";
+
+// Base confidence props for all tests
+const confidenceProps = {
+  highlightLowConfidence: false,
+  manualConfidenceThreshold: null,
+  setHighlightLowConfidence: vi.fn(),
+  setManualConfidenceThreshold: vi.fn(),
+};
 
 describe("Search Logic in useFiltersAndLexicon", () => {
   const segments: Segment[] = [
@@ -57,6 +65,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     lexiconHighlightBackground: false,
     spellcheckEnabled: false,
     spellcheckMatchesBySegment: new Map(),
+    ...confidenceProps,
   };
 
   it("finds exact matches", () => {

@@ -36,6 +36,7 @@ const shortcuts = {
   ],
   Export: [
     { keys: ["Ctrl", "E"], description: "Export transcript" },
+    { keys: ["Ctrl", ","], description: "Open settings" },
     { keys: ["?"], description: "Show keyboard shortcuts" },
   ],
 };

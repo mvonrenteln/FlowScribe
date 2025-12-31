@@ -1,10 +1,10 @@
 import { AISpeakerDialog } from "../AISpeakerDialog";
-import { CustomDictionariesDialog } from "../CustomDictionariesDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
 import { SpellcheckDialog } from "../SpellcheckDialog";
+import { SettingsSheet } from "../settings";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];
@@ -20,8 +20,6 @@ export function EditorDialogs({
   onLexiconChange,
   showSpellcheckDialog,
   onSpellcheckDialogChange,
-  showCustomDictionariesDialog,
-  onCustomDictionariesDialogChange,
   showRevisionDialog,
   onRevisionDialogChange,
   onCreateRevision,
@@ -32,6 +30,9 @@ export function EditorDialogs({
   defaultRevisionName,
   showAISpeaker,
   onAISpeakerChange,
+  showSettings,
+  onSettingsChange,
+  onOpenSettings,
 }: DialogProps) {
   return (
     <>
@@ -44,10 +45,6 @@ export function EditorDialogs({
       />
       <GlossaryDialog open={showLexicon} onOpenChange={onLexiconChange} />
       <SpellcheckDialog open={showSpellcheckDialog} onOpenChange={onSpellcheckDialogChange} />
-      <CustomDictionariesDialog
-        open={showCustomDictionariesDialog}
-        onOpenChange={onCustomDictionariesDialogChange}
-      />
       <RevisionDialog
         open={showRevisionDialog}
         onOpenChange={onRevisionDialogChange}
@@ -58,7 +55,12 @@ export function EditorDialogs({
         existingRevisionNames={existingRevisionNames}
         defaultRevisionName={defaultRevisionName}
       />
-      <AISpeakerDialog open={showAISpeaker} onOpenChange={onAISpeakerChange} />
+      <AISpeakerDialog
+        open={showAISpeaker}
+        onOpenChange={onAISpeakerChange}
+        onOpenSettings={onOpenSettings}
+      />
+      <SettingsSheet open={showSettings} onOpenChange={onSettingsChange} showTrigger={false} />
     </>
   );
 }
