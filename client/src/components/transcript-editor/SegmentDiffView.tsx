@@ -204,6 +204,8 @@ export function RevisionIndicator({
   changeSummary,
   onClick,
 }: RevisionIndicatorProps) {
+  const { t } = useTranslation();
+
   if (!hasPendingRevision) return null;
 
   return (

@@ -650,6 +650,7 @@ const FEEDBACK_DISPLAY_TIME = 4000; // 4 seconds
 function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
   const [visible, setVisible] = useState(true);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally depend on result.timestamp to re-trigger effect when a new result arrives
   useEffect(() => {
     setVisible(true); // Reset visibility when result changes
     const timer = setTimeout(() => {
@@ -657,7 +658,7 @@ function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
     }, FEEDBACK_DISPLAY_TIME);
 
     return () => clearTimeout(timer);
-  }, [result]);
+  }, [result.timestamp]);
 
   if (!visible) return null;
 
