@@ -136,6 +136,8 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           disabled={disabled || isProcessingThis}
           aria-label={statusDisplay.title}
           title={statusDisplay.title}
+          onClick={(e) => e.stopPropagation()}
+          onMouseDown={(e) => e.stopPropagation()}
         >
           {statusDisplay.icon}
         </Button>

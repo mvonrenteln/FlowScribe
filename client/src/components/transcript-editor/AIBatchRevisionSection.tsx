@@ -5,7 +5,7 @@
  * Shows template selector, provider/model selection, and start button when expanded.
  */
 
-import { ChevronDown, ChevronRight, Loader2, Settings2, Sparkles, X } from "lucide-react";
+import { ChevronDown, ChevronRight, Loader2, Sparkles, X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -109,14 +109,14 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
                 disabled={isProcessing}
               >
                 <SelectTrigger id="revision-provider" className="h-8 text-sm">
-                  <SelectValue placeholder="Provider wählen..." />
+                  <SelectValue placeholder="Select provider..." />
                 </SelectTrigger>
                 <SelectContent>
                   {settings.aiProviders.map((provider) => (
                     <SelectItem key={provider.id} value={provider.id}>
                       {provider.name}
                       {provider.isDefault && (
-                        <span className="ml-2 text-xs text-muted-foreground">(Standard)</span>
+                        <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
                       )}
                     </SelectItem>
                   ))}
@@ -129,7 +129,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
           {selectedProvider && (
             <div className="space-y-1.5">
               <label htmlFor="revision-model" className="text-xs text-muted-foreground">
-                Modell
+                Model
               </label>
               {availableModels.length > 0 ? (
                 <Select
@@ -138,7 +138,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
                   disabled={isProcessing}
                 >
                   <SelectTrigger id="revision-model" className="h-8 text-sm">
-                    <SelectValue placeholder="Modell wählen..." />
+                    <SelectValue placeholder="Select model..." />
                   </SelectTrigger>
                   <SelectContent>
                     {availableModels.map((model) => (
@@ -150,7 +150,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
                 </Select>
               ) : (
                 <div className="text-xs text-muted-foreground bg-muted rounded px-2 py-1.5">
-                  {selectedProvider.model || "Kein Modell konfiguriert"}
+                  {selectedProvider.model || "No model configured"}
                 </div>
               )}
             </div>
@@ -167,14 +167,14 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
               disabled={isProcessing}
             >
               <SelectTrigger id="revision-template" className="h-8 text-sm">
-                <SelectValue placeholder="Template wählen..." />
+                <SelectValue placeholder="Select template..." />
               </SelectTrigger>
               <SelectContent>
                 {templates.map((template) => (
                   <SelectItem key={template.id} value={template.id}>
                     {template.name}
                     {template.isDefault && (
-                      <span className="ml-2 text-xs text-muted-foreground">(Standard)</span>
+                      <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
                     )}
                   </SelectItem>
                 ))}
@@ -185,10 +185,10 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
           {/* Segment Count */}
           <div className="text-sm text-muted-foreground">
             {segmentCount === 0 ? (
-              <span className="text-amber-600 dark:text-amber-400">Keine Segmente gefiltert</span>
+              <span className="text-amber-600 dark:text-amber-400">No segments filtered</span>
             ) : (
               <span>
-                {segmentCount} Segment{segmentCount !== 1 ? "e" : ""} (gefiltert)
+                {segmentCount} segment{segmentCount !== 1 ? "s" : ""} (filtered)
               </span>
             )}
           </div>
@@ -218,7 +218,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
             {isProcessing ? (
               <Button variant="outline" size="sm" className="flex-1" onClick={cancelRevision}>
                 <X className="h-4 w-4 mr-1" />
-                Abbrechen
+                Cancel
               </Button>
             ) : (
               <Button
@@ -233,7 +233,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
                 ) : (
                   <Sparkles className="h-4 w-4 mr-1" />
                 )}
-                Starten
+                Start
               </Button>
             )}
           </div>
@@ -270,7 +270,7 @@ export function BatchResultsSummary({
   return (
     <div className="border-t pt-3 mt-3 space-y-2">
       <div className="text-xs text-muted-foreground">
-        Revisionen: {pendingCount} ausstehend, {acceptedCount} übernommen, {rejectedCount} abgelehnt
+        Revisions: {pendingCount} pending, {acceptedCount} accepted, {rejectedCount} rejected
       </div>
 
       {pendingCount > 0 && (
@@ -281,10 +281,10 @@ export function BatchResultsSummary({
             className="flex-1 text-destructive hover:text-destructive"
             onClick={rejectAllRevisions}
           >
-            Alle ablehnen
+            Reject all
           </Button>
           <Button variant="default" size="sm" className="flex-1" onClick={acceptAllRevisions}>
-            Alle übernehmen
+            Accept all
           </Button>
         </div>
       )}
@@ -296,7 +296,7 @@ export function BatchResultsSummary({
           className="w-full text-muted-foreground"
           onClick={clearRevisions}
         >
-          Ergebnisse löschen
+          Clear results
         </Button>
       )}
     </div>

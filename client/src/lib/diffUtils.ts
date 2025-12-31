@@ -74,7 +74,6 @@ export function computeDiff(original: string, revised: string): DiffSegment[] {
 function tokenize(text: string): string[] {
   const tokens: string[] = [];
   let current = "";
-  let inWord = false;
 
   for (const char of text) {
     const isWhitespace = /\s/.test(char);
@@ -86,10 +85,8 @@ function tokenize(text: string): string[] {
       }
       // Include whitespace as separate token to preserve spacing
       tokens.push(char);
-      inWord = false;
     } else {
       current += char;
-      inWord = true;
     }
   }
 

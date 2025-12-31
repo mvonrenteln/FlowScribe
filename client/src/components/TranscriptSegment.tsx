@@ -651,12 +651,13 @@ function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
   const [visible, setVisible] = useState(true);
 
   useEffect(() => {
+    setVisible(true); // Reset visibility when result changes
     const timer = setTimeout(() => {
       setVisible(false);
     }, FEEDBACK_DISPLAY_TIME);
 
     return () => clearTimeout(timer);
-  }, [result.timestamp]);
+  }, [result]);
 
   if (!visible) return null;
 

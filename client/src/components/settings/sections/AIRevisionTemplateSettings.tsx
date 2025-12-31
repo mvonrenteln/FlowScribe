@@ -20,7 +20,7 @@ import { useCallback, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -68,7 +68,13 @@ interface TemplateFormProps {
   isDefault?: boolean;
 }
 
-function TemplateForm({ initialData, onSave, onCancel, isEditing, isDefault }: TemplateFormProps) {
+function TemplateForm({
+  initialData,
+  onSave,
+  onCancel,
+  isEditing,
+  isDefault: _isDefault,
+}: TemplateFormProps) {
   const [form, setForm] = useState<TemplateFormData>({
     ...EMPTY_FORM,
     ...initialData,
@@ -344,7 +350,7 @@ export function AIRevisionTemplateSettings() {
 
   const handleDeleteTemplate = useCallback(
     (id: string) => {
-      if (window.confirm("Möchten Sie dieses Template wirklich löschen?")) {
+      if (window.confirm("Are you sure you want to delete this template?")) {
         deleteTemplate(id);
       }
     },

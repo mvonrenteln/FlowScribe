@@ -102,6 +102,7 @@ describe("aiRevisionSlice", () => {
 
     beforeEach(() => {
       mockStore = createMockStore();
+      // biome-ignore lint/suspicious/noExplicitAny: Test mock requires type casting
       slice = createAIRevisionSlice(mockStore.set as any, mockStore.get as any);
     });
 
@@ -150,11 +151,13 @@ describe("aiRevisionSlice", () => {
         expect(customTemplate).toBeDefined();
 
         // Now delete it
-        slice.deleteRevisionTemplate(customTemplate!.id);
+        if (customTemplate) {
+          slice.deleteRevisionTemplate(customTemplate.id);
+        }
 
         const stateAfterDelete = mockStore.getState();
         const deletedTemplate = stateAfterDelete.aiRevisionConfig?.templates.find(
-          (t) => t.id === customTemplate!.id,
+          (t) => t.id === customTemplate?.id,
         );
         expect(deletedTemplate).toBeUndefined();
       });

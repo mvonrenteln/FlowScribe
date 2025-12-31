@@ -41,7 +41,7 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
   {
     id: "ai-revision-templates",
     label: "Revision Templates",
-    description: "Templates für Textüberarbeitung",
+    description: "Templates for text revision",
     icon: Sparkles,
   },
   {
