@@ -100,6 +100,15 @@ Access the centralized Settings menu via the gear icon in the toolbar or press *
 - Import/export templates for sharing
 - Organize templates by category (Speaker, Grammar, Summary, Custom)
 
+### AI Transcript Revision
+Use AI to intelligently revise and improve your transcript segments:
+- **Single segment**: Click the ✨ AI button on any segment for quick revisions
+- **Batch processing**: Filter segments and revise them all at once
+- **Custom templates**: Create templates for your specific workflows (RPG sessions, interviews, etc.)
+- **Side-by-side diff**: Review changes before accepting them
+
+Press **Alt+R** to instantly apply your default revision template to the selected segment.
+
 ### Spellcheck
 - Enable/disable spellchecking
 - Configure languages (German, English)
@@ -122,4 +131,5 @@ Access the centralized Settings menu via the gear icon in the toolbar or press *
 **📖 For detailed information, see:**
 - [Complete Settings Guide](features/settings.md)
 - [AI Speaker Classification Guide](features/ai-speaker-classification.md)
+- [AI Transcript Revision Guide](features/ai-transcript-revision-guide.md)
 

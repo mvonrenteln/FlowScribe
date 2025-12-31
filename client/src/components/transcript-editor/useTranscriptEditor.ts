@@ -492,6 +492,41 @@ export const useTranscriptEditor = () => {
   const splitWordIndex = getSplitWordIndex();
   const canSplitAtCurrentWord = splitWordIndex !== null;
 
+  // AI Revision: Get store functions
+  const startSingleRevision = useTranscriptStore((state) => state.startSingleRevision);
+  const aiRevisionConfig = useTranscriptStore((state) => state.aiRevisionConfig);
+
+  // State for AI revision menu (to open programmatically via keyboard)
+  const [aiRevisionMenuSegmentId, setAiRevisionMenuSegmentId] = useState<string | null>(null);
+
+  // AI Revision: Run default template on selected segment
+  const handleRunDefaultAIRevision = useCallback(() => {
+    if (!selectedSegmentId) return;
+    const defaultTemplateId = aiRevisionConfig.defaultTemplateId;
+    if (!defaultTemplateId) {
+      toast({
+        title: "No default template",
+        description: "Please set a default AI revision template in Settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    startSingleRevision(selectedSegmentId, defaultTemplateId);
+  }, [selectedSegmentId, aiRevisionConfig.defaultTemplateId, startSingleRevision]);
+
+  // AI Revision: Open menu for selected segment (focus the segment's AI button)
+  const handleOpenAIRevisionMenu = useCallback(() => {
+    if (!selectedSegmentId) return;
+    // Find the AI button for the selected segment and click it
+    const segmentEl = document.querySelector(`[data-segment-id="${selectedSegmentId}"]`);
+    if (segmentEl) {
+      const aiButton = segmentEl.querySelector('[aria-label*="AI"]') as HTMLButtonElement;
+      if (aiButton) {
+        aiButton.click();
+      }
+    }
+  }, [selectedSegmentId]);
+
   useNavigationHotkeys({
     isTranscriptEditing,
     handleSkipBack,
@@ -524,6 +559,8 @@ export const useTranscriptEditor = () => {
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
     onShowSettings: () => setShowSettings(true),
+    onRunDefaultAIRevision: handleRunDefaultAIRevision,
+    onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
   });
 
   const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);

@@ -20,6 +20,7 @@ Built for people who live inside transcripts: researchers, journalists, podcaste
 - Inline editing with undo/redo
 - Speaker management (rename, merge, assign)
 - **AI-powered speaker classification** (Ollama, OpenAI, Custom providers)
+- **🆕 AI Transcript Revision** — Fix grammar, improve clarity, or apply custom templates with one click. Process single segments or batch-revise filtered content with side-by-side diff preview.
 - Split/merge segments with precision
 - Low‑confidence and glossary‑match review filters
 - **Centralized Settings menu** with comprehensive configuration
@@ -67,6 +68,7 @@ The app runs locally as a frontend‑only Vite project.
 - `docs/design.md` — UI/UX principles and visual language
 - `docs/features/settings.md` — comprehensive settings guide
 - `docs/features/ai-speaker-classification.md` — AI speaker classification guide
+- `docs/features/ai-transcript-revision-guide.md` — AI transcript revision guide
 - `docs/settings-menu-plan.md` — technical architecture and implementation plan
 - `LICENSE` — project license
 

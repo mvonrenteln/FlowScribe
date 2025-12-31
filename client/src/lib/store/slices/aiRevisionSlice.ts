@@ -90,6 +90,7 @@ RULES:
 export const initialAIRevisionState = {
   aiRevisionSuggestions: [] as AIRevisionSuggestion[],
   aiRevisionIsProcessing: false,
+  aiRevisionCurrentSegmentId: null as string | null, // Track which segment is currently being processed
   aiRevisionProcessedCount: 0,
   aiRevisionTotalToProcess: 0,
   aiRevisionConfig: {
@@ -198,6 +199,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
     set({
       aiRevisionIsProcessing: true,
+      aiRevisionCurrentSegmentId: segmentId,
       aiRevisionProcessedCount: 0,
       aiRevisionTotalToProcess: 1,
       aiRevisionError: null,
@@ -232,6 +234,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
             console.log("[AIRevision] No changes needed for segment:", segmentId);
             set({
               aiRevisionIsProcessing: false,
+              aiRevisionCurrentSegmentId: null,
               aiRevisionProcessedCount: 1,
               aiRevisionError: null,
               aiRevisionLastResult: {
@@ -258,6 +261,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           set({
             aiRevisionSuggestions: [...currentState.aiRevisionSuggestions, suggestion],
             aiRevisionIsProcessing: false,
+            aiRevisionCurrentSegmentId: null,
             aiRevisionProcessedCount: 1,
             aiRevisionLastResult: {
               segmentId,
@@ -272,6 +276,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           set({
             aiRevisionError: errorMessage,
             aiRevisionIsProcessing: false,
+            aiRevisionCurrentSegmentId: null,
             aiRevisionLastResult: {
               segmentId,
               status: "error",
@@ -360,13 +365,14 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         },
       })
         .then(() => {
-          set({ aiRevisionIsProcessing: false });
+          set({ aiRevisionIsProcessing: false, aiRevisionCurrentSegmentId: null });
         })
         .catch((error: Error) => {
           if (error.name === "AbortError") return;
           set({
             aiRevisionError: error.message ?? "Batch revision failed",
             aiRevisionIsProcessing: false,
+            aiRevisionCurrentSegmentId: null,
           });
         });
     });
@@ -379,6 +385,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     }
     set({
       aiRevisionIsProcessing: false,
+      aiRevisionCurrentSegmentId: null,
       aiRevisionAbortController: null,
     });
   },

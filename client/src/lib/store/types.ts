@@ -147,6 +147,7 @@ export interface InitialStoreState {
   // AI Revision state
   aiRevisionSuggestions: AIRevisionSuggestion[];
   aiRevisionIsProcessing: boolean;
+  aiRevisionCurrentSegmentId: string | null;
   aiRevisionProcessedCount: number;
   aiRevisionTotalToProcess: number;
   aiRevisionConfig: AIRevisionConfig;

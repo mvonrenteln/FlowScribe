@@ -6,8 +6,8 @@ Diese TODO-Liste dokumentiert alle Implementierungsschritte für das AI Transcri
 Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 
 **Geschätzter Gesamtaufwand**: 8-13 Tage  
-**Start**: TBD  
-**Status**: 🟡 In Planung
+**Start**: December 31, 2025  
+**Status**: ✅ Core Implementation Complete
 
 ---
 
@@ -191,11 +191,11 @@ Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 - [x] Speaker Information nutzen
 
 ### 4.6 Keyboard Shortcuts
-- [ ] `Alt + R`: **Default-Template sofort ausführen** (kein Menü!)
-- [ ] `Alt + Shift + R`: AI Revision Popover öffnen (Template wählen)
+- [x] `Alt + R`: **Default-Template sofort ausführen** (kein Menü!)
+- [x] `Alt + Shift + R`: AI Revision Popover öffnen (Template wählen)
 - [ ] `Escape`: Cancel Revision
 - [ ] `Enter`: Accept (wenn Diff fokussiert)
-- [ ] Shortcuts in `KeyboardShortcuts.tsx` dokumentieren
+- [x] Shortcuts in `KeyboardShortcuts.tsx` dokumentieren
 
 ### 4.7 Additional UI Features ✅
 - [x] Provider/Modell Selector in Toolbar
@@ -294,10 +294,10 @@ Siehe [Konzept-Dokument](./ai-transcript-revision.md) für Details.
 | Phase | Status | Fortschritt | Notizen |
 |-------|--------|-------------|---------|
 | Phase 1: Foundation | ✅ Complete | 100% | Types, Store Slice, Service, Diff Utils |
-| Phase 2: Single Segment | 🟡 In Progress | 70% | AIRevisionPopover, SegmentDiffView, Integration |
-| Phase 3: Batch Processing | 🟡 In Progress | 50% | AIBatchRevisionSection, FilterPanel Integration |
-| Phase 4: Settings & Advanced | ⬜ Not Started | 0% | |
-| Phase 5: Polish | ⬜ Not Started | 0% | |
+| Phase 2: Single Segment | ✅ Complete | 100% | AIRevisionPopover, SegmentDiffView, Integration |
+| Phase 3: Batch Processing | ✅ Complete | 100% | AIBatchRevisionSection, FilterPanel Integration |
+| Phase 4: Settings & Advanced | ✅ Complete | 100% | Template Management, Keyboard Shortcuts |
+| Phase 5: Polish | 🟡 In Progress | 60% | i18n, Accessibility basics done |
 
 **Legend**:
 - ⬜ Not Started

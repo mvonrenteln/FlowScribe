@@ -32,7 +32,6 @@ const STATUS_DISPLAY_TIME = 3000;
 export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const [localProcessing, setLocalProcessing] = useState(false);
   const [displayStatus, setDisplayStatus] = useState<"idle" | "success" | "no-changes" | "error">(
     "idle",
   );
@@ -43,7 +42,11 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const suggestions = useTranscriptStore((s) => s.aiRevisionSuggestions);
   const lastResult = useTranscriptStore((s) => s.aiRevisionLastResult);
   const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
+  const currentProcessingSegmentId = useTranscriptStore((s) => s.aiRevisionCurrentSegmentId);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
+
+  // Check if THIS segment is currently being processed
+  const isProcessingThis = isGlobalProcessing && currentProcessingSegmentId === segmentId;
 
   // Check if this specific segment has a pending suggestion
   const hasPendingSuggestion = suggestions.some(
@@ -52,31 +55,27 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
   // Track when processing finishes and show appropriate status
   useEffect(() => {
-    if (localProcessing && !isGlobalProcessing && lastResult?.segmentId === segmentId) {
-      setLocalProcessing(false);
+    if (lastResult?.segmentId === segmentId && !isProcessingThis) {
       setDisplayStatus(lastResult.status);
 
-      // Auto-hide status after timeout (except for pending suggestions which are shown differently)
+      // Auto-hide status after timeout
       const timer = setTimeout(() => {
         setDisplayStatus("idle");
       }, STATUS_DISPLAY_TIME);
 
       return () => clearTimeout(timer);
     }
-  }, [isGlobalProcessing, localProcessing, lastResult, segmentId]);
+  }, [lastResult, segmentId, isProcessingThis]);
 
   // Get quick-access templates
   const quickAccessTemplates = templates.filter((t) => quickAccessIds.includes(t.id));
   const otherTemplates = templates.filter((t) => !quickAccessIds.includes(t.id));
 
   const handleSelectTemplate = (templateId: string) => {
-    setLocalProcessing(true);
     setDisplayStatus("idle");
     startSingleRevision(segmentId, templateId);
     setOpen(false);
   };
-
-  const isProcessingThis = localProcessing;
 
   // Determine icon and styling based on current status
   const getStatusDisplay = () => {
