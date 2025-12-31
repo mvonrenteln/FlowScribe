@@ -86,7 +86,7 @@ export function SpellcheckSettings() {
     setNewWord("");
   };
 
-  const handleToggleLanguage = (langCode: string) => {
+  const handleToggleLanguage = (langCode: "de" | "en") => {
     const current = spellcheckLanguages ?? [];
     if (current.includes(langCode)) {
       setSpellcheckLanguages(current.filter((l) => l !== langCode));

@@ -3,8 +3,8 @@ import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
-import { SettingsSheet } from "../settings";
 import { SpellcheckDialog } from "../SpellcheckDialog";
+import { SettingsSheet } from "../settings";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];

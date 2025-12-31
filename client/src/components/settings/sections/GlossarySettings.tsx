@@ -146,8 +146,8 @@ export function GlossarySettings() {
               onValueChange={(value) => setLexiconThreshold(value[0] ?? 0.82)}
             />
             <p className="text-xs text-muted-foreground">
-              Higher = stricter matching (fewer false positives).
-              Lower = more matches (may include false positives).
+              Higher = stricter matching (fewer false positives). Lower = more matches (may include
+              false positives).
             </p>
           </div>
         </CardContent>
@@ -179,9 +179,7 @@ export function GlossarySettings() {
           <div className="flex items-center justify-between">
             <div className="space-y-0.5">
               <Label htmlFor="highlight-background">Highlight Background</Label>
-              <p className="text-xs text-muted-foreground">
-                Only for uncertain (fuzzy) matches
-              </p>
+              <p className="text-xs text-muted-foreground">Only for uncertain (fuzzy) matches</p>
             </div>
             <Switch
               id="highlight-background"
@@ -338,4 +336,3 @@ export function GlossarySettings() {
     </div>
   );
 }
-
