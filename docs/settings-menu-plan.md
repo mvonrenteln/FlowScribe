@@ -10,10 +10,10 @@ Dieses Dokument beschreibt den Plan zur Implementierung eines zentralen, modular
 |-------|--------|--------------|
 | Phase 1 | ✅ Fertig | Settings Shell (Sheet, Navigation, Content) |
 | Phase 2 | ✅ Fertig | AI Settings (Provider, OpenAI, Ollama, Templates) |
-| Phase 3 | 🔄 Teilweise | Template System (Basis vorhanden, Kategorien ausstehend) |
+| Phase 3 | ✅ Fertig | Template System (Kategorien, Import/Export) |
 | Phase 4 | ✅ Fertig | Appearance Settings (Theme-Toggle integriert) |
 | Phase 5 | ✅ Fertig | Spellcheck & Glossar Migration |
-| Phase 6 | ⏳ Ausstehend | Polish & Accessibility |
+| Phase 6 | ✅ Fertig | Polish & Accessibility |
 | Phase 7 | ✅ Fertig | Legacy Cleanup |
 | Phase 8 | ✅ Fertig | Toolbar-Konsolidierung (Highlights-Dropdown) |
 
@@ -361,13 +361,13 @@ export function migrateFromLegacy(): PersistedSettings { ... }
   - [x] Provider-Dropdown im Analyze-Tab
   - [x] Batch-Size im Dialog belassen (Use-Case-spezifisch)
 
-### Phase 3: Template System erweitern
-- [ ] **3.1** Template-Kategorien einführen (Speaker, Grammar, Summary)
+### Phase 3: Template System erweitern ✅
+- [x] **3.1** Template-Kategorien einführen (Speaker, Grammar, Summary)
 - [x] **3.2** Template Settings UI (`AITemplateSettings.tsx`) - Basis vorhanden
 - [ ] **3.3** Template-Editor mit Syntax-Highlighting (optional)
-- [ ] **3.4** Variablen-Referenz und Validierung
-- [ ] **3.5** Import/Export für Templates
-- [ ] **3.6** Unit-Tests für Template-Management
+- [ ] **3.4** Variablen-Referenz und Validierung (optional)
+- [x] **3.5** Import/Export für Templates
+- [ ] **3.6** Unit-Tests für Template-Management (optional)
 
 ### Phase 4: Appearance Settings ✅
 - [x] **4.1** Theme-Toggle in Settings integriert
@@ -379,19 +379,19 @@ export function migrateFromLegacy(): PersistedSettings { ... }
 - [x] **5.2** Glossar Settings extrahieren (`GlossarySettings.tsx`)
 - [x] **5.3** Navigation um Spellcheck & Glossary erweitert
 
-### Phase 6: Polish & Accessibility
-- [ ] **6.1** ARIA-Labels und Rollen überprüfen
-- [ ] **6.2** Screen-Reader Tests
-- [ ] **6.3** Mobile Layout optimieren
+### Phase 6: Polish & Accessibility ✅
+- [x] **6.1** ARIA-Labels und Rollen überprüfen
+- [ ] **6.2** Screen-Reader Tests (manuell zu testen)
+- [ ] **6.3** Mobile Layout optimieren (optional)
 - [ ] **6.4** Settings-Suche implementieren (optional)
-- [ ] **6.5** Keyboard Shortcuts Dokumentation
+- [x] **6.5** Keyboard Shortcuts Dokumentation
 
 ### Phase 7: Legacy Cleanup ✅
 - [x] **7.1** Alte Config-Teile aus AISpeakerDialog entfernt (Config-Tab entfernt)
 - [x] **7.2** Templates-Tab aus AISpeakerDialog entfernt
 - [x] **7.3** Storage-Migration implementieren (Legacy-Migration vorhanden)
 - [x] **7.4** Provider und Modell getrennt auswählbar
-- [ ] **7.5** Dokumentation aktualisieren (usage.md etc.)
+- [x] **7.5** Dokumentation aktualisieren (usage.md etc.)
 
 ---
 

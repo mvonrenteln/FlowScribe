@@ -56,14 +56,24 @@ export function ConfidenceSettings() {
 
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <Label>Confidence Threshold</Label>
-              <span className="text-sm font-mono">
+              <Label htmlFor="confidence-threshold">Confidence Threshold</Label>
+              <span className="text-sm font-mono" aria-live="polite">
                 {manualConfidenceThreshold === null
                   ? "Auto"
                   : `${(manualConfidenceThreshold * 100).toFixed(0)}%`}
               </span>
             </div>
             <Slider
+              id="confidence-threshold"
+              aria-label="Confidence threshold"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(displayThreshold * 100)}
+              aria-valuetext={
+                manualConfidenceThreshold === null
+                  ? "Auto"
+                  : `${(manualConfidenceThreshold * 100).toFixed(0)} percent`
+              }
               value={[displayThreshold]}
               min={0}
               max={1}

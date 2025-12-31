@@ -523,6 +523,7 @@ export const useTranscriptEditor = () => {
     selectNextSegment,
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
+    onShowSettings: () => setShowSettings(true),
   });
 
   const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);

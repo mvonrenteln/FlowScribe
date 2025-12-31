@@ -35,12 +35,10 @@ import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT_TEMPLATE } from "@/lib/aiSpeakerService";
 import { useTranscriptStore } from "@/lib/store";
-import type { PromptTemplate } from "@/lib/store/types";
+import type { PromptTemplate, TemplateCategory } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 
 // ==================== Template Types ====================
-
-type TemplateCategory = "speaker" | "grammar" | "summary" | "custom";
 
 interface TemplateCategoryOption {
   value: TemplateCategory;
@@ -251,12 +249,17 @@ function TemplateCard({
 }: TemplateCardProps) {
   const [expanded, setExpanded] = useState(false);
 
+  const categoryLabel =
+    TEMPLATE_CATEGORIES.find((c) => c.value === template.category)?.label ||
+    TEMPLATE_CATEGORIES.find((c) => c.value === "speaker")?.label ||
+    "Speaker Classification";
+
   return (
     <Card className={cn(isActive && "ring-2 ring-primary")}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground" />
+            <FileText className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 {template.name}
@@ -271,14 +274,15 @@ function TemplateCard({
                   </Badge>
                 )}
               </CardTitle>
-              <CardDescription className="text-xs">Speaker Classification</CardDescription>
+              <CardDescription className="text-xs">{categoryLabel}</CardDescription>
             </div>
           </div>
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setExpanded(!expanded)}
-            aria-label={expanded ? "Collapse" : "Expand"}
+            aria-label={expanded ? "Collapse template details" : "Expand template details"}
+            aria-expanded={expanded}
           >
             {expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
           </Button>
@@ -347,6 +351,7 @@ export function AITemplateSettings() {
     (data: TemplateFormData) => {
       addTemplate({
         name: data.name,
+        category: data.category,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
       });
@@ -359,6 +364,7 @@ export function AITemplateSettings() {
     (id: string, data: TemplateFormData) => {
       updateTemplate(id, {
         name: data.name,
+        category: data.category,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
       });
@@ -371,6 +377,7 @@ export function AITemplateSettings() {
     (template: PromptTemplate) => {
       addTemplate({
         name: `${template.name} (Copy)`,
+        category: template.category,
         systemPrompt: template.systemPrompt,
         userPromptTemplate: template.userPromptTemplate,
       });
@@ -383,6 +390,7 @@ export function AITemplateSettings() {
       version: 1,
       templates: templates.map((t) => ({
         name: t.name,
+        category: t.category,
         systemPrompt: t.systemPrompt,
         userPromptTemplate: t.userPromptTemplate,
         isDefault: t.isDefault,
@@ -418,6 +426,7 @@ export function AITemplateSettings() {
               if (t.name && t.systemPrompt && t.userPromptTemplate) {
                 addTemplate({
                   name: t.name,
+                  category: t.category || "custom",
                   systemPrompt: t.systemPrompt,
                   userPromptTemplate: t.userPromptTemplate,
                 });
@@ -487,7 +496,7 @@ export function AITemplateSettings() {
                   <TemplateForm
                     initialData={{
                       name: template.name,
-                      category: "speaker",
+                      category: template.category || "speaker",
                       systemPrompt: template.systemPrompt,
                       userPromptTemplate: template.userPromptTemplate,
                     }}

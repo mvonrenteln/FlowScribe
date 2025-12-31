@@ -279,9 +279,12 @@ export interface AISpeakerBatchInsight {
   elapsedMs?: number;
 }
 
+export type TemplateCategory = "speaker" | "grammar" | "summary" | "custom";
+
 export interface PromptTemplate {
   id: string;
   name: string;
+  category?: TemplateCategory;
   systemPrompt: string;
   userPromptTemplate: string;
   isDefault?: boolean;

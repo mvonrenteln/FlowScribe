@@ -37,4 +37,5 @@ These shortcuts are global unless you are editing text. In edit mode, only Enter
 ## Panels
 
 - `Cmd/Ctrl + E` — Export
+- `Cmd/Ctrl + ,` — Open Settings
 - `Shift + /` — Show keyboard shortcuts

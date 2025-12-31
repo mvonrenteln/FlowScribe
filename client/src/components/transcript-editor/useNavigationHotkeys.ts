@@ -33,6 +33,7 @@ interface UseNavigationHotkeysOptions {
   selectNextSegment: () => void;
   onShowExport: () => void;
   onShowShortcuts: () => void;
+  onShowSettings: () => void;
 }
 
 export function useNavigationHotkeys({
@@ -66,6 +67,7 @@ export function useNavigationHotkeys({
   selectNextSegment,
   onShowExport,
   onShowShortcuts,
+  onShowSettings,
 }: UseNavigationHotkeysOptions) {
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
@@ -248,6 +250,11 @@ export function useNavigationHotkeys({
   useHotkeys("mod+e", () => {
     if (isTranscriptEditing()) return;
     onShowExport();
+  });
+
+  useHotkeys("mod+,", () => {
+    if (isTranscriptEditing()) return;
+    onShowSettings();
   });
 
   useHotkeys("shift+/", () => {
