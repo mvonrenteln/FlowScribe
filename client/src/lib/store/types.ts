@@ -86,6 +86,8 @@ export interface PersistedGlobalState {
   // Confidence highlighting
   highlightLowConfidence?: boolean;
   manualConfidenceThreshold?: number | null;
+  // AI Revision config
+  aiRevisionConfig?: AIRevisionConfig;
 }
 
 export interface RecentSessionSummary {

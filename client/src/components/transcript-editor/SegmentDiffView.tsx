@@ -2,11 +2,11 @@
  * Segment Diff View
  *
  * Side-by-side comparison of original and revised text.
- * Shows changes with color highlighting.
+ * Shows changes with color highlighting and animations.
  */
 
 import { Check, X } from "lucide-react";
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { getOriginalDiffSegments, getRevisedDiffSegments, type DiffSegment } from "@/lib/diffUtils";
 import { cn } from "@/lib/utils";
@@ -27,17 +27,40 @@ export function SegmentDiffView({
   onReject,
 }: SegmentDiffViewProps) {
   const [showDiff, setShowDiff] = useState(true);
+  const [animationState, setAnimationState] = useState<"idle" | "accepting" | "rejecting">("idle");
 
   const originalSegments = getOriginalDiffSegments(originalText, revisedText);
   const revisedSegments = getRevisedDiffSegments(originalText, revisedText);
 
+  const handleAccept = useCallback(() => {
+    setAnimationState("accepting");
+    // Small delay for animation before calling the actual handler
+    setTimeout(() => {
+      onAccept();
+    }, 200);
+  }, [onAccept]);
+
+  const handleReject = useCallback(() => {
+    setAnimationState("rejecting");
+    // Small delay for animation before calling the actual handler
+    setTimeout(() => {
+      onReject();
+    }, 200);
+  }, [onReject]);
+
   return (
-    <div className="border rounded-lg overflow-hidden bg-muted/30">
+    <div
+      className={cn(
+        "border rounded-lg overflow-hidden bg-muted/30 transition-all duration-200",
+        animationState === "accepting" && "scale-[0.98] opacity-0 border-green-500 bg-green-50 dark:bg-green-950/20",
+        animationState === "rejecting" && "scale-[0.98] opacity-0 border-red-500 bg-red-50 dark:bg-red-950/20",
+      )}
+    >
       {/* Header with actions */}
       <div className="flex items-center justify-between px-3 py-2 bg-muted/50 border-b">
         <button
           type="button"
-          className="text-xs text-muted-foreground hover:text-foreground"
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
           onClick={() => setShowDiff(!showDiff)}
         >
           {showDiff ? "Kompakt anzeigen" : "Diff anzeigen"}
@@ -46,8 +69,12 @@ export function SegmentDiffView({
           <Button
             variant="ghost"
             size="sm"
-            className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
-            onClick={onReject}
+            className={cn(
+              "h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10 transition-all",
+              animationState === "rejecting" && "scale-110 bg-destructive/20",
+            )}
+            onClick={handleReject}
+            disabled={animationState !== "idle"}
           >
             <X className="h-4 w-4 mr-1" />
             Ablehnen
@@ -55,8 +82,12 @@ export function SegmentDiffView({
           <Button
             variant="default"
             size="sm"
-            className="h-7 px-2"
-            onClick={onAccept}
+            className={cn(
+              "h-7 px-2 transition-all",
+              animationState === "accepting" && "scale-110 bg-green-600",
+            )}
+            onClick={handleAccept}
+            disabled={animationState !== "idle"}
           >
             <Check className="h-4 w-4 mr-1" />
             Übernehmen
@@ -68,7 +99,10 @@ export function SegmentDiffView({
         /* Side-by-side diff view */
         <div className="grid grid-cols-2 divide-x">
           {/* Original */}
-          <div className="p-3">
+          <div className={cn(
+            "p-3 transition-opacity",
+            animationState === "accepting" && "opacity-50",
+          )}>
             <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
               Original
             </div>
@@ -78,7 +112,10 @@ export function SegmentDiffView({
           </div>
 
           {/* Revised */}
-          <div className="p-3">
+          <div className={cn(
+            "p-3 transition-all",
+            animationState === "accepting" && "bg-green-50 dark:bg-green-950/20",
+          )}>
             <div className="text-xs font-medium text-muted-foreground mb-2 uppercase tracking-wide">
               Überarbeitet
             </div>

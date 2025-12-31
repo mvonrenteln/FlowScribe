@@ -1,4 +1,5 @@
 import type {
+  AIRevisionConfig,
   LexiconEntry,
   PersistedGlobalState,
   SpellcheckLanguage,
@@ -18,6 +19,7 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   aiSpeakerConfig: PersistedGlobalState["aiSpeakerConfig"];
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  aiRevisionConfig: AIRevisionConfig;
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -33,4 +35,5 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   aiSpeakerConfig: state.aiSpeakerConfig,
   highlightLowConfidence: state.highlightLowConfidence,
   manualConfidenceThreshold: state.manualConfidenceThreshold,
+  aiRevisionConfig: state.aiRevisionConfig,
 });

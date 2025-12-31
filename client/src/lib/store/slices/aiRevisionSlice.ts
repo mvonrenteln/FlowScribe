@@ -134,6 +134,61 @@ export const initialAIRevisionState = {
   aiRevisionAbortController: null as AbortController | null,
 };
 
+/**
+ * Normalize saved aiRevisionConfig by merging with defaults.
+ * Ensures default templates are always present and cannot be removed.
+ */
+export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRevisionConfig {
+  if (!saved) {
+    return { ...initialAIRevisionState.aiRevisionConfig };
+  }
+
+  // Merge templates: ensure all default templates exist with updated prompts if edited
+  const defaultTemplateIds = DEFAULT_REVISION_TEMPLATES.map((t) => t.id);
+  const savedTemplatesById = new Map(saved.templates?.map((t) => [t.id, t]) ?? []);
+
+  const mergedTemplates: AIRevisionTemplate[] = [];
+
+  // Add default templates (use saved version if exists, otherwise use default)
+  for (const defaultTemplate of DEFAULT_REVISION_TEMPLATES) {
+    const savedVersion = savedTemplatesById.get(defaultTemplate.id);
+    if (savedVersion) {
+      // Use saved version but ensure isDefault flag is preserved
+      mergedTemplates.push({ ...savedVersion, isDefault: true });
+      savedTemplatesById.delete(defaultTemplate.id);
+    } else {
+      mergedTemplates.push({ ...defaultTemplate });
+    }
+  }
+
+  // Add custom (non-default) templates from saved state
+  for (const [id, template] of savedTemplatesById) {
+    if (!defaultTemplateIds.includes(id)) {
+      mergedTemplates.push({ ...template, isDefault: false });
+    }
+  }
+
+  // Validate defaultTemplateId - must exist
+  const validDefaultId = mergedTemplates.some((t) => t.id === saved.defaultTemplateId)
+    ? saved.defaultTemplateId
+    : "default-transcript-cleanup";
+
+  // Validate quickAccessTemplateIds - filter out non-existent templates
+  const templateIds = new Set(mergedTemplates.map((t) => t.id));
+  const validQuickAccessIds = (saved.quickAccessTemplateIds ?? []).filter((id) =>
+    templateIds.has(id),
+  );
+
+  return {
+    templates: mergedTemplates,
+    defaultTemplateId: validDefaultId,
+    quickAccessTemplateIds:
+      validQuickAccessIds.length > 0
+        ? validQuickAccessIds
+        : ["default-transcript-cleanup", "default-improve-clarity"],
+  };
+}
+
 // ==================== Helper Functions ====================
 
 function generateTemplateId(): string {

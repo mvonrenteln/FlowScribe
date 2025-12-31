@@ -5,8 +5,8 @@
  * Shows configurable quick-access templates and a "More..." option.
  */
 
-import { Check, ChevronRight, Loader2, MoreHorizontal, Sparkles } from "lucide-react";
-import { useState } from "react";
+import { AlertCircle, Check, ChevronRight, Loader2, MoreHorizontal, Sparkles } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTranscriptStore } from "@/lib/store";
@@ -21,11 +21,14 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const [open, setOpen] = useState(false);
   const [localProcessing, setLocalProcessing] = useState(false);
   const [showSuccess, setShowSuccess] = useState(false);
+  const [showError, setShowError] = useState(false);
 
   // Store state
   const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
   const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessTemplateIds);
   const suggestions = useTranscriptStore((s) => s.aiRevisionSuggestions);
+  const globalError = useTranscriptStore((s) => s.aiRevisionError);
+  const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
 
   // Check if this specific segment has a pending suggestion
@@ -33,22 +36,35 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
     (s) => s.segmentId === segmentId && s.status === "pending"
   );
 
+  // Track when processing finishes
+  useEffect(() => {
+    if (localProcessing && !isGlobalProcessing) {
+      setLocalProcessing(false);
+
+      // Check if we got a suggestion or an error
+      const hasNewSuggestion = suggestions.some(
+        (s) => s.segmentId === segmentId && s.status === "pending"
+      );
+
+      if (hasNewSuggestion) {
+        setShowSuccess(true);
+        setTimeout(() => setShowSuccess(false), 1500);
+      } else if (globalError) {
+        setShowError(true);
+        setTimeout(() => setShowError(false), 3000);
+      }
+    }
+  }, [isGlobalProcessing, localProcessing, suggestions, segmentId, globalError]);
+
   // Get quick-access templates
   const quickAccessTemplates = templates.filter((t) => quickAccessIds.includes(t.id));
   const otherTemplates = templates.filter((t) => !quickAccessIds.includes(t.id));
 
   const handleSelectTemplate = (templateId: string) => {
     setLocalProcessing(true);
+    setShowError(false);
     startSingleRevision(segmentId, templateId);
     setOpen(false);
-
-    // The processing state will be updated by the store
-    // We use a timeout to show feedback, but ideally we'd subscribe to the specific segment's state
-    setTimeout(() => {
-      setLocalProcessing(false);
-      setShowSuccess(true);
-      setTimeout(() => setShowSuccess(false), 1500);
-    }, 2000);
   };
 
   const isProcessingThis = localProcessing;
@@ -60,18 +76,27 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           variant="ghost"
           size="icon"
           className={cn(
-            "h-7 w-7 text-muted-foreground hover:text-foreground",
+            "h-7 w-7 text-muted-foreground hover:text-foreground transition-colors",
             isProcessingThis && "animate-pulse",
             hasPendingSuggestion && "text-amber-500 hover:text-amber-600",
+            showError && "text-destructive hover:text-destructive",
           )}
           disabled={disabled || isProcessingThis}
           aria-label="AI Revision (Alt+R für Standard)"
-          title={hasPendingSuggestion ? "AI Revision vorgeschlagen - klicken zum Anzeigen" : "AI Revision (Alt+R für Standard)"}
+          title={
+            showError
+              ? `Fehler: ${globalError ?? "Unbekannter Fehler"}`
+              : hasPendingSuggestion
+                ? "AI Revision vorgeschlagen - klicken zum Anzeigen"
+                : "AI Revision (Alt+R für Standard)"
+          }
         >
           {isProcessingThis ? (
             <Loader2 className="h-4 w-4 animate-spin" />
           ) : showSuccess ? (
             <Check className="h-4 w-4 text-green-500" />
+          ) : showError ? (
+            <AlertCircle className="h-4 w-4 text-destructive" />
           ) : (
             <Sparkles className="h-4 w-4" />
           )}
@@ -80,6 +105,13 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
       <PopoverContent className="w-56 p-1" align="end">
         <div className="flex flex-col">
+          {/* Error message if present */}
+          {showError && globalError && (
+            <div className="px-3 py-2 text-xs text-destructive bg-destructive/10 rounded-sm mb-1">
+              {globalError}
+            </div>
+          )}
+
           {/* Quick-Access Templates */}
           {quickAccessTemplates.map((template) => (
             <button

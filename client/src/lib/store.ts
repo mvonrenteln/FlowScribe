@@ -15,7 +15,7 @@ import {
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
-import { createAIRevisionSlice, initialAIRevisionState } from "./store/slices/aiRevisionSlice";
+import { createAIRevisionSlice, initialAIRevisionState, normalizeAIRevisionConfig } from "./store/slices/aiRevisionSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
@@ -110,6 +110,7 @@ const initialState: InitialStoreState = {
   manualConfidenceThreshold: globalState?.manualConfidenceThreshold ?? null,
   // AI Revision state
   ...initialAIRevisionState,
+  aiRevisionConfig: normalizeAIRevisionConfig(globalState?.aiRevisionConfig),
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
