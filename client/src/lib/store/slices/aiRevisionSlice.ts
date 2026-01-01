@@ -260,71 +260,71 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           signal: abortController.signal,
         });
       })
-        .then((result: RevisionResult) => {
-          const currentState = get();
-          if (!currentState.aiRevisionIsProcessing) return; // Cancelled
+      .then((result: RevisionResult) => {
+        const currentState = get();
+        if (!currentState.aiRevisionIsProcessing) return; // Cancelled
 
-          // Check if the text is actually different
-          const trimmedOriginal = segment.text.trim();
-          const trimmedRevised = result.revisedText.trim();
+        // Check if the text is actually different
+        const trimmedOriginal = segment.text.trim();
+        const trimmedRevised = result.revisedText.trim();
 
-          if (trimmedOriginal === trimmedRevised) {
-            // No changes - don't create a suggestion, show "no changes" status
-            console.log("[AIRevision] No changes needed for segment:", segmentId);
-            set({
-              aiRevisionIsProcessing: false,
-              aiRevisionCurrentSegmentId: null,
-              aiRevisionProcessedCount: 1,
-              aiRevisionError: null,
-              aiRevisionLastResult: {
-                segmentId,
-                status: "no-changes",
-                message: "No changes needed",
-                timestamp: Date.now(),
-              },
-            });
-            return;
-          }
-
-          const suggestion: AIRevisionSuggestion = {
-            segmentId,
-            promptId,
-            originalText: segment.text,
-            revisedText: result.revisedText,
-            status: "pending",
-            changes: result.changes,
-            changeSummary: result.changeSummary,
-            reasoning: result.reasoning,
-          };
-
+        if (trimmedOriginal === trimmedRevised) {
+          // No changes - don't create a suggestion, show "no changes" status
+          console.log("[AIRevision] No changes needed for segment:", segmentId);
           set({
-            aiRevisionSuggestions: [...currentState.aiRevisionSuggestions, suggestion],
             aiRevisionIsProcessing: false,
             aiRevisionCurrentSegmentId: null,
             aiRevisionProcessedCount: 1,
+            aiRevisionError: null,
             aiRevisionLastResult: {
               segmentId,
-              status: "success",
+              status: "no-changes",
+              message: "No changes needed",
               timestamp: Date.now(),
             },
           });
-        })
-        .catch((error: Error) => {
-          if (error.name === "AbortError") return;
-          console.error("[AIRevision] Error in startSingleRevision:", error);
-          const errorMessage = error.message ?? "Revision failed";
-          set({
-            aiRevisionError: errorMessage,
-            aiRevisionIsProcessing: false,
-            aiRevisionCurrentSegmentId: null,
-            aiRevisionLastResult: {
-              segmentId,
-              status: "error",
-              message: errorMessage,
-              timestamp: Date.now(),
-            },
-          });
+          return;
+        }
+
+        const suggestion: AIRevisionSuggestion = {
+          segmentId,
+          promptId,
+          originalText: segment.text,
+          revisedText: result.revisedText,
+          status: "pending",
+          changes: result.changes,
+          changeSummary: result.changeSummary,
+          reasoning: result.reasoning,
+        };
+
+        set({
+          aiRevisionSuggestions: [...currentState.aiRevisionSuggestions, suggestion],
+          aiRevisionIsProcessing: false,
+          aiRevisionCurrentSegmentId: null,
+          aiRevisionProcessedCount: 1,
+          aiRevisionLastResult: {
+            segmentId,
+            status: "success",
+            timestamp: Date.now(),
+          },
         });
+      })
+      .catch((error: Error) => {
+        if (error.name === "AbortError") return;
+        console.error("[AIRevision] Error in startSingleRevision:", error);
+        const errorMessage = error.message ?? "Revision failed";
+        set({
+          aiRevisionError: errorMessage,
+          aiRevisionIsProcessing: false,
+          aiRevisionCurrentSegmentId: null,
+          aiRevisionLastResult: {
+            segmentId,
+            status: "error",
+            message: errorMessage,
+            timestamp: Date.now(),
+          },
+        });
+      });
   },
 
   startBatchRevision: (segmentIds, promptId) => {

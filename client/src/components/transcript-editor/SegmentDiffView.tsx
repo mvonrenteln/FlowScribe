@@ -9,7 +9,12 @@ import { Check, X } from "lucide-react";
 import { useCallback, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { type DiffSegment, getOriginalDiffSegments, getRevisedDiffSegments } from "@/lib/diffUtils";
+import {
+  computeDiff,
+  type DiffSegment,
+  getOriginalDiffSegments,
+  getRevisedDiffSegments,
+} from "@/lib/diffUtils";
 import { cn } from "@/lib/utils";
 
 interface SegmentDiffViewProps {
@@ -122,9 +127,11 @@ export function SegmentDiffView({
           </div>
         </div>
       ) : (
-        /* Compact view - just show revised text with summary */
+        /* Compact view - inline diff with track changes style */
         <div className="p-3">
-          <p className="text-sm leading-relaxed">{revisedText}</p>
+          <div className="text-sm leading-relaxed">
+            <InlineDiffText segments={computeDiff(originalText, revisedText)} />
+          </div>
           {changeSummary && (
             <div className="mt-2 flex items-center gap-2 text-xs text-muted-foreground">
               <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-muted">
@@ -170,6 +177,62 @@ function DiffText({ segments, type }: DiffTextProps) {
         }
 
         if (segment.type === "insert" && type === "revised") {
+          return (
+            <span
+              key={key}
+              className={cn(
+                "bg-green-100 dark:bg-green-900/30",
+                "text-green-800 dark:text-green-200",
+                "px-0.5 rounded-sm",
+              )}
+            >
+              {segment.text}
+            </span>
+          );
+        }
+
+        return null;
+      })}
+    </>
+  );
+}
+
+/**
+ * Inline diff text component - shows all changes in one text (Word-like track changes).
+ * Deletions: red with strikethrough
+ * Insertions: green with underline
+ */
+interface InlineDiffTextProps {
+  segments: DiffSegment[];
+}
+
+function InlineDiffText({ segments }: InlineDiffTextProps) {
+  return (
+    <>
+      {segments.map((segment, index) => {
+        const key = `inline-${index}-${segment.type}`;
+
+        if (segment.type === "equal") {
+          return <span key={key}>{segment.text}</span>;
+        }
+
+        if (segment.type === "delete") {
+          return (
+            <span
+              key={key}
+              className={cn(
+                "bg-red-100 dark:bg-red-900/30",
+                "text-red-800 dark:text-red-200",
+                "line-through decoration-red-500/50",
+                "px-0.5 rounded-sm",
+              )}
+            >
+              {segment.text}
+            </span>
+          );
+        }
+
+        if (segment.type === "insert") {
           return (
             <span
               key={key}
