@@ -74,14 +74,45 @@ Sonst sieht das Terminal eine veraltete Version und es kommt zu Verwirrung.
 
 ---
 
-## 📚 PHASE 3: Dokumentation
+## 🔄 PHASE 3: UI-Zusammenführung - DONE ✓
+
+**Ziel:** Beide Prompt-Typen (Speaker & Text) in einer einheitlichen Settings-UI verwalten
+
+### 3.1 Basis: AITemplateSettings.tsx erweitern
+- [x] Tab-Navigation für Type (Speaker/Text)
+- [x] Type-Auswahl beim Erstellen neuer Prompts (automatisch nach Tab)
+- [x] Placeholder-Hilfe je nach Type anzeigen
+- [x] Built-in Badge für isBuiltIn Prompts
+- [x] Default-Auswahl pro Type (für Hotkeys)
+- [x] Quick Access Toggle (für Text Prompts)
+
+### 3.2 Store-Konsolidierung
+- [x] Beide Config-Objekte in einer UI anzeigen (über activeTab)
+
+### 3.3 AIRevisionTemplateSettings.tsx entfernt
+- [x] Funktionalität in AITemplateSettings.tsx integriert
+- [x] Import aus SettingsSheet.tsx entfernt
+- [x] Datei gelöscht
+
+### 3.4 SettingsSheet.tsx angepasst
+- [x] "AI Templates" → "AI Prompts" umbenannt
+- [x] "ai-revision-templates" Sektion entfernt
+- [x] Menü-Navigation aktualisiert
+
+### 3.5 Placeholder-Dokumentation in UI
+- [x] Speaker Type: {{speakers}}, {{segments}}
+- [x] Text Type: {{text}}, {{speaker}}, {{previousText}}, {{nextText}}
+
+---
+
+## 📚 PHASE 4: Dokumentation
 
 - [ ] Dokumentation in docs/ aktualisieren
 - [ ] README.md aktualisieren falls nötig
 
 ---
 
-**Status:** ✅ Phase 2 Complete - TypeScript kompiliert, Tests sollten grün sein
+**Status:** 🟢 Phase 3 Complete - Ready for Documentation
 **Letzte Aktualisierung:** 1. Januar 2026
 
 - [ ] i18n Keys aktualisieren

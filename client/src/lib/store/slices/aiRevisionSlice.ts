@@ -62,6 +62,7 @@ TASKS:
 
 RULES:
 - Keep the meaning exactly the same
+- Keep the underlying style of the text (epic, lyric, formal, informal, etc.)
 - Reply ONLY with the improved text, no explanations`,
     userPromptTemplate: `Improve the phrasing:
 

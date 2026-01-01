@@ -17,7 +17,6 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet";
 import { SettingsNav, type SettingsSection } from "./SettingsNav";
-import { AIRevisionTemplateSettings } from "./sections/AIRevisionTemplateSettings";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
@@ -57,10 +56,8 @@ export function SettingsSheet({
     switch (activeSection) {
       case "ai-server":
         return <AIServerSettings />;
-      case "ai-templates":
+      case "ai-prompts":
         return <AITemplateSettings />;
-      case "ai-revision-templates":
-        return <AIRevisionTemplateSettings />;
       case "appearance":
         return <AppearanceSettings />;
       case "spellcheck":

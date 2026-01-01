@@ -61,7 +61,7 @@ describe("SettingsSheet", () => {
 
     await waitFor(() => {
       expect(screen.getByTestId("settings-nav-ai-server")).toBeInTheDocument();
-      expect(screen.getByTestId("settings-nav-ai-templates")).toBeInTheDocument();
+      expect(screen.getByTestId("settings-nav-ai-prompts")).toBeInTheDocument();
       expect(screen.getByTestId("settings-nav-appearance")).toBeInTheDocument();
     });
   });
@@ -74,14 +74,14 @@ describe("SettingsSheet", () => {
     });
   });
 
-  it("switches to AI Templates section on click", async () => {
+  it("switches to AI Prompts section on click", async () => {
     render(<SettingsSheet open={true} onOpenChange={() => {}} />);
 
     await waitFor(() => {
-      expect(screen.getByTestId("settings-nav-ai-templates")).toBeInTheDocument();
+      expect(screen.getByTestId("settings-nav-ai-prompts")).toBeInTheDocument();
     });
 
-    fireEvent.click(screen.getByTestId("settings-nav-ai-templates"));
+    fireEvent.click(screen.getByTestId("settings-nav-ai-prompts"));
 
     await waitFor(() => {
       expect(screen.getByTestId("ai-template-settings")).toBeInTheDocument();

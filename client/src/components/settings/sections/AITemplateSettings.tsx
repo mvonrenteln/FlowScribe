@@ -1,8 +1,9 @@
 /**
- * AI Template Settings
+ * AI Prompt Settings
  *
- * Configuration UI for prompt templates.
- * Allows managing templates for different AI features (speaker classification, grammar, etc.).
+ * Unified configuration UI for all AI prompts.
+ * Supports both Speaker Classification prompts (type: 'speaker') and
+ * Text Revision prompts (type: 'text').
  */
 
 import {
@@ -13,56 +14,97 @@ import {
   Copy,
   Download,
   FileText,
+  MessageSquare,
   Plus,
+  Sparkles,
   Trash2,
   Upload,
 } from "lucide-react";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT_TEMPLATE } from "@/lib/aiSpeakerService";
 import { useTranscriptStore } from "@/lib/store";
-import type { AIPrompt } from "@/lib/store/types";
+import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 
-// ==================== Prompt Types ====================
+// ==================== Constants ====================
 
-// Note: This settings page is for Speaker prompts only (type: 'speaker')
-// Text revision prompts are managed in AIRevisionTemplateSettings.tsx
+const DEFAULT_TEXT_SYSTEM_PROMPT = `You are an expert text editor. Your task is to improve the given transcript text.
+
+Rules:
+- Fix spelling and grammar errors
+- Remove filler words (um, uh, like, you know)
+- Improve clarity while preserving meaning
+- Keep the same tone and style
+- Return ONLY the revised text, no explanations`;
+
+const DEFAULT_TEXT_USER_PROMPT = `Please revise the following text:
+
+{{text}}`;
+
+const PLACEHOLDER_HELP = {
+  speaker: [
+    { placeholder: "{{speakers}}", description: "List of known speaker names" },
+    { placeholder: "{{segments}}", description: "Transcript segments with speaker labels" },
+  ],
+  text: [
+    { placeholder: "{{text}}", description: "The segment text to revise" },
+    { placeholder: "{{speaker}}", description: "Name of the speaker" },
+    { placeholder: "{{previousText}}", description: "Previous segment text (optional)" },
+    { placeholder: "{{nextText}}", description: "Next segment text (optional)" },
+  ],
+};
 
 // ==================== Prompt Form ====================
 
 interface PromptFormData {
   name: string;
+  type: PromptType;
   systemPrompt: string;
   userPromptTemplate: string;
+  quickAccess: boolean;
 }
 
-const EMPTY_FORM: PromptFormData = {
+const getEmptyForm = (type: PromptType): PromptFormData => ({
   name: "",
-  systemPrompt: DEFAULT_SYSTEM_PROMPT,
-  userPromptTemplate: DEFAULT_USER_PROMPT_TEMPLATE,
-};
+  type,
+  systemPrompt: type === "speaker" ? DEFAULT_SYSTEM_PROMPT : DEFAULT_TEXT_SYSTEM_PROMPT,
+  userPromptTemplate: type === "speaker" ? DEFAULT_USER_PROMPT_TEMPLATE : DEFAULT_TEXT_USER_PROMPT,
+  quickAccess: false,
+});
 
 interface PromptFormProps {
   initialData?: Partial<PromptFormData>;
   onSave: (data: PromptFormData) => void;
   onCancel: () => void;
   isEditing?: boolean;
+  promptType: PromptType;
 }
 
-function PromptForm({ initialData, onSave, onCancel, isEditing }: PromptFormProps) {
+function PromptForm({ initialData, onSave, onCancel, isEditing, promptType }: PromptFormProps) {
   const [form, setForm] = useState<PromptFormData>({
-    ...EMPTY_FORM,
+    ...getEmptyForm(promptType),
     ...initialData,
   });
   const [errors, setErrors] = useState<string[]>([]);
+
+  const placeholders = PLACEHOLDER_HELP[promptType];
 
   const validate = (): string[] => {
     const errs: string[] = [];
@@ -86,14 +128,15 @@ function PromptForm({ initialData, onSave, onCancel, isEditing }: PromptFormProp
       return;
     }
     setErrors([]);
-    onSave(form);
+    onSave({ ...form, type: promptType });
   };
 
   const handleReset = () => {
+    const defaults = getEmptyForm(promptType);
     setForm((prev) => ({
       ...prev,
-      systemPrompt: DEFAULT_SYSTEM_PROMPT,
-      userPromptTemplate: DEFAULT_USER_PROMPT_TEMPLATE,
+      systemPrompt: defaults.systemPrompt,
+      userPromptTemplate: defaults.userPromptTemplate,
     }));
   };
 
@@ -118,9 +161,22 @@ function PromptForm({ initialData, onSave, onCancel, isEditing }: PromptFormProp
           id="prompt-name"
           value={form.name}
           onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
-          placeholder="e.g., RPG Session Classifier"
+          placeholder={
+            promptType === "speaker" ? "e.g., RPG Session Classifier" : "e.g., Grammar Fix"
+          }
           data-testid="input-prompt-name"
         />
+      </div>
+
+      <div className="flex items-center gap-2">
+        <Checkbox
+          id="quick-access"
+          checked={form.quickAccess}
+          onCheckedChange={(checked) => setForm((prev) => ({ ...prev, quickAccess: !!checked }))}
+        />
+        <Label htmlFor="quick-access" className="text-sm">
+          Show in Quick Access menu
+        </Label>
       </div>
 
       <div className="space-y-2">
@@ -150,21 +206,23 @@ function PromptForm({ initialData, onSave, onCancel, isEditing }: PromptFormProp
           className="min-h-[150px] font-mono text-sm"
           data-testid="textarea-prompt-user"
         />
-        <p className="text-xs text-muted-foreground">
-          Available variables: <code className="bg-muted px-1 rounded">{"{{speakers}}"}</code>,{" "}
-          <code className="bg-muted px-1 rounded">{"{{segments}}"}</code>
-        </p>
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="font-medium">Available placeholders:</p>
+          <ul className="list-disc pl-4">
+            {placeholders.map((p) => (
+              <li key={p.placeholder}>
+                <code className="bg-muted px-1 rounded">{p.placeholder}</code> - {p.description}
+              </li>
+            ))}
+          </ul>
+        </div>
       </div>
-
-      <Separator />
 
       <div className="flex justify-end gap-2">
         <Button type="button" variant="outline" onClick={onCancel}>
           Cancel
         </Button>
-        <Button type="submit" data-testid="button-save-template">
-          {isEditing ? "Save Changes" : "Create Template"}
-        </Button>
+        <Button type="submit">{isEditing ? "Save Changes" : "Create Prompt"}</Button>
       </div>
     </form>
   );
@@ -179,6 +237,7 @@ interface PromptCardProps {
   onDelete: () => void;
   onSetActive: () => void;
   onDuplicate: () => void;
+  onToggleQuickAccess?: () => void;
 }
 
 function PromptCard({
@@ -188,21 +247,24 @@ function PromptCard({
   onDelete,
   onSetActive,
   onDuplicate,
+  onToggleQuickAccess,
 }: PromptCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const typeLabel = promptItem.type === "speaker" ? "Speaker Classification" : "Text Revision";
+  const TypeIcon = promptItem.type === "speaker" ? MessageSquare : Sparkles;
 
   return (
     <Card className={cn(isActive && "ring-2 ring-primary")}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
-            <FileText className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
+            <TypeIcon className="h-5 w-5 text-muted-foreground" aria-hidden="true" />
             <div>
               <CardTitle className="text-base flex items-center gap-2">
                 {promptItem.name}
                 {isActive && (
                   <Badge variant="secondary" className="text-xs">
-                    Active
+                    Default
                   </Badge>
                 )}
                 {promptItem.isBuiltIn && (
@@ -210,8 +272,16 @@ function PromptCard({
                     Built-in
                   </Badge>
                 )}
+                {promptItem.quickAccess && (
+                  <Badge
+                    variant="outline"
+                    className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                  >
+                    Quick Access
+                  </Badge>
+                )}
               </CardTitle>
-              <CardDescription className="text-xs">Speaker Classification</CardDescription>
+              <CardDescription className="text-xs">{typeLabel}</CardDescription>
             </div>
           </div>
           <Button
@@ -273,62 +343,130 @@ function PromptCard({
 // ==================== Main Component ====================
 
 export function AITemplateSettings() {
-  const prompts = useTranscriptStore((s) => s.aiSpeakerConfig.prompts);
-  const activePromptId = useTranscriptStore((s) => s.aiSpeakerConfig.activePromptId);
-  const addPrompt = useTranscriptStore((s) => s.addPrompt);
-  const updatePrompt = useTranscriptStore((s) => s.updatePrompt);
-  const deletePrompt = useTranscriptStore((s) => s.deletePrompt);
-  const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
+  const [activeTab, setActiveTab] = useState<PromptType>("speaker");
+
+  // Speaker prompts
+  const speakerPrompts = useTranscriptStore((s) => s.aiSpeakerConfig.prompts);
+  const activeSpeakerPromptId = useTranscriptStore((s) => s.aiSpeakerConfig.activePromptId);
+  const addSpeakerPrompt = useTranscriptStore((s) => s.addPrompt);
+  const updateSpeakerPrompt = useTranscriptStore((s) => s.updatePrompt);
+  const deleteSpeakerPrompt = useTranscriptStore((s) => s.deletePrompt);
+  const setActiveSpeakerPrompt = useTranscriptStore((s) => s.setActivePrompt);
+
+  // Text revision prompts
+  const textPrompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
+  const activeTextPromptId = useTranscriptStore((s) => s.aiRevisionConfig.defaultPromptId);
+  const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessPromptIds);
+  const addTextPrompt = useTranscriptStore((s) => s.addRevisionPrompt);
+  const updateTextPrompt = useTranscriptStore((s) => s.updateRevisionPrompt);
+  const deleteTextPrompt = useTranscriptStore((s) => s.deleteRevisionPrompt);
+  const setActiveTextPrompt = useTranscriptStore((s) => s.setDefaultRevisionPrompt);
+  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessPrompt);
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  // Get prompts for current tab
+  const prompts = activeTab === "speaker" ? speakerPrompts : textPrompts;
+  const activePromptId = activeTab === "speaker" ? activeSpeakerPromptId : activeTextPromptId;
+
   const handleAddPrompt = useCallback(
     (data: PromptFormData) => {
-      addPrompt({
+      const promptData = {
         name: data.name,
-        type: "speaker" as const,
+        type: data.type,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
         isBuiltIn: false,
-        quickAccess: false,
-      });
+        quickAccess: data.quickAccess,
+      };
+
+      if (data.type === "speaker") {
+        addSpeakerPrompt(promptData);
+      } else {
+        addTextPrompt(promptData);
+      }
       setShowAddForm(false);
     },
-    [addPrompt],
+    [addSpeakerPrompt, addTextPrompt],
   );
 
   const handleEditPrompt = useCallback(
     (id: string, data: PromptFormData) => {
-      updatePrompt(id, {
+      const updates = {
         name: data.name,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
-      });
+        quickAccess: data.quickAccess,
+      };
+
+      if (activeTab === "speaker") {
+        updateSpeakerPrompt(id, updates);
+      } else {
+        updateTextPrompt(id, updates);
+      }
       setEditingId(null);
     },
-    [updatePrompt],
+    [activeTab, updateSpeakerPrompt, updateTextPrompt],
+  );
+
+  const handleDeletePrompt = useCallback(
+    (id: string) => {
+      if (activeTab === "speaker") {
+        deleteSpeakerPrompt(id);
+      } else {
+        deleteTextPrompt(id);
+      }
+    },
+    [activeTab, deleteSpeakerPrompt, deleteTextPrompt],
+  );
+
+  const handleSetActivePrompt = useCallback(
+    (id: string) => {
+      if (activeTab === "speaker") {
+        setActiveSpeakerPrompt(id);
+      } else {
+        setActiveTextPrompt(id);
+      }
+    },
+    [activeTab, setActiveSpeakerPrompt, setActiveTextPrompt],
   );
 
   const handleDuplicate = useCallback(
     (promptItem: AIPrompt) => {
-      addPrompt({
+      const promptData = {
         name: `${promptItem.name} (Copy)`,
-        type: "speaker" as const,
+        type: promptItem.type,
         systemPrompt: promptItem.systemPrompt,
         userPromptTemplate: promptItem.userPromptTemplate,
         isBuiltIn: false,
         quickAccess: false,
-      });
+      };
+
+      if (promptItem.type === "speaker") {
+        addSpeakerPrompt(promptData);
+      } else {
+        addTextPrompt(promptData);
+      }
     },
-    [addPrompt],
+    [addSpeakerPrompt, addTextPrompt],
+  );
+
+  const handleToggleQuickAccess = useCallback(
+    (id: string) => {
+      if (activeTab === "text") {
+        toggleQuickAccess(id);
+      }
+    },
+    [activeTab, toggleQuickAccess],
   );
 
   const handleExport = useCallback(() => {
+    const allPrompts = [...speakerPrompts, ...textPrompts];
     const exportData = {
       version: 1,
-      prompts: prompts.map((p) => ({
+      prompts: allPrompts.map((p) => ({
         name: p.name,
         type: p.type,
         systemPrompt: p.systemPrompt,
@@ -349,7 +487,7 @@ export function AITemplateSettings() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [prompts]);
+  }, [speakerPrompts, textPrompts]);
 
   const handleImport = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -367,14 +505,20 @@ export function AITemplateSettings() {
           if (data.version === 1 && Array.isArray(items)) {
             for (const item of items) {
               if (item.name && item.systemPrompt && item.userPromptTemplate) {
-                addPrompt({
+                const promptData = {
                   name: item.name,
-                  type: "speaker" as const,
+                  type: item.type || activeTab,
                   systemPrompt: item.systemPrompt,
                   userPromptTemplate: item.userPromptTemplate,
                   isBuiltIn: false,
-                  quickAccess: false,
-                });
+                  quickAccess: item.quickAccess || false,
+                };
+
+                if (promptData.type === "speaker") {
+                  addSpeakerPrompt(promptData);
+                } else {
+                  addTextPrompt(promptData);
+                }
               }
             }
           }
@@ -389,15 +533,18 @@ export function AITemplateSettings() {
         importInputRef.current.value = "";
       }
     },
-    [addPrompt],
+    [activeTab, addSpeakerPrompt, addTextPrompt],
   );
+
+  // Calculate quick access status for text prompts
+  const isQuickAccess = (id: string) => quickAccessIds.includes(id);
 
   return (
     <div className="space-y-6">
       <div>
-        <h2 className="text-lg font-semibold">AI Speaker Prompts</h2>
+        <h2 className="text-lg font-semibold">AI Prompts</h2>
         <p className="text-sm text-muted-foreground">
-          Create and manage prompts for AI speaker classification.
+          Manage prompts for AI-powered features like speaker classification and text revision.
         </p>
       </div>
 
@@ -420,13 +567,40 @@ export function AITemplateSettings() {
         />
       </div>
 
+      {/* Tabs for prompt types */}
+      <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as PromptType)}>
+        <TabsList className="grid w-full grid-cols-2">
+          <TabsTrigger value="speaker" className="flex items-center gap-2">
+            <MessageSquare className="h-4 w-4" />
+            Speaker Classification
+          </TabsTrigger>
+          <TabsTrigger value="text" className="flex items-center gap-2">
+            <Sparkles className="h-4 w-4" />
+            Text Revision
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent value="speaker" className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">
+            Prompts for automatically classifying speakers in your transcript.
+          </p>
+        </TabsContent>
+
+        <TabsContent value="text" className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">
+            Prompts for revising and improving transcript text. Quick Access prompts appear in the
+            segment menu.
+          </p>
+        </TabsContent>
+      </Tabs>
+
       {/* Prompt List */}
       <div className="space-y-3">
         {prompts.length === 0 ? (
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No prompts configured.</p>
+              <p>No {activeTab === "speaker" ? "speaker" : "text revision"} prompts configured.</p>
               <p className="text-sm">Create a prompt to customize AI behavior.</p>
             </CardContent>
           </Card>
@@ -441,24 +615,33 @@ export function AITemplateSettings() {
                   <PromptForm
                     initialData={{
                       name: promptItem.name,
+                      type: promptItem.type,
                       systemPrompt: promptItem.systemPrompt,
                       userPromptTemplate: promptItem.userPromptTemplate,
+                      quickAccess: activeTab === "text" ? isQuickAccess(promptItem.id) : false,
                     }}
                     onSave={(data) => handleEditPrompt(promptItem.id, data)}
                     onCancel={() => setEditingId(null)}
                     isEditing
+                    promptType={activeTab}
                   />
                 </CardContent>
               </Card>
             ) : (
               <PromptCard
                 key={promptItem.id}
-                promptItem={promptItem}
+                promptItem={{
+                  ...promptItem,
+                  quickAccess: activeTab === "text" ? isQuickAccess(promptItem.id) : false,
+                }}
                 isActive={promptItem.id === activePromptId}
                 onEdit={() => setEditingId(promptItem.id)}
-                onDelete={() => deletePrompt(promptItem.id)}
-                onSetActive={() => setActivePrompt(promptItem.id)}
+                onDelete={() => handleDeletePrompt(promptItem.id)}
+                onSetActive={() => handleSetActivePrompt(promptItem.id)}
                 onDuplicate={() => handleDuplicate(promptItem)}
+                onToggleQuickAccess={
+                  activeTab === "text" ? () => handleToggleQuickAccess(promptItem.id) : undefined
+                }
               />
             ),
           )
@@ -469,10 +652,16 @@ export function AITemplateSettings() {
       {showAddForm ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Create New Prompt</CardTitle>
+            <CardTitle className="text-base">
+              Create New {activeTab === "speaker" ? "Speaker" : "Text"} Prompt
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <PromptForm onSave={handleAddPrompt} onCancel={() => setShowAddForm(false)} />
+            <PromptForm
+              onSave={handleAddPrompt}
+              onCancel={() => setShowAddForm(false)}
+              promptType={activeTab}
+            />
           </CardContent>
         </Card>
       ) : (
@@ -483,7 +672,7 @@ export function AITemplateSettings() {
           data-testid="button-add-prompt"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create Prompt
+          Create {activeTab === "speaker" ? "Speaker" : "Text"} Prompt
         </Button>
       )}
     </div>
