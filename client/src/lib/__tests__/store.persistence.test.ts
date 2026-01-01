@@ -271,7 +271,7 @@ describe("useTranscriptStore persistence", () => {
       expect(storedGlobal.aiRevisionConfig.prompts).toHaveLength(4); // 3 built-in + 1 custom
 
       const customPrompt = storedGlobal.aiRevisionConfig.prompts.find(
-        (p: { name: string }) => p.name === "My Custom Prompt"
+        (p: { name: string }) => p.name === "My Custom Prompt",
       );
       expect(customPrompt).toBeDefined();
       expect(customPrompt.isBuiltIn).toBe(false);
@@ -292,7 +292,7 @@ describe("useTranscriptStore persistence", () => {
       // Check localStorage
       const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
       const cleanupPrompt = storedGlobal.aiRevisionConfig.prompts.find(
-        (p: { id: string }) => p.id === "builtin-text-cleanup"
+        (p: { id: string }) => p.id === "builtin-text-cleanup",
       );
       expect(cleanupPrompt.name).toBe("Custom Cleanup Name");
       expect(cleanupPrompt.systemPrompt).toBe("My custom system prompt for cleanup");
@@ -329,7 +329,7 @@ describe("useTranscriptStore persistence", () => {
 
       window.localStorage.setItem(
         GLOBAL_STORAGE_KEY,
-        JSON.stringify({ aiRevisionConfig: customConfig })
+        JSON.stringify({ aiRevisionConfig: customConfig }),
       );
 
       const store = await loadStore();
@@ -364,14 +364,14 @@ describe("useTranscriptStore persistence", () => {
 
       window.localStorage.setItem(
         GLOBAL_STORAGE_KEY,
-        JSON.stringify({ aiRevisionConfig: customConfig })
+        JSON.stringify({ aiRevisionConfig: customConfig }),
       );
 
       const store = await loadStore();
 
-      const cleanupPrompt = store.getState().aiRevisionConfig.prompts.find(
-        (p) => p.id === "builtin-text-cleanup"
-      );
+      const cleanupPrompt = store
+        .getState()
+        .aiRevisionConfig.prompts.find((p) => p.id === "builtin-text-cleanup");
       expect(cleanupPrompt?.name).toBe("My Edited Cleanup");
       expect(cleanupPrompt?.systemPrompt).toBe("Completely custom system prompt");
       expect(cleanupPrompt?.userPromptTemplate).toBe("Custom template: {{text}}");
@@ -394,7 +394,9 @@ describe("useTranscriptStore persistence", () => {
       vi.advanceTimersByTime(500);
 
       const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
-      expect(storedGlobal.aiRevisionConfig.quickAccessPromptIds).toEqual(["builtin-text-formalize"]);
+      expect(storedGlobal.aiRevisionConfig.quickAccessPromptIds).toEqual([
+        "builtin-text-formalize",
+      ]);
     });
 
     it("survives page reload with all custom prompts intact", async () => {

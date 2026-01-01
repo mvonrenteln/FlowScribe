@@ -98,7 +98,14 @@ interface PromptFormProps {
   isBuiltIn?: boolean;
 }
 
-function PromptForm({ initialData, onSave, onCancel, isEditing, promptType, isBuiltIn }: PromptFormProps) {
+function PromptForm({
+  initialData,
+  onSave,
+  onCancel,
+  isEditing,
+  promptType,
+  isBuiltIn,
+}: PromptFormProps) {
   const [form, setForm] = useState<PromptFormData>({
     ...getEmptyForm(promptType),
     ...initialData,
@@ -191,7 +198,13 @@ function PromptForm({ initialData, onSave, onCancel, isEditing, promptType, isBu
         <div className="flex items-center justify-between">
           <Label htmlFor="prompt-system">System Prompt</Label>
           {isBuiltIn && (
-            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-xs">
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={handleReset}
+              className="text-xs"
+            >
               Reset to Default
             </Button>
           )}
@@ -278,17 +291,14 @@ function PromptCard({
                   </Badge>
                 )}
                 {promptItem.quickAccess && (
-                  <Badge
-                    variant="secondary"
-                    className="text-xs"
-                  >
+                  <Badge variant="secondary" className="text-xs">
                     Quick Access
                   </Badge>
                 )}
                 {promptItem.isBuiltIn && (
-                    <Badge variant="outline" className="text-xs">
-                      Built-in
-                    </Badge>
+                  <Badge variant="outline" className="text-xs">
+                    Built-in
+                  </Badge>
                 )}
               </CardTitle>
             </div>
@@ -605,11 +615,12 @@ export function AITemplateSettings() {
             Prompts for revising and improving transcript text. Quick Access prompts appear in the
             segment menu.
           </p>
-<Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
+          <Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
             <AlertCircle className="h-4 w-4 text-blue-500 dark:text-blue-400" />
             <AlertDescription className="text-xs text-blue-800 dark:text-blue-200">
-              <strong>Tip:</strong> Smaller models often follow the prompt language instead of the input text language.
-              If you work with non-English transcripts, consider translating the prompts to your language to avoid unwanted translations.
+              <strong>Tip:</strong> Smaller models often follow the prompt language instead of the
+              input text language. If you work with non-English transcripts, consider translating
+              the prompts to your language to avoid unwanted translations.
             </AlertDescription>
           </Alert>
         </TabsContent>

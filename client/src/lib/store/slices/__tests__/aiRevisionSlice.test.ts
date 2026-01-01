@@ -134,7 +134,9 @@ describe("aiRevisionSlice", () => {
         });
 
         const state = mockStore.getState();
-        const addedPrompt = state.aiRevisionConfig?.prompts.find((p) => p.name === "Quick Access Prompt");
+        const addedPrompt = state.aiRevisionConfig?.prompts.find(
+          (p) => p.name === "Quick Access Prompt",
+        );
         expect(addedPrompt).toBeDefined();
         expect(state.aiRevisionConfig?.quickAccessPromptIds).toContain(addedPrompt?.id);
       });
@@ -441,7 +443,7 @@ describe("aiRevisionSlice", () => {
         const result = normalizeAIRevisionConfig(oldConfig);
 
         // Should have migrated the ID
-        const migratedPrompt = result.prompts.find(p => p.id === "builtin-text-cleanup");
+        const migratedPrompt = result.prompts.find((p) => p.id === "builtin-text-cleanup");
         expect(migratedPrompt).toBeDefined();
         expect(migratedPrompt?.name).toBe("My Edited Cleanup");
         expect(migratedPrompt?.systemPrompt).toBe("Custom system prompt");
@@ -473,7 +475,7 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(oldConfig);
 
-        const migratedPrompt = result.prompts.find(p => p.id === "builtin-text-clarity");
+        const migratedPrompt = result.prompts.find((p) => p.id === "builtin-text-clarity");
         expect(migratedPrompt).toBeDefined();
         expect(migratedPrompt?.name).toBe("My Clarity Prompt");
         expect(result.defaultPromptId).toBe("builtin-text-clarity");
@@ -499,7 +501,7 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(oldConfig);
 
-        const migratedPrompt = result.prompts.find(p => p.id === "builtin-text-formalize");
+        const migratedPrompt = result.prompts.find((p) => p.id === "builtin-text-formalize");
         expect(migratedPrompt).toBeDefined();
         expect(migratedPrompt?.name).toBe("My Formalize Prompt");
         expect(result.defaultPromptId).toBe("builtin-text-formalize");
@@ -546,9 +548,15 @@ describe("aiRevisionSlice", () => {
         const result = normalizeAIRevisionConfig(oldConfig);
 
         // All three should be migrated
-        expect(result.prompts.find(p => p.id === "builtin-text-cleanup")?.name).toBe("Edited Cleanup");
-        expect(result.prompts.find(p => p.id === "builtin-text-clarity")?.name).toBe("Edited Clarity");
-        expect(result.prompts.find(p => p.id === "builtin-text-formalize")?.name).toBe("Edited Formalize");
+        expect(result.prompts.find((p) => p.id === "builtin-text-cleanup")?.name).toBe(
+          "Edited Cleanup",
+        );
+        expect(result.prompts.find((p) => p.id === "builtin-text-clarity")?.name).toBe(
+          "Edited Clarity",
+        );
+        expect(result.prompts.find((p) => p.id === "builtin-text-formalize")?.name).toBe(
+          "Edited Formalize",
+        );
 
         expect(result.defaultPromptId).toBe("builtin-text-cleanup");
         expect(result.quickAccessPromptIds).toContain("builtin-text-cleanup");
@@ -578,9 +586,11 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(savedConfig);
 
-        const cleanupPrompt = result.prompts.find(p => p.id === "builtin-text-cleanup");
+        const cleanupPrompt = result.prompts.find((p) => p.id === "builtin-text-cleanup");
         expect(cleanupPrompt?.name).toBe("My Custom Name");
-        expect(cleanupPrompt?.systemPrompt).toBe("My custom system prompt that I carefully crafted");
+        expect(cleanupPrompt?.systemPrompt).toBe(
+          "My custom system prompt that I carefully crafted",
+        );
         expect(cleanupPrompt?.userPromptTemplate).toBe("Please fix: {{text}}");
       });
 
@@ -617,13 +627,13 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(savedConfig);
 
-        const cleanupPrompt = result.prompts.find(p => p.id === "builtin-text-cleanup");
+        const cleanupPrompt = result.prompts.find((p) => p.id === "builtin-text-cleanup");
         expect(cleanupPrompt?.name).toBe("Transkript-Bereinigung");
         expect(cleanupPrompt?.systemPrompt).toBe(customSystemPrompt);
         expect(cleanupPrompt?.userPromptTemplate).toBe(customUserPrompt);
         expect(cleanupPrompt?.isBuiltIn).toBe(true);
 
-        const clarityPrompt = result.prompts.find(p => p.id === "builtin-text-clarity");
+        const clarityPrompt = result.prompts.find((p) => p.id === "builtin-text-clarity");
         expect(clarityPrompt?.name).toBe("Klarheit verbessern");
       });
 
@@ -652,14 +662,16 @@ describe("aiRevisionSlice", () => {
         expect(result.prompts).toHaveLength(3);
 
         // The saved one should keep its custom values
-        expect(result.prompts.find(p => p.id === "builtin-text-cleanup")?.name).toBe("My Cleanup");
+        expect(result.prompts.find((p) => p.id === "builtin-text-cleanup")?.name).toBe(
+          "My Cleanup",
+        );
 
         // The missing ones should be added with default values
-        const clarityPrompt = result.prompts.find(p => p.id === "builtin-text-clarity");
+        const clarityPrompt = result.prompts.find((p) => p.id === "builtin-text-clarity");
         expect(clarityPrompt).toBeDefined();
         expect(clarityPrompt?.name).toBe("Improve Clarity"); // Default name
 
-        const formalizePrompt = result.prompts.find(p => p.id === "builtin-text-formalize");
+        const formalizePrompt = result.prompts.find((p) => p.id === "builtin-text-formalize");
         expect(formalizePrompt).toBeDefined();
         expect(formalizePrompt?.name).toBe("Formalize"); // Default name
       });
@@ -688,7 +700,7 @@ describe("aiRevisionSlice", () => {
         const result = normalizeAIRevisionConfig(savedConfig);
 
         expect(result.prompts).toHaveLength(4); // 3 built-in + 1 custom
-        const customPrompt = result.prompts.find(p => p.id === "custom-prompt-1");
+        const customPrompt = result.prompts.find((p) => p.id === "custom-prompt-1");
         expect(customPrompt).toBeDefined();
         expect(customPrompt?.name).toBe("My Custom Prompt");
         expect(customPrompt?.isBuiltIn).toBe(false);
@@ -726,8 +738,8 @@ describe("aiRevisionSlice", () => {
         const result = normalizeAIRevisionConfig(savedConfig);
 
         expect(result.prompts).toHaveLength(5); // 3 built-in + 2 custom
-        expect(result.prompts.find(p => p.id === "custom-1")).toBeDefined();
-        expect(result.prompts.find(p => p.id === "custom-2")).toBeDefined();
+        expect(result.prompts.find((p) => p.id === "custom-1")).toBeDefined();
+        expect(result.prompts.find((p) => p.id === "custom-2")).toBeDefined();
         expect(result.defaultPromptId).toBe("custom-1");
       });
     });
@@ -818,7 +830,7 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(savedConfig);
 
-        const prompt = result.prompts.find(p => p.id === "builtin-text-cleanup");
+        const prompt = result.prompts.find((p) => p.id === "builtin-text-cleanup");
         expect(prompt?.isBuiltIn).toBe(true); // Should be corrected
       });
 
@@ -842,7 +854,7 @@ describe("aiRevisionSlice", () => {
 
         const result = normalizeAIRevisionConfig(savedConfig);
 
-        const prompt = result.prompts.find(p => p.id === "builtin-text-cleanup");
+        const prompt = result.prompts.find((p) => p.id === "builtin-text-cleanup");
         expect(prompt?.type).toBe("text"); // Should be corrected
       });
     });

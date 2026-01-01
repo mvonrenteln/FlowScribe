@@ -159,9 +159,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
                         handleSelectProvider(provider.id);
                         handleSelectModel(provider.id, model);
                       }}
-                      className={cn(
-                        isCurrentProvider && provider.model === model && "bg-accent",
-                      )}
+                      className={cn(isCurrentProvider && provider.model === model && "bg-accent")}
                     >
                       <Bot className="h-4 w-4 mr-2" />
                       <span className="flex-1 truncate">{model}</span>

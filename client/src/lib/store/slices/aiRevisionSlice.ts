@@ -156,7 +156,7 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
       mergedPrompts.push({
         ...savedVersion,
         isBuiltIn: true,
-        type: "text"
+        type: "text",
       });
       savedPromptsById.delete(builtInPrompt.id);
     } else {
@@ -182,7 +182,7 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
 
   // Migrate quickAccessPromptIds to new ID format
   const migratedQuickAccessIds = (saved.quickAccessPromptIds ?? []).map(
-    (id) => idMigration[id] ?? id
+    (id) => idMigration[id] ?? id,
   );
 
   // Validate quickAccessPromptIds - filter out non-existent prompts
