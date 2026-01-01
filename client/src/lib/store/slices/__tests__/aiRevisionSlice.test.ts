@@ -835,12 +835,13 @@ describe("aiRevisionSlice", () => {
       });
 
       it("ensures type is always 'text' for built-in prompts", () => {
+        const invalidType = "speaker" as "speaker" | "text";
         const savedConfig: AIRevisionConfig = {
           prompts: [
             {
               id: "builtin-text-cleanup",
               name: "Edited",
-              type: "speaker" as any, // Incorrectly set
+              type: invalidType, // Incorrectly set
               systemPrompt: "Test",
               userPromptTemplate: "Test",
               isBuiltIn: true,

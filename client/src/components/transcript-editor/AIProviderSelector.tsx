@@ -97,9 +97,6 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
     );
   }
 
-  const providerModels = availableModels.get(currentProvider.id) ?? [];
-  const isLoadingModels = loadingModels.has(currentProvider.id);
-
   return (
     <DropdownMenu onOpenChange={handleOpenChange}>
       <DropdownMenuTrigger asChild>
@@ -137,7 +134,12 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
                 <Server className="h-4 w-4 mr-2" />
                 <span className="flex-1 truncate">{provider.name}</span>
                 {provider.id === settings.defaultAIProviderId && (
-                  <span className="text-xs ml-2" aria-label="Default provider">
+                  <span
+                    className="text-xs ml-2"
+                    role="img"
+                    aria-hidden="true"
+                    title="Default provider"
+                  >
                     ★
                   </span>
                 )}
@@ -164,7 +166,12 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
                       <Bot className="h-4 w-4 mr-2" />
                       <span className="flex-1 truncate">{model}</span>
                       {provider.model === model && (
-                        <span className="text-xs ml-2" aria-label="Default model">
+                        <span
+                          className="text-xs ml-2"
+                          role="img"
+                          aria-hidden="true"
+                          title="Default model"
+                        >
                           ★
                         </span>
                       )}

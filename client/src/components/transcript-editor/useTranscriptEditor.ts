@@ -496,9 +496,6 @@ export const useTranscriptEditor = () => {
   const startSingleRevision = useTranscriptStore((state) => state.startSingleRevision);
   const aiRevisionConfig = useTranscriptStore((state) => state.aiRevisionConfig);
 
-  // State for AI revision menu (to open programmatically via keyboard)
-  const [aiRevisionMenuSegmentId, setAiRevisionMenuSegmentId] = useState<string | null>(null);
-
   // AI Revision: Run default prompt on selected segment
   const handleRunDefaultAIRevision = useCallback(() => {
     if (!selectedSegmentId) return;
