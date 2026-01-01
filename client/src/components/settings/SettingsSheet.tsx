@@ -56,7 +56,7 @@ export function SettingsSheet({
     switch (activeSection) {
       case "ai-server":
         return <AIServerSettings />;
-      case "ai-templates":
+      case "ai-prompts":
         return <AITemplateSettings />;
       case "appearance":
         return <AppearanceSettings />;

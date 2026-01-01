@@ -1,10 +1,12 @@
 import {
+  AlertCircle,
   Bookmark,
   BookmarkCheck,
   Check,
   CheckCircle2,
   Edit,
   Merge,
+  Minus,
   MoreVertical,
   Scissors,
   Trash2,
@@ -25,6 +27,8 @@ import type { SearchMatch, Segment, Speaker, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 import { TranscriptWord } from "./TranscriptWord";
+import { AIRevisionPopover } from "./transcript-editor/AIRevisionPopover";
+import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 
 interface TranscriptSegmentProps {
   readonly segment: Segment;
@@ -64,6 +68,19 @@ interface TranscriptSegmentProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  /** Pending AI revision for this segment */
+  readonly pendingRevision?: {
+    revisedText: string;
+    changeSummary?: string;
+  };
+  readonly onAcceptRevision?: () => void;
+  readonly onRejectRevision?: () => void;
+  /** Last AI revision result for inline feedback */
+  readonly lastRevisionResult?: {
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  } | null;
 }
 
 function formatTimestamp(seconds: number): string {
@@ -111,6 +128,10 @@ function TranscriptSegmentComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  pendingRevision,
+  onAcceptRevision,
+  onRejectRevision,
+  lastRevisionResult,
 }: TranscriptSegmentProps) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
@@ -380,6 +401,15 @@ function TranscriptSegmentComponent({
                 </Button>
               </div>
             </div>
+          ) : pendingRevision && onAcceptRevision && onRejectRevision ? (
+            /* Show diff view instead of text when there's a pending revision */
+            <SegmentDiffView
+              originalText={segment.text}
+              revisedText={pendingRevision.revisedText}
+              changeSummary={pendingRevision.changeSummary}
+              onAccept={onAcceptRevision}
+              onReject={onRejectRevision}
+            />
           ) : (
             // biome-ignore lint/a11y/noStaticElementInteractions: Double click to edit text
             <div // NOSONAR
@@ -439,6 +469,11 @@ function TranscriptSegmentComponent({
               })()}
             </div>
           )}
+
+          {/* Show inline feedback for "no changes" or error (when no pending revision) */}
+          {!pendingRevision && lastRevisionResult && (
+            <InlineRevisionFeedback result={lastRevisionResult} />
+          )}
         </div>
 
         <div className="flex items-center gap-1">
@@ -490,6 +525,9 @@ function TranscriptSegmentComponent({
               <Scissors className="h-4 w-4" />
             </Button>
           )}
+
+          {/* AI Revision Button */}
+          <AIRevisionPopover segmentId={segment.id} disabled={isEditing} />
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -589,8 +627,64 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&
     prev.replaceQuery === next.replaceQuery &&
-    prev.currentMatch === next.currentMatch
+    prev.currentMatch === next.currentMatch &&
+    prev.pendingRevision === next.pendingRevision &&
+    prev.lastRevisionResult?.timestamp === next.lastRevisionResult?.timestamp
   );
 };
 
 export const TranscriptSegment = memo(TranscriptSegmentComponent, arePropsEqual);
+
+// ==================== Inline Revision Feedback ====================
+
+interface InlineRevisionFeedbackProps {
+  result: {
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  };
+}
+
+const FEEDBACK_DISPLAY_TIME = 4000; // 4 seconds
+
+function InlineRevisionFeedback({ result }: InlineRevisionFeedbackProps) {
+  const [visible, setVisible] = useState(true);
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: We intentionally depend on result.timestamp to re-trigger effect when a new result arrives
+  useEffect(() => {
+    setVisible(true); // Reset visibility when result changes
+    const timer = setTimeout(() => {
+      setVisible(false);
+    }, FEEDBACK_DISPLAY_TIME);
+
+    return () => clearTimeout(timer);
+  }, [result.timestamp]);
+
+  if (!visible) return null;
+
+  // Don't show feedback for success since there will be a diff view
+  if (result.status === "success") return null;
+
+  return (
+    <div
+      className={cn(
+        "mt-2 px-3 py-2 text-xs rounded-md flex items-center gap-2 transition-all",
+        result.status === "no-changes" && "bg-muted/50 text-muted-foreground",
+        result.status === "error" && "bg-destructive/10 text-destructive",
+      )}
+    >
+      {result.status === "no-changes" && (
+        <>
+          <Minus className="h-3 w-3 flex-shrink-0" />
+          <span>No changes needed – the text is already correct.</span>
+        </>
+      )}
+      {result.status === "error" && (
+        <>
+          <AlertCircle className="h-3 w-3 flex-shrink-0" />
+          <span>{result.message ?? "An error occurred."}</span>
+        </>
+      )}
+    </div>
+  );
+}

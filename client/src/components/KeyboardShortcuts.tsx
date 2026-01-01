@@ -34,6 +34,10 @@ const shortcuts = {
     { keys: ["Delete"], description: "Delete selected segment" },
     { keys: ["1-9"], description: "Assign speaker by number" },
   ],
+  "AI Revision": [
+    { keys: ["Alt", "R"], description: "Run default AI revision prompt" },
+    { keys: ["Alt", "Shift", "R"], description: "Open AI revision menu" },
+  ],
   Export: [
     { keys: ["Ctrl", "E"], description: "Export transcript" },
     { keys: ["Ctrl", ","], description: "Open settings" },

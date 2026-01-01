@@ -112,6 +112,12 @@ act(() => {
 
 ## Warning
 
+**File Synchronization:**
+When using AI agents (like Copilot), always ensure that in-memory file changes are saved to disk BEFORE running terminal commands (like `npm run check` or `npm run test`). Otherwise, the terminal sees a stale version of the file, causing confusion where the agent thinks there's a cache issue when it's actually a sync issue. Rule: **Save first, then run commands.**
+
+**Test Output Interpretation:**
+Empty grep output does NOT mean tests passed! The grep pattern may simply not match. Always check for actual "passed" or "failed" counts in the output. If output appears empty, run the command without grep to see full results. Example: `npx vitest run 2>&1 | tail -30` to see actual test results.
+
 Changes around audio loading in `client/src/components/WaveformPlayer.tsx` have previously broken audio playback. Be extra cautious and validate loading and cleanup behavior whenever touching this area.
 Zoom handling in `client/src/components/WaveformPlayer.tsx` can cause repeated WaveSurfer re-initialization and flicker if it triggers the main init effect. Avoid wiring zoom state into the initialization dependency chain.
 

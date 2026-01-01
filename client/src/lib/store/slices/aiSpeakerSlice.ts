@@ -2,17 +2,17 @@
  * AI Speaker Slice
  *
  * Zustand slice for managing AI speaker suggestion state, including
- * suggestions, processing status, configuration, and prompt templates.
+ * suggestions, processing status, configuration, and AI prompts.
  */
 
 import type { StoreApi } from "zustand";
 import { runAnalysis, summarizeIssues } from "@/lib/aiSpeakerService";
 
 import type {
+  AIPrompt,
   AISpeakerBatchInsight,
   AISpeakerSlice,
   AISpeakerSuggestion,
-  PromptTemplate,
   TranscriptStore,
 } from "../types";
 import { normalizeAISpeakerConfig } from "../utils/aiSpeakerConfig";
@@ -194,52 +194,56 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     set({ aiSpeakerConfig: normalizeAISpeakerConfig({ ...current, ...config }) });
   },
 
-  addTemplate: (template) => {
+  addPrompt: (promptData) => {
     const { aiSpeakerConfig } = get();
-    const newTemplate: PromptTemplate = {
-      ...template,
+    const newPrompt: AIPrompt = {
+      ...promptData,
       id: crypto.randomUUID(),
     };
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
         ...aiSpeakerConfig,
-        templates: [...aiSpeakerConfig.templates, newTemplate],
+        prompts: [...aiSpeakerConfig.prompts, newPrompt],
       }),
     });
   },
 
-  updateTemplate: (id, updates) => {
+  updatePrompt: (id, updates) => {
     const { aiSpeakerConfig } = get();
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
         ...aiSpeakerConfig,
-        templates: aiSpeakerConfig.templates.map((t) => (t.id === id ? { ...t, ...updates } : t)),
+        prompts: aiSpeakerConfig.prompts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
       }),
     });
   },
 
-  deleteTemplate: (id) => {
+  deletePrompt: (id) => {
     const { aiSpeakerConfig } = get();
-    if (id === "default") return;
+    // Cannot delete built-in prompts
+    const promptToDelete = aiSpeakerConfig.prompts.find((p) => p.id === id);
+    if (promptToDelete?.isBuiltIn) return;
 
-    const newTemplates = aiSpeakerConfig.templates.filter((t) => t.id !== id);
+    const newPrompts = aiSpeakerConfig.prompts.filter((p) => p.id !== id);
 
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
         ...aiSpeakerConfig,
-        templates: newTemplates,
-        activeTemplateId:
-          aiSpeakerConfig.activeTemplateId === id ? "default" : aiSpeakerConfig.activeTemplateId,
+        prompts: newPrompts,
+        activePromptId:
+          aiSpeakerConfig.activePromptId === id
+            ? (aiSpeakerConfig.prompts.find((p) => p.isBuiltIn)?.id ?? newPrompts[0]?.id ?? "")
+            : aiSpeakerConfig.activePromptId,
       }),
     });
   },
 
-  setActiveTemplate: (id) => {
+  setActivePrompt: (id) => {
     const { aiSpeakerConfig } = get();
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
         ...aiSpeakerConfig,
-        activeTemplateId: id,
+        activePromptId: id,
       }),
     });
   },

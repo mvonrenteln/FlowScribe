@@ -11,7 +11,7 @@ import { cn } from "@/lib/utils";
 
 export type SettingsSection =
   | "ai-server"
-  | "ai-templates"
+  | "ai-prompts"
   | "appearance"
   | "spellcheck"
   | "glossary"
@@ -32,9 +32,9 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
     icon: Bot,
   },
   {
-    id: "ai-templates",
-    label: "AI Templates",
-    description: "Manage prompt templates",
+    id: "ai-prompts",
+    label: "AI Prompts",
+    description: "Speaker & text prompts",
     icon: FileText,
   },
   {

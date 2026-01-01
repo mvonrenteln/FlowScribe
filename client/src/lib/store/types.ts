@@ -86,6 +86,8 @@ export interface PersistedGlobalState {
   // Confidence highlighting
   highlightLowConfidence?: boolean;
   manualConfidenceThreshold?: number | null;
+  // AI Revision config
+  aiRevisionConfig?: AIRevisionConfig;
 }
 
 export interface RecentSessionSummary {
@@ -142,6 +144,21 @@ export interface InitialStoreState {
   // Confidence highlighting
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  // AI Revision state
+  aiRevisionSuggestions: AIRevisionSuggestion[];
+  aiRevisionIsProcessing: boolean;
+  aiRevisionCurrentSegmentId: string | null;
+  aiRevisionProcessedCount: number;
+  aiRevisionTotalToProcess: number;
+  aiRevisionConfig: AIRevisionConfig;
+  aiRevisionError: string | null;
+  aiRevisionAbortController: AbortController | null;
+  aiRevisionLastResult: {
+    segmentId: string;
+    status: "success" | "no-changes" | "error";
+    message?: string;
+    timestamp: number;
+  } | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -153,7 +170,8 @@ export type TranscriptStore = InitialStoreState &
   LexiconSlice &
   SpellcheckSlice &
   AISpeakerSlice &
-  ConfidenceSlice;
+  ConfidenceSlice &
+  AIRevisionSlice;
 
 export interface ConfidenceSlice {
   setHighlightLowConfidence: (enabled: boolean) => void;
@@ -279,20 +297,22 @@ export interface AISpeakerBatchInsight {
   elapsedMs?: number;
 }
 
-export type TemplateCategory = "speaker" | "grammar" | "summary" | "custom";
+export type PromptType = "speaker" | "text";
 
-export interface PromptTemplate {
+export interface AIPrompt {
   id: string;
   name: string;
-  category?: TemplateCategory;
+  type: PromptType;
   systemPrompt: string;
   userPromptTemplate: string;
+  isBuiltIn: boolean;
   isDefault?: boolean;
+  quickAccess: boolean;
 }
 
-export interface PromptTemplateExport {
+export interface AIPromptExport {
   version: 1;
-  templates: Omit<PromptTemplate, "id">[];
+  prompts: Omit<AIPrompt, "id">[];
 }
 
 export interface AISpeakerConfig {
@@ -301,8 +321,8 @@ export interface AISpeakerConfig {
   /** @deprecated Use selectedProviderId with settings providers instead */
   model: string;
   batchSize: number;
-  templates: PromptTemplate[];
-  activeTemplateId: string;
+  prompts: AIPrompt[];
+  activePromptId: string;
   /** ID of the selected AI provider from settings */
   selectedProviderId?: string;
   /** Selected model (overrides provider default if set) */
@@ -319,10 +339,10 @@ export interface AISpeakerSlice {
   rejectSuggestion: (segmentId: string) => void;
   clearSuggestions: () => void;
   updateConfig: (config: Partial<AISpeakerConfig>) => void;
-  addTemplate: (template: Omit<PromptTemplate, "id">) => void;
-  updateTemplate: (id: string, updates: Partial<PromptTemplate>) => void;
-  deleteTemplate: (id: string) => void;
-  setActiveTemplate: (id: string) => void;
+  addPrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updatePrompt: (id: string, updates: Partial<AIPrompt>) => void;
+  deletePrompt: (id: string) => void;
+  setActivePrompt: (id: string) => void;
   setProcessingProgress: (processed: number, total: number) => void;
   setError: (error: string | null) => void;
   setBatchInsights: (insights: AISpeakerBatchInsight[]) => void;
@@ -331,3 +351,55 @@ export interface AISpeakerSlice {
 }
 
 export type SessionKind = "current" | "revision";
+
+// ==================== AI Revision Types ====================
+
+export type AIRevisionSuggestionStatus = "pending" | "accepted" | "rejected";
+
+export interface TextChange {
+  type: "insert" | "delete" | "replace";
+  position: number;
+  length?: number;
+  oldText?: string;
+  newText?: string;
+}
+
+export interface AIRevisionSuggestion {
+  segmentId: string;
+  promptId: string;
+  originalText: string;
+  revisedText: string;
+  status: AIRevisionSuggestionStatus;
+  changes: TextChange[];
+  changeSummary?: string;
+  reasoning?: string;
+}
+
+// AIRevisionTemplate is now just AIPrompt with type: 'text'
+export type AIRevisionTemplate = AIPrompt;
+
+export interface AIRevisionConfig {
+  prompts: AIPrompt[];
+  defaultPromptId: string | null;
+  quickAccessPromptIds: string[];
+}
+
+export interface AIRevisionSlice {
+  // State is in InitialStoreState with aiRevision* prefix
+  // Actions
+  startSingleRevision: (segmentId: string, promptId: string) => void;
+  startBatchRevision: (segmentIds: string[], promptId: string) => void;
+  cancelRevision: () => void;
+  acceptRevision: (segmentId: string) => void;
+  rejectRevision: (segmentId: string) => void;
+  acceptAllRevisions: () => void;
+  rejectAllRevisions: () => void;
+  clearRevisions: () => void;
+  // Prompt management
+  addRevisionPrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updateRevisionPrompt: (id: string, updates: Partial<AIPrompt>) => void;
+  deleteRevisionPrompt: (id: string) => void;
+  setDefaultRevisionPrompt: (id: string | null) => void;
+  setQuickAccessPrompts: (ids: string[]) => void;
+  toggleQuickAccessPrompt: (id: string) => void;
+}

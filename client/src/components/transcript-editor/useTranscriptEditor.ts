@@ -492,6 +492,38 @@ export const useTranscriptEditor = () => {
   const splitWordIndex = getSplitWordIndex();
   const canSplitAtCurrentWord = splitWordIndex !== null;
 
+  // AI Revision: Get store functions
+  const startSingleRevision = useTranscriptStore((state) => state.startSingleRevision);
+  const aiRevisionConfig = useTranscriptStore((state) => state.aiRevisionConfig);
+
+  // AI Revision: Run default prompt on selected segment
+  const handleRunDefaultAIRevision = useCallback(() => {
+    if (!selectedSegmentId) return;
+    const defaultPromptId = aiRevisionConfig.defaultPromptId;
+    if (!defaultPromptId) {
+      toast({
+        title: "No default prompt",
+        description: "Please set a default AI revision prompt in Settings.",
+        variant: "destructive",
+      });
+      return;
+    }
+    startSingleRevision(selectedSegmentId, defaultPromptId);
+  }, [selectedSegmentId, aiRevisionConfig.defaultPromptId, startSingleRevision]);
+
+  // AI Revision: Open menu for selected segment (focus the segment's AI button)
+  const handleOpenAIRevisionMenu = useCallback(() => {
+    if (!selectedSegmentId) return;
+    // Find the AI button for the selected segment and click it
+    const segmentEl = document.querySelector(`[data-segment-id="${selectedSegmentId}"]`);
+    if (segmentEl) {
+      const aiButton = segmentEl.querySelector('[aria-label*="AI"]') as HTMLButtonElement;
+      if (aiButton) {
+        aiButton.click();
+      }
+    }
+  }, [selectedSegmentId]);
+
   useNavigationHotkeys({
     isTranscriptEditing,
     handleSkipBack,
@@ -524,6 +556,8 @@ export const useTranscriptEditor = () => {
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
     onShowSettings: () => setShowSettings(true),
+    onRunDefaultAIRevision: handleRunDefaultAIRevision,
+    onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
   });
 
   const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
@@ -832,6 +866,7 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       onReplaceCurrent: replaceCurrent,
       onReplaceAll: replaceAll,
+      filteredSegmentIds: filteredSegments.map((s) => s.id),
     }),
     [
       addSpeaker,
@@ -872,6 +907,7 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       replaceCurrent,
       replaceAll,
+      filteredSegments,
     ],
   );
 

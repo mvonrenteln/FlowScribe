@@ -5,7 +5,7 @@
  * Features: AI provider selection, model selection, speaker filters,
  * progress tracking, and suggestions list with accept/reject controls.
  *
- * AI Provider and Template configuration is managed in Settings.
+ * AI Provider and prompt configuration is managed in Settings.
  */
 
 import { AlertCircle, Check, Pause, Play, Settings2, Sparkles, Trash2, X } from "lucide-react";
@@ -82,7 +82,7 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
   const rejectSuggestion = useTranscriptStore((s) => s.rejectSuggestion);
   const clearSuggestions = useTranscriptStore((s) => s.clearSuggestions);
   const updateConfig = useTranscriptStore((s) => s.updateConfig);
-  const setActiveTemplate = useTranscriptStore((s) => s.setActiveTemplate);
+  const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
 
   // Local state
   const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([]);
@@ -329,7 +329,7 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Configure AI providers and templates in Settings</p>
+                  <p>Configure AI providers and prompts in Settings</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -342,21 +342,18 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
             </div>
           )}
 
-          {/* Template Selection */}
+          {/* Prompt Selection */}
           <div className="flex items-center gap-2">
-            <Label className="text-sm whitespace-nowrap">Prompt Template:</Label>
-            <Select
-              value={config.activeTemplateId}
-              onValueChange={(value) => setActiveTemplate(value)}
-            >
+            <Label className="text-sm whitespace-nowrap">Prompt:</Label>
+            <Select value={config.activePromptId} onValueChange={(value) => setActivePrompt(value)}>
               <SelectTrigger className="flex-1">
-                <SelectValue placeholder="Select template" />
+                <SelectValue placeholder="Select prompt" />
               </SelectTrigger>
               <SelectContent>
-                {config.templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                    {template.isDefault && " (Default)"}
+                {config.prompts.map((prompt) => (
+                  <SelectItem key={prompt.id} value={prompt.id}>
+                    {prompt.name}
+                    {prompt.isDefault && " (Default)"}
                   </SelectItem>
                 ))}
               </SelectContent>

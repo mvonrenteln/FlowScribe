@@ -34,6 +34,9 @@ interface UseNavigationHotkeysOptions {
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
+  // AI Revision
+  onRunDefaultAIRevision?: () => void;
+  onOpenAIRevisionMenu?: () => void;
 }
 
 export function useNavigationHotkeys({
@@ -68,6 +71,8 @@ export function useNavigationHotkeys({
   onShowExport,
   onShowShortcuts,
   onShowSettings,
+  onRunDefaultAIRevision,
+  onOpenAIRevisionMenu,
 }: UseNavigationHotkeysOptions) {
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
@@ -343,4 +348,26 @@ export function useNavigationHotkeys({
     window.addEventListener("keydown", handleGlobalArrowNav, { capture: true });
     return () => window.removeEventListener("keydown", handleGlobalArrowNav, { capture: true });
   }, [selectNextSegment, selectPreviousSegment, isTranscriptEditing]);
+
+  // AI Revision: Alt+R to run default template
+  useHotkeys(
+    "alt+r",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+      onRunDefaultAIRevision?.();
+    },
+    { enableOnFormTags: false, preventDefault: true },
+  );
+
+  // AI Revision: Alt+Shift+R to open menu
+  useHotkeys(
+    "alt+shift+r",
+    () => {
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+      onOpenAIRevisionMenu?.();
+    },
+    { enableOnFormTags: false, preventDefault: true },
+  );
 }

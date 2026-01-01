@@ -1,30 +1,31 @@
 import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT_TEMPLATE } from "@/lib/aiSpeakerService";
-import type { AISpeakerConfig, PromptTemplate } from "../types";
+import type { AIPrompt, AISpeakerConfig } from "../types";
 
-export const DEFAULT_TEMPLATE: PromptTemplate = {
-  id: "default",
+export const DEFAULT_SPEAKER_PROMPT: AIPrompt = {
+  id: "builtin-speaker-default",
   name: "RPG Transcript Classifier",
+  type: "speaker",
   systemPrompt: DEFAULT_SYSTEM_PROMPT,
   userPromptTemplate: DEFAULT_USER_PROMPT_TEMPLATE,
+  isBuiltIn: true,
   isDefault: true,
+  quickAccess: true,
 };
 
 export const DEFAULT_AI_SPEAKER_CONFIG: AISpeakerConfig = {
   ollamaUrl: "http://localhost:11434",
   model: "llama3.2",
   batchSize: 10,
-  templates: [DEFAULT_TEMPLATE],
-  activeTemplateId: "default",
+  prompts: [DEFAULT_SPEAKER_PROMPT],
+  activePromptId: "builtin-speaker-default",
 };
 
-const cloneTemplates = (templates: PromptTemplate[]) => templates.map((t) => ({ ...t }));
+const clonePrompts = (prompts: AIPrompt[]) => prompts.map((p) => ({ ...p }));
 
-const ensureDefaultTemplate = (templates: PromptTemplate[]) => {
-  const normalized = cloneTemplates(
-    templates.length ? templates : DEFAULT_AI_SPEAKER_CONFIG.templates,
-  );
-  if (!normalized.some((t) => t.isDefault)) {
-    normalized.unshift({ ...DEFAULT_TEMPLATE });
+const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
+  const normalized = clonePrompts(prompts.length ? prompts : DEFAULT_AI_SPEAKER_CONFIG.prompts);
+  if (!normalized.some((p) => p.isBuiltIn && p.type === "speaker")) {
+    normalized.unshift({ ...DEFAULT_SPEAKER_PROMPT });
   }
   return normalized;
 };
@@ -37,14 +38,14 @@ export const normalizeAISpeakerConfig = (
     ...config,
   };
 
-  const templates = ensureDefaultTemplate(config?.templates ?? base.templates);
-  const activeTemplateId = templates.some((t) => t.id === base.activeTemplateId)
-    ? base.activeTemplateId
-    : (templates.find((t) => t.isDefault)?.id ?? templates[0].id);
+  const prompts = ensureBuiltInPrompt(config?.prompts ?? base.prompts);
+  const activePromptId = prompts.some((p) => p.id === base.activePromptId)
+    ? base.activePromptId
+    : (prompts.find((p) => p.isBuiltIn)?.id ?? prompts[0].id);
 
   return {
     ...base,
-    templates,
-    activeTemplateId,
+    prompts,
+    activePromptId,
   };
 };

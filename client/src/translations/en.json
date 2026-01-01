@@ -1,0 +1,79 @@
+{
+  "aiRevision": {
+    "actionLabel": "AI Revision",
+    "statusTooltip": "AI Revision (Alt+R for default)",
+    "inProgress": "AI Revision in progress...",
+    "suggestionAvailable": "Suggestion available - click to view",
+    "suggestionCreated": "Suggestion created",
+    "noChangesNeeded": "No changes needed",
+    "processingError": "Processing error",
+    "noChangesMessage": "No changes needed – the text is already correct.",
+    "errorOccurred": "An error occurred.",
+    "noTemplates": "No templates configured.",
+    "createInSettings": "Create templates in Settings.",
+    "moreTemplates": "More templates...",
+    "back": "Back"
+  },
+  "diffView": {
+    "original": "Original",
+    "revised": "Revised",
+    "accept": "Accept",
+    "reject": "Reject",
+    "showCompact": "Show compact",
+    "showDiff": "Show diff",
+    "changeSuggested": "Change suggested"
+  },
+  "provider": {
+    "noProvider": "No provider",
+    "selectModel": "Select model",
+    "loadingModels": "Loading models...",
+    "noModelsAvailable": "No models available",
+    "noProvidersConfigured": "No providers configured"
+  },
+  "settings": {
+    "templates": {
+      "title": "AI Revision Templates",
+      "description": "Manage your prompt templates for AI text revision. Default templates can be edited but not deleted.",
+      "hotkeyDefault": "Hotkey default (Alt+R)",
+      "selectTemplate": "Select template...",
+      "hotkeyDescription": "This template runs when you press Alt+R.",
+      "createNew": "Create new template",
+      "defaultTemplates": "Default templates",
+      "customTemplates": "Custom templates",
+      "editTemplate": "Edit template",
+      "noCustomTemplates": "You haven't created any custom templates yet. Click \"Create new template\" to get started.",
+      "badges": {
+        "default": "Default template",
+        "hotkey": "Hotkey",
+        "quickAccess": "Quick-access"
+      },
+      "showInQuickAccess": "Show in quick-access menu",
+      "setAsHotkey": "Set as hotkey default",
+      "systemPrompt": "System prompt",
+      "userPrompt": "User prompt template",
+      "availablePlaceholders": "Available placeholders",
+      "namePlaceholder": "e.g. Grammar correction",
+      "systemPromptPlaceholder": "Instructions for the AI model...",
+      "userPromptPlaceholder": "Template for the user request...",
+      "cancel": "Cancel",
+      "save": "Save",
+      "create": "Create",
+      "delete": "Delete",
+      "validation": {
+        "name": "Template name is required",
+        "systemPrompt": "System prompt is required",
+        "userPrompt": "User prompt template is required"
+      }
+    }
+  },
+  "segment": {
+    "noChanges": "No changes needed – the text is already correct.",
+    "error": "An error occurred."
+  },
+  "diff": {
+    "noChanges": "No changes",
+    "whitespaceOnly": "Whitespace changes only",
+    "oneChange": "1 change",
+    "nChanges": "{{count}} changes"
+  }
+}

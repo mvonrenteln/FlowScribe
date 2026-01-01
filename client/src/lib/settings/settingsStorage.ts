@@ -273,3 +273,33 @@ export function removeProviderFromSettings(
     defaultAIProviderId: defaultId,
   };
 }
+
+/**
+ * Update the default provider in settings and persist.
+ */
+export function updateSettingsDefaultProvider(providerId: string): PersistedSettings {
+  const settings = initializeSettings();
+  const updated: PersistedSettings = {
+    ...settings,
+    defaultAIProviderId: providerId,
+    aiProviders: settings.aiProviders.map((p) => ({
+      ...p,
+      isDefault: p.id === providerId,
+    })),
+  };
+  writeSettings(updated);
+  return updated;
+}
+
+/**
+ * Update a provider's model and persist.
+ */
+export function updateProviderModel(providerId: string, model: string): PersistedSettings {
+  const settings = initializeSettings();
+  const updated: PersistedSettings = {
+    ...settings,
+    aiProviders: settings.aiProviders.map((p) => (p.id === providerId ? { ...p, model } : p)),
+  };
+  writeSettings(updated);
+  return updated;
+}

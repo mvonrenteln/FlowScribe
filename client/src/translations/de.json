@@ -1,0 +1,26 @@
+{
+  "aiRevision": {
+    "actionLabel": "AI Revision",
+    "statusTooltip": "AI Revision (Alt+R)",
+    "inProgress": "AI Revision läuft...",
+    "suggestionAvailable": "Änderungsvorschlag verfügbar - klicken zum Anzeigen",
+    "suggestionCreated": "Änderungsvorschlag erstellt",
+    "noChangesNeeded": "Keine Änderungen notwendig",
+    "processingError": "Fehler bei der Verarbeitung",
+    "noChangesMessage": "Keine Änderungen notwendig – der Text ist bereits korrekt.",
+    "errorOccurred": "Ein Fehler ist aufgetreten.",
+    "noTemplates": "Keine Templates konfiguriert.",
+    "createInSettings": "Erstellen Sie Templates in den Einstellungen.",
+    "moreTemplates": "Weitere Templates...",
+    "back": "Zurück"
+  },
+  "diffView": {
+    "original": "Original",
+    "revised": "Überarbeitet",
+    "accept": "Übernehmen",
+    "reject": "Abbrechen",
+    "showCompact": "Kompakt anzeigen",
+    "showDiff": "Diff anzeigen",
+    "changeSuggested": "Änderung vorgeschlagen"
+  }
+}

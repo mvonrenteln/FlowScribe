@@ -1,5 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { Route, Switch } from "wouter";
+import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { TranscriptEditor } from "@/components/TranscriptEditor";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -15,14 +16,16 @@ function Router() {
   );
 }
 
-function App() {
+export function App() {
   return (
-    <QueryClientProvider client={queryClient}>
-      <TooltipProvider>
-        <Toaster />
-        <Router />
-      </TooltipProvider>
-    </QueryClientProvider>
+    <I18nProvider>
+      <QueryClientProvider client={queryClient}>
+        <TooltipProvider>
+          <Toaster />
+          <Router />
+        </TooltipProvider>
+      </QueryClientProvider>
+    </I18nProvider>
   );
 }
 
