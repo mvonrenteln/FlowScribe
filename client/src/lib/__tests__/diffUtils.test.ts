@@ -48,6 +48,30 @@ describe("diffUtils", () => {
         result.some((s) => s.type === "delete") && result.some((s) => s.type === "insert");
       expect(hasChanges).toBe(true);
     });
+
+    it("keeps punctuation-only deletions local", () => {
+      const original = "mitten durch den Fels durch.";
+      const revised = "mitten durch den Fels.";
+      const result = computeDiff(original, revised);
+
+      const deleteSegment = result.find((s) => s.type === "delete");
+      expect(deleteSegment).toBeDefined();
+      expect(deleteSegment?.text.replace(/\s+/g, "")).toBe("durch");
+
+      const equalSegment = result.find((s) => s.type === "equal" && s.text.includes("Fels"));
+      expect(equalSegment?.text).toContain("Fels");
+      expect(result).toContainEqual({ type: "equal", text: "." });
+    });
+
+    it("separates punctuation tokens for replacements", () => {
+      const original = "Hallo!";
+      const revised = "Hallo?";
+      const result = computeDiff(original, revised);
+
+      expect(result).toContainEqual({ type: "delete", text: "!" });
+      expect(result).toContainEqual({ type: "insert", text: "?" });
+      expect(result).toContainEqual({ type: "equal", text: "Hallo" });
+    });
   });
 
   describe("computeTextChanges", () => {
