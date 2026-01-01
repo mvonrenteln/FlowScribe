@@ -71,9 +71,9 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const quickAccessPrompts = prompts.filter((t) => quickAccessIds.includes(t.id));
   const otherPrompts = prompts.filter((t) => !quickAccessIds.includes(t.id));
 
-  const handleSelectTemplate = (templateId: string) => {
+  const handleSelectPrompt = (promptId: string) => {
     setDisplayStatus("idle");
-    startSingleRevision(segmentId, templateId);
+    startSingleRevision(segmentId, promptId);
     setOpen(false);
   };
 
@@ -159,9 +159,9 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           )}
 
           {/* Quick-Access Prompts */}
-          {quickAccessPrompts.map((template) => (
+          {quickAccessPrompts.map((promptItem) => (
             <button
-              key={template.id}
+              key={promptItem.id}
               type="button"
               className={cn(
                 "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
@@ -169,10 +169,10 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
                 "focus:bg-accent focus:text-accent-foreground focus:outline-none",
                 "text-left w-full",
               )}
-              onClick={() => handleSelectTemplate(template.id)}
+              onClick={() => handleSelectPrompt(promptItem.id)}
             >
               <Sparkles className="h-4 w-4 text-muted-foreground" />
-              <span className="flex-1 truncate">{template.name}</span>
+              <span className="flex-1 truncate">{promptItem.name}</span>
             </button>
           ))}
 
@@ -180,7 +180,7 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
           {otherPrompts.length > 0 && (
             <>
               {quickAccessPrompts.length > 0 && <div className="h-px bg-border my-1" />}
-              <MorePromptsSubmenu prompts={otherPrompts} onSelect={handleSelectTemplate} />
+              <MorePromptsSubmenu prompts={otherPrompts} onSelect={handleSelectPrompt} />
             </>
           )}
 
@@ -242,9 +242,9 @@ function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
         <span>{t("aiRevision.back")}</span>
       </button>
       <div className="h-px bg-border my-1" />
-      {prompts.map((template) => (
+      {prompts.map((promptItem) => (
         <button
-          key={template.id}
+          key={promptItem.id}
           type="button"
           className={cn(
             "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
@@ -252,10 +252,10 @@ function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
             "focus:bg-accent focus:text-accent-foreground focus:outline-none",
             "text-left w-full",
           )}
-          onClick={() => onSelect(template.id)}
+          onClick={() => onSelect(promptItem.id)}
         >
           <Sparkles className="h-4 w-4 text-muted-foreground" />
-          <span className="flex-1 truncate">{template.name}</span>
+          <span className="flex-1 truncate">{promptItem.name}</span>
         </button>
       ))}
     </div>

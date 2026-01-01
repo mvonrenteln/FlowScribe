@@ -310,9 +310,6 @@ export interface AIPrompt {
   quickAccess: boolean;
 }
 
-// Legacy alias for backwards compatibility during migration
-export type PromptTemplate = AIPrompt;
-
 export interface AIPromptExport {
   version: 1;
   prompts: Omit<AIPrompt, "id">[];

@@ -41,9 +41,7 @@ describe("aiRevisionSlice", () => {
     });
 
     it("has a default template ID set", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.defaultPromptId).toBe(
-        "builtin-text-cleanup",
-      );
+      expect(initialAIRevisionState.aiRevisionConfig.defaultPromptId).toBe("builtin-text-cleanup");
     });
 
     it("has quick access template IDs", () => {
@@ -66,9 +64,7 @@ describe("aiRevisionSlice", () => {
 
   describe("DEFAULT_TEXT_PROMPTS", () => {
     it("includes Transcript Cleanup template", () => {
-      const template = DEFAULT_TEXT_PROMPTS.find(
-        (t) => t.id === "builtin-text-cleanup",
-      );
+      const template = DEFAULT_TEXT_PROMPTS.find((t) => t.id === "builtin-text-cleanup");
       expect(template).toBeDefined();
       expect(template?.name).toBe("Transcript Cleanup");
       expect(template?.isBuiltIn).toBe(true);
@@ -199,10 +195,10 @@ describe("aiRevisionSlice", () => {
         slice.toggleQuickAccessPrompt("builtin-text-formalize");
 
         const state = mockStore.getState();
-        expect(state.aiRevisionConfig?.quickAccessPromptIds).not.toContain("builtin-text-formalize");
-        expect(state.aiRevisionConfig?.quickAccessPromptIds).toContain(
-          "builtin-text-cleanup",
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).not.toContain(
+          "builtin-text-formalize",
         );
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).toContain("builtin-text-cleanup");
       });
     });
 

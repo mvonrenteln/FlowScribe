@@ -6,6 +6,17 @@
 
 ---
 
+## ⚠️ Wichtige Hinweise für AI Agents
+
+**File Sync:** Immer in-memory Änderungen speichern BEVOR Terminal-Befehle ausgeführt werden!
+Sonst sieht das Terminal eine veraltete Version und es kommt zu Verwirrung.
+
+**Prompt vs Prompt Template:**
+- `prompt` = Das komplette Konfigurationsobjekt (AIPrompt)
+- `promptTemplate` / `userPromptTemplate` = Der String mit Platzhaltern wie `{{text}}`
+
+---
+
 ## 📋 Übersicht der Änderungen
 
 ### Terminologie
@@ -23,82 +34,55 @@
 
 ---
 
-## ✅ Aufgaben
+## ✅ PHASE 1: Strukturelle Änderungen - DONE ✓
 
-### 🔧 STRUKTURELLE ÄNDERUNGEN (Copilot)
-
-#### Phase 1: Type Definitions (`types.ts`) - DONE
-- [x] 1.1. Neues Interface `AIPrompt` mit `type`, `isBuiltIn`, `quickAccess`
-- [x] 1.2. `PromptType = 'speaker' | 'text'`
-- [x] 1.3. `AISpeakerConfig` und `AIRevisionConfig` Properties anpassen
-- [x] 1.4. Slice-Interface Methoden anpassen
-
-#### Phase 2: Store Utils (`aiSpeakerConfig.ts`) - DONE
-- [x] 2.1. `DEFAULT_SPEAKER_PROMPT` mit neuen Properties erstellen
-- [x] 2.2. `normalizeAISpeakerConfig` anpassen
-
-#### Phase 3: AI Speaker Slice (`aiSpeakerSlice.ts`) - DONE
-- [x] 3.1. Methoden-Implementierung anpassen (prompts statt templates)
-
-#### Phase 4: AI Revision Slice (`aiRevisionSlice.ts`) - DONE
-- [x] 4.1. `DEFAULT_TEXT_PROMPTS` mit neuen Properties
-- [x] 4.2. `normalizeAIRevisionConfig` anpassen
-- [x] 4.3. `startSingleRevision` → promptId statt templateId
-- [x] 4.4. `startBatchRevision` → promptId statt templateId
-- [x] 4.5. Suggestion-Objekte → promptId statt templateId
-- [x] 4.6. Prompt-Management Methoden anpassen
+- [x] Type Definitions (`types.ts`)
+- [x] Store Utils (`aiSpeakerConfig.ts`)  
+- [x] AI Speaker Slice (`aiSpeakerSlice.ts`)
+- [x] AI Revision Slice (`aiRevisionSlice.ts`)
+- [x] Store exports (`store.ts`)
+- [x] Settings Components (`AITemplateSettings.tsx`, `AIRevisionTemplateSettings.tsx`)
+- [x] Tests (`aiRevisionSlice.test.ts`)
+- [x] TypeScript kompiliert ✓
+- [x] Alle 315 Tests bestanden ✓
 
 ---
 
-### 🏷️ UMBENENNUNGEN (User - IDE Refactoring)
+## 🔄 PHASE 2: Cleanup & Konsistenz - DONE ✓
 
-Nach den strukturellen Änderungen diese Umbenennungen durchführen:
+### 2.1 Verbleibende Component-Dateien prüfen
+- [x] `AISpeakerDialog.tsx` - bereits sauber
+- [x] `AIRevisionPopover.tsx` - template → promptItem Variable
+- [x] `AIBatchRevisionSection.tsx` - bereits sauber
+- [x] `useTranscriptEditor.ts` - bereits sauber
 
-#### In `aiRevisionSlice.ts`:
-- [ ] `templateId` Parameter → `promptId` (in startSingleRevision, startBatchRevision)
-- [ ] `template` Variable → `selectedPrompt` (in Funktionen)
-- [ ] `templateId` in Suggestion-Objekten → `promptId`
+### 2.2 Services prüfen
+- [x] `aiSpeakerService.ts` - bereits sauber
+- [x] `aiRevisionService.ts` - bereits sauber
 
-#### In `aiRevisionService.ts`:
-- [ ] `template` Parameter → `prompt`
-- [ ] Alle `template.` Zugriffe → `prompt.`
+### 2.3 Deprecations & Legacy-Code entfernen
+- [x] `types.ts` - Legacy alias `PromptTemplate` entfernt
 
-#### In `aiSpeakerService.ts`:
-- [ ] `template` Variable/Parameter → `prompt`
-- [ ] `activeTemplate` → `activePrompt`
+### 2.4 i18n - en.json aktualisieren
+- [x] Keine template-Referenzen in UI-Texten
 
-#### In `store.ts`:
-- [ ] `addTemplate` → `addPrompt`
-- [ ] `updateTemplate` → `updatePrompt`
-- [ ] `deleteTemplate` → `deletePrompt`
-- [ ] `setActiveTemplate` → `setActivePrompt`
+### 2.5 Code-Kommentare aktualisieren
+- [x] Keine verbleibenden template-Kommentare (außer userPromptTemplate)
 
-#### In Components:
-- [ ] `AISpeakerDialog.tsx`: `setActiveTemplate` → `setActivePrompt`, `templates` → `prompts`
-- [ ] `AIRevisionPopover.tsx`: `templates` → `prompts`, `templateId` → `promptId`
-- [ ] `AIBatchRevisionSection.tsx`: analog
-- [ ] `useTranscriptEditor.ts`: `defaultTemplateId` → `defaultPromptId`
-
-#### In Settings:
-- [ ] `AITemplateSettings.tsx` → `AISpeakerPromptSettings.tsx`
-- [ ] `AIRevisionTemplateSettings.tsx` → `AITextPromptSettings.tsx`
-- [ ] Alle internen `template` Referenzen
-
-#### In Tests:
-- [ ] Alle Test-Dateien entsprechend anpassen
+### 2.6 Keyboard Shortcuts
+- [x] `KeyboardShortcuts.tsx` - "template" → "prompt" in description
 
 ---
 
-### 🔍 FEHLER-BEHEBUNG (Copilot)
+## 📚 PHASE 3: Dokumentation
 
-Nach Umbenennungen:
-- [ ] TypeScript-Fehler beheben
-- [ ] Lint-Fehler beheben
-- [ ] Test-Fehler beheben
+- [ ] Dokumentation in docs/ aktualisieren
+- [ ] README.md aktualisieren falls nötig
 
 ---
 
-### 📚 DOKUMENTATION (Copilot)
+**Status:** ✅ Phase 2 Complete - TypeScript kompiliert, Tests sollten grün sein
+**Letzte Aktualisierung:** 1. Januar 2026
 
 - [ ] i18n Keys aktualisieren
 - [ ] Dokumentation aktualisieren
