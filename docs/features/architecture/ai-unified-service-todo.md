@@ -98,7 +98,10 @@ This TODO tracks the implementation of the unified AI service layer that will se
 ### 2.4.2 Feature Configurations
 - [x] Create `/src/lib/ai/features/speakerClassification.ts`
 - [x] Create `/src/lib/ai/features/textRevision.ts`
-- [ ] Create placeholder configs for future features
+- [x] Create placeholder configs for future features
+  - [x] `/src/lib/ai/features/segmentMerge.ts`
+  - [x] `/src/lib/ai/features/chapterDetection.ts`
+  - [x] `/src/lib/ai/features/contentTransformation.ts`
 
 ---
 
@@ -136,7 +139,10 @@ This TODO tracks the implementation of the unified AI service layer that will se
 - Both services now use the unified AI module internally
 - External APIs remain unchanged for backward compatibility
 - `aiRevisionService` uses `compileTemplate` from `@/lib/ai/prompts`
-- `aiSpeakerService` uses `extractJSON` from `@/lib/ai/parsing`
+- `aiSpeakerService` uses:
+  - `extractJSON` from `@/lib/ai/parsing`
+  - `SPEAKER_SYSTEM_PROMPT` and `SPEAKER_USER_PROMPT_TEMPLATE` from `@/lib/ai/features/speakerClassification`
+- No code duplication: prompts are defined once in the AI module
 
 ---
 
@@ -147,22 +153,22 @@ This TODO tracks the implementation of the unified AI service layer that will se
 - [x] Prompt builder tests
 - [x] Response parser tests
 - [x] Feature registry tests
-- [ ] AIFeatureService tests
+- [x] AIFeatureService tests (11 tests)
 
 ### 2.7.2 Integration Tests
-- [ ] End-to-end feature execution test
-- [ ] Batch processing test
-- [ ] Error recovery test
-- [ ] Cancellation test
+- [x] End-to-end feature execution test (via mocks)
+- [x] Batch processing test
+- [x] Error recovery test
+- [x] Cancellation test
 
 ### 2.7.3 Documentation
 - [x] Update architecture documentation
-- [ ] Add JSDoc comments to all public APIs
-- [ ] Create usage examples
+- [x] Add JSDoc comments to all public APIs
+- [x] Create usage examples (in main index.ts)
 
 ---
 
-## File Structure (Target)
+## File Structure (Implemented)
 
 ```
 /src/lib/ai/
@@ -174,7 +180,6 @@ This TODO tracks the implementation of the unified AI service layer that will se
 ├── prompts/
 │   ├── types.ts                    # Prompt-related types
 │   ├── promptBuilder.ts            # Template compilation
-│   ├── promptRegistry.ts           # Prompt storage & retrieval
 │   └── index.ts
 ├── parsing/
 │   ├── types.ts                    # Parsing-related types
@@ -185,13 +190,16 @@ This TODO tracks the implementation of the unified AI service layer that will se
 ├── features/
 │   ├── speakerClassification.ts    # Speaker feature config
 │   ├── textRevision.ts             # Revision feature config
+│   ├── segmentMerge.ts             # Merge feature config (placeholder)
+│   ├── chapterDetection.ts         # Chapter feature config (placeholder)
+│   ├── contentTransformation.ts    # Transform feature config (placeholder)
 │   └── index.ts
 ├── __tests__/
-│   ├── promptBuilder.test.ts
-│   ├── jsonParser.test.ts
-│   ├── responseParser.test.ts
-│   ├── featureRegistry.test.ts
-│   └── aiFeatureService.test.ts
+│   ├── promptBuilder.test.ts       # 30 tests
+│   ├── jsonParser.test.ts          # 35 tests
+│   ├── responseParser.test.ts      # 23 tests
+│   ├── featureRegistry.test.ts     # 17 tests
+│   └── aiFeatureService.test.ts    # 11 tests
 └── index.ts                        # Main public API
 ```
 
@@ -220,9 +228,10 @@ This TODO tracks the implementation of the unified AI service layer that will se
  ✓ src/lib/ai/__tests__/promptBuilder.test.ts (30 tests)
  ✓ src/lib/ai/__tests__/jsonParser.test.ts (35 tests)
  ✓ src/lib/ai/__tests__/responseParser.test.ts (23 tests)
+ ✓ src/lib/ai/__tests__/aiFeatureService.test.ts (11 tests)
 
- Test Files  52 passed (52)
-      Tests  449 passed (449)
+ AI Module Tests:  116 passed
+ Total Project:    460 passed (53 test files)
 ```
 
 **Phase 2 Complete!** Ready for Phase 3: AI Merge Suggestions

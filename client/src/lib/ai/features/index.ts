@@ -4,7 +4,7 @@
  * @module ai/features
  */
 
-// Speaker Classification
+// ==================== Speaker Classification ====================
 export {
   speakerClassificationConfig,
   SPEAKER_SYSTEM_PROMPT,
@@ -15,7 +15,7 @@ export {
   type SpeakerClassificationOutput,
 } from "./speakerClassification";
 
-// Text Revision
+// ==================== Text Revision ====================
 export {
   textRevisionConfig,
   REVISION_CLEANUP_SYSTEM_PROMPT,
@@ -26,4 +26,39 @@ export {
   type TextRevisionInput,
   type TextRevisionOutput,
 } from "./textRevision";
+
+// ==================== Segment Merge (Placeholder) ====================
+export {
+  segmentMergeConfig,
+  MERGE_SYSTEM_PROMPT,
+  MERGE_USER_PROMPT_TEMPLATE,
+  mergeResponseSchema,
+  type MergeSuggestion,
+  type SegmentMergeInput,
+  type SegmentMergeOutput,
+} from "./segmentMerge";
+
+// ==================== Chapter Detection (Placeholder) ====================
+export {
+  chapterDetectionConfig,
+  CHAPTER_SYSTEM_PROMPT,
+  CHAPTER_USER_PROMPT_TEMPLATE,
+  chapterResponseSchema,
+  CHAPTER_GRANULARITY,
+  type Chapter,
+  type ChapterDetectionInput,
+  type ChapterDetectionOutput,
+} from "./chapterDetection";
+
+// ==================== Content Transformation (Placeholder) ====================
+export {
+  contentTransformationConfig,
+  TRANSFORM_SUMMARY_SYSTEM_PROMPT,
+  TRANSFORM_MEETING_NOTES_SYSTEM_PROMPT,
+  TRANSFORM_USER_PROMPT_TEMPLATE,
+  TRANSFORMATION_TYPES,
+  type TransformationType,
+  type ContentTransformationInput,
+  type ContentTransformationOutput,
+} from "./contentTransformation";
 
