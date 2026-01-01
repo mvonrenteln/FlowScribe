@@ -313,143 +313,145 @@ export function AIRevisionTemplateSettings() {
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Store state
-  const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
-  const defaultTemplateId = useTranscriptStore((s) => s.aiRevisionConfig.defaultTemplateId);
-  const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessTemplateIds);
+  const prompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
+  const defaultPromptId = useTranscriptStore((s) => s.aiRevisionConfig.defaultPromptId);
+  const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessPromptIds);
 
   // Store actions
-  const addTemplate = useTranscriptStore((s) => s.addRevisionTemplate);
-  const updateTemplate = useTranscriptStore((s) => s.updateRevisionTemplate);
-  const deleteTemplate = useTranscriptStore((s) => s.deleteRevisionTemplate);
-  const setDefaultTemplate = useTranscriptStore((s) => s.setDefaultRevisionTemplate);
-  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessTemplate);
+  const addPrompt = useTranscriptStore((s) => s.addRevisionPrompt);
+  const updatePrompt = useTranscriptStore((s) => s.updateRevisionPrompt);
+  const deletePrompt = useTranscriptStore((s) => s.deleteRevisionPrompt);
+  const setDefaultPrompt = useTranscriptStore((s) => s.setDefaultRevisionPrompt);
+  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessPrompt);
 
-  const handleAddTemplate = useCallback(
+  const handleAddPrompt = useCallback(
     (data: TemplateFormData) => {
-      addTemplate({
+      addPrompt({
         name: data.name,
+        type: "text" as const,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
+        isBuiltIn: false,
+        quickAccess: false,
       });
       setShowForm(false);
     },
-    [addTemplate],
+    [addPrompt],
   );
 
-  const handleUpdateTemplate = useCallback(
+  const handleUpdatePrompt = useCallback(
     (id: string, data: TemplateFormData) => {
-      updateTemplate(id, {
+      updatePrompt(id, {
         name: data.name,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
       });
       setEditingId(null);
     },
-    [updateTemplate],
+    [updatePrompt],
   );
 
-  const handleDeleteTemplate = useCallback(
+  const handleDeletePrompt = useCallback(
     (id: string) => {
-      if (window.confirm("Are you sure you want to delete this template?")) {
-        deleteTemplate(id);
+      if (window.confirm("Are you sure you want to delete this prompt?")) {
+        deletePrompt(id);
       }
     },
-    [deleteTemplate],
+    [deletePrompt],
   );
 
-  // Separate default and custom templates
-  const defaultTemplates = templates.filter((t) => t.isDefault);
-  const customTemplates = templates.filter((t) => !t.isDefault);
+  // Separate built-in and custom prompts
+  const builtInPrompts = prompts.filter((p) => p.isBuiltIn);
+  const customPrompts = prompts.filter((p) => !p.isBuiltIn);
 
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">AI Revision Templates</h3>
+        <h3 className="text-lg font-medium">AI Text Revision Prompts</h3>
         <p className="text-sm text-muted-foreground">
-          Manage your prompt templates for AI text revision. Default templates can be edited but not
-          deleted.
+          Manage your prompts for AI text revision. Built-in prompts can be edited but not deleted.
         </p>
       </div>
 
       <Separator />
 
-      {/* Default Template Selection */}
+      {/* Default prompt Selection */}
       <div className="space-y-2">
         <Label>Hotkey Default (Alt+R)</Label>
-        <Select value={defaultTemplateId ?? ""} onValueChange={(id) => setDefaultTemplate(id)}>
+        <Select value={defaultPromptId ?? ""} onValueChange={(id) => setDefaultPrompt(id)}>
           <SelectTrigger className="w-full max-w-xs">
-            <SelectValue placeholder="Select template..." />
+            <SelectValue placeholder="Select prompt..." />
           </SelectTrigger>
           <SelectContent>
-            {templates.map((template) => (
-              <SelectItem key={template.id} value={template.id}>
-                {template.name}
+            {prompts.map((promptItem) => (
+              <SelectItem key={promptItem.id} value={promptItem.id}>
+                {promptItem.name}
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
         <p className="text-xs text-muted-foreground">
-          This template will be executed when you press Alt+R.
+          This prompt will be executed when you press Alt+R.
         </p>
       </div>
 
       <Separator />
 
-      {/* Add Template Button */}
+      {/* Add Prompt Button */}
       {!showForm && !editingId && (
         <Button onClick={() => setShowForm(true)}>
           <Plus className="h-4 w-4 mr-1" />
-          Create New Template
+          Create New Prompt
         </Button>
       )}
 
-      {/* Add Template Form */}
+      {/* Add Prompt Form */}
       {showForm && (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Create New Template</CardTitle>
+            <CardTitle className="text-base">Create New Prompt</CardTitle>
           </CardHeader>
           <CardContent>
-            <TemplateForm onSave={handleAddTemplate} onCancel={() => setShowForm(false)} />
+            <TemplateForm onSave={handleAddPrompt} onCancel={() => setShowForm(false)} />
           </CardContent>
         </Card>
       )}
 
-      {/* Standard Templates */}
-      {defaultTemplates.length > 0 && (
+      {/* Built-in Prompts */}
+      {builtInPrompts.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Default Templates</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Built-in Prompts</h4>
           <div className="space-y-2">
-            {defaultTemplates.map((template) =>
-              editingId === template.id ? (
-                <Card key={template.id}>
+            {builtInPrompts.map((promptItem) =>
+              editingId === promptItem.id ? (
+                <Card key={promptItem.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">Edit Template</CardTitle>
+                    <CardTitle className="text-base">Edit Prompt</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TemplateForm
                       initialData={{
-                        name: template.name,
-                        systemPrompt: template.systemPrompt,
-                        userPromptTemplate: template.userPromptTemplate,
+                        name: promptItem.name,
+                        systemPrompt: promptItem.systemPrompt,
+                        userPromptTemplate: promptItem.userPromptTemplate,
                       }}
-                      onSave={(data) => handleUpdateTemplate(template.id, data)}
+                      onSave={(data) => handleUpdatePrompt(promptItem.id, data)}
                       onCancel={() => setEditingId(null)}
                       isEditing
-                      isDefault={template.isDefault}
+                      isDefault={promptItem.isBuiltIn}
                     />
                   </CardContent>
                 </Card>
               ) : (
                 <TemplateCard
-                  key={template.id}
-                  template={template}
-                  isDefaultTemplate={template.id === defaultTemplateId}
-                  isQuickAccess={quickAccessIds.includes(template.id)}
-                  onEdit={() => setEditingId(template.id)}
-                  onDelete={() => handleDeleteTemplate(template.id)}
-                  onToggleQuickAccess={() => toggleQuickAccess(template.id)}
-                  onSetAsDefault={() => setDefaultTemplate(template.id)}
+                  key={promptItem.id}
+                  template={promptItem}
+                  isDefaultTemplate={promptItem.id === defaultPromptId}
+                  isQuickAccess={quickAccessIds.includes(promptItem.id)}
+                  onEdit={() => setEditingId(promptItem.id)}
+                  onDelete={() => handleDeletePrompt(promptItem.id)}
+                  onToggleQuickAccess={() => toggleQuickAccess(promptItem.id)}
+                  onSetAsDefault={() => setDefaultPrompt(promptItem.id)}
                 />
               ),
             )}
@@ -457,25 +459,25 @@ export function AIRevisionTemplateSettings() {
         </div>
       )}
 
-      {/* Custom Templates */}
-      {customTemplates.length > 0 && (
+      {/* Custom Prompts */}
+      {customPrompts.length > 0 && (
         <div className="space-y-3">
-          <h4 className="text-sm font-medium text-muted-foreground">Custom Templates</h4>
+          <h4 className="text-sm font-medium text-muted-foreground">Custom Prompts</h4>
           <div className="space-y-2">
-            {customTemplates.map((template) =>
-              editingId === template.id ? (
-                <Card key={template.id}>
+            {customPrompts.map((promptItem) =>
+              editingId === promptItem.id ? (
+                <Card key={promptItem.id}>
                   <CardHeader>
-                    <CardTitle className="text-base">Edit Template</CardTitle>
+                    <CardTitle className="text-base">Edit Prompt</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <TemplateForm
                       initialData={{
-                        name: template.name,
-                        systemPrompt: template.systemPrompt,
-                        userPromptTemplate: template.userPromptTemplate,
+                        name: promptItem.name,
+                        systemPrompt: promptItem.systemPrompt,
+                        userPromptTemplate: promptItem.userPromptTemplate,
                       }}
-                      onSave={(data) => handleUpdateTemplate(template.id, data)}
+                      onSave={(data) => handleUpdatePrompt(promptItem.id, data)}
                       onCancel={() => setEditingId(null)}
                       isEditing
                     />
@@ -483,14 +485,14 @@ export function AIRevisionTemplateSettings() {
                 </Card>
               ) : (
                 <TemplateCard
-                  key={template.id}
-                  template={template}
-                  isDefaultTemplate={template.id === defaultTemplateId}
-                  isQuickAccess={quickAccessIds.includes(template.id)}
-                  onEdit={() => setEditingId(template.id)}
-                  onDelete={() => handleDeleteTemplate(template.id)}
-                  onToggleQuickAccess={() => toggleQuickAccess(template.id)}
-                  onSetAsDefault={() => setDefaultTemplate(template.id)}
+                  key={promptItem.id}
+                  template={promptItem}
+                  isDefaultTemplate={promptItem.id === defaultPromptId}
+                  isQuickAccess={quickAccessIds.includes(promptItem.id)}
+                  onEdit={() => setEditingId(promptItem.id)}
+                  onDelete={() => handleDeletePrompt(promptItem.id)}
+                  onToggleQuickAccess={() => toggleQuickAccess(promptItem.id)}
+                  onSetAsDefault={() => setDefaultPrompt(promptItem.id)}
                 />
               ),
             )}
@@ -498,10 +500,10 @@ export function AIRevisionTemplateSettings() {
         </div>
       )}
 
-      {/* Empty state for custom templates */}
-      {customTemplates.length === 0 && !showForm && (
+      {/* Empty state for custom prompts */}
+      {customPrompts.length === 0 && !showForm && (
         <p className="text-sm text-muted-foreground py-4">
-          You haven't created any custom templates yet. Click "Create New Template" to get started.
+          You haven't created any custom prompts yet. Click "Create New Prompt" to get started.
         </p>
       )}
     </div>

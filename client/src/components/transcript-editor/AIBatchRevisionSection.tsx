@@ -2,7 +2,7 @@
  * AI Batch Revision Section
  *
  * Collapsible section in the FilterPanel for batch AI revision.
- * Shows template selector, provider/model selection, and start button when expanded.
+ * Shows prompt selector, provider/model selection, and start button when expanded.
  */
 
 import { ChevronDown, ChevronRight, Loader2, Sparkles, X } from "lucide-react";
@@ -27,7 +27,7 @@ interface AIBatchRevisionSectionProps {
 
 export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSectionProps) {
   const [isExpanded, setIsExpanded] = useState(false);
-  const [selectedTemplateId, setSelectedTemplateId] = useState<string>("");
+  const [selectedPromptId, setSelectedPromptId] = useState<string>("");
   const [settings, setSettings] = useState<PersistedSettings | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState<string>("");
   const [selectedModel, setSelectedModel] = useState<string>("");
@@ -42,8 +42,8 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
   }, []);
 
   // Store state
-  const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
-  const defaultTemplateId = useTranscriptStore((s) => s.aiRevisionConfig.defaultTemplateId);
+  const prompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
+  const defaultPromptId = useTranscriptStore((s) => s.aiRevisionConfig.defaultPromptId);
   const isProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const processedCount = useTranscriptStore((s) => s.aiRevisionProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiRevisionTotalToProcess);
@@ -56,16 +56,16 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
   const availableModels = selectedProvider?.availableModels ?? [];
   const effectiveModel = selectedModel || selectedProvider?.model || "";
 
-  // Use default template if none selected
-  const effectiveTemplateId = selectedTemplateId || defaultTemplateId || templates[0]?.id;
-  const selectedTemplate = templates.find((t) => t.id === effectiveTemplateId);
+  // Use default prompt if none selected
+  const effectivePromptId = selectedPromptId || defaultPromptId || prompts[0]?.id;
+  const selectedPrompt = prompts.find((t) => t.id === effectivePromptId);
 
   const segmentCount = filteredSegmentIds.length;
   const progressPercent = totalToProcess > 0 ? (processedCount / totalToProcess) * 100 : 0;
 
   const handleStart = () => {
-    if (!effectiveTemplateId || segmentCount === 0) return;
-    startBatchRevision(filteredSegmentIds, effectiveTemplateId);
+    if (!effectivePromptId || segmentCount === 0) return;
+    startBatchRevision(filteredSegmentIds, effectivePromptId);
   };
 
   return (
@@ -156,24 +156,24 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
             </div>
           )}
 
-          {/* Template Selector */}
+          {/* prompt Selector */}
           <div className="space-y-1.5">
             <label htmlFor="revision-template" className="text-xs text-muted-foreground">
-              Template
+              Prompt
             </label>
             <Select
-              value={effectiveTemplateId}
-              onValueChange={setSelectedTemplateId}
+              value={effectivePromptId}
+              onValueChange={setSelectedPromptId}
               disabled={isProcessing}
             >
               <SelectTrigger id="revision-template" className="h-8 text-sm">
-                <SelectValue placeholder="Select template..." />
+                <SelectValue placeholder="Select prompt..." />
               </SelectTrigger>
               <SelectContent>
-                {templates.map((template) => (
-                  <SelectItem key={template.id} value={template.id}>
-                    {template.name}
-                    {template.isDefault && (
+                {prompts.map((prompt) => (
+                  <SelectItem key={prompt.id} value={prompt.id}>
+                    {prompt.name}
+                    {prompt.isDefault && (
                       <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
                     )}
                   </SelectItem>
@@ -226,7 +226,7 @@ export function AIBatchRevisionSection({ filteredSegmentIds }: AIBatchRevisionSe
                 size="sm"
                 className="flex-1"
                 onClick={handleStart}
-                disabled={segmentCount === 0 || !selectedTemplate}
+                disabled={segmentCount === 0 || !selectedPrompt}
               >
                 {isProcessing ? (
                   <Loader2 className="h-4 w-4 mr-1 animate-spin" />

@@ -2,7 +2,7 @@
  * AI Revision Popover
  *
  * Quick-access menu for AI text revision on a segment.
- * Shows configurable quick-access templates and a "More..." option.
+ * Shows configurable quick-access Prompts and a "More..." option.
  */
 
 import {
@@ -37,8 +37,8 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   );
 
   // Store state
-  const templates = useTranscriptStore((s) => s.aiRevisionConfig.templates);
-  const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessTemplateIds);
+  const prompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
+  const quickAccessIds = useTranscriptStore((s) => s.aiRevisionConfig.quickAccessPromptIds);
   const suggestions = useTranscriptStore((s) => s.aiRevisionSuggestions);
   const lastResult = useTranscriptStore((s) => s.aiRevisionLastResult);
   const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
@@ -67,9 +67,9 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
     }
   }, [lastResult, segmentId, isProcessingThis]);
 
-  // Get quick-access templates
-  const quickAccessTemplates = templates.filter((t) => quickAccessIds.includes(t.id));
-  const otherTemplates = templates.filter((t) => !quickAccessIds.includes(t.id));
+  // Get quick-access prompts
+  const quickAccessPrompts = prompts.filter((t) => quickAccessIds.includes(t.id));
+  const otherPrompts = prompts.filter((t) => !quickAccessIds.includes(t.id));
 
   const handleSelectTemplate = (templateId: string) => {
     setDisplayStatus("idle");
@@ -158,8 +158,8 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
             </div>
           )}
 
-          {/* Quick-Access Templates */}
-          {quickAccessTemplates.map((template) => (
+          {/* Quick-Access Prompts */}
+          {quickAccessPrompts.map((template) => (
             <button
               key={template.id}
               type="button"
@@ -176,16 +176,16 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
             </button>
           ))}
 
-          {/* Separator and "More" section if there are other templates */}
-          {otherTemplates.length > 0 && (
+          {/* Separator and "More" section if there are other Prompts */}
+          {otherPrompts.length > 0 && (
             <>
-              {quickAccessTemplates.length > 0 && <div className="h-px bg-border my-1" />}
-              <MoreTemplatesSubmenu templates={otherTemplates} onSelect={handleSelectTemplate} />
+              {quickAccessPrompts.length > 0 && <div className="h-px bg-border my-1" />}
+              <MorePromptsSubmenu prompts={otherPrompts} onSelect={handleSelectTemplate} />
             </>
           )}
 
           {/* Empty state */}
-          {templates.length === 0 && (
+          {prompts.length === 0 && (
             <div className="px-3 py-4 text-sm text-muted-foreground text-center">
               {t("aiRevision.noTemplates")}
               <br />
@@ -198,12 +198,12 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   );
 }
 
-interface MoreTemplatesSubmenuProps {
-  templates: Array<{ id: string; name: string }>;
+interface MorePromptsSubmenuProps {
+  prompts: Array<{ id: string; name: string }>;
   onSelect: (id: string) => void;
 }
 
-function MoreTemplatesSubmenu({ templates, onSelect }: MoreTemplatesSubmenuProps) {
+function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
   const { t } = useTranslation();
   const [showMore, setShowMore] = useState(false);
 
@@ -242,7 +242,7 @@ function MoreTemplatesSubmenu({ templates, onSelect }: MoreTemplatesSubmenuProps
         <span>{t("aiRevision.back")}</span>
       </button>
       <div className="h-px bg-border my-1" />
-      {templates.map((template) => (
+      {prompts.map((template) => (
         <button
           key={template.id}
           type="button"

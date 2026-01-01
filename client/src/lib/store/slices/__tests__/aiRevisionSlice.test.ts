@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AIRevisionSlice, TranscriptStore } from "../../types";
 import {
   createAIRevisionSlice,
-  DEFAULT_REVISION_TEMPLATES,
+  DEFAULT_TEXT_PROMPTS,
   initialAIRevisionState,
 } from "../aiRevisionSlice";
 
@@ -37,21 +37,21 @@ const createMockStore = () => {
 describe("aiRevisionSlice", () => {
   describe("initialAIRevisionState", () => {
     it("has default templates", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.templates).toHaveLength(3);
+      expect(initialAIRevisionState.aiRevisionConfig.prompts).toHaveLength(3);
     });
 
     it("has a default template ID set", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.defaultTemplateId).toBe(
-        "default-transcript-cleanup",
+      expect(initialAIRevisionState.aiRevisionConfig.defaultPromptId).toBe(
+        "builtin-text-cleanup",
       );
     });
 
     it("has quick access template IDs", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain(
-        "default-transcript-cleanup",
+      expect(initialAIRevisionState.aiRevisionConfig.quickAccessPromptIds).toContain(
+        "builtin-text-cleanup",
       );
-      expect(initialAIRevisionState.aiRevisionConfig.quickAccessTemplateIds).toContain(
-        "default-improve-clarity",
+      expect(initialAIRevisionState.aiRevisionConfig.quickAccessPromptIds).toContain(
+        "builtin-text-clarity",
       );
     });
 
@@ -64,32 +64,32 @@ describe("aiRevisionSlice", () => {
     });
   });
 
-  describe("DEFAULT_REVISION_TEMPLATES", () => {
+  describe("DEFAULT_TEXT_PROMPTS", () => {
     it("includes Transcript Cleanup template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find(
-        (t) => t.id === "default-transcript-cleanup",
+      const template = DEFAULT_TEXT_PROMPTS.find(
+        (t) => t.id === "builtin-text-cleanup",
       );
       expect(template).toBeDefined();
       expect(template?.name).toBe("Transcript Cleanup");
-      expect(template?.isDefault).toBe(true);
+      expect(template?.isBuiltIn).toBe(true);
     });
 
     it("includes Improve Clarity template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find((t) => t.id === "default-improve-clarity");
+      const template = DEFAULT_TEXT_PROMPTS.find((t) => t.id === "builtin-text-clarity");
       expect(template).toBeDefined();
       expect(template?.name).toBe("Improve Clarity");
-      expect(template?.isDefault).toBe(true);
+      expect(template?.isBuiltIn).toBe(true);
     });
 
     it("includes Formalize template", () => {
-      const template = DEFAULT_REVISION_TEMPLATES.find((t) => t.id === "default-formalize");
+      const template = DEFAULT_TEXT_PROMPTS.find((t) => t.id === "builtin-text-formalize");
       expect(template).toBeDefined();
       expect(template?.name).toBe("Formalize");
-      expect(template?.isDefault).toBe(true);
+      expect(template?.isBuiltIn).toBe(true);
     });
 
     it("all default templates have system and user prompts", () => {
-      for (const template of DEFAULT_REVISION_TEMPLATES) {
+      for (const template of DEFAULT_TEXT_PROMPTS) {
         expect(template.systemPrompt).toBeTruthy();
         expect(template.userPromptTemplate).toBeTruthy();
       }
@@ -107,101 +107,101 @@ describe("aiRevisionSlice", () => {
     });
 
     describe("template management", () => {
-      it("addRevisionTemplate adds a new template", () => {
-        slice.addRevisionTemplate({
+      it("addRevisionPrompt adds a new template", () => {
+        slice.addRevisionPrompt({
           name: "Custom Template",
           systemPrompt: "Test system prompt",
           userPromptTemplate: "Test user prompt",
         });
 
         const state = mockStore.getState();
-        const templates = state.aiRevisionConfig?.templates ?? [];
+        const templates = state.aiRevisionConfig?.prompts ?? [];
         expect(templates.length).toBe(4); // 3 default + 1 new
 
         const newTemplate = templates.find((t) => t.name === "Custom Template");
         expect(newTemplate).toBeDefined();
-        expect(newTemplate?.isDefault).toBe(false);
+        expect(newTemplate?.isBuiltIn).toBe(false);
       });
 
-      it("updateRevisionTemplate updates an existing template", () => {
-        slice.updateRevisionTemplate("default-transcript-cleanup", {
+      it("updateRevisionPrompt updates an existing template", () => {
+        slice.updateRevisionPrompt("builtin-text-cleanup", {
           name: "Updated Name",
         });
 
         const state = mockStore.getState();
-        const template = state.aiRevisionConfig?.templates.find(
-          (t) => t.id === "default-transcript-cleanup",
+        const template = state.aiRevisionConfig?.prompts.find(
+          (t) => t.id === "builtin-text-cleanup",
         );
         expect(template?.name).toBe("Updated Name");
-        expect(template?.isDefault).toBe(true); // isDefault cannot be changed
+        expect(template?.isBuiltIn).toBe(true); // isBuiltIn cannot be changed
       });
 
-      it("deleteRevisionTemplate removes custom templates", () => {
+      it("deleteRevisionPrompt removes custom templates", () => {
         // First add a custom template
-        slice.addRevisionTemplate({
+        slice.addRevisionPrompt({
           name: "Custom Template",
           systemPrompt: "Test",
           userPromptTemplate: "Test",
         });
 
         const stateAfterAdd = mockStore.getState();
-        const customTemplate = stateAfterAdd.aiRevisionConfig?.templates.find(
+        const customTemplate = stateAfterAdd.aiRevisionConfig?.prompts.find(
           (t) => t.name === "Custom Template",
         );
         expect(customTemplate).toBeDefined();
 
         // Now delete it
         if (customTemplate) {
-          slice.deleteRevisionTemplate(customTemplate.id);
+          slice.deleteRevisionPrompt(customTemplate.id);
         }
 
         const stateAfterDelete = mockStore.getState();
-        const deletedTemplate = stateAfterDelete.aiRevisionConfig?.templates.find(
+        const deletedTemplate = stateAfterDelete.aiRevisionConfig?.prompts.find(
           (t) => t.id === customTemplate?.id,
         );
         expect(deletedTemplate).toBeUndefined();
       });
 
-      it("deleteRevisionTemplate does not remove default templates", () => {
-        slice.deleteRevisionTemplate("default-transcript-cleanup");
+      it("deleteRevisionPrompt does not remove default templates", () => {
+        slice.deleteRevisionPrompt("builtin-text-cleanup");
 
         const state = mockStore.getState();
-        const template = state.aiRevisionConfig?.templates.find(
-          (t) => t.id === "default-transcript-cleanup",
+        const template = state.aiRevisionConfig?.prompts.find(
+          (t) => t.id === "builtin-text-cleanup",
         );
         expect(template).toBeDefined(); // Still exists
       });
 
-      it("setDefaultRevisionTemplate changes the default template", () => {
-        slice.setDefaultRevisionTemplate("default-formalize");
+      it("setDefaultRevisionPrompt changes the default template", () => {
+        slice.setDefaultRevisionPrompt("builtin-text-formalize");
 
         const state = mockStore.getState();
-        expect(state.aiRevisionConfig?.defaultTemplateId).toBe("default-formalize");
+        expect(state.aiRevisionConfig?.defaultPromptId).toBe("builtin-text-formalize");
       });
 
-      it("setQuickAccessTemplates sets the quick access list", () => {
-        slice.setQuickAccessTemplates(["default-formalize"]);
+      it("setQuickAccessPrompts sets the quick access list", () => {
+        slice.setQuickAccessPrompts(["builtin-text-formalize"]);
 
         const state = mockStore.getState();
-        expect(state.aiRevisionConfig?.quickAccessTemplateIds).toEqual(["default-formalize"]);
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).toEqual(["builtin-text-formalize"]);
       });
 
-      it("toggleQuickAccessTemplate adds template if not in list", () => {
-        slice.setQuickAccessTemplates([]);
-        slice.toggleQuickAccessTemplate("default-formalize");
+      it("toggleQuickAccessPrompt adds template if not in list", () => {
+        slice.setQuickAccessPrompts([]);
+        slice.toggleQuickAccessPrompt("builtin-text-formalize");
 
         const state = mockStore.getState();
-        expect(state.aiRevisionConfig?.quickAccessTemplateIds).toContain("default-formalize");
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).toContain("builtin-text-formalize");
       });
 
-      it("toggleQuickAccessTemplate removes template if already in list", () => {
-        slice.setQuickAccessTemplates(["default-formalize", "default-transcript-cleanup"]);
-        slice.toggleQuickAccessTemplate("default-formalize");
+      it("toggleQuickAccessPrompt removes template if already in list", () => {
+        slice.setQuickAccessPrompts(["builtin-text-formalize", "builtin-text-cleanup"]);
+        slice.toggleQuickAccessPrompt("builtin-text-formalize");
 
         const state = mockStore.getState();
-        expect(state.aiRevisionConfig?.quickAccessTemplateIds).not.toContain("default-formalize");
-        expect(state.aiRevisionConfig?.quickAccessTemplateIds).toContain(
-          "default-transcript-cleanup",
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).not.toContain("builtin-text-formalize");
+        expect(state.aiRevisionConfig?.quickAccessPromptIds).toContain(
+          "builtin-text-cleanup",
         );
       });
     });
@@ -346,7 +346,7 @@ describe("aiRevisionSlice", () => {
 
     describe("startSingleRevision", () => {
       it("sets error if segment not found", () => {
-        slice.startSingleRevision("non-existent", "default-transcript-cleanup");
+        slice.startSingleRevision("non-existent", "builtin-text-cleanup");
 
         const state = mockStore.getState();
         expect(state.aiRevisionError).toContain("not found");
@@ -362,7 +362,7 @@ describe("aiRevisionSlice", () => {
       it("sets processing state when starting revision", () => {
         // Note: This will trigger async code that we can't fully test here
         // The actual AI call is mocked out in integration tests
-        slice.startSingleRevision("seg-1", "default-transcript-cleanup");
+        slice.startSingleRevision("seg-1", "builtin-text-cleanup");
 
         const state = mockStore.getState();
         expect(state.aiRevisionIsProcessing).toBe(true);

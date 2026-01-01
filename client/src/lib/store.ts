@@ -29,11 +29,11 @@ import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionS
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
 import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
 import type {
+  AIPrompt,
   AISpeakerConfig,
   AISpeakerSuggestion,
   InitialStoreState,
   LexiconEntry,
-  PromptTemplate,
   SearchMatch,
   Segment,
   SessionKind,
@@ -340,10 +340,10 @@ export const selectAISpeakerState = (state: TranscriptStore) => ({
   rejectSuggestion: state.rejectSuggestion,
   clearSuggestions: state.clearSuggestions,
   updateConfig: state.updateConfig,
-  addTemplate: state.addTemplate,
-  updateTemplate: state.updateTemplate,
-  deleteTemplate: state.deleteTemplate,
-  setActiveTemplate: state.setActiveTemplate,
+  addPrompt: state.addPrompt,
+  updatePrompt: state.updatePrompt,
+  deletePrompt: state.deletePrompt,
+  setActivePrompt: state.setActivePrompt,
 });
 
 export type {
@@ -351,7 +351,7 @@ export type {
   AISpeakerSuggestion,
   FileReference,
   LexiconEntry,
-  PromptTemplate,
+  AIPrompt,
   SearchMatch,
   Segment,
   Speaker,

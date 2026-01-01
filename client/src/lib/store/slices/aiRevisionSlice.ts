@@ -2,33 +2,35 @@
  * AI Revision Slice
  *
  * Zustand slice for managing AI text revision state, including
- * suggestions, processing status, and template configuration.
+ * suggestions, processing status, and prompt configuration.
  *
  * Follows the "Custom First" principle - users can create their own
- * templates, and configure which are shown in quick-access menu.
+ * prompts, and configure which are shown in quick-access menu.
  */
 
 import type { StoreApi } from "zustand";
 import type { RevisionResult } from "@/lib/services/aiRevisionService";
 import type {
+  AIPrompt,
   AIRevisionConfig,
   AIRevisionSlice,
   AIRevisionSuggestion,
-  AIRevisionTemplate,
   TranscriptStore,
 } from "../types";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
-// ==================== Default Templates (nicht löschbar, bearbeitbar) ====================
+// ==================== Built-in Text Prompts (nicht löschbar, bearbeitbar) ====================
 
-export const DEFAULT_REVISION_TEMPLATES: AIRevisionTemplate[] = [
+export const DEFAULT_TEXT_PROMPTS: AIPrompt[] = [
   {
-    id: "default-transcript-cleanup",
+    id: "builtin-text-cleanup",
     name: "Transcript Cleanup",
+    type: "text",
+    isBuiltIn: true,
     isDefault: true,
-    isQuickAccess: true,
+    quickAccess: true,
     systemPrompt: `You are an expert in transcript correction. Correct the given text.
 
 TASKS:
@@ -45,10 +47,12 @@ RULES:
 "{{text}}"`,
   },
   {
-    id: "default-improve-clarity",
+    id: "builtin-text-clarity",
     name: "Improve Clarity",
-    isDefault: true,
-    isQuickAccess: true,
+    type: "text",
+    isBuiltIn: true,
+    isDefault: false,
+    quickAccess: true,
     systemPrompt: `You are an editor. Improve the phrasing of the given text.
 
 TASKS:
@@ -64,10 +68,12 @@ RULES:
 "{{text}}"`,
   },
   {
-    id: "default-formalize",
+    id: "builtin-text-formalize",
     name: "Formalize",
-    isDefault: true,
-    isQuickAccess: false,
+    type: "text",
+    isBuiltIn: true,
+    isDefault: false,
+    quickAccess: false,
     systemPrompt: `You are an expert in professional communication. Convert informal language to formal style.
 
 TASKS:
@@ -94,9 +100,9 @@ export const initialAIRevisionState = {
   aiRevisionProcessedCount: 0,
   aiRevisionTotalToProcess: 0,
   aiRevisionConfig: {
-    templates: [...DEFAULT_REVISION_TEMPLATES],
-    defaultTemplateId: "default-transcript-cleanup",
-    quickAccessTemplateIds: ["default-transcript-cleanup", "default-improve-clarity"],
+    prompts: [...DEFAULT_TEXT_PROMPTS],
+    defaultPromptId: "builtin-text-cleanup",
+    quickAccessPromptIds: ["builtin-text-cleanup", "builtin-text-clarity"],
   } as AIRevisionConfig,
   aiRevisionError: null as string | null,
   aiRevisionAbortController: null as AbortController | null,
@@ -111,63 +117,61 @@ export const initialAIRevisionState = {
 
 /**
  * Normalize saved aiRevisionConfig by merging with defaults.
- * Ensures default templates are always present and cannot be removed.
+ * Ensures built-in prompts are always present and cannot be removed.
  */
 export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRevisionConfig {
   if (!saved) {
     return { ...initialAIRevisionState.aiRevisionConfig };
   }
 
-  // Merge templates: ensure all default templates exist with updated prompts if edited
-  const defaultTemplateIds = DEFAULT_REVISION_TEMPLATES.map((t) => t.id);
-  const savedTemplatesById = new Map(saved.templates?.map((t) => [t.id, t]) ?? []);
+  // Merge prompts: ensure all built-in prompts exist with updated content if edited
+  const builtInPromptIds = DEFAULT_TEXT_PROMPTS.map((p) => p.id);
+  const savedPromptsById = new Map(saved.prompts?.map((p) => [p.id, p]) ?? []);
 
-  const mergedTemplates: AIRevisionTemplate[] = [];
+  const mergedPrompts: AIPrompt[] = [];
 
-  // Add default templates (use saved version if exists, otherwise use default)
-  for (const defaultTemplate of DEFAULT_REVISION_TEMPLATES) {
-    const savedVersion = savedTemplatesById.get(defaultTemplate.id);
+  // Add built-in prompts (use saved version if exists, otherwise use default)
+  for (const builtInPrompt of DEFAULT_TEXT_PROMPTS) {
+    const savedVersion = savedPromptsById.get(builtInPrompt.id);
     if (savedVersion) {
-      // Use saved version but ensure isDefault flag is preserved
-      mergedTemplates.push({ ...savedVersion, isDefault: true });
-      savedTemplatesById.delete(defaultTemplate.id);
+      // Use saved version but ensure isBuiltIn flag is preserved
+      mergedPrompts.push({ ...savedVersion, isBuiltIn: true, type: "text" });
+      savedPromptsById.delete(builtInPrompt.id);
     } else {
-      mergedTemplates.push({ ...defaultTemplate });
+      mergedPrompts.push({ ...builtInPrompt });
     }
   }
 
-  // Add custom (non-default) templates from saved state
-  for (const [id, template] of savedTemplatesById) {
-    if (!defaultTemplateIds.includes(id)) {
-      mergedTemplates.push({ ...template, isDefault: false });
+  // Add custom (non-built-in) prompts from saved state
+  for (const [id, promptItem] of savedPromptsById) {
+    if (!builtInPromptIds.includes(id)) {
+      mergedPrompts.push({ ...promptItem, isBuiltIn: false });
     }
   }
 
-  // Validate defaultTemplateId - must exist
-  const validDefaultId = mergedTemplates.some((t) => t.id === saved.defaultTemplateId)
-    ? saved.defaultTemplateId
-    : "default-transcript-cleanup";
+  // Validate defaultPromptId - must exist
+  const validDefaultId = mergedPrompts.some((p) => p.id === saved.defaultPromptId)
+    ? saved.defaultPromptId
+    : "builtin-text-cleanup";
 
-  // Validate quickAccessTemplateIds - filter out non-existent templates
-  const templateIds = new Set(mergedTemplates.map((t) => t.id));
-  const validQuickAccessIds = (saved.quickAccessTemplateIds ?? []).filter((id) =>
-    templateIds.has(id),
-  );
+  // Validate quickAccessPromptIds - filter out non-existent prompts
+  const promptIds = new Set(mergedPrompts.map((p) => p.id));
+  const validQuickAccessIds = (saved.quickAccessPromptIds ?? []).filter((id) => promptIds.has(id));
 
   return {
-    templates: mergedTemplates,
-    defaultTemplateId: validDefaultId,
-    quickAccessTemplateIds:
+    prompts: mergedPrompts,
+    defaultPromptId: validDefaultId,
+    quickAccessPromptIds:
       validQuickAccessIds.length > 0
         ? validQuickAccessIds
-        : ["default-transcript-cleanup", "default-improve-clarity"],
+        : ["builtin-text-cleanup", "builtin-text-clarity"],
   };
 }
 
 // ==================== Helper Functions ====================
 
-function generateTemplateId(): string {
-  return `template-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+function generatePromptId(): string {
+  return `prompt-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
 }
 
 // ==================== Slice Implementation ====================
@@ -175,7 +179,7 @@ function generateTemplateId(): string {
 export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRevisionSlice => ({
   // ==================== Revision Actions ====================
 
-  startSingleRevision: (segmentId, templateId) => {
+  startSingleRevision: (segmentId, promptId) => {
     const state = get();
 
     // Cancel any existing revision
@@ -191,9 +195,9 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       return;
     }
 
-    const template = state.aiRevisionConfig.templates.find((t) => t.id === templateId);
-    if (!template) {
-      set({ aiRevisionError: `Template ${templateId} not found` });
+    const selectedPrompt = state.aiRevisionConfig.prompts.find((p) => p.id === promptId);
+    if (!selectedPrompt) {
+      set({ aiRevisionError: `Prompt ${promptId} not found` });
       return;
     }
 
@@ -216,7 +220,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     import("@/lib/services/aiRevisionService").then(({ runRevision }) => {
       runRevision({
         segment,
-        template,
+        template: selectedPrompt,
         previousSegment,
         nextSegment,
         signal: abortController.signal,
@@ -249,7 +253,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
           const suggestion: AIRevisionSuggestion = {
             segmentId,
-            templateId,
+            promptId,
             originalText: segment.text,
             revisedText: result.revisedText,
             status: "pending",
@@ -272,7 +276,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         })
         .catch((error: Error) => {
           if (error.name === "AbortError") return;
-          const errorMessage = error.message ?? "Revision fehlgeschlagen";
+          const errorMessage = error.message ?? "Revision failed";
           set({
             aiRevisionError: errorMessage,
             aiRevisionIsProcessing: false,
@@ -288,7 +292,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     });
   },
 
-  startBatchRevision: (segmentIds, templateId) => {
+  startBatchRevision: (segmentIds, promptId) => {
     const state = get();
 
     // Cancel any existing revision
@@ -304,9 +308,9 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       return;
     }
 
-    const template = state.aiRevisionConfig.templates.find((t) => t.id === templateId);
-    if (!template) {
-      set({ aiRevisionError: `Template ${templateId} not found` });
+    const selectedPrompt = state.aiRevisionConfig.prompts.find((p) => p.id === promptId);
+    if (!selectedPrompt) {
+      set({ aiRevisionError: `Prompt ${promptId} not found` });
       return;
     }
 
@@ -323,7 +327,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       runBatchRevision({
         segments,
         allSegments: state.segments,
-        template,
+        template: selectedPrompt,
         signal: abortController.signal,
         onProgress: (processed: number, total: number) => {
           set({
@@ -350,7 +354,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
           const suggestion: AIRevisionSuggestion = {
             segmentId: result.segmentId,
-            templateId,
+            promptId,
             originalText: segment.text,
             revisedText: result.revisedText,
             status: "pending",
@@ -454,98 +458,98 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     });
   },
 
-  // ==================== Template Management ====================
+  // ==================== Prompt Management ====================
 
-  addRevisionTemplate: (template) => {
+  addRevisionPrompt: (promptData) => {
     const state = get();
-    const newTemplate: AIRevisionTemplate = {
-      ...template,
-      id: generateTemplateId(),
-      isDefault: false, // Custom templates are never default
+    const newPrompt: AIPrompt = {
+      ...promptData,
+      id: generatePromptId(),
+      isBuiltIn: false, // Custom prompts are never built-in
     };
 
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        templates: [...state.aiRevisionConfig.templates, newTemplate],
+        prompts: [...state.aiRevisionConfig.prompts, newPrompt],
       },
     });
   },
 
-  updateRevisionTemplate: (id, updates) => {
+  updateRevisionPrompt: (id, updates) => {
     const state = get();
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        templates: state.aiRevisionConfig.templates.map((t) =>
-          t.id === id ? { ...t, ...updates, id, isDefault: t.isDefault } : t,
+        prompts: state.aiRevisionConfig.prompts.map((p) =>
+          p.id === id ? { ...p, ...updates, id, isBuiltIn: p.isBuiltIn } : p,
         ),
       },
     });
   },
 
-  deleteRevisionTemplate: (id) => {
+  deleteRevisionPrompt: (id) => {
     const state = get();
-    const template = state.aiRevisionConfig.templates.find((t) => t.id === id);
+    const promptItem = state.aiRevisionConfig.prompts.find((p) => p.id === id);
 
-    // Cannot delete default templates
-    if (template?.isDefault) {
-      console.warn("[AIRevision] Cannot delete default template:", id);
+    // Cannot delete built-in prompts
+    if (promptItem?.isBuiltIn) {
+      console.warn("[AIRevision] Cannot delete built-in prompt:", id);
       return;
     }
 
-    const updatedTemplates = state.aiRevisionConfig.templates.filter((t) => t.id !== id);
-    const updatedQuickAccess = state.aiRevisionConfig.quickAccessTemplateIds.filter(
-      (tid) => tid !== id,
+    const updatedPrompts = state.aiRevisionConfig.prompts.filter((p) => p.id !== id);
+    const updatedQuickAccess = state.aiRevisionConfig.quickAccessPromptIds.filter(
+      (pid) => pid !== id,
     );
 
-    // If deleted template was the default, reset to first available
-    let newDefaultId = state.aiRevisionConfig.defaultTemplateId;
+    // If deleted prompt was the default, reset to first available
+    let newDefaultId = state.aiRevisionConfig.defaultPromptId;
     if (newDefaultId === id) {
-      newDefaultId = updatedTemplates[0]?.id ?? null;
+      newDefaultId = updatedPrompts[0]?.id ?? null;
     }
 
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        templates: updatedTemplates,
-        quickAccessTemplateIds: updatedQuickAccess,
-        defaultTemplateId: newDefaultId,
+        prompts: updatedPrompts,
+        quickAccessPromptIds: updatedQuickAccess,
+        defaultPromptId: newDefaultId,
       },
     });
   },
 
-  setDefaultRevisionTemplate: (id) => {
+  setDefaultRevisionPrompt: (id) => {
     const state = get();
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        defaultTemplateId: id,
+        defaultPromptId: id,
       },
     });
   },
 
-  setQuickAccessTemplates: (ids) => {
+  setQuickAccessPrompts: (ids) => {
     const state = get();
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        quickAccessTemplateIds: ids,
+        quickAccessPromptIds: ids,
       },
     });
   },
 
-  toggleQuickAccessTemplate: (id) => {
+  toggleQuickAccessPrompt: (id) => {
     const state = get();
-    const currentIds = state.aiRevisionConfig.quickAccessTemplateIds;
+    const currentIds = state.aiRevisionConfig.quickAccessPromptIds;
     const newIds = currentIds.includes(id)
-      ? currentIds.filter((tid) => tid !== id)
+      ? currentIds.filter((pid) => pid !== id)
       : [...currentIds, id];
 
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
-        quickAccessTemplateIds: newIds,
+        quickAccessPromptIds: newIds,
       },
     });
   },

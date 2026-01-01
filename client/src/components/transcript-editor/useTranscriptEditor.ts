@@ -499,20 +499,20 @@ export const useTranscriptEditor = () => {
   // State for AI revision menu (to open programmatically via keyboard)
   const [aiRevisionMenuSegmentId, setAiRevisionMenuSegmentId] = useState<string | null>(null);
 
-  // AI Revision: Run default template on selected segment
+  // AI Revision: Run default prompt on selected segment
   const handleRunDefaultAIRevision = useCallback(() => {
     if (!selectedSegmentId) return;
-    const defaultTemplateId = aiRevisionConfig.defaultTemplateId;
-    if (!defaultTemplateId) {
+    const defaultPromptId = aiRevisionConfig.defaultPromptId;
+    if (!defaultPromptId) {
       toast({
-        title: "No default template",
-        description: "Please set a default AI revision template in Settings.",
+        title: "No default prompt",
+        description: "Please set a default AI revision prompt in Settings.",
         variant: "destructive",
       });
       return;
     }
-    startSingleRevision(selectedSegmentId, defaultTemplateId);
-  }, [selectedSegmentId, aiRevisionConfig.defaultTemplateId, startSingleRevision]);
+    startSingleRevision(selectedSegmentId, defaultPromptId);
+  }, [selectedSegmentId, aiRevisionConfig.defaultPromptId, startSingleRevision]);
 
   // AI Revision: Open menu for selected segment (focus the segment's AI button)
   const handleOpenAIRevisionMenu = useCallback(() => {

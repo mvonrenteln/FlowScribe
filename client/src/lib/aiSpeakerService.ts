@@ -594,10 +594,10 @@ export async function* analyzeSegmentsBatched(
     );
   }
 
-  // Get active template
-  const activeTemplate = config.templates.find((t) => t.id === config.activeTemplateId);
-  const systemPrompt = activeTemplate?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
-  const userPromptTemplate = activeTemplate?.userPromptTemplate ?? DEFAULT_USER_PROMPT_TEMPLATE;
+  // Get active prompt
+  const activePrompt = config.prompts.find((t) => t.id === config.activePromptId);
+  const systemPrompt = activePrompt?.systemPrompt ?? DEFAULT_SYSTEM_PROMPT;
+  const userPromptTemplate = activePrompt?.userPromptTemplate ?? DEFAULT_USER_PROMPT_TEMPLATE;
 
   const total = filteredSegments.length;
   let processed = 0;
