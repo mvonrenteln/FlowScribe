@@ -233,7 +233,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
         lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled ||
-        lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig;
+        lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig ||
+        lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(

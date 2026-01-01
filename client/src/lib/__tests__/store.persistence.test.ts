@@ -247,4 +247,200 @@ describe("useTranscriptStore persistence", () => {
     expect(store.getState().audioFile).toBeNull();
     expect(store.getState().audioUrl).toBeNull();
   });
+
+  describe("aiRevisionConfig persistence", () => {
+    it("persists aiRevisionConfig changes to localStorage", async () => {
+      const store = await loadStore();
+
+      // Add a custom prompt
+      store.getState().addRevisionPrompt({
+        name: "My Custom Prompt",
+        type: "text",
+        systemPrompt: "Custom system prompt",
+        userPromptTemplate: "Custom user template",
+        isBuiltIn: false,
+        quickAccess: false,
+      });
+
+      // Trigger persistence
+      vi.advanceTimersByTime(500);
+
+      // Check localStorage
+      const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+      expect(storedGlobal.aiRevisionConfig).toBeDefined();
+      expect(storedGlobal.aiRevisionConfig.prompts).toHaveLength(4); // 3 built-in + 1 custom
+
+      const customPrompt = storedGlobal.aiRevisionConfig.prompts.find(
+        (p: { name: string }) => p.name === "My Custom Prompt"
+      );
+      expect(customPrompt).toBeDefined();
+      expect(customPrompt.isBuiltIn).toBe(false);
+    });
+
+    it("persists edits to built-in prompts", async () => {
+      const store = await loadStore();
+
+      // Edit a built-in prompt
+      store.getState().updateRevisionPrompt("builtin-text-cleanup", {
+        name: "Custom Cleanup Name",
+        systemPrompt: "My custom system prompt for cleanup",
+      });
+
+      // Trigger persistence
+      vi.advanceTimersByTime(500);
+
+      // Check localStorage
+      const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+      const cleanupPrompt = storedGlobal.aiRevisionConfig.prompts.find(
+        (p: { id: string }) => p.id === "builtin-text-cleanup"
+      );
+      expect(cleanupPrompt.name).toBe("Custom Cleanup Name");
+      expect(cleanupPrompt.systemPrompt).toBe("My custom system prompt for cleanup");
+    });
+
+    it("restores custom prompts from localStorage on reload", async () => {
+      // Pre-populate localStorage with custom config
+      const customConfig = {
+        prompts: [
+          {
+            id: "builtin-text-cleanup",
+            name: "Transcript Cleanup",
+            type: "text",
+            systemPrompt: "Default",
+            userPromptTemplate: "{{text}}",
+            isBuiltIn: true,
+            isDefault: true,
+            quickAccess: true,
+          },
+          {
+            id: "custom-saved-prompt",
+            name: "My Saved Custom Prompt",
+            type: "text",
+            systemPrompt: "Saved system prompt",
+            userPromptTemplate: "Saved user template",
+            isBuiltIn: false,
+            isDefault: false,
+            quickAccess: false,
+          },
+        ],
+        defaultPromptId: "builtin-text-cleanup",
+        quickAccessPromptIds: ["builtin-text-cleanup"],
+      };
+
+      window.localStorage.setItem(
+        GLOBAL_STORAGE_KEY,
+        JSON.stringify({ aiRevisionConfig: customConfig })
+      );
+
+      const store = await loadStore();
+
+      const prompts = store.getState().aiRevisionConfig.prompts;
+      // Should have 3 built-in + 1 custom = 4 (missing built-ins are added)
+      expect(prompts.length).toBeGreaterThanOrEqual(4);
+
+      const customPrompt = prompts.find((p) => p.id === "custom-saved-prompt");
+      expect(customPrompt).toBeDefined();
+      expect(customPrompt?.name).toBe("My Saved Custom Prompt");
+    });
+
+    it("restores edited built-in prompts from localStorage", async () => {
+      // Pre-populate localStorage with edited built-in prompt
+      const customConfig = {
+        prompts: [
+          {
+            id: "builtin-text-cleanup",
+            name: "My Edited Cleanup",
+            type: "text",
+            systemPrompt: "Completely custom system prompt",
+            userPromptTemplate: "Custom template: {{text}}",
+            isBuiltIn: true,
+            isDefault: true,
+            quickAccess: true,
+          },
+        ],
+        defaultPromptId: "builtin-text-cleanup",
+        quickAccessPromptIds: ["builtin-text-cleanup"],
+      };
+
+      window.localStorage.setItem(
+        GLOBAL_STORAGE_KEY,
+        JSON.stringify({ aiRevisionConfig: customConfig })
+      );
+
+      const store = await loadStore();
+
+      const cleanupPrompt = store.getState().aiRevisionConfig.prompts.find(
+        (p) => p.id === "builtin-text-cleanup"
+      );
+      expect(cleanupPrompt?.name).toBe("My Edited Cleanup");
+      expect(cleanupPrompt?.systemPrompt).toBe("Completely custom system prompt");
+      expect(cleanupPrompt?.userPromptTemplate).toBe("Custom template: {{text}}");
+    });
+
+    it("persists defaultPromptId changes", async () => {
+      const store = await loadStore();
+
+      store.getState().setDefaultRevisionPrompt("builtin-text-formalize");
+      vi.advanceTimersByTime(500);
+
+      const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+      expect(storedGlobal.aiRevisionConfig.defaultPromptId).toBe("builtin-text-formalize");
+    });
+
+    it("persists quickAccessPromptIds changes", async () => {
+      const store = await loadStore();
+
+      store.getState().setQuickAccessPrompts(["builtin-text-formalize"]);
+      vi.advanceTimersByTime(500);
+
+      const storedGlobal = JSON.parse(window.localStorage.getItem(GLOBAL_STORAGE_KEY) || "{}");
+      expect(storedGlobal.aiRevisionConfig.quickAccessPromptIds).toEqual(["builtin-text-formalize"]);
+    });
+
+    it("survives page reload with all custom prompts intact", async () => {
+      // Simulate first page load - add custom prompts
+      let store = await loadStore();
+
+      store.getState().addRevisionPrompt({
+        name: "Prompt A",
+        type: "text",
+        systemPrompt: "System A",
+        userPromptTemplate: "Template A",
+        isBuiltIn: false,
+        quickAccess: true,
+      });
+
+      store.getState().addRevisionPrompt({
+        name: "Prompt B",
+        type: "text",
+        systemPrompt: "System B",
+        userPromptTemplate: "Template B",
+        isBuiltIn: false,
+        quickAccess: false,
+      });
+
+      // Edit a built-in prompt
+      store.getState().updateRevisionPrompt("builtin-text-cleanup", {
+        name: "Customized Cleanup",
+      });
+
+      // Trigger persistence
+      vi.advanceTimersByTime(500);
+
+      // Simulate page reload by reloading the store module
+      store = await loadStore();
+
+      const prompts = store.getState().aiRevisionConfig.prompts;
+
+      // Should have 3 built-in + 2 custom = 5
+      expect(prompts).toHaveLength(5);
+
+      // Custom prompts should exist
+      expect(prompts.find((p) => p.name === "Prompt A")).toBeDefined();
+      expect(prompts.find((p) => p.name === "Prompt B")).toBeDefined();
+
+      // Built-in prompt should have custom name
+      expect(prompts.find((p) => p.id === "builtin-text-cleanup")?.name).toBe("Customized Cleanup");
+    });
+  });
 });

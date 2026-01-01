@@ -95,9 +95,10 @@ interface PromptFormProps {
   onCancel: () => void;
   isEditing?: boolean;
   promptType: PromptType;
+  isBuiltIn?: boolean;
 }
 
-function PromptForm({ initialData, onSave, onCancel, isEditing, promptType }: PromptFormProps) {
+function PromptForm({ initialData, onSave, onCancel, isEditing, promptType, isBuiltIn }: PromptFormProps) {
   const [form, setForm] = useState<PromptFormData>({
     ...getEmptyForm(promptType),
     ...initialData,
@@ -168,23 +169,32 @@ function PromptForm({ initialData, onSave, onCancel, isEditing, promptType }: Pr
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <Checkbox
-          id="quick-access"
-          checked={form.quickAccess}
-          onCheckedChange={(checked) => setForm((prev) => ({ ...prev, quickAccess: !!checked }))}
-        />
-        <Label htmlFor="quick-access" className="text-sm">
-          Show in Quick Access menu
-        </Label>
-      </div>
+      {promptType === "text" && (
+        <div className="flex items-center gap-2">
+          <Checkbox
+            id="quick-access"
+            checked={form.quickAccess}
+            onCheckedChange={(checked) => setForm((prev) => ({ ...prev, quickAccess: !!checked }))}
+          />
+          <div>
+            <Label htmlFor="quick-access" className="text-sm">
+              Show in Quick Access menu
+            </Label>
+            <p className="text-xs text-muted-foreground">
+              Appears in the segment action menu for one-tap AI revisions.
+            </p>
+          </div>
+        </div>
+      )}
 
       <div className="space-y-2">
         <div className="flex items-center justify-between">
           <Label htmlFor="prompt-system">System Prompt</Label>
-          <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-xs">
-            Reset to Default
-          </Button>
+          {isBuiltIn && (
+            <Button type="button" variant="ghost" size="sm" onClick={handleReset} className="text-xs">
+              Reset to Default
+            </Button>
+          )}
         </div>
         <Textarea
           id="prompt-system"
@@ -267,21 +277,20 @@ function PromptCard({
                     Default
                   </Badge>
                 )}
-                {promptItem.isBuiltIn && (
-                  <Badge variant="outline" className="text-xs">
-                    Built-in
-                  </Badge>
-                )}
                 {promptItem.quickAccess && (
                   <Badge
-                    variant="outline"
-                    className="text-xs bg-amber-50 text-amber-700 border-amber-200"
+                    variant="secondary"
+                    className="text-xs"
                   >
                     Quick Access
                   </Badge>
                 )}
+                {promptItem.isBuiltIn && (
+                    <Badge variant="outline" className="text-xs">
+                      Built-in
+                    </Badge>
+                )}
               </CardTitle>
-              <CardDescription className="text-xs">{typeLabel}</CardDescription>
             </div>
           </div>
           <Button
@@ -312,12 +321,17 @@ function PromptCard({
             {!isActive && (
               <Button variant="outline" size="sm" onClick={onSetActive}>
                 <Check className="h-3 w-3 mr-1" />
-                Set Active
+                Set as Default
               </Button>
             )}
             <Button variant="outline" size="sm" onClick={onEdit}>
               Edit
             </Button>
+            {promptItem.type === "text" && (
+              <Button variant="outline" size="sm" onClick={onToggleQuickAccess}>
+                {promptItem.quickAccess ? "Remove from Quick Access" : "Add to Quick Access"}
+              </Button>
+            )}
             <Button variant="outline" size="sm" onClick={onDuplicate}>
               <Copy className="h-3 w-3 mr-1" />
               Duplicate
@@ -591,6 +605,13 @@ export function AITemplateSettings() {
             Prompts for revising and improving transcript text. Quick Access prompts appear in the
             segment menu.
           </p>
+<Alert className="border-blue-200 dark:border-blue-800 bg-blue-50 dark:bg-blue-950">
+            <AlertCircle className="h-4 w-4 text-blue-500 dark:text-blue-400" />
+            <AlertDescription className="text-xs text-blue-800 dark:text-blue-200">
+              <strong>Tip:</strong> Smaller models often follow the prompt language instead of the input text language.
+              If you work with non-English transcripts, consider translating the prompts to your language to avoid unwanted translations.
+            </AlertDescription>
+          </Alert>
         </TabsContent>
       </Tabs>
 
@@ -624,6 +645,7 @@ export function AITemplateSettings() {
                     onCancel={() => setEditingId(null)}
                     isEditing
                     promptType={activeTab}
+                    isBuiltIn={promptItem.isBuiltIn}
                   />
                 </CardContent>
               </Card>
@@ -661,6 +683,7 @@ export function AITemplateSettings() {
               onSave={handleAddPrompt}
               onCancel={() => setShowAddForm(false)}
               promptType={activeTab}
+              isBuiltIn={false}
             />
           </CardContent>
         </Card>

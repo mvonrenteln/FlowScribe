@@ -63,7 +63,10 @@ TASKS:
 RULES:
 - Keep the meaning exactly the same
 - Keep the underlying style of the text (epic, lyric, formal, informal, etc.)
-- Reply ONLY with the improved text, no explanations`,
+- Reply ONLY with the improved text, no explanations
+- Avoid changing short phrases or single words unless necessary
+- Keep technical terms unchanged
+- Do not change the language of the input text; do not translate`,
     userPromptTemplate: `Improve the phrasing:
 
 "{{text}}"`,
@@ -119,26 +122,45 @@ export const initialAIRevisionState = {
 /**
  * Normalize saved aiRevisionConfig by merging with defaults.
  * Ensures built-in prompts are always present and cannot be removed.
+ * IMPORTANT: User edits to built-in prompts are preserved!
  */
 export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRevisionConfig {
   if (!saved) {
     return { ...initialAIRevisionState.aiRevisionConfig };
   }
 
-  // Merge prompts: ensure all built-in prompts exist with updated content if edited
+  // Migration: Map old IDs to new IDs (from previous naming conventions)
+  const idMigration: Record<string, string> = {
+    "default-transcript-cleanup": "builtin-text-cleanup",
+    "default-improve-clarity": "builtin-text-clarity",
+    "default-formalize": "builtin-text-formalize",
+  };
+
+  // Migrate saved prompts to new IDs if needed
+  const migratedPrompts = (saved.prompts ?? []).map((p) => ({
+    ...p,
+    id: idMigration[p.id] ?? p.id,
+  }));
+
+  // Merge prompts: ensure all built-in prompts exist, but PRESERVE user edits
   const builtInPromptIds = DEFAULT_TEXT_PROMPTS.map((p) => p.id);
-  const savedPromptsById = new Map(saved.prompts?.map((p) => [p.id, p]) ?? []);
+  const savedPromptsById = new Map(migratedPrompts.map((p) => [p.id, p]));
 
   const mergedPrompts: AIPrompt[] = [];
 
-  // Add built-in prompts (use saved version if exists, otherwise use default)
+  // Add built-in prompts (PRESERVE saved version if exists, only use default for missing prompts)
   for (const builtInPrompt of DEFAULT_TEXT_PROMPTS) {
     const savedVersion = savedPromptsById.get(builtInPrompt.id);
     if (savedVersion) {
-      // Use saved version but ensure isBuiltIn flag is preserved
-      mergedPrompts.push({ ...savedVersion, isBuiltIn: true, type: "text" });
+      // PRESERVE user's edits - only ensure isBuiltIn and type flags are correct
+      mergedPrompts.push({
+        ...savedVersion,
+        isBuiltIn: true,
+        type: "text"
+      });
       savedPromptsById.delete(builtInPrompt.id);
     } else {
+      // Only use default if no saved version exists
       mergedPrompts.push({ ...builtInPrompt });
     }
   }
@@ -150,14 +172,22 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
     }
   }
 
+  // Migrate defaultPromptId to new ID format
+  const migratedDefaultId = idMigration[saved.defaultPromptId ?? ""] ?? saved.defaultPromptId;
+
   // Validate defaultPromptId - must exist
-  const validDefaultId = mergedPrompts.some((p) => p.id === saved.defaultPromptId)
-    ? saved.defaultPromptId
+  const validDefaultId = mergedPrompts.some((p) => p.id === migratedDefaultId)
+    ? migratedDefaultId
     : "builtin-text-cleanup";
+
+  // Migrate quickAccessPromptIds to new ID format
+  const migratedQuickAccessIds = (saved.quickAccessPromptIds ?? []).map(
+    (id) => idMigration[id] ?? id
+  );
 
   // Validate quickAccessPromptIds - filter out non-existent prompts
   const promptIds = new Set(mergedPrompts.map((p) => p.id));
-  const validQuickAccessIds = (saved.quickAccessPromptIds ?? []).filter((id) => promptIds.has(id));
+  const validQuickAccessIds = migratedQuickAccessIds.filter((id) => promptIds.has(id));
 
   return {
     prompts: mergedPrompts,
@@ -221,7 +251,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     import("@/lib/services/aiRevisionService").then(({ runRevision }) => {
       runRevision({
         segment,
-        template: selectedPrompt,
+        prompt: selectedPrompt,
         previousSegment,
         nextSegment,
         signal: abortController.signal,
@@ -328,7 +358,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       runBatchRevision({
         segments,
         allSegments: state.segments,
-        template: selectedPrompt,
+        prompt: selectedPrompt,
         signal: abortController.signal,
         onProgress: (processed: number, total: number) => {
           set({
@@ -469,22 +499,36 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       isBuiltIn: false, // Custom prompts are never built-in
     };
 
+    const nextQuickAccessIds = promptData.quickAccess
+      ? Array.from(new Set([...state.aiRevisionConfig.quickAccessPromptIds, newPrompt.id]))
+      : state.aiRevisionConfig.quickAccessPromptIds;
+
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
         prompts: [...state.aiRevisionConfig.prompts, newPrompt],
+        quickAccessPromptIds: nextQuickAccessIds,
       },
     });
   },
 
   updateRevisionPrompt: (id, updates) => {
     const state = get();
+    let nextQuickAccessIds = state.aiRevisionConfig.quickAccessPromptIds;
+
+    if (typeof updates.quickAccess === "boolean") {
+      nextQuickAccessIds = updates.quickAccess
+        ? Array.from(new Set([...nextQuickAccessIds, id]))
+        : nextQuickAccessIds.filter((pid) => pid !== id);
+    }
+
     set({
       aiRevisionConfig: {
         ...state.aiRevisionConfig,
         prompts: state.aiRevisionConfig.prompts.map((p) =>
           p.id === id ? { ...p, ...updates, id, isBuiltIn: p.isBuiltIn } : p,
         ),
+        quickAccessPromptIds: nextQuickAccessIds,
       },
     });
   },

@@ -23,7 +23,7 @@ export interface RevisionResult {
 
 export interface SingleRevisionParams {
   segment: Segment;
-  template: AIRevisionTemplate;
+  prompt: AIRevisionTemplate;
   previousSegment?: Segment;
   nextSegment?: Segment;
   signal?: AbortSignal;
@@ -32,7 +32,7 @@ export interface SingleRevisionParams {
 export interface BatchRevisionParams {
   segments: Segment[];
   allSegments: Segment[];
-  template: AIRevisionTemplate;
+  prompt: AIRevisionTemplate;
   signal?: AbortSignal;
   onProgress?: (processed: number, total: number) => void;
   onResult?: (result: RevisionResult) => void;
@@ -146,12 +146,12 @@ function getActiveProvider(): AIProviderConfig {
  * Revise a single segment using AI.
  */
 export async function runRevision(params: SingleRevisionParams): Promise<RevisionResult> {
-  const { segment, template, previousSegment, nextSegment, signal } = params;
+  const { segment, prompt, previousSegment, nextSegment, signal } = params;
 
   const providerConfig = getActiveProvider();
   const provider = createAIProvider(providerConfig);
 
-  const userPrompt = buildPrompt(template.userPromptTemplate, {
+  const userPrompt = buildPrompt(prompt.userPromptTemplate, {
     text: segment.text,
     previousText: previousSegment?.text,
     nextText: nextSegment?.text,
@@ -160,7 +160,7 @@ export async function runRevision(params: SingleRevisionParams): Promise<Revisio
 
   const response = await provider.chat(
     [
-      { role: "system", content: template.systemPrompt },
+      { role: "system", content: prompt.systemPrompt },
       { role: "user", content: userPrompt },
     ],
     { signal },
@@ -183,7 +183,7 @@ export async function runRevision(params: SingleRevisionParams): Promise<Revisio
  * Processes one at a time for better error handling and progress tracking.
  */
 export async function runBatchRevision(params: BatchRevisionParams): Promise<void> {
-  const { segments, allSegments, template, signal, onProgress, onResult } = params;
+  const { segments, allSegments, prompt, signal, onProgress, onResult } = params;
 
   const total = segments.length;
 
@@ -202,7 +202,7 @@ export async function runBatchRevision(params: BatchRevisionParams): Promise<voi
     try {
       const result = await runRevision({
         segment,
-        template,
+        prompt,
         previousSegment,
         nextSegment,
         signal,
