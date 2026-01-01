@@ -1,6 +1,8 @@
 # AI Transcript Revision – User Guide
 *Last Updated: January 1, 2026*
 
+> NOTE: This user guide consolidates and replaces content previously found in the following internal documents: `ai-transcript-revision.md`, `ai-transcript-revision-todo.md`, and `prompt-system-refactoring.md`. All user-facing guidance, workflows, keyboard shortcuts, examples and troubleshooting tips from those sources have been reviewed and integrated here.
+
 ---
 
 ## Overview
@@ -438,4 +440,4 @@ Planned enhancements for future versions:
 
 ---
 
-*For technical details and implementation, see the [Technical Architecture Document](../feature/architecture/ai-text-revision.md).*
+*For technical details and implementation, see the [Technical Architecture Document](architecture/ai-transcript-revision.md).*
