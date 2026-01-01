@@ -3,8 +3,13 @@
  *
  * Service for revising transcript segments using AI.
  * Uses the unified AI Provider interface for backend communication.
+ *
+ * Note: This service uses the unified AI module's prompt builder
+ * for template compilation. The core revision logic remains in this
+ * file for backward compatibility.
  */
 
+import { compileTemplate } from "@/lib/ai/prompts/promptBuilder";
 import { computeTextChanges, summarizeChanges } from "@/lib/diffUtils";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import type { AIRevisionTemplate, Segment, TextChange } from "@/lib/store/types";
@@ -42,6 +47,7 @@ export interface BatchRevisionParams {
 
 /**
  * Build the prompt from template with context substitution.
+ * Now uses the unified AI module's compileTemplate function.
  */
 function buildPrompt(
   template: string,
@@ -52,33 +58,8 @@ function buildPrompt(
     speaker?: string;
   },
 ): string {
-  let result = template;
-
-  // Simple template substitution (Handlebars-like)
-  result = result.replace(/\{\{text\}\}/g, context.text);
-
-  // Handle conditional blocks for previousText
-  if (context.previousText) {
-    result = result.replace(/\{\{#if previousText\}\}([\s\S]*?)\{\{\/if\}\}/g, "$1");
-    result = result.replace(/\{\{previousText\}\}/g, context.previousText);
-  } else {
-    result = result.replace(/\{\{#if previousText\}\}[\s\S]*?\{\{\/if\}\}/g, "");
-  }
-
-  // Handle conditional blocks for nextText
-  if (context.nextText) {
-    result = result.replace(/\{\{#if nextText\}\}([\s\S]*?)\{\{\/if\}\}/g, "$1");
-    result = result.replace(/\{\{nextText\}\}/g, context.nextText);
-  } else {
-    result = result.replace(/\{\{#if nextText\}\}[\s\S]*?\{\{\/if\}\}/g, "");
-  }
-
-  // Speaker substitution
-  if (context.speaker) {
-    result = result.replace(/\{\{speaker\}\}/g, context.speaker);
-  }
-
-  return result.trim();
+  // Use the unified prompt builder for template compilation
+  return compileTemplate(template, context);
 }
 
 /**

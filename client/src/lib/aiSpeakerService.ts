@@ -170,17 +170,23 @@ function markNewSpeaker(tag: string): { name: string; isNew: boolean } {
 
 /**
  * Extracts JSON array from LLM response, handling various malformed outputs.
+ *
+ * Now uses the unified AI module's extractJSON as primary strategy,
+ * with regex fallback for extremely malformed responses.
+ *
  * Strategy:
- * 1. Try direct JSON.parse
- * 2. Extract content between first [ and last ]
- * 3. Fall back to regex extraction for individual objects
+ * 1. Use unified extractJSON (handles code blocks, lenient parsing)
+ * 2. Fall back to regex extraction for individual objects
  */
 export function extractJsonArray(raw: string): OllamaResponseItem[] {
   const trimmed = raw.trim();
 
-  // Strategy 1: Direct parse
+  // Strategy 1: Use unified JSON parser
   try {
-    const parsed = JSON.parse(trimmed);
+    // Import dynamically to avoid circular dependencies during initial load
+    const { extractJSON } = require("@/lib/ai/parsing/jsonParser");
+    const parsed = extractJSON(trimmed, { lenient: true });
+
     if (Array.isArray(parsed)) {
       return parsed as OllamaResponseItem[];
     }
@@ -188,29 +194,10 @@ export function extractJsonArray(raw: string): OllamaResponseItem[] {
       return [parsed as OllamaResponseItem];
     }
   } catch {
-    // Continue to next strategy
+    // Continue to regex fallback
   }
 
-  // Strategy 2: Extract array from surrounding text
-  const firstBracket = trimmed.indexOf("[");
-  const lastBracket = trimmed.lastIndexOf("]");
-
-  if (firstBracket !== -1 && lastBracket > firstBracket) {
-    const jsonPart = trimmed.slice(firstBracket, lastBracket + 1);
-    try {
-      const parsed = JSON.parse(jsonPart);
-      if (Array.isArray(parsed)) {
-        return parsed as OllamaResponseItem[];
-      }
-      if (parsed && typeof parsed === "object") {
-        return [parsed as OllamaResponseItem];
-      }
-    } catch {
-      // Continue
-    }
-  }
-
-  // Strategy 3: Regex extraction order-based
+  // Strategy 2: Regex extraction order-based (fallback for extremely malformed responses)
   const objectPattern =
     /\{\s*"tag"\s*:\s*"([^"]+)"(?:\s*,\s*"confidence"\s*:\s*([\d.]+))?(?:\s*,\s*"reason"\s*:\s*"([^"]*)")?\s*\}/gi;
   const items: OllamaResponseItem[] = [];
