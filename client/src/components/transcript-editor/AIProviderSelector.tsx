@@ -37,6 +37,10 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
   const [availableModels, setAvailableModels] = useState<Map<string, string[]>>(new Map());
   const [loadingModels, setLoadingModels] = useState<Set<string>>(new Set());
 
+  const providerModelCache = availableModels;
+
+  const getProviderModels = (providerId: string) => providerModelCache.get(providerId) ?? [];
+
   // Get current provider
   const currentProvider =
     settings.aiProviders.find((p) => p.id === settings.defaultAIProviderId) ??
@@ -119,47 +123,60 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
         <DropdownMenuSeparator />
 
         {/* Provider List */}
-        {settings.aiProviders.map((provider) => (
-          <DropdownMenuSub key={provider.id}>
-            <DropdownMenuSubTrigger
-              className={cn(provider.id === currentProvider.id && "bg-accent")}
-              onPointerEnter={() => fetchModelsForProvider(provider)}
-            >
-              <Server className="h-4 w-4 mr-2" />
-              <span className="flex-1 truncate">{provider.name}</span>
-              {provider.id === currentProvider.id && (
-                <span className="text-xs text-muted-foreground ml-1">●</span>
-              )}
-            </DropdownMenuSubTrigger>
+        {settings.aiProviders.map((provider) => {
+          const providerModels = getProviderModels(provider.id);
+          const isCurrentProvider = provider.id === currentProvider.id;
+          const isLoading = loadingModels.has(provider.id);
 
-            <DropdownMenuSubContent className="w-48">
-              <DropdownMenuLabel className="text-xs">Select Model</DropdownMenuLabel>
-              <DropdownMenuSeparator />
+          return (
+            <DropdownMenuSub key={provider.id}>
+              <DropdownMenuSubTrigger
+                className={cn(isCurrentProvider && "bg-accent")}
+                onPointerEnter={() => fetchModelsForProvider(provider)}
+              >
+                <Server className="h-4 w-4 mr-2" />
+                <span className="flex-1 truncate">{provider.name}</span>
+                {provider.id === settings.defaultAIProviderId && (
+                  <span className="text-xs ml-2" aria-label="Default provider">
+                    ★
+                  </span>
+                )}
+              </DropdownMenuSubTrigger>
 
-              {isLoadingModels ? (
-                <DropdownMenuItem disabled>Loading models...</DropdownMenuItem>
-              ) : providerModels.length === 0 ? (
-                <DropdownMenuItem disabled>No models available</DropdownMenuItem>
-              ) : (
-                providerModels.map((model) => (
-                  <DropdownMenuItem
-                    key={model}
-                    onClick={() => {
-                      handleSelectProvider(provider.id);
-                      handleSelectModel(provider.id, model);
-                    }}
-                    className={cn(
-                      provider.id === currentProvider.id && provider.model === model && "bg-accent",
-                    )}
-                  >
-                    <Bot className="h-4 w-4 mr-2" />
-                    <span className="truncate">{model}</span>
-                  </DropdownMenuItem>
-                ))
-              )}
-            </DropdownMenuSubContent>
-          </DropdownMenuSub>
-        ))}
+              <DropdownMenuSubContent className="w-56">
+                <DropdownMenuLabel className="text-xs">Select Model</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {isLoading ? (
+                  <DropdownMenuItem disabled>Loading models...</DropdownMenuItem>
+                ) : providerModels.length === 0 ? (
+                  <DropdownMenuItem disabled>No models available</DropdownMenuItem>
+                ) : (
+                  providerModels.map((model) => (
+                    <DropdownMenuItem
+                      key={`${provider.id}-${model}`}
+                      onClick={() => {
+                        handleSelectProvider(provider.id);
+                        handleSelectModel(provider.id, model);
+                      }}
+                      className={cn(
+                        isCurrentProvider && provider.model === model && "bg-accent",
+                      )}
+                    >
+                      <Bot className="h-4 w-4 mr-2" />
+                      <span className="flex-1 truncate">{model}</span>
+                      {provider.model === model && (
+                        <span className="text-xs ml-2" aria-label="Default model">
+                          ★
+                        </span>
+                      )}
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+          );
+        })}
 
         {settings.aiProviders.length === 0 && (
           <DropdownMenuItem disabled className="text-muted-foreground">
