@@ -148,7 +148,12 @@ function getActiveProvider(): AIProviderConfig {
 export async function runRevision(params: SingleRevisionParams): Promise<RevisionResult> {
   const { segment, prompt, previousSegment, nextSegment, signal } = params;
 
+  console.log("[AIRevision] Starting revision for segment:", segment.id);
+  console.log("[AIRevision] Prompt:", prompt.name, prompt.id);
+
   const providerConfig = getActiveProvider();
+  console.log("[AIRevision] Using provider:", providerConfig.name, providerConfig.type);
+
   const provider = createAIProvider(providerConfig);
 
   const userPrompt = buildPrompt(prompt.userPromptTemplate, {
@@ -165,6 +170,8 @@ export async function runRevision(params: SingleRevisionParams): Promise<Revisio
     ],
     { signal },
   );
+
+  console.log("[AIRevision] Received response:", response.content?.slice(0, 100));
 
   const revisedText = parseRevisionResponse(response.content, segment.text);
   const changes = computeTextChanges(segment.text, revisedText);

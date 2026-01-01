@@ -248,13 +248,17 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       segmentIndex < state.segments.length - 1 ? state.segments[segmentIndex + 1] : undefined;
 
     // Run revision asynchronously - dynamic import to avoid circular dependencies
-    import("@/lib/services/aiRevisionService").then(({ runRevision }) => {
-      runRevision({
-        segment,
-        prompt: selectedPrompt,
-        previousSegment,
-        nextSegment,
-        signal: abortController.signal,
+    console.log("[AIRevision] Starting async import for segment:", segmentId);
+    import("@/lib/services/aiRevisionService")
+      .then(({ runRevision }) => {
+        console.log("[AIRevision] Import successful, calling runRevision");
+        return runRevision({
+          segment,
+          prompt: selectedPrompt,
+          previousSegment,
+          nextSegment,
+          signal: abortController.signal,
+        });
       })
         .then((result: RevisionResult) => {
           const currentState = get();
@@ -307,6 +311,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         })
         .catch((error: Error) => {
           if (error.name === "AbortError") return;
+          console.error("[AIRevision] Error in startSingleRevision:", error);
           const errorMessage = error.message ?? "Revision failed";
           set({
             aiRevisionError: errorMessage,
@@ -320,7 +325,6 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
             },
           });
         });
-    });
   },
 
   startBatchRevision: (segmentIds, promptId) => {
