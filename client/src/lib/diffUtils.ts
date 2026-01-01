@@ -74,26 +74,44 @@ export function computeDiff(original: string, revised: string): DiffSegment[] {
 function tokenize(text: string): string[] {
   const tokens: string[] = [];
   let current = "";
+  let currentType: "word" | "punct" | null = null;
+
+  const flush = () => {
+    if (current) {
+      tokens.push(current);
+      current = "";
+    }
+    currentType = null;
+  };
+
+  const isWhitespace = (char: string) => /\s/.test(char);
+  const isWordChar = (char: string) => /[\p{L}\p{N}]/u.test(char);
 
   for (const char of text) {
-    const isWhitespace = /\s/.test(char);
-
-    if (isWhitespace) {
-      if (current) {
-        tokens.push(current);
-        current = "";
-      }
-      // Include whitespace as separate token to preserve spacing
+    if (isWhitespace(char)) {
+      flush();
       tokens.push(char);
-    } else {
-      current += char;
+      continue;
     }
+
+    if (isWordChar(char)) {
+      if (currentType !== "word") {
+        flush();
+        currentType = "word";
+      }
+      current += char;
+      continue;
+    }
+
+    // Treat punctuation/symbols as their own token groups so changes stay local
+    if (currentType !== "punct") {
+      flush();
+      currentType = "punct";
+    }
+    current += char;
   }
 
-  if (current) {
-    tokens.push(current);
-  }
-
+  flush();
   return tokens;
 }
 

@@ -77,3 +77,10 @@ The app runs locally as a frontend‑only Vite project.
 PRs and feedback are welcome. If you’re adding a new feature, please update `Features.md` and include screenshots where relevant.
 
 ![Export or review workflow](docs/screenshots/export-or-review-workflow.png)
+
+## Testing
+
+```bash
+npm install
+npm run test -- --watch=false
+```
