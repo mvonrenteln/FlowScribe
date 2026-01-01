@@ -1,5 +1,5 @@
-# AI Transcript Revision - Feature Documentation
-*Last Updated: December 31, 2025*
+# AI Transcript Revision – User Guide
+*Last Updated: January 1, 2026*
 
 ---
 
@@ -7,23 +7,23 @@
 
 **AI Transcript Revision** uses large language models (LLMs) to intelligently revise, correct, and improve transcript segments. Unlike manual editing, the AI can fix grammar, improve clarity, remove filler words, and adapt style — all while understanding the context of your transcript.
 
-This feature integrates seamlessly into the existing FlowScribe UI through:
+This feature integrates seamlessly into the FlowScribe UI:
 - **Inline AI button** on each segment for quick revisions
 - **Batch processing** through the filter panel for bulk operations
-- **Customizable templates** for your specific workflows
+- **Customizable prompts** for your specific workflows
 
 ---
 
 ## Key Features
 
 ### ✨ Single Segment Revision
-Click the AI sparkle icon on any segment to instantly improve it with one of your configured templates.
+Click the AI sparkle icon on any segment to instantly improve it with one of your configured prompts.
 
 ### 📋 Batch Processing
 Filter segments by speaker, confidence, or spelling issues, then revise them all at once.
 
-### 🎯 Template System: Custom First
-Start with three built-in templates, then create your own for your specific needs:
+### 🎯 Prompt System: Custom First
+Start with three built-in prompts, then create your own for your specific needs:
 - **Transcript Cleanup**: Fix spelling, remove filler words, correct grammar
 - **Improve Clarity**: Better phrasing, improved readability
 - **Formalize**: Convert informal speech to professional language
@@ -39,13 +39,13 @@ Review changes with a clear visual comparison showing what was removed and what 
 
 Before using AI Transcript Revision, you need:
 1. **An AI provider configured** in Settings → AI Providers
-2. **At least one revision template** (built-in templates are available by default)
+2. **At least one revision prompt** (built-in prompts are available by default)
 
 ### Quick Start
 
 1. **Load a transcript** into FlowScribe
 2. **Click the ✨ icon** on any segment
-3. **Select a template** from the quick-access menu
+3. **Select a prompt** from the quick-access menu
 4. **Review the changes** in the side-by-side diff view
 5. **Accept or reject** the revision
 
@@ -68,21 +68,21 @@ Each transcript segment has an AI revision button (✨) in its header:
 
 ### Quick-Access Menu
 
-Clicking the AI button opens a popover with your configured quick-access templates:
+Clicking the AI button opens a popover with your configured quick-access prompts:
 
 ```
 ┌────────────────────────────────┐
-│ ✨ Transcript Cleanup          │ ← Quick-access templates
+│ ✨ Transcript Cleanup          │ ← Quick-access prompts
 │ 📝 Improve Clarity             │   (configured in Settings)
 │ 🎭 RPG Style (Custom)          │
 │ ─────────────────────────────  │
-│ ⋯ More templates...            │ ← All other templates
+│ ⋯ More prompts...            │ ← All other prompts
 └────────────────────────────────┘
 ```
 
 ### Keyboard Shortcut
 
-Press **Alt+R** (Windows/Linux) or **Option+R** (Mac) to instantly execute your **default template** on the selected segment — no menu required!
+Press **Alt+R** (Windows/Linux) or **Option+R** (Mac) to instantly execute your **default prompt** on the selected segment — no menu required!
 
 ### Processing States
 
@@ -158,7 +158,7 @@ Process multiple segments at once using the **AI Batch Revision** section in the
 
 3. **Configure the batch operation**:
    - Select provider and model (optional, uses defaults)
-   - Choose a template
+   - Choose a prompt
    - See how many segments will be processed
 
 4. **Click "Start"** to begin processing
@@ -173,7 +173,7 @@ Process multiple segments at once using the **AI Batch Revision** section in the
 │   ┌─────────────────────────────│
 │   │ Provider: [OpenAI      ▼]   │
 │   │ Model:    [gpt-4       ▼]   │
-│   │ Template: [Cleanup     ▼]   │
+│   │ Prompt: [Cleanup     ▼]   │
 │   │                             │
 │   │ 23 segments (filtered)      │
 │   │                             │
@@ -204,65 +204,46 @@ Use **Accept all** or **Reject all** for quick batch decisions, or review each s
 
 ---
 
-## Template System
+## Prompt System
 
 ### Philosophy: Custom First
 
-Everyone has unique workflows. While FlowScribe provides sensible defaults, the template system is designed for **your specific needs**.
+Everyone has unique workflows. While FlowScribe provides sensible defaults, the prompt system is designed for **your specific needs**.
 
-### Default Templates
+### Built-in Prompts
 
-Three built-in templates are always available (can be edited but not deleted):
+Three built-in prompts are always available (can be edited but not deleted):
 
-| Template | Purpose |
+| Prompt | Purpose |
 |----------|---------|
 | **Transcript Cleanup** | Fix spelling, grammar, remove filler words |
 | **Improve Clarity** | Better phrasing, improved readability |
 | **Formalize** | Convert casual speech to professional language |
 
-### Creating Custom Templates
+### Creating Custom Prompts
 
-1. Go to **Settings → Revision Templates**
-2. Click **"Create new template"**
-3. Configure your template:
+1. Go to **Settings → AI Prompts**
+2. Click **"Create new prompt"**
+3. Configure your prompt:
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│ Template Name:                                              │
-│ [RPG Session Cleanup                                     ]  │
-│                                                             │
-│ System Prompt:                                              │
-│ ┌───────────────────────────────────────────────────────┐   │
-│ │ You are editing a tabletop RPG session transcript.    │   │
-│ │ Fix speech errors but preserve character voices and   │   │
-│ │ in-game terminology. Keep dice roll references.       │   │
-│ └───────────────────────────────────────────────────────┘   │
-│                                                             │
-│ User Prompt Template:                                       │
-│ ┌───────────────────────────────────────────────────────┐   │
-│ │ Revise the following transcript segment:               │   │
-│ │ {{text}}                                               │   │
-│ │                                                        │   │
-│ │ Return only the revised text.                          │   │
-│ └───────────────────────────────────────────────────────┘   │
-│                                                             │
-│ Available placeholders: {{text}}, {{speaker}}               │
-│                                                             │
-│ [Cancel] [Create]                                           │
-└─────────────────────────────────────────────────────────────┘
+Prompt Name: [RPG Session Cleanup]
+System Prompt: [You are editing a tabletop RPG session transcript. Fix speech errors but preserve character voices and in-game terminology. Keep dice roll references.]
+User Prompt Template: [Revise the following transcript segment: {{text}}]
+Available placeholders: {{text}}, {{speaker}}
 ```
 
-### Template Configuration
+### Prompt Configuration
 
-In Settings → Revision Templates, you can configure:
+In Settings → AI Prompts, you can configure:
 
 **Hotkey Default (Alt+R)**
-Select which template executes immediately when you press the hotkey.
+Select which prompt executes immediately when you press the hotkey.
 
 **Quick-Access Menu**
-Check which templates appear in the segment's quick-access popover (the first click menu).
+Check which prompts appear in the segment's quick-access popover (the first click menu).
 
-**All other templates** appear under "More templates..." in the popover.
+**All other prompts** appear under "More prompts..." in the popover.
 
 ---
 
@@ -272,21 +253,21 @@ Check which templates appear in the segment's quick-access popover (the first cl
 
 - Click the **⚙️ gear icon** in the toolbar
 - Or press **Cmd/Ctrl + ,**
-- Navigate to **"Revision Templates"**
+- Navigate to **"AI Prompts"**
 
-### Template Management
+### Prompt Management
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│ AI Revision Templates                                       │
+│ AI Revision Prompts                                       │
 │ Manage your prompt templates for AI text revision.          │
-│ Default templates can be edited but not deleted.            │
+│ Default prompts can be edited but not deleted.            │
 ├─────────────────────────────────────────────────────────────┤
 │ Hotkey Default (Alt+R):                                     │
 │ [▼ Transcript Cleanup                                    ]  │
-│ This template runs when you press Alt+R.                    │
+│ This prompt runs when you press Alt+R.                    │
 ├─────────────────────────────────────────────────────────────┤
-│ DEFAULT TEMPLATES                                           │
+│ DEFAULT PROMPTS                                           │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ ✨ Transcript Cleanup              [Default] [Hotkey]   │ │
 │ │ ☑ Show in quick-access menu                      [Edit] │ │
@@ -297,13 +278,13 @@ Check which templates appear in the segment's quick-access popover (the first cl
 │ └─────────────────────────────────────────────────────────┘ │
 │ ...                                                         │
 ├─────────────────────────────────────────────────────────────┤
-│ CUSTOM TEMPLATES                                            │
+│ CUSTOM PROMPTS                                            │
 │ ┌─────────────────────────────────────────────────────────┐ │
 │ │ 🎭 RPG Session Cleanup                                  │ │
 │ │ ☑ Show in quick-access menu          [Edit] [Delete]   │ │
 │ └─────────────────────────────────────────────────────────┘ │
 │                                                             │
-│ [+ Create new template]                                     │
+│ [+ Create new prompt]                                     │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -311,7 +292,7 @@ Check which templates appear in the segment's quick-access popover (the first cl
 
 ## Best Practices
 
-### Template Design
+### Prompt Design
 
 1. **Be specific** in your system prompt about what to change and what to preserve
 2. **Include examples** if the AI struggles with your content type
@@ -338,7 +319,8 @@ Check which templates appear in the segment's quick-access popover (the first cl
 
 | Shortcut | Action |
 |----------|--------|
-| **Alt+R** / **Option+R** | Execute default template on selected segment |
+| **Alt+R** / **Option+R** | Execute default prompt on selected segment |
+| **Alt+Shift+R** / **Option+Shift+R** | Open prompt menu |
 | **Escape** | Cancel current revision or close popover |
 | **Tab** | Navigate between Accept/Reject buttons |
 | **Enter** | Activate focused button |
@@ -355,7 +337,7 @@ Check which templates appear in the segment's quick-access popover (the first cl
 - The model doesn't understand the task
 
 **Solutions:**
-- Check your template's system prompt
+- Check your prompt's system prompt
 - Be more specific about desired changes
 - Try a different model or provider
 
@@ -366,7 +348,11 @@ Check which templates appear in the segment's quick-access popover (the first cl
 **Solutions:**
 - Add "preserve the speaker's style" to your system prompt
 - Use "Improve Clarity" instead of "Formalize"
-- Create a custom template with specific constraints
+- Create a custom prompt with specific constraints
+
+### Small Models & Prompt Language
+
+**Tip:** Small models often follow the prompt language, not the transcript language. Translate your prompts to match your transcript language for best results.
 
 ### Slow Processing
 
@@ -452,5 +438,4 @@ Planned enhancements for future versions:
 
 ---
 
-*For technical details and implementation, see the [Technical Concept Document](ai-transcript-revision.md).*
-
+*For technical details and implementation, see the [Technical Architecture Document](../feature/architecture/ai-text-revision.md).*
