@@ -42,3 +42,24 @@ export {
   reviseText,
 } from "./aiFeatureService";
 
+// Provider Resolver
+export {
+  resolveProvider,
+  resolveProviderSync,
+  type ProviderResolveOptions,
+  type ResolvedProvider,
+} from "./providerResolver";
+
+// Errors
+export {
+  AIError,
+  AIParseError,
+  AIValidationError,
+  AICancellationError,
+  AIConfigurationError,
+  AIFeatureNotFoundError,
+  isCancellationError,
+  toAIError,
+  getErrorMessage,
+} from "./errors";
+
