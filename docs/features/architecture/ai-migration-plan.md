@@ -169,11 +169,12 @@ These need to move to ai/providers/ and be properly exported.
   - [x] Simplified tests (9 tests)
 
 ### Phase 2.6.3: Parsing Layer Enhancement
-- [ ] Create `ai/parsing/text.ts`
-  - [ ] Extract `parseRevisionResponse` from aiRevisionService
-  - [ ] Generalize to `parseTextResponse(response, options)`
-  - [ ] Add error detection logic
-  - [ ] Write tests
+- [x] Create `ai/parsing/text.ts`
+  - [x] Extract `parseRevisionResponse` logic from aiRevisionService
+  - [x] Generalize to `parseTextResponse(response, options)`
+  - [x] Add error detection logic
+  - [x] Add helper functions (stripQuotes, stripCodeBlocks, etc.)
+  - [x] Write tests (27 tests)
 
 - [ ] Update `ai/parsing/json.ts`
   - [ ] Remove `require()` call (use proper import)
@@ -181,19 +182,27 @@ These need to move to ai/providers/ and be properly exported.
   - [ ] Write additional tests
 
 ### Phase 2.6.4: Speaker Feature Migration
-- [ ] Create `ai/features/speaker/` directory structure
-- [ ] Create `ai/features/speaker/types.ts`
-  - [ ] Move `AISpeakerSuggestion` interface
-  - [ ] Move `AISpeakerConfig` interface
-  - [ ] Move internal types (BatchSegment, BatchIssue, etc.)
+- [x] Create `ai/features/speaker/` directory structure
+- [x] Create `ai/features/speaker/types.ts`
+  - [x] Move `SpeakerSuggestion` interface
+  - [x] Move `SpeakerClassificationConfig` interface
+  - [x] Define internal types (BatchSegment, BatchIssue, etc.)
 
-- [ ] Create `ai/features/speaker/utils.ts`
-  - [ ] Move `normalizeSpeakerTag()`
-  - [ ] Move `resolveSuggestedSpeaker()`
-  - [ ] Move `markNewSpeaker()`
-  - [ ] Move `formatSegmentsForPrompt()`
-  - [ ] Move `formatSpeakersForPrompt()`
-  - [ ] Write tests
+- [x] Create `ai/features/speaker/utils.ts`
+  - [x] Move `normalizeSpeakerTag()`
+  - [x] Move `resolveSuggestedSpeaker()`
+  - [x] Move `markNewSpeaker()`
+  - [x] Move `formatSegmentsForPrompt()`
+  - [x] Move `formatSpeakersForPrompt()`
+  - [x] Write tests (20 tests)
+
+- [x] Create `ai/features/speaker/config.ts`
+  - [x] Move prompts from speakerClassification.ts
+  - [x] Move feature config
+  - [x] Add response schema
+
+- [x] Create `ai/features/speaker/index.ts`
+  - [x] Export config, types, utils
 
 - [ ] Create `ai/features/speaker/service.ts`
   - [ ] Use `executeFeature` from core
@@ -204,12 +213,6 @@ These need to move to ai/providers/ and be properly exported.
   - [ ] Implement `classifySpeakersBatch()` function
   - [ ] Write tests
 
-- [ ] Update `ai/features/speaker/config.ts` (rename from speakerClassification.ts)
-  - [ ] Keep prompts and feature config
-  - [ ] Add response schema
-
-- [ ] Create `ai/features/speaker/index.ts`
-  - [ ] Export config, service, types
 
 - [ ] Create backward-compatible wrapper
   - [ ] `src/lib/aiSpeakerService.ts` becomes thin wrapper
@@ -277,26 +280,30 @@ These need to move to ai/providers/ and be properly exported.
 | Phase | Status | Tests | Notes |
 |-------|--------|-------|-------|
 | 2.6.1 Provider Migration | ✅ Complete | 21 | Providers in `ai/providers/` |
-| 2.6.2 Core Infrastructure | ✅ Complete | 33 | Errors (24) + ProviderResolver + aiFeatureService updated |
-| 2.6.3 Parsing Enhancement | ⬜ Not Started | 0 | |
-| 2.6.4 Speaker Migration | ⬜ Not Started | 0 | |
+| 2.6.2 Core Infrastructure | ✅ Complete | 33 | Errors + ProviderResolver + aiFeatureService |
+| 2.6.3 Parsing Enhancement | ✅ Complete | 27 | Text parser added |
+| 2.6.4 Speaker Migration | 🔄 In Progress | 20 | Types, utils, config done. Service pending |
 | 2.6.5 Revision Migration | ⬜ Not Started | 0 | |
 | 2.6.6 Cleanup | ⬜ Not Started | 0 | |
 | 2.6.7 Integration Tests | ⬜ Not Started | 0 | |
 | 2.6.8 Documentation | ⬜ Not Started | 0 | |
 
-**Overall:** ~35% Complete
+**Overall:** ~50% Complete
 
 **Test Summary:**
-- AI Module Tests: 170+ tests (8 files)
-- Total Project Tests: ~500 tests (55 files)
+- AI Module Tests: 180+ tests (10 files)
+- Total Project Tests: ~520 tests
 
-### Completed Changes:
-1. Created `ai/providers/` with all provider code
-2. Created `ai/core/providerResolver.ts` - Unified provider resolution
-3. Created `ai/core/errors.ts` - Unified error types (24 tests)
-4. Updated `ai/core/aiFeatureService.ts` to use new providerResolver
-5. Old service files in `lib/services/` are now re-export wrappers
+### New Files Created:
+1. `ai/providers/` - Provider layer (complete)
+2. `ai/core/providerResolver.ts` - Provider resolution
+3. `ai/core/errors.ts` - Unified error types
+4. `ai/parsing/text.ts` - Text response parsing
+5. `ai/features/speaker/` - Speaker feature module (in progress)
+   - `types.ts` - Type definitions
+   - `utils.ts` - Helper functions
+   - `config.ts` - Feature configuration
+   - `index.ts` - Public exports
 
 ---
 

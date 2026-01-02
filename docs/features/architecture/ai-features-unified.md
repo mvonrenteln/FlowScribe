@@ -32,10 +32,16 @@
 ├── parsing/                      # Response parsing
 │   ├── jsonParser.ts             # JSON extraction
 │   ├── responseParser.ts         # Response validation
+│   ├── text.ts                   # Text response parsing (NEW)
 │   └── index.ts
 │
 ├── features/                     # Feature definitions
-│   ├── speakerClassification.ts  # Speaker feature config
+│   ├── speaker/                  # Speaker classification (NEW MODULE)
+│   │   ├── types.ts              # Type definitions
+│   │   ├── utils.ts              # Helper functions
+│   │   ├── config.ts             # Prompts & configuration
+│   │   └── index.ts              # Public exports
+│   ├── speakerClassification.ts  # (Legacy - to be removed)
 │   ├── textRevision.ts           # Revision feature config
 │   └── index.ts
 │
@@ -46,7 +52,9 @@
     ├── jsonParser.test.ts        # 35 tests
     ├── responseParser.test.ts    # 23 tests
     ├── aiFeatureService.test.ts  # 9 tests
-    └── providerFactory.test.ts   # 21 tests
+    ├── providerFactory.test.ts   # 21 tests
+    ├── textParser.test.ts        # 27 tests (NEW)
+    └── speakerUtils.test.ts      # 20 tests (NEW)
 ```
 
 ### Migration Progress

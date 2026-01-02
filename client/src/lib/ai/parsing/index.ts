@@ -11,6 +11,23 @@ export {
   isArray,
   isObject,
 } from "./jsonParser";
+
+// Text Parser
+export {
+  parseTextResponse,
+  parseTextSimple,
+  stripQuotes,
+  stripCodeBlocks,
+  looksLikeError,
+  extractFirstParagraph,
+  removePreamble,
+} from "./text";
+
+export type {
+  TextParseOptions,
+  TextParseResult,
+} from "./text";
+
 // Response Parser
 export {
   createTypeGuard,
@@ -20,6 +37,7 @@ export {
   parseResponse,
   recoverPartialArray,
 } from "./responseParser";
+
 // Types
 export type {
   JsonParserOptions,
@@ -31,5 +49,6 @@ export type {
   ValidationResult,
 } from "./types";
 export { ParseError } from "./types";
+
 // Validator
 export { validate } from "./validator";

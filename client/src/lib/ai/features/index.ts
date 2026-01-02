@@ -38,6 +38,7 @@ export {
   segmentMergeConfig,
 } from "./segmentMerge";
 // ==================== Speaker Classification ====================
+// Re-export from new speaker/ module
 export {
   SPEAKER_SYSTEM_PROMPT,
   SPEAKER_USER_PROMPT_TEMPLATE,
@@ -46,7 +47,16 @@ export {
   type SpeakerSuggestion,
   speakerClassificationConfig,
   speakerResponseSchema,
-} from "./speakerClassification";
+} from "./speaker";
+
+// Also export utilities from speaker module
+export {
+  normalizeSpeakerTag,
+  resolveSuggestedSpeaker,
+  markNewSpeaker,
+  formatSegmentsForPrompt,
+  formatSpeakersForPrompt,
+} from "./speaker";
 // ==================== Text Revision ====================
 export {
   BUILTIN_REVISION_PROMPTS,
