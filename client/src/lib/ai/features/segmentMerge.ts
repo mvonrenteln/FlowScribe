@@ -114,4 +114,3 @@ export interface SegmentMergeInput {
  * Output from segment merge analysis.
  */
 export type SegmentMergeOutput = MergeSuggestion[];
-

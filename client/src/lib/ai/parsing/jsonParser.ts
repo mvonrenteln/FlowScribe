@@ -8,7 +8,7 @@
  * @module ai/parsing/jsonParser
  */
 
-import { ParseError, type JsonParserOptions } from "./types";
+import { type JsonParserOptions, ParseError } from "./types";
 
 // ==================== Main Parser ====================
 
@@ -272,4 +272,3 @@ export function getProperty<T>(obj: unknown, key: string, defaultValue: T): T {
 
   return value as T;
 }
-

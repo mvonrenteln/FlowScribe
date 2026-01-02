@@ -9,9 +9,9 @@
 
 // Re-export provider errors
 export {
-  AIProviderError,
-  AIProviderConnectionError,
   AIProviderAuthError,
+  AIProviderConnectionError,
+  AIProviderError,
   AIProviderRateLimitError,
 } from "../providers/types";
 
@@ -166,4 +166,3 @@ export function getErrorMessage(error: unknown): string {
   const aiError = toAIError(error);
   return aiError.toUserMessage();
 }
-

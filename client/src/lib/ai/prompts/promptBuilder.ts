@@ -180,7 +180,10 @@ function cleanupUnmatchedPlaceholders(template: string): string {
  * });
  * ```
  */
-export function compilePrompt(template: PromptTemplate, variables: PromptVariables): CompiledPrompt {
+export function compilePrompt(
+  template: PromptTemplate,
+  variables: PromptVariables,
+): CompiledPrompt {
   const systemPrompt = compileTemplate(template.systemPrompt, variables);
   const userPrompt = compileTemplate(template.userPromptTemplate, variables);
 
@@ -266,4 +269,3 @@ export function validateVariables(
     missing,
   };
 }
-

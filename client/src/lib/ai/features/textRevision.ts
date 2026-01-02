@@ -161,4 +161,3 @@ export interface TextRevisionOutput {
   revisedText: string;
   hasChanges: boolean;
 }
-

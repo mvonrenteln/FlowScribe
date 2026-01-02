@@ -6,15 +6,15 @@
 
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 import {
-  registerFeature,
+  clearRegistry,
+  getAllFeatures,
   getFeature,
   getFeatureOrThrow,
-  hasFeature,
-  getAllFeatures,
   getFeaturesByCategory,
-  unregisterFeature,
-  clearRegistry,
   getRegistrySize,
+  hasFeature,
+  registerFeature,
+  unregisterFeature,
 } from "../core/featureRegistry";
 import type { AIFeatureConfig } from "../core/types";
 
@@ -62,7 +62,7 @@ describe("Feature Registry", () => {
 
     it("should throw when registering duplicate", () => {
       registerFeature(testFeature);
-      expect(() => registerFeature(testFeature)).toThrow('already registered');
+      expect(() => registerFeature(testFeature)).toThrow("already registered");
     });
 
     it("should allow registering multiple features", () => {
@@ -93,7 +93,7 @@ describe("Feature Registry", () => {
     });
 
     it("should throw for unregistered feature", () => {
-      expect(() => getFeatureOrThrow("nonexistent" as any)).toThrow('not registered');
+      expect(() => getFeatureOrThrow("nonexistent" as any)).toThrow("not registered");
     });
   });
 
@@ -185,4 +185,3 @@ describe("Feature Registry", () => {
     });
   });
 });
-

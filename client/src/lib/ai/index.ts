@@ -24,62 +24,57 @@
 
 // Core exports
 export {
-  // Types
-  type AIFeatureType,
+  type AIBatchResult,
   type AIFeatureCategory,
   type AIFeatureConfig,
   type AIFeatureOptions,
   type AIFeatureResult,
   type AIFeatureState,
-  type AIBatchResult,
+  // Types
+  type AIFeatureType,
   type BatchCallbacks,
-
-  // Feature Registry
-  registerFeature,
-  getFeature,
-  getFeatureOrThrow,
-  hasFeature,
-  getAllFeatures,
-  getFeaturesByCategory,
-
+  classifySpeakers,
+  executeBatch,
   // Main Service
   executeFeature,
-  executeBatch,
-  classifySpeakers,
+  getAllFeatures,
+  getFeature,
+  getFeatureOrThrow,
+  getFeaturesByCategory,
+  hasFeature,
+  // Feature Registry
+  registerFeature,
   reviseText,
 } from "./core";
-
-// Prompt exports
+// Feature configurations
 export {
-  type PromptTemplate,
-  type PromptVariables,
-  type CompiledPrompt,
-  BUILTIN_PROMPT_IDS,
-  compileTemplate,
-  compilePrompt,
-  extractPlaceholders,
-  validateVariables,
-} from "./prompts";
+  BUILTIN_REVISION_PROMPTS,
+  type SpeakerSuggestion,
+  speakerClassificationConfig,
+  type TextRevisionInput,
+  type TextRevisionOutput,
+  textRevisionConfig,
+} from "./features";
 
 // Parsing exports
 export {
-  type ParseResult,
-  type ValidationResult,
-  type SimpleSchema,
-  ParseError,
   extractJSON,
-  parseResponse,
+  ParseError,
+  type ParseResult,
   parseArrayResponse,
+  parseResponse,
+  type SimpleSchema,
+  type ValidationResult,
   validate,
 } from "./parsing";
-
-// Feature configurations
+// Prompt exports
 export {
-  speakerClassificationConfig,
-  textRevisionConfig,
-  BUILTIN_REVISION_PROMPTS,
-  type SpeakerSuggestion,
-  type TextRevisionInput,
-  type TextRevisionOutput,
-} from "./features";
-
+  BUILTIN_PROMPT_IDS,
+  type CompiledPrompt,
+  compilePrompt,
+  compileTemplate,
+  extractPlaceholders,
+  type PromptTemplate,
+  type PromptVariables,
+  validateVariables,
+} from "./prompts";

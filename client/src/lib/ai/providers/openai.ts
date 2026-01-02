@@ -176,4 +176,3 @@ export class OpenAIProvider implements AIProviderService {
     return undefined;
   }
 }
-

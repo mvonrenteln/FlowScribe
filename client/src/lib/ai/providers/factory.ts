@@ -7,9 +7,9 @@
  * @module ai/providers/factory
  */
 
-import type { AIProviderConfig, AIProviderService } from "./types";
 import { OllamaProvider } from "./ollama";
 import { OpenAIProvider } from "./openai";
+import type { AIProviderConfig, AIProviderService } from "./types";
 
 /**
  * Creates an AI provider instance based on the configuration type.
@@ -114,4 +114,3 @@ export function validateProviderConfig(config: Partial<AIProviderConfig>): strin
 
   return errors;
 }
-

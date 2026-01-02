@@ -151,4 +151,3 @@ export interface ResponseParserOptions<T> {
   /** Custom transform function to apply after parsing */
   transform?: (data: unknown) => T;
 }
-

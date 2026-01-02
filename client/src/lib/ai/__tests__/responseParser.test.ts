@@ -6,11 +6,11 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  parseResponse,
+  createTypeGuard,
   parseArrayResponse,
   parseObjectResponse,
+  parseResponse,
   recoverPartialArray,
-  createTypeGuard,
 } from "../parsing/responseParser";
 import type { SimpleSchema } from "../parsing/types";
 
@@ -23,7 +23,7 @@ describe("parseResponse", () => {
     });
 
     it("should parse from code block", () => {
-      const result = parseResponse<number[]>('```json\n[1, 2, 3]\n```');
+      const result = parseResponse<number[]>("```json\n[1, 2, 3]\n```");
       expect(result.success).toBe(true);
       expect(result.data).toEqual([1, 2, 3]);
     });
@@ -52,30 +52,23 @@ describe("parseResponse", () => {
     };
 
     it("should validate against schema", () => {
-      const result = parseResponse<{ name: string; age: number }>(
-        '{"name": "Alice", "age": 30}',
-        { schema: userSchema }
-      );
+      const result = parseResponse<{ name: string; age: number }>('{"name": "Alice", "age": 30}', {
+        schema: userSchema,
+      });
       expect(result.success).toBe(true);
       expect(result.data).toEqual({ name: "Alice", age: 30 });
       expect(result.metadata.validated).toBe(true);
     });
 
     it("should fail for missing required fields", () => {
-      const result = parseResponse<{ name: string }>(
-        '{"age": 30}',
-        { schema: userSchema }
-      );
+      const result = parseResponse<{ name: string }>('{"age": 30}', { schema: userSchema });
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(result.error?.message).toMatch(/name|required|missing/i);
     });
 
     it("should fail for type mismatch", () => {
-      const result = parseResponse<{ name: string }>(
-        '{"name": 123}',
-        { schema: userSchema }
-      );
+      const result = parseResponse<{ name: string }>('{"name": 123}', { schema: userSchema });
       // This should coerce number to string with a warning, not fail
       // since we have lenient coercion
       expect(result.success).toBe(true);
@@ -92,10 +85,10 @@ describe("parseResponse", () => {
         required: ["name"],
       };
 
-      const result = parseResponse<{ name: string; role: string }>(
-        '{"name": "Alice"}',
-        { schema: schemaWithDefault, applyDefaults: true }
-      );
+      const result = parseResponse<{ name: string; role: string }>('{"name": "Alice"}', {
+        schema: schemaWithDefault,
+        applyDefaults: true,
+      });
       expect(result.success).toBe(true);
       expect(result.data?.role).toBe("user");
     });
@@ -103,25 +96,19 @@ describe("parseResponse", () => {
 
   describe("with transform function", () => {
     it("should apply transform to parsed data", () => {
-      const result = parseResponse<string>(
-        '{"text": "hello"}',
-        {
-          transform: (data) => (data as { text: string }).text.toUpperCase(),
-        }
-      );
+      const result = parseResponse<string>('{"text": "hello"}', {
+        transform: (data) => (data as { text: string }).text.toUpperCase(),
+      });
       expect(result.success).toBe(true);
       expect(result.data).toBe("HELLO");
     });
 
     it("should handle transform errors", () => {
-      const result = parseResponse<string>(
-        '{"text": "hello"}',
-        {
-          transform: () => {
-            throw new Error("Transform failed");
-          },
-        }
-      );
+      const result = parseResponse<string>('{"text": "hello"}', {
+        transform: () => {
+          throw new Error("Transform failed");
+        },
+      });
       expect(result.success).toBe(false);
       expect(result.error?.message).toContain("Transform failed");
     });
@@ -152,10 +139,7 @@ describe("parseResponse", () => {
       };
 
       // String coerced to number
-      const result = parseResponse<{ count: number }>(
-        '{"count": "42"}',
-        { schema }
-      );
+      const result = parseResponse<{ count: number }>('{"count": "42"}', { schema });
       expect(result.success).toBe(true);
       expect(result.metadata.warnings.length).toBeGreaterThan(0);
     });
@@ -181,7 +165,7 @@ describe("parseArrayResponse", () => {
 
     const result = parseArrayResponse<{ id: number; name: string }>(
       '[{"id": 1, "name": "Alice"}, {"id": 2, "name": "Bob"}]',
-      itemSchema
+      itemSchema,
     );
     expect(result.success).toBe(true);
     expect(result.data?.length).toBe(2);
@@ -198,7 +182,7 @@ describe("parseObjectResponse", () => {
     const result = parseObjectResponse<{ name: string }>(
       '{"name": "Alice"}',
       { name: { type: "string" } },
-      ["name"]
+      ["name"],
     );
     expect(result.success).toBe(true);
     expect(result.data).toEqual({ name: "Alice" });
@@ -208,7 +192,7 @@ describe("parseObjectResponse", () => {
     const result = parseObjectResponse<{ name: string }>(
       '{"age": 30}',
       { name: { type: "string" } },
-      ["name"]
+      ["name"],
     );
     expect(result.success).toBe(false);
   });
@@ -230,7 +214,8 @@ describe("recoverPartialArray", () => {
   };
 
   it("should recover valid items from array", () => {
-    const input = '[{"tag": "A", "confidence": 0.9}, {"invalid": true}, {"tag": "B", "confidence": 0.8}]';
+    const input =
+      '[{"tag": "A", "confidence": 0.9}, {"invalid": true}, {"tag": "B", "confidence": 0.8}]';
     const { recovered, skipped } = recoverPartialArray<Item>(input, isItem);
 
     expect(recovered.length).toBe(2);
@@ -270,4 +255,3 @@ describe("createTypeGuard", () => {
     expect(isUser("not an object")).toBe(false);
   });
 });
-

@@ -12,31 +12,27 @@
 
 // Re-export everything from the new location
 export {
+  AIProviderAuthError,
+  type AIProviderConfig,
+  AIProviderConnectionError,
+  // Errors
+  AIProviderError,
+  AIProviderRateLimitError,
+  type AIProviderService,
   // Types
   type AIProviderType,
-  type AIProviderConfig,
-  type AIProviderService,
-  type ChatRole,
   type ChatMessage,
   type ChatOptions,
   type ChatResponse,
-
-  // Errors
-  AIProviderError,
-  AIProviderConnectionError,
-  AIProviderAuthError,
-  AIProviderRateLimitError,
-
+  type ChatRole,
+  createAIProvider, // deprecated alias
+  // Factory functions
+  createProvider,
+  createProviderConfig,
+  DEFAULT_PROVIDER_CONFIGS,
+  generateProviderId,
   // Providers
   OllamaProvider,
   OpenAIProvider,
-
-  // Factory functions
-  createProvider,
-  createAIProvider, // deprecated alias
-  createProviderConfig,
-  generateProviderId,
   validateProviderConfig,
-  DEFAULT_PROVIDER_CONFIGS,
 } from "@/lib/ai/providers";
-

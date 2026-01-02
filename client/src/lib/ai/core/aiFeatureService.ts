@@ -8,11 +8,13 @@
  * @module ai/core/aiFeatureService
  */
 
-import { createAIProvider } from "@/lib/services/aiProviderService";
-import type { AIProviderConfig, ChatMessage } from "@/lib/services/aiProviderTypes";
-import { initializeSettings } from "@/lib/settings/settingsStorage";
-
+import { parseResponse } from "../parsing/responseParser";
+import { compileTemplate } from "../prompts/promptBuilder";
+import type { PromptVariables } from "../prompts/types";
+import type { ChatMessage } from "../providers/types";
+import { AICancellationError, AIParseError, isCancellationError, toAIError } from "./errors";
 import { getFeatureOrThrow } from "./featureRegistry";
+import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
   AIFeatureOptions,
@@ -20,9 +22,6 @@ import type {
   AIFeatureType,
   BatchCallbacks,
 } from "./types";
-import { parseResponse } from "../parsing/responseParser";
-import { compileTemplate } from "../prompts/promptBuilder";
-import type { PromptVariables } from "../prompts/types";
 
 // ==================== Main Service ====================
 
@@ -58,8 +57,13 @@ export async function executeFeature<TOutput>(
   const startTime = Date.now();
   const config = getFeatureOrThrow(featureId);
 
-  // Get provider configuration
-  const providerConfig = await getProviderConfig(options);
+  // Resolve provider using unified resolver
+  const resolveOptions: ProviderResolveOptions = {
+    providerId: options.provider?.id,
+    model: options.model,
+  };
+
+  const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -74,9 +78,7 @@ export async function executeFeature<TOutput>(
   ];
 
   try {
-    // Create provider and execute
-    const provider = createAIProvider(providerConfig);
-
+    // Execute chat request
     const response = await provider.chat(messages, {
       ...options.chatOptions,
       signal: options.signal,
@@ -114,17 +116,20 @@ export async function executeFeature<TOutput>(
     };
   } catch (error) {
     // Handle cancellation
-    if (error instanceof Error && error.name === "AbortError") {
+    if (isCancellationError(error)) {
+      const cancelError = new AICancellationError();
       return {
         success: false,
-        error: "Operation cancelled",
+        error: cancelError.toUserMessage(),
         metadata: buildMetadata(featureId, providerConfig, startTime),
       };
     }
 
+    // Convert to unified error
+    const aiError = toAIError(error);
     return {
       success: false,
-      error: error instanceof Error ? error.message : String(error),
+      error: aiError.toUserMessage(),
       metadata: buildMetadata(featureId, providerConfig, startTime),
     };
   }
@@ -233,40 +238,11 @@ export async function executeBatch<TOutput>(
 // ==================== Helpers ====================
 
 /**
- * Get provider configuration from options or settings.
- */
-async function getProviderConfig(options: AIFeatureOptions): Promise<AIProviderConfig> {
-  if (options.provider) {
-    // Apply model override if specified
-    if (options.model) {
-      return { ...options.provider, model: options.model };
-    }
-    return options.provider;
-  }
-
-  // Get from settings
-  const settings = await initializeSettings();
-  const providers = settings.aiProviders ?? [];
-  const defaultProvider = providers.find((p) => p.isDefault) ?? providers[0];
-
-  if (!defaultProvider) {
-    throw new Error("No AI provider configured. Please add a provider in settings.");
-  }
-
-  // Apply model override if specified
-  if (options.model) {
-    return { ...defaultProvider, model: options.model };
-  }
-
-  return defaultProvider;
-}
-
-/**
  * Build result metadata.
  */
 function buildMetadata(
   featureId: AIFeatureType,
-  providerConfig: AIProviderConfig,
+  providerConfig: { id: string; model: string },
   startTime: number,
   usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number },
 ): AIFeatureResult<unknown>["metadata"] {
@@ -296,16 +272,18 @@ export async function classifySpeakers(
   options: AIFeatureOptions = {},
 ): Promise<AIFeatureResult<Array<{ tag: string; confidence: number; reason?: string }>>> {
   // Format segments for prompt
-  const segmentsText = segments
-    .map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`)
-    .join("\n");
+  const segmentsText = segments.map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`).join("\n");
 
   const speakersText = availableSpeakers.join(", ");
 
-  return executeFeature("speaker-classification", {
-    segments: segmentsText,
-    speakers: speakersText,
-  }, options);
+  return executeFeature(
+    "speaker-classification",
+    {
+      segments: segmentsText,
+      speakers: speakersText,
+    },
+    options,
+  );
 }
 
 /**
@@ -316,9 +294,12 @@ export async function reviseText(
   context: { previousText?: string; nextText?: string; speaker?: string } = {},
   options: AIFeatureOptions = {},
 ): Promise<AIFeatureResult<string>> {
-  return executeFeature("text-revision", {
-    text,
-    ...context,
-  }, options);
+  return executeFeature(
+    "text-revision",
+    {
+      text,
+      ...context,
+    },
+    options,
+  );
 }
-

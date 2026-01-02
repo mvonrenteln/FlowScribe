@@ -1,5 +1,57 @@
 # AI Features: Unified Architecture & Implementation Guide
-*Last Updated: January 1, 2026*
+*Last Updated: January 2, 2026*
+
+---
+
+## Current Implementation Status
+
+### File Structure (Implemented)
+
+```
+/src/lib/ai/
+├── core/                         # Core infrastructure
+│   ├── types.ts                  # Unified types
+│   ├── aiFeatureService.ts       # Feature execution service
+│   ├── featureRegistry.ts        # Feature registration
+│   ├── providerResolver.ts       # Provider resolution (NEW)
+│   ├── errors.ts                 # Unified error types (NEW)
+│   └── index.ts                  # Public exports
+│
+├── providers/                    # AI Provider Layer (NEW)
+│   ├── types.ts                  # Provider interfaces
+│   ├── factory.ts                # Provider factory
+│   ├── ollama.ts                 # Ollama provider
+│   ├── openai.ts                 # OpenAI provider
+│   └── index.ts                  # Public exports
+│
+├── prompts/                      # Prompt building
+│   ├── types.ts                  # Prompt types
+│   ├── promptBuilder.ts          # Template compilation
+│   └── index.ts
+│
+├── parsing/                      # Response parsing
+│   ├── jsonParser.ts             # JSON extraction
+│   ├── responseParser.ts         # Response validation
+│   └── index.ts
+│
+├── features/                     # Feature definitions
+│   ├── speakerClassification.ts  # Speaker feature config
+│   ├── textRevision.ts           # Revision feature config
+│   └── index.ts
+│
+└── __tests__/                    # Test suite
+    ├── errors.test.ts            # 24 tests
+    ├── featureRegistry.test.ts   # 17 tests
+    ├── promptBuilder.test.ts     # 30 tests
+    ├── jsonParser.test.ts        # 35 tests
+    ├── responseParser.test.ts    # 23 tests
+    ├── aiFeatureService.test.ts  # 9 tests
+    └── providerFactory.test.ts   # 21 tests
+```
+
+### Migration Progress
+
+See [ai-migration-plan.md](./ai-migration-plan.md) for detailed migration status.
 
 ---
 

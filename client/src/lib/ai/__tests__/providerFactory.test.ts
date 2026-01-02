@@ -8,9 +8,9 @@ import { describe, expect, it } from "vitest";
 import {
   createProvider,
   createProviderConfig,
+  DEFAULT_PROVIDER_CONFIGS,
   generateProviderId,
   validateProviderConfig,
-  DEFAULT_PROVIDER_CONFIGS,
 } from "../providers/factory";
 import { OllamaProvider } from "../providers/ollama";
 import { OpenAIProvider } from "../providers/openai";
@@ -234,5 +234,3 @@ describe("DEFAULT_PROVIDER_CONFIGS", () => {
     expect(ollamaConfig?.baseUrl).toBe("http://localhost:11434");
   });
 });
-
-

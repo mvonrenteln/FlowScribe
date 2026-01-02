@@ -7,36 +7,32 @@
  * @module ai/providers
  */
 
-// Types
-export type {
-  AIProviderType,
-  AIProviderConfig,
-  AIProviderService,
-  ChatRole,
-  ChatMessage,
-  ChatOptions,
-  ChatResponse,
-} from "./types";
-
-// Error classes
+// Factory
 export {
-  AIProviderError,
-  AIProviderConnectionError,
-  AIProviderAuthError,
-  AIProviderRateLimitError,
-} from "./types";
-
+  createAIProvider, // deprecated alias
+  createProvider,
+  createProviderConfig,
+  DEFAULT_PROVIDER_CONFIGS,
+  generateProviderId,
+  validateProviderConfig,
+} from "./factory";
 // Provider implementations
 export { OllamaProvider } from "./ollama";
 export { OpenAIProvider } from "./openai";
-
-// Factory
+// Types
+export type {
+  AIProviderConfig,
+  AIProviderService,
+  AIProviderType,
+  ChatMessage,
+  ChatOptions,
+  ChatResponse,
+  ChatRole,
+} from "./types";
+// Error classes
 export {
-  createProvider,
-  createAIProvider, // deprecated alias
-  createProviderConfig,
-  generateProviderId,
-  validateProviderConfig,
-  DEFAULT_PROVIDER_CONFIGS,
-} from "./factory";
-
+  AIProviderAuthError,
+  AIProviderConnectionError,
+  AIProviderError,
+  AIProviderRateLimitError,
+} from "./types";

@@ -140,7 +140,7 @@ export const TRANSFORMATION_TYPES: Record<
     description: "Structured meeting notes with action items",
     systemPrompt: TRANSFORM_MEETING_NOTES_SYSTEM_PROMPT,
   },
-  "article": {
+  article: {
     name: "Article",
     description: "Blog post or article format",
     systemPrompt: TRANSFORM_SUMMARY_SYSTEM_PROMPT,
@@ -156,4 +156,3 @@ export const TRANSFORMATION_TYPES: Record<
     systemPrompt: TRANSFORM_MEETING_NOTES_SYSTEM_PROMPT,
   },
 };
-

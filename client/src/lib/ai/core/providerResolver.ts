@@ -9,9 +9,8 @@
  */
 
 import { initializeSettings } from "@/lib/settings/settingsStorage";
-import type { AIProviderConfig } from "../providers/types";
 import { createProvider } from "../providers/factory";
-import type { AIProviderService } from "../providers/types";
+import type { AIProviderConfig, AIProviderService } from "../providers/types";
 
 // ==================== Types ====================
 
@@ -71,7 +70,7 @@ export interface ResolvedProvider {
  * ```
  */
 export async function resolveProvider(
-  options: ProviderResolveOptions = {}
+  options: ProviderResolveOptions = {},
 ): Promise<ResolvedProvider> {
   let config: AIProviderConfig | null = null;
   let source: ResolvedProvider["source"] = "first";
@@ -147,9 +146,7 @@ export async function resolveProvider(
  *
  * @deprecated Use `resolveProvider` instead.
  */
-export function resolveProviderSync(
-  options: ProviderResolveOptions = {}
-): ResolvedProvider {
+export function resolveProviderSync(options: ProviderResolveOptions = {}): ResolvedProvider {
   let config: AIProviderConfig | null = null;
   let source: ResolvedProvider["source"] = "first";
 
@@ -177,7 +174,8 @@ export function resolveProviderSync(
     }
 
     if (!config && settings.defaultAIProviderId) {
-      config = providers.find((p: AIProviderConfig) => p.id === settings.defaultAIProviderId) ?? null;
+      config =
+        providers.find((p: AIProviderConfig) => p.id === settings.defaultAIProviderId) ?? null;
       if (config) source = "default";
     }
 
@@ -205,4 +203,3 @@ export function resolveProviderSync(
 
   return { config, service, source };
 }
-

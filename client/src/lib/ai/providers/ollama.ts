@@ -157,4 +157,3 @@ export class OllamaProvider implements AIProviderService {
     }
   }
 }
-

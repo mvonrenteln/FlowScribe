@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { extractJSON, isObject, isArray, getProperty } from "../parsing/jsonParser";
+import { extractJSON, getProperty, isArray, isObject } from "../parsing/jsonParser";
 import { ParseError } from "../parsing/types";
 
 describe("extractJSON", () => {
@@ -16,7 +16,7 @@ describe("extractJSON", () => {
     });
 
     it("should parse valid JSON array", () => {
-      const result = extractJSON('[1, 2, 3]');
+      const result = extractJSON("[1, 2, 3]");
       expect(result).toEqual([1, 2, 3]);
     });
 
@@ -62,7 +62,7 @@ describe("extractJSON", () => {
     });
 
     it("should find JSON array in surrounding text", () => {
-      const input = 'Here are the items: [1, 2, 3] done.';
+      const input = "Here are the items: [1, 2, 3] done.";
       const result = extractJSON(input);
       expect(result).toEqual([1, 2, 3]);
     });
@@ -94,7 +94,7 @@ describe("extractJSON", () => {
     });
 
     it("should fix missing closing brackets", () => {
-      const input = '[1, 2, 3';
+      const input = "[1, 2, 3";
       const result = extractJSON(input);
       expect(result).toEqual([1, 2, 3]);
     });
@@ -249,4 +249,3 @@ describe("getProperty", () => {
     expect(getProperty({ key: undefined }, "key", "default")).toBe("default");
   });
 });
-

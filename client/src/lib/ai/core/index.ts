@@ -4,62 +4,58 @@
  * @module ai/core
  */
 
+// AI Feature Service
+export {
+  classifySpeakers,
+  executeBatch,
+  executeFeature,
+  reviseText,
+} from "./aiFeatureService";
+// Errors
+export {
+  AICancellationError,
+  AIConfigurationError,
+  AIError,
+  AIFeatureNotFoundError,
+  AIParseError,
+  AIValidationError,
+  getErrorMessage,
+  isCancellationError,
+  toAIError,
+} from "./errors";
+// Feature Registry
+export {
+  clearRegistry,
+  getAllFeatures,
+  getFeature,
+  getFeatureOrThrow,
+  getFeaturesByCategory,
+  getRegistrySize,
+  hasFeature,
+  registerDefaultFeatures,
+  registerFeature,
+  unregisterFeature,
+} from "./featureRegistry";
+
+// Provider Resolver
+export {
+  type ProviderResolveOptions,
+  type ResolvedProvider,
+  resolveProvider,
+  resolveProviderSync,
+} from "./providerResolver";
 // Types
 export type {
-  AIFeatureType,
+  AIBatchResult,
   AIFeatureCategory,
   AIFeatureConfig,
   AIFeatureOptions,
   AIFeatureResult,
   AIFeatureState,
-  AIBatchResult,
+  AIFeatureType,
   BatchCallbacks,
-  ResponseSchema,
-  PropertySchema,
   CompiledMessages,
   FeatureRegistryEntry,
+  PropertySchema,
+  ResponseSchema,
 } from "./types";
-
-// Feature Registry
-export {
-  registerFeature,
-  getFeature,
-  getFeatureOrThrow,
-  hasFeature,
-  getAllFeatures,
-  getFeaturesByCategory,
-  unregisterFeature,
-  clearRegistry,
-  getRegistrySize,
-  registerDefaultFeatures,
-} from "./featureRegistry";
-
-// AI Feature Service
-export {
-  executeFeature,
-  executeBatch,
-  classifySpeakers,
-  reviseText,
-} from "./aiFeatureService";
-
-// Provider Resolver
-export {
-  resolveProvider,
-  resolveProviderSync,
-  type ProviderResolveOptions,
-  type ResolvedProvider,
-} from "./providerResolver";
-
-// Errors
-export {
-  AIError,
-  AIParseError,
-  AIValidationError,
-  AICancellationError,
-  AIConfigurationError,
-  AIFeatureNotFoundError,
-  isCancellationError,
-  toAIError,
-  getErrorMessage,
-} from "./errors";
-

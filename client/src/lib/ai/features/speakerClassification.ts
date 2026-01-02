@@ -146,4 +146,3 @@ export interface SpeakerClassificationInput {
  * Output from speaker classification.
  */
 export type SpeakerClassificationOutput = SpeakerSuggestion[];
-

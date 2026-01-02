@@ -179,7 +179,14 @@ function validateObject(
       const propValue = data[key];
 
       if (propValue !== undefined) {
-        result[key] = validateNode(propValue, propSchema, propPath, errors, warnings, applyDefaults);
+        result[key] = validateNode(
+          propValue,
+          propSchema,
+          propPath,
+          errors,
+          warnings,
+          applyDefaults,
+        );
       } else if (propSchema.default !== undefined && applyDefaults) {
         result[key] = propSchema.default;
       }
@@ -297,4 +304,3 @@ function getType(value: unknown): SimpleSchema["type"] {
   }
   return "string"; // Default fallback
 }
-

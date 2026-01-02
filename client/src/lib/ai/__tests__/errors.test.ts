@@ -6,15 +6,15 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  AIError,
-  AIParseError,
-  AIValidationError,
   AICancellationError,
   AIConfigurationError,
+  AIError,
   AIFeatureNotFoundError,
+  AIParseError,
+  AIValidationError,
+  getErrorMessage,
   isCancellationError,
   toAIError,
-  getErrorMessage,
 } from "../core/errors";
 
 describe("AIError", () => {
@@ -165,4 +165,3 @@ describe("getErrorMessage", () => {
     expect(getErrorMessage(error)).toBe("Test error");
   });
 });
-

@@ -29,10 +29,10 @@ export type AIFeatureType =
  * Used for UI rendering and result handling.
  */
 export type AIFeatureCategory =
-  | "metadata"      // Returns structured metadata (labels, tags)
-  | "text"          // Returns transformed text
-  | "structural"    // Returns operation suggestions
-  | "export";       // Returns formatted documents
+  | "metadata" // Returns structured metadata (labels, tags)
+  | "text" // Returns transformed text
+  | "structural" // Returns operation suggestions
+  | "export"; // Returns formatted documents
 
 // ==================== Feature Configuration ====================
 
@@ -244,4 +244,3 @@ export interface FeatureRegistryEntry {
   config: AIFeatureConfig;
   registeredAt: Date;
 }
-

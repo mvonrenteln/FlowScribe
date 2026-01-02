@@ -145,4 +145,3 @@ export function registerDefaultFeatures(): void {
 
 // Auto-register on module load
 // registerDefaultFeatures();  // Uncomment when feature configs are ready
-

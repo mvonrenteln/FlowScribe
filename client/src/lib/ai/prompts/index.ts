@@ -4,23 +4,20 @@
  * @module ai/prompts
  */
 
-// Types
-export type {
-  PromptTemplate,
-  PromptVariables,
-  CompiledPrompt,
-  RegisterPromptOptions,
-  PromptOperationResult,
-  BuiltinPromptId,
-} from "./types";
-
-export { BUILTIN_PROMPT_IDS } from "./types";
-
 // Prompt Builder
 export {
-  compileTemplate,
   compilePrompt,
+  compileTemplate,
   extractPlaceholders,
   validateVariables,
 } from "./promptBuilder";
-
+// Types
+export type {
+  BuiltinPromptId,
+  CompiledPrompt,
+  PromptOperationResult,
+  PromptTemplate,
+  PromptVariables,
+  RegisterPromptOptions,
+} from "./types";
+export { BUILTIN_PROMPT_IDS } from "./types";

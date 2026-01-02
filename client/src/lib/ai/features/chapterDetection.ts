@@ -127,4 +127,3 @@ export const CHAPTER_GRANULARITY = {
   medium: { label: "Medium", chaptersPerHour: "6-10" },
   fine: { label: "Fine", chaptersPerHour: "10+" },
 } as const;
-

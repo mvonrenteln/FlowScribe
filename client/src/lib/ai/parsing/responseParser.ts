@@ -146,10 +146,7 @@ export function parseResponse<T>(
 /**
  * Parse a response expecting an array.
  */
-export function parseArrayResponse<T>(
-  input: string,
-  itemSchema?: SimpleSchema,
-): ParseResult<T[]> {
+export function parseArrayResponse<T>(input: string, itemSchema?: SimpleSchema): ParseResult<T[]> {
   const schema: SimpleSchema = {
     type: "array",
     items: itemSchema,
@@ -242,4 +239,3 @@ export function createTypeGuard<T>(schema: SimpleSchema): (value: unknown) => va
     return result.valid;
   };
 }
-

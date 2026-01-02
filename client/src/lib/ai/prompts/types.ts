@@ -139,4 +139,3 @@ export const BUILTIN_PROMPT_IDS = {
 } as const;
 
 export type BuiltinPromptId = (typeof BUILTIN_PROMPT_IDS)[keyof typeof BUILTIN_PROMPT_IDS];
-

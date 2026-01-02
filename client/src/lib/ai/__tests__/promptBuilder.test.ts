@@ -6,8 +6,8 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  compileTemplate,
   compilePrompt,
+  compileTemplate,
   extractPlaceholders,
   validateVariables,
 } from "../prompts/promptBuilder";
@@ -46,34 +46,22 @@ describe("compileTemplate", () => {
 
   describe("conditional blocks", () => {
     it("should include block when condition is truthy", () => {
-      const result = compileTemplate(
-        "Hello{{#if name}}, {{name}}{{/if}}!",
-        { name: "Alice" }
-      );
+      const result = compileTemplate("Hello{{#if name}}, {{name}}{{/if}}!", { name: "Alice" });
       expect(result).toBe("Hello, Alice!");
     });
 
     it("should exclude block when condition is falsy", () => {
-      const result = compileTemplate(
-        "Hello{{#if name}}, {{name}}{{/if}}!",
-        {}
-      );
+      const result = compileTemplate("Hello{{#if name}}, {{name}}{{/if}}!", {});
       expect(result).toBe("Hello!");
     });
 
     it("should handle empty string as falsy", () => {
-      const result = compileTemplate(
-        "{{#if text}}Has text{{/if}}",
-        { text: "" }
-      );
+      const result = compileTemplate("{{#if text}}Has text{{/if}}", { text: "" });
       expect(result).toBe("");
     });
 
     it("should handle nested conditionals", () => {
-      const result = compileTemplate(
-        "{{#if a}}A{{#if b}}B{{/if}}{{/if}}",
-        { a: true, b: true }
-      );
+      const result = compileTemplate("{{#if a}}A{{#if b}}B{{/if}}{{/if}}", { a: true, b: true });
       expect(result).toBe("AB");
     });
 
@@ -97,43 +85,39 @@ TEXT: {{text}}`;
 
   describe("each blocks", () => {
     it("should iterate over array with {{this}}", () => {
-      const result = compileTemplate(
-        "Items: {{#each items}}{{this}}, {{/each}}",
-        { items: ["a", "b", "c"] }
-      );
+      const result = compileTemplate("Items: {{#each items}}{{this}}, {{/each}}", {
+        items: ["a", "b", "c"],
+      });
       expect(result).toBe("Items: a, b, c,");
     });
 
     it("should provide index with {{@index}}", () => {
-      const result = compileTemplate(
-        "{{#each items}}{{@index}}: {{this}}\n{{/each}}",
-        { items: ["first", "second"] }
-      );
+      const result = compileTemplate("{{#each items}}{{@index}}: {{this}}\n{{/each}}", {
+        items: ["first", "second"],
+      });
       expect(result).toContain("0: first");
       expect(result).toContain("1: second");
     });
 
     it("should handle empty arrays", () => {
-      const result = compileTemplate(
-        "Items: {{#each items}}{{this}}{{/each}}",
-        { items: [] }
-      );
+      const result = compileTemplate("Items: {{#each items}}{{this}}{{/each}}", { items: [] });
       expect(result).toBe("Items:");
     });
 
     it("should handle non-array values", () => {
-      const result = compileTemplate(
-        "Items: {{#each items}}{{this}}{{/each}}",
-        { items: "not an array" }
-      );
+      const result = compileTemplate("Items: {{#each items}}{{this}}{{/each}}", {
+        items: "not an array",
+      });
       expect(result).toBe("Items:");
     });
 
     it("should access object properties in each", () => {
-      const result = compileTemplate(
-        "{{#each users}}{{this.name}}: {{this.role}}\n{{/each}}",
-        { users: [{ name: "Alice", role: "Admin" }, { name: "Bob", role: "User" }] }
-      );
+      const result = compileTemplate("{{#each users}}{{this.name}}: {{this.role}}\n{{/each}}", {
+        users: [
+          { name: "Alice", role: "Admin" },
+          { name: "Bob", role: "User" },
+        ],
+      });
       expect(result).toContain("Alice: Admin");
       expect(result).toContain("Bob: User");
     });
@@ -256,4 +240,3 @@ describe("validateVariables", () => {
     expect(result.valid).toBe(true);
   });
 });
-
