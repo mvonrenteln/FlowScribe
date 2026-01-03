@@ -13,11 +13,11 @@
 │   ├── types.ts                  # Unified types
 │   ├── aiFeatureService.ts       # Feature execution service
 │   ├── featureRegistry.ts        # Feature registration
-│   ├── providerResolver.ts       # Provider resolution (NEW)
-│   ├── errors.ts                 # Unified error types (NEW)
+│   ├── providerResolver.ts       # Provider resolution
+│   ├── errors.ts                 # Unified error types
 │   └── index.ts                  # Public exports
 │
-├── providers/                    # AI Provider Layer (NEW)
+├── providers/                    # AI Provider Layer
 │   ├── types.ts                  # Provider interfaces
 │   ├── factory.ts                # Provider factory
 │   ├── ollama.ts                 # Ollama provider
@@ -32,29 +32,41 @@
 ├── parsing/                      # Response parsing
 │   ├── jsonParser.ts             # JSON extraction
 │   ├── responseParser.ts         # Response validation
-│   ├── text.ts                   # Text response parsing (NEW)
+│   ├── textParser.ts             # Text response parsing
+│   ├── validator.ts              # Schema validation
 │   └── index.ts
 │
 ├── features/                     # Feature definitions
-│   ├── speaker/                  # Speaker classification (NEW MODULE)
+│   ├── speaker/                  # Speaker classification module
 │   │   ├── types.ts              # Type definitions
-│   │   ├── utils.ts              # Helper functions
+│   │   ├── utils.ts              # Pure helper functions
 │   │   ├── config.ts             # Prompts & configuration
+│   │   ├── service.ts            # AI service functions
 │   │   └── index.ts              # Public exports
-│   ├── speakerClassification.ts  # (Legacy - to be removed)
-│   ├── textRevision.ts           # Revision feature config
+│   ├── revision/                 # Text revision module
+│   │   ├── types.ts              # Type definitions
+│   │   ├── utils.ts              # Pure helper functions (NEW)
+│   │   ├── config.ts             # Prompts & configuration
+│   │   ├── service.ts            # AI service functions
+│   │   └── index.ts              # Public exports
+│   ├── chapterDetection.ts       # Chapter feature config (placeholder)
+│   ├── contentTransformation.ts  # Transform config (placeholder)
+│   ├── segmentMerge.ts           # Merge config (placeholder)
 │   └── index.ts
 │
-└── __tests__/                    # Test suite
+└── __tests__/                    # Test suite (641 total tests)
     ├── errors.test.ts            # 24 tests
     ├── featureRegistry.test.ts   # 17 tests
     ├── promptBuilder.test.ts     # 30 tests
     ├── jsonParser.test.ts        # 35 tests
     ├── responseParser.test.ts    # 23 tests
+    ├── textParser.test.ts        # 42 tests
     ├── aiFeatureService.test.ts  # 9 tests
     ├── providerFactory.test.ts   # 21 tests
-    ├── textParser.test.ts        # 27 tests (NEW)
-    └── speakerUtils.test.ts      # 20 tests (NEW)
+    ├── speakerUtils.test.ts      # 29 tests
+    ├── speakerService.test.ts    # 14 tests
+    ├── revisionUtils.test.ts     # 38 tests (NEW)
+    └── revisionService.test.ts   # 15 tests
 ```
 
 ### Migration Progress
@@ -157,6 +169,77 @@ Every component designed for testability:
 - **Dependency injection** for services (mockable)
 - **Component isolation** (React Testing Library)
 - **Integration tests** for workflows (E2E with Playwright)
+
+#### Test Coverage Strategy (ADR-2026-01-03)
+
+**Decision:** Not all code requires 80% unit test coverage. We differentiate based on code category.
+
+**Rationale:**
+- Integration code (HTTP clients, AI orchestration) is difficult to unit test meaningfully
+- Mocking external dependencies often tests mocks, not real behavior
+- Pure functions provide high value per test; integration code does not
+- Limited resources should focus on high-value tests
+
+**Coverage Targets by Category:**
+
+| Category | Target | Rationale |
+|----------|--------|-----------|
+| **Pure Functions** (`utils.ts`, `parsing/`) | 80%+ | Easy to test, high value, no mocking needed |
+| **Prompt Building** (`prompts/`) | 90%+ | Critical for AI quality, pure string transforms |
+| **Feature Config** (`config.ts`) | 50%+ | Mostly static data, test structure not content |
+| **Orchestration** (`aiFeatureService.ts`) | 30-50% | Integration code, test critical paths only |
+| **HTTP Providers** (`providers/`) | 20-30% | External deps, prefer E2E tests |
+
+**Implementation Pattern:**
+```typescript
+// BAD: Trying to unit test integration code
+async function reviseSegment(params) {
+  const result = await executeFeature(...);  // Hard to mock meaningfully
+  const changes = computeChanges(...);       // Mixed concerns
+  return { ... };
+}
+
+// GOOD: Extract pure functions for testing
+// In utils.ts (easily testable):
+export function buildPromptVariables(segment, context) { ... }
+export function hasTextChanges(original, revised) { ... }
+export function validatePrompt(prompt) { ... }
+
+// In service.ts (integration, minimal testing):
+async function reviseSegment(params) {
+  const vars = buildPromptVariables(params.segment, context);  // Tested separately
+  const result = await executeFeature(...);                      // Integration only
+  return processResult(result);                                   // Tested separately
+}
+```
+
+**Current Coverage (as of 2026-01-03):**
+
+| Module | Coverage | Status |
+|--------|----------|--------|
+| `prompts/` | 98.46% | ✅ Excellent |
+| `parsing/` | 87.10% | ✅ Good |
+| `features/speaker/utils.ts` | 85%+ | ✅ Good |
+| `features/revision/utils.ts` | 90%+ | ✅ Good (38 tests) |
+| `core/` | 32.70% | ⚠️ Integration code |
+| `providers/` | 31.78% | ⚠️ HTTP clients |
+
+**Test File Organization:**
+```
+/src/lib/ai/__tests__/
+├── promptBuilder.test.ts     # Pure function tests (prompts/)
+├── jsonParser.test.ts        # Pure function tests (parsing/)
+├── responseParser.test.ts    # Pure function tests (parsing/)
+├── textParser.test.ts        # Pure function tests (parsing/)
+├── speakerUtils.test.ts      # Pure function tests (features/speaker/)
+├── revisionUtils.test.ts     # Pure function tests (features/revision/)
+├── featureRegistry.test.ts   # Registry operations (core/)
+├── errors.test.ts            # Error handling (core/)
+├── providerFactory.test.ts   # Factory tests (providers/)
+├── aiFeatureService.test.ts  # Integration tests (core/) - limited scope
+├── speakerService.test.ts    # Integration tests - limited scope
+└── revisionService.test.ts   # Integration tests - limited scope
+```
 
 ---
 

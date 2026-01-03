@@ -29,7 +29,6 @@ export {
   reviseSegment,
   reviseSegmentsBatch,
 } from "./service";
-
 // Types
 export type {
   BatchRevisionParams,
@@ -42,3 +41,18 @@ export type {
   TextRevisionInput,
   TextRevisionOutput,
 } from "./types";
+export type { RevisionContext, RevisionPromptVariables } from "./utils";
+// Utilities (pure functions)
+export {
+  buildRevisionPromptVariables,
+  calculateBatchStats,
+  createErrorResult,
+  createUnchangedResult,
+  findContextSegments,
+  generateChangePreview,
+  hasSubstantiveChanges,
+  hasTextChanges,
+  normalizeForComparison,
+  truncateWithEllipsis,
+  validateRevisionPrompt,
+} from "./utils";
