@@ -204,14 +204,13 @@ These need to move to ai/providers/ and be properly exported.
 - [x] Create `ai/features/speaker/index.ts`
   - [x] Export config, types, utils
 
-- [ ] Create `ai/features/speaker/service.ts`
-  - [ ] Use `executeFeature` from core
-  - [ ] Use `resolveProvider` from core
-  - [ ] Use `extractJSON` from parsing
-  - [ ] Keep speaker-specific post-processing
-  - [ ] Implement `classifySpeakers()` function
-  - [ ] Implement `classifySpeakersBatch()` function
-  - [ ] Write tests
+- [x] Create `ai/features/speaker/service.ts`
+  - [x] Use `executeFeature` from core
+  - [x] Use `extractJSON` from parsing
+  - [x] Keep speaker-specific post-processing
+  - [x] Implement `classifySpeakers()` function
+  - [x] Implement `classifySpeakersBatch()` function
+  - [x] Write tests (14 tests)
 
 
 - [ ] Create backward-compatible wrapper
@@ -282,27 +281,28 @@ These need to move to ai/providers/ and be properly exported.
 | 2.6.1 Provider Migration | ✅ Complete | 21 | Providers in `ai/providers/` |
 | 2.6.2 Core Infrastructure | ✅ Complete | 33 | Errors + ProviderResolver + aiFeatureService |
 | 2.6.3 Parsing Enhancement | ✅ Complete | 27 | Text parser added |
-| 2.6.4 Speaker Migration | 🔄 In Progress | 20 | Types, utils, config done. Service pending |
+| 2.6.4 Speaker Migration | ✅ Complete | 43 | Utils (29) + Service (14) |
 | 2.6.5 Revision Migration | ⬜ Not Started | 0 | |
 | 2.6.6 Cleanup | ⬜ Not Started | 0 | |
 | 2.6.7 Integration Tests | ⬜ Not Started | 0 | |
 | 2.6.8 Documentation | ⬜ Not Started | 0 | |
 
-**Overall:** ~50% Complete
+**Overall:** ~60% Complete
 
 **Test Summary:**
-- AI Module Tests: 180+ tests (10 files)
-- Total Project Tests: ~520 tests
+- AI Module Tests: 200+ tests (11 files)
+- Total Project Tests: ~530 tests
 
 ### New Files Created:
 1. `ai/providers/` - Provider layer (complete)
 2. `ai/core/providerResolver.ts` - Provider resolution
 3. `ai/core/errors.ts` - Unified error types
 4. `ai/parsing/text.ts` - Text response parsing
-5. `ai/features/speaker/` - Speaker feature module (in progress)
+5. `ai/features/speaker/` - Speaker feature module (complete)
    - `types.ts` - Type definitions
-   - `utils.ts` - Helper functions
+   - `utils.ts` - Helper functions (29 tests)
    - `config.ts` - Feature configuration
+   - `service.ts` - Main service functions (14 tests)
    - `index.ts` - Public exports
 
 ---

@@ -11,23 +11,6 @@ export {
   isArray,
   isObject,
 } from "./jsonParser";
-
-// Text Parser
-export {
-  parseTextResponse,
-  parseTextSimple,
-  stripQuotes,
-  stripCodeBlocks,
-  looksLikeError,
-  extractFirstParagraph,
-  removePreamble,
-} from "./text";
-
-export type {
-  TextParseOptions,
-  TextParseResult,
-} from "./text";
-
 // Response Parser
 export {
   createTypeGuard,
@@ -37,6 +20,21 @@ export {
   parseResponse,
   recoverPartialArray,
 } from "./responseParser";
+
+export type {
+  TextParseOptions,
+  TextParseResult,
+} from "./text";
+// Text Parser
+export {
+  extractFirstParagraph,
+  looksLikeError,
+  parseTextResponse,
+  parseTextSimple,
+  removePreamble,
+  stripCodeBlocks,
+  stripQuotes,
+} from "./text";
 
 // Types
 export type {

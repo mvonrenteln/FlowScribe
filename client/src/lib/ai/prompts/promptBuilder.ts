@@ -58,7 +58,7 @@ export function compileTemplate(template: string, variables: PromptVariables): s
  */
 function processConditionals(template: string, variables: PromptVariables): string {
   // Process innermost conditionals first (no nested #if inside)
-  const innerConditionalRegex = /\{\{#if\s+(\w+)\}\}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if\}\}/g;
+  const innerConditionalRegex = /\{\{#if\s+(\w+)}}((?:(?!\{\{#if)[\s\S])*?)\{\{\/if}}/g;
 
   let result = template;
   let previousResult = "";
@@ -66,7 +66,7 @@ function processConditionals(template: string, variables: PromptVariables): stri
   // Keep processing until no more changes (handles nested conditionals)
   while (result !== previousResult) {
     previousResult = result;
-    result = result.replace(innerConditionalRegex, (match, varName, content) => {
+    result = result.replace(innerConditionalRegex, (_match, varName, content) => {
       const value = variables[varName];
 
       // Check if value is truthy
@@ -88,9 +88,9 @@ function processConditionals(template: string, variables: PromptVariables): stri
  * Inside the block, use {{this}} for current item or {{@index}} for index.
  */
 function processEachBlocks(template: string, variables: PromptVariables): string {
-  const eachRegex = /\{\{#each\s+(\w+)\}\}([\s\S]*?)\{\{\/each\}\}/g;
+  const eachRegex = /\{\{#each\s+(\w+)}}([\s\S]*?)\{\{\/each}}/g;
 
-  return template.replace(eachRegex, (match, varName, content) => {
+  return template.replace(eachRegex, (_match, varName, content) => {
     const value = variables[varName];
 
     if (!Array.isArray(value)) {
@@ -102,10 +102,10 @@ function processEachBlocks(template: string, variables: PromptVariables): string
         let itemContent = content;
 
         // Replace {{this}} with current item
-        itemContent = itemContent.replace(/\{\{this\}\}/g, String(item));
+        itemContent = itemContent.replace(/\{\{this}}/g, String(item));
 
         // Replace {{@index}} with current index
-        itemContent = itemContent.replace(/\{\{@index\}\}/g, String(index));
+        itemContent = itemContent.replace(/\{\{@index}}/g, String(index));
 
         // If item is an object, allow property access
         if (typeof item === "object" && item !== null) {
@@ -126,7 +126,7 @@ function processEachBlocks(template: string, variables: PromptVariables): string
  * Replaces {{variable}} with the variable value.
  */
 function processVariables(template: string, variables: PromptVariables): string {
-  const variableRegex = /\{\{(\w+)\}\}/g;
+  const variableRegex = /\{\{(\w+)}}/g;
 
   return template.replace(variableRegex, (match, varName) => {
     const value = variables[varName];
@@ -150,7 +150,7 @@ function processVariables(template: string, variables: PromptVariables): string 
  */
 function cleanupUnmatchedPlaceholders(template: string): string {
   // Remove empty conditional blocks that might remain
-  const emptyConditionalRegex = /\{\{#if\s+\w+\}\}\s*\{\{\/if\}\}/g;
+  const emptyConditionalRegex = /\{\{#if\s+\w+}}\s*\{\{\/if}}/g;
   let result = template.replace(emptyConditionalRegex, "");
 
   // Remove unsubstituted variables (optional - keep for debugging)
@@ -214,26 +214,30 @@ export function extractPlaceholders(template: string): string[] {
   const placeholders = new Set<string>();
 
   // Match simple variables: {{variable}}
-  const simpleVarRegex = /\{\{(\w+)\}\}/g;
-  let match: RegExpExecArray | null;
-
-  while ((match = simpleVarRegex.exec(template)) !== null) {
+  const simpleVarRegex = /\{\{(\w+)}}/g;
+  let match: RegExpExecArray | null = simpleVarRegex.exec(template);
+  while (match !== null) {
     // Exclude special keywords
     if (!["this", "@index"].includes(match[1])) {
       placeholders.add(match[1]);
     }
+    match = simpleVarRegex.exec(template);
   }
 
   // Match conditional variables: {{#if variable}}
-  const conditionalRegex = /\{\{#if\s+(\w+)\}\}/g;
-  while ((match = conditionalRegex.exec(template)) !== null) {
+  const conditionalRegex = /\{\{#if\s+(\w+)}}/g;
+  match = conditionalRegex.exec(template);
+  while (match !== null) {
     placeholders.add(match[1]);
+    match = conditionalRegex.exec(template);
   }
 
   // Match each variables: {{#each variable}}
-  const eachRegex = /\{\{#each\s+(\w+)\}\}/g;
-  while ((match = eachRegex.exec(template)) !== null) {
+  const eachRegex = /\{\{#each\s+(\w+)}}/g;
+  match = eachRegex.exec(template);
+  while (match !== null) {
     placeholders.add(match[1]);
+    match = eachRegex.exec(template);
   }
 
   return Array.from(placeholders);

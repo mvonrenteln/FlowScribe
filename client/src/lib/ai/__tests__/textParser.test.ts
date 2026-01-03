@@ -6,13 +6,13 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  extractFirstParagraph,
+  looksLikeError,
   parseTextResponse,
   parseTextSimple,
-  stripQuotes,
-  stripCodeBlocks,
-  looksLikeError,
-  extractFirstParagraph,
   removePreamble,
+  stripCodeBlocks,
+  stripQuotes,
 } from "../parsing/text";
 
 describe("Text Parser", () => {
@@ -45,20 +45,18 @@ describe("Text Parser", () => {
     });
 
     it("should detect error-like responses", () => {
-      const result = parseTextResponse(
-        "I'm sorry, I cannot help with that.",
-        { originalText: "Original text" }
-      );
+      const result = parseTextResponse("I'm sorry, I cannot help with that.", {
+        originalText: "Original text",
+      });
       expect(result.wasError).toBe(true);
       expect(result.usedFallback).toBe(true);
       expect(result.text).toBe("Original text");
     });
 
     it("should detect 'as an ai' responses", () => {
-      const result = parseTextResponse(
-        "As an AI language model, I cannot process that request.",
-        { originalText: "Fallback" }
-      );
+      const result = parseTextResponse("As an AI language model, I cannot process that request.", {
+        originalText: "Fallback",
+      });
       expect(result.wasError).toBe(true);
       expect(result.text).toBe("Fallback");
     });
@@ -133,7 +131,7 @@ describe("Text Parser", () => {
     });
 
     it("should not remove mismatched quotes", () => {
-      expect(stripQuotes('"test\'')).toBe('"test\'');
+      expect(stripQuotes("\"test'")).toBe("\"test'");
     });
 
     it("should handle empty string", () => {
@@ -240,4 +238,3 @@ describe("Text Parser", () => {
     });
   });
 });
-

@@ -136,4 +136,3 @@ export interface SpeakerClassificationConfig {
   /** Minimum confidence threshold */
   minConfidence?: number;
 }
-

@@ -109,7 +109,7 @@ const DEFAULT_ERROR_PATTERNS = [
  */
 export function parseTextResponse(
   response: string,
-  options: TextParseOptions = {}
+  options: TextParseOptions = {},
 ): TextParseResult {
   const {
     originalText,
@@ -137,7 +137,7 @@ export function parseTextResponse(
   // Detect error-like responses
   if (detectErrors) {
     const lowerText = text.toLowerCase();
-    const isError = errorPatterns.some(pattern => lowerText.includes(pattern));
+    const isError = errorPatterns.some((pattern) => lowerText.includes(pattern));
 
     if (isError) {
       wasError = true;
@@ -237,7 +237,7 @@ export function stripCodeBlocks(text: string): string {
  */
 export function looksLikeError(text: string, patterns: string[] = DEFAULT_ERROR_PATTERNS): boolean {
   const lowerText = text.toLowerCase();
-  return patterns.some(pattern => lowerText.includes(pattern));
+  return patterns.some((pattern) => lowerText.includes(pattern));
 }
 
 /**
@@ -267,4 +267,3 @@ export function removePreamble(text: string): string {
 
   return result.trim();
 }
-

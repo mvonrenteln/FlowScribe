@@ -12,7 +12,7 @@ import { parseResponse } from "../parsing/responseParser";
 import { compileTemplate } from "../prompts/promptBuilder";
 import type { PromptVariables } from "../prompts/types";
 import type { ChatMessage } from "../providers/types";
-import { AICancellationError, AIParseError, isCancellationError, toAIError } from "./errors";
+import { AICancellationError, isCancellationError, toAIError } from "./errors";
 import { getFeatureOrThrow } from "./featureRegistry";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {

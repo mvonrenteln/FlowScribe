@@ -11,7 +11,7 @@ import {
   extractPlaceholders,
   validateVariables,
 } from "../prompts/promptBuilder";
-import type { PromptTemplate, PromptVariables } from "../prompts/types";
+import type { PromptTemplate } from "../prompts/types";
 
 describe("compileTemplate", () => {
   describe("simple variable substitution", () => {

@@ -8,38 +8,43 @@
 
 // Configuration
 export {
-  speakerClassificationConfig,
+  buildSpeakerPrompt,
   SPEAKER_SYSTEM_PROMPT,
   SPEAKER_USER_PROMPT_TEMPLATE,
+  speakerClassificationConfig,
   speakerResponseSchema,
-  buildSpeakerPrompt,
 } from "./config";
-
+export type {
+  ClassifySpeakersBatchOptions,
+  ClassifySpeakersBatchResult,
+  ClassifySpeakersOptions,
+} from "./service";
+// Service
+export {
+  classifySpeakers,
+  classifySpeakersBatch,
+  parseRawResponse,
+} from "./service";
 // Types
 export type {
-  SpeakerSuggestion,
+  BatchIssue,
+  BatchSegment,
+  ParsedSuggestionsResult,
+  RawSpeakerResponseItem,
+  SpeakerClassificationConfig,
   SpeakerClassificationInput,
   SpeakerClassificationOutput,
   SpeakerClassificationResult,
-  SpeakerClassificationConfig,
-  RawSpeakerResponseItem,
-  BatchSegment,
-  BatchIssue,
-  ParsedSuggestionsResult,
+  SpeakerSuggestion,
 } from "./types";
-
 // Utilities
 export {
-  normalizeSpeakerTag,
-  resolveSuggestedSpeaker,
-  markNewSpeaker,
+  estimateTokens,
   formatSegmentsForPrompt,
   formatSpeakersForPrompt,
+  markNewSpeaker,
+  normalizeSpeakerTag,
   prepareBatchSegments,
+  resolveSuggestedSpeaker,
   truncateForPrompt,
-  estimateTokens,
 } from "./utils";
-
-// Service will be added after migration is complete
-// export { classifySpeakers, classifySpeakersBatch } from "./service";
-

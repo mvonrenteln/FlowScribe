@@ -26,11 +26,7 @@ export function normalizeSpeakerTag(tag: string): string {
   for (let i = 0; i < tag.length; i++) {
     const code = tag.charCodeAt(i);
     // 0-9, A-Z, a-z
-    if (
-      (code >= 48 && code <= 57) ||
-      (code >= 65 && code <= 90) ||
-      (code >= 97 && code <= 122)
-    ) {
+    if ((code >= 48 && code <= 57) || (code >= 65 && code <= 90) || (code >= 97 && code <= 122)) {
       result += tag[i].toLowerCase();
     }
   }
@@ -51,7 +47,7 @@ export function normalizeSpeakerTag(tag: string): string {
  */
 export function resolveSuggestedSpeaker(
   rawTag: string,
-  availableSpeakers: Iterable<string>
+  availableSpeakers: Iterable<string>,
 ): string | null {
   const normalizedRaw = normalizeSpeakerTag(rawTag);
   if (!normalizedRaw) return null;
@@ -68,10 +64,7 @@ export function resolveSuggestedSpeaker(
     }
 
     // Exact match or partial match
-    if (
-      normalizedRaw === normalizedSpeaker ||
-      normalizedSpeaker.includes(normalizedRaw)
-    ) {
+    if (normalizedRaw === normalizedSpeaker || normalizedSpeaker.includes(normalizedRaw)) {
       // If we already have a match and it's different, ambiguous
       if (match && match !== speaker) {
         return null;
@@ -108,11 +101,9 @@ export function markNewSpeaker(tag: string): { name: string; isNew: boolean } {
  * // "[1] [Alice]: \"Hello\""
  */
 export function formatSegmentsForPrompt(
-  segments: Array<{ id: string; speaker: string; text: string }>
+  segments: Array<{ id: string; speaker: string; text: string }>,
 ): string {
-  return segments
-    .map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`)
-    .join("\n");
+  return segments.map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`).join("\n");
 }
 
 /**
@@ -134,7 +125,7 @@ export function formatSpeakersForPrompt(speakers: string[]): string {
  * @returns Array of batch segments with minimal data
  */
 export function prepareBatchSegments(
-  segments: Array<{ id: string; speaker: string; text: string }>
+  segments: Array<{ id: string; speaker: string; text: string }>,
 ): BatchSegment[] {
   return segments.map((s) => ({
     segmentId: s.id,
@@ -167,4 +158,3 @@ export function truncateForPrompt(text: string, maxLength = 500): string {
 export function estimateTokens(text: string): number {
   return Math.ceil(text.length / 4);
 }
-

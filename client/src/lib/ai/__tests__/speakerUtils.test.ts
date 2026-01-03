@@ -6,14 +6,14 @@
 
 import { describe, expect, it } from "vitest";
 import {
-  normalizeSpeakerTag,
-  resolveSuggestedSpeaker,
-  markNewSpeaker,
+  estimateTokens,
   formatSegmentsForPrompt,
   formatSpeakersForPrompt,
+  markNewSpeaker,
+  normalizeSpeakerTag,
   prepareBatchSegments,
+  resolveSuggestedSpeaker,
   truncateForPrompt,
-  estimateTokens,
 } from "../features/speaker/utils";
 
 describe("Speaker Utils", () => {
@@ -125,13 +125,9 @@ describe("Speaker Utils", () => {
 
   describe("prepareBatchSegments", () => {
     it("should extract required fields", () => {
-      const segments = [
-        { id: "1", speaker: "Alice", text: "Hello", start: 0, end: 1 },
-      ];
+      const segments = [{ id: "1", speaker: "Alice", text: "Hello", start: 0, end: 1 }];
       const result = prepareBatchSegments(segments);
-      expect(result).toEqual([
-        { segmentId: "1", speaker: "Alice", text: "Hello" },
-      ]);
+      expect(result).toEqual([{ segmentId: "1", speaker: "Alice", text: "Hello" }]);
     });
 
     it("should handle empty array", () => {
@@ -177,4 +173,3 @@ describe("Speaker Utils", () => {
     });
   });
 });
-

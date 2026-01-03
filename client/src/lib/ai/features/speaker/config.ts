@@ -134,13 +134,6 @@ export const speakerClassificationConfig: AIFeatureConfig = {
  * @param segments - Segments to classify
  * @returns Compiled prompt
  */
-export function buildSpeakerPrompt(
-  template: string,
-  speakers: string[],
-  segments: string
-): string {
-  return template
-    .replace("{{speakers}}", speakers.join(", "))
-    .replace("{{segments}}", segments);
+export function buildSpeakerPrompt(template: string, speakers: string[], segments: string): string {
+  return template.replace("{{speakers}}", speakers.join(", ")).replace("{{segments}}", segments);
 }
-
