@@ -2,11 +2,43 @@
  * Speaker Classification Utilities
  *
  * Helper functions for speaker classification.
+ * Cross-cutting concerns are re-exported from core/.
  *
  * @module ai/features/speaker/utils
  */
 
 import type { BatchSegment } from "./types";
+import { buildMap, filterSegments as coreFilterSegments, sliceBatch } from "../../core/batch";
+import { previewText, summarizeMessages } from "../../core/formatting";
+
+// ==================== Re-exports from Core ====================
+
+/**
+ * @deprecated Use filterSegments from core/batch instead
+ */
+export const filterSegmentsForAnalysis = coreFilterSegments;
+
+/**
+ * @deprecated Use summarizeMessages from core/formatting instead
+ */
+export const summarizeIssues = summarizeMessages;
+
+/**
+ * @deprecated Use previewText from core/formatting instead
+ */
+export const previewResponse = previewText;
+
+/**
+ * Build a current speakers map from batch segments.
+ * Uses core/batch buildMap internally.
+ */
+export function buildCurrentSpeakersMap(batch: BatchSegment[]): Map<string, string> {
+  return buildMap(
+    batch,
+    (item) => item.segmentId,
+    (item) => item.speaker,
+  );
+}
 
 // ==================== Speaker Tag Normalization ====================
 
@@ -132,6 +164,23 @@ export function prepareBatchSegments(
     speaker: s.speaker,
     text: s.text,
   }));
+}
+
+/**
+ * Prepare a batch of segments with start index and batch size.
+ * Uses core/batch sliceBatch internally.
+ *
+ * @param segments - All segments
+ * @param startIndex - Start index for batch
+ * @param batchSize - Maximum batch size
+ * @returns Batch of segments
+ */
+export function prepareBatch(
+  segments: Array<{ id: string; speaker: string; text: string }>,
+  startIndex: number,
+  batchSize: number,
+): BatchSegment[] {
+  return prepareBatchSegments(sliceBatch(segments, startIndex, batchSize));
 }
 
 /**

@@ -11,6 +11,18 @@ export {
   executeFeature,
   reviseText,
 } from "./aiFeatureService";
+
+// Batch Processing
+export {
+  buildMap,
+  calculateBatches,
+  filterItems,
+  filterSegments,
+  prepareBatch,
+  sliceBatch,
+  type FilterOptions,
+} from "./batch";
+
 // Errors
 export {
   AICancellationError,
@@ -21,8 +33,22 @@ export {
   AIValidationError,
   getErrorMessage,
   isCancellationError,
+  summarizeAIError,
+  summarizeAiSpeakerError,
   toAIError,
 } from "./errors";
+
+// Formatting
+export {
+  previewResponse,
+  previewText,
+  summarizeError,
+  summarizeIssues,
+  summarizeMessages,
+  truncateText,
+  type Summarizable,
+} from "./formatting";
+
 // Feature Registry
 export {
   clearRegistry,
@@ -44,6 +70,7 @@ export {
   resolveProvider,
   resolveProviderSync,
 } from "./providerResolver";
+
 // Types
 export type {
   AIBatchResult,

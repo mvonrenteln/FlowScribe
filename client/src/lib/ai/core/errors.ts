@@ -166,3 +166,14 @@ export function getErrorMessage(error: unknown): string {
   const aiError = toAIError(error);
   return aiError.toUserMessage();
 }
+
+// ==================== Error Summarization ====================
+
+// Re-export from formatting module for backward compatibility
+export { summarizeError as summarizeAIError } from "./formatting";
+
+/**
+ * @deprecated Use summarizeAIError instead
+ */
+export { summarizeError as summarizeAiSpeakerError } from "./formatting";
+

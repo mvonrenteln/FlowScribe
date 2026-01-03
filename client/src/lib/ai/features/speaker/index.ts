@@ -14,17 +14,20 @@ export {
   speakerClassificationConfig,
   speakerResponseSchema,
 } from "./config";
+
+// Service
 export type {
   ClassifySpeakersBatchOptions,
   ClassifySpeakersBatchResult,
   ClassifySpeakersOptions,
 } from "./service";
-// Service
+
 export {
   classifySpeakers,
   classifySpeakersBatch,
   parseRawResponse,
 } from "./service";
+
 // Types
 export type {
   BatchIssue,
@@ -37,14 +40,20 @@ export type {
   SpeakerClassificationResult,
   SpeakerSuggestion,
 } from "./types";
+
 // Utilities
 export {
+  buildCurrentSpeakersMap,
   estimateTokens,
+  filterSegmentsForAnalysis,
   formatSegmentsForPrompt,
   formatSpeakersForPrompt,
   markNewSpeaker,
   normalizeSpeakerTag,
+  prepareBatch,
   prepareBatchSegments,
+  previewResponse,
   resolveSuggestedSpeaker,
+  summarizeIssues,
   truncateForPrompt,
 } from "./utils";

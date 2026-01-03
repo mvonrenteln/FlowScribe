@@ -5,95 +5,115 @@
 - [x] Every new function in target structure needs 80% test coverage (for pure functions)
 - [x] Use "prompt" consistently, NOT "template" for AI prompts
 - [x] Feature-specific code goes into `features/<feature>/`, not feature root
+- [x] Cross-cutting concerns (batching, filtering, error handling) go into `core/`
 
-## Test Coverage Strategy (ADR-2026-01-03)
+---
 
-**Decision:** Not all code requires 80% unit test coverage.
+## Migration Status Overview
 
-| Category | Target | Current |
-|----------|--------|---------|
-| Pure Functions (`utils.ts`) | 80%+ | ✅ 90%+ |
-| Prompt Building (`prompts/`) | 90%+ | ✅ 98% |
-| Parsing (`parsing/`) | 80%+ | ✅ 87% |
-| Integration (`core/`, `providers/`) | 30-50% | ✅ ~32% |
+### Old Services (to be replaced)
 
-See `ai-features-unified.md` for full rationale.
+| File | Lines | UI Bindings | Status |
+|------|-------|-------------|--------|
+| `lib/aiSpeakerService.ts` | 699 | 3 files | ⚠️ **ACTIVE** - used by UI |
+| `lib/services/aiRevisionService.ts` | 208 | 1 file (slice) | ⚠️ **ACTIVE** - used by UI |
 
-## Current Test Coverage (as of 2026-01-03)
+### New Services (target)
 
-| Module | Coverage | Tests | Status |
-|--------|----------|-------|--------|
-| prompts | 98.46% | 30 | ✓ Excellent |
-| parsing | 87.10% | 100+ | ✓ Good |
-| revision/utils | 90%+ | 38 | ✓ NEW |
-| speaker/utils | 85%+ | 29 | ✓ Good |
-| core | 32.70% | 26 | Integration |
-| providers | 31.78% | 21 | Integration |
+| File | Lines | Status |
+|------|-------|--------|
+| `lib/ai/features/speaker/service.ts` | 422 | ✅ Complete |
+| `lib/ai/features/revision/service.ts` | 225 | ✅ Complete |
 
-**Total Tests:** 641 (up from 603)
+---
+
+## Test Coverage Strategy
+
+See `ai-features-unified.md` Section "5. Testability → Test Coverage Strategy (ADR-2026-01-03)" for full rationale.
+
+---
 
 ## Completed Tasks
 
-### Phase 1: Consolidate Duplicate Files ✓
-- [x] Removed `features/speakerClassification.ts`
-- [x] Removed `features/textRevision.ts`
-- [x] Updated all import references
+### Phase 1-3: ✓ (Duplicate removal, Template→Prompt, revision/utils.ts)
 
-### Phase 2: Rename Template → Prompt ✓
-- [x] `RevisionTemplate` → `RevisionPrompt`
-- [x] `getDefaultTemplate` → `getDefaultPrompt`
-- [x] `findTemplate` → `findPrompt`
-- [x] Deprecated aliases kept for backward compatibility
+### Phase 4.1: Speaker Utils Extraction ✓
 
-### Phase 3: Extract Pure Functions ✓
-- [x] Created `revision/utils.ts` with pure functions
-- [x] Created `revisionUtils.test.ts` with 38 tests
-- [x] Documented test coverage strategy in architecture docs
+### Phase 4.2: Core Cross-Cutting Concerns ✓
+- [x] Created `core/batch.ts` and `core/formatting.ts`
+- [x] Consolidated `truncateText` and `previewText` into single function
+- [x] Tests: 47 new tests
+
+### Phase 4.3: Service Equivalence Verification ✓
+
+**Speaker Service:**
+| Old Function | New Function | Status |
+|--------------|--------------|--------|
+| `runAnalysis` | `classifySpeakersBatch` | ✅ Equivalent |
+| `analyzeSegmentsBatched` | (merged into above) | ✅ |
+| `parseOllamaResponse` | `parseRawResponse` | ✅ Equivalent |
+| `filterSegmentsForAnalysis` | `filterSegments` (core) | ✅ |
+| `summarizeIssues` | `summarizeMessages` (core) | ✅ |
+
+**Revision Service:**
+| Old Function | New Function | Status |
+|--------------|--------------|--------|
+| `runRevision` | `reviseSegment` | ✅ Equivalent |
+| `runBatchRevision` | `reviseSegmentsBatch` | ✅ Equivalent |
+| `parseRevisionResponse` | `parseTextResponse` (parsing) | ✅ |
+| `buildPrompt` | `compileTemplate` (prompts) | ✅ |
+
+**Total Tests: 712**
+
+---
+
+## Remaining Tasks
+
+### Phase 5: Update UI Bindings
+
+- [ ] `AITemplateSettings.tsx` → import from `ai/features/speaker`
+- [ ] `aiSpeakerConfig.ts` → import from `ai/features/speaker`
+- [ ] `aiSpeakerSlice.ts` → import from `ai/features/speaker`
+- [ ] `aiRevisionSlice.ts` → import from `ai/features/revision`
+
+### Phase 6: Test Cleanup
+
+- [ ] Delete `lib/__tests__/aiSpeakerService.test.ts` (covered by new tests)
+
+### Phase 7: Final Cleanup
+
+- [ ] Delete `lib/aiSpeakerService.ts` (699 lines)
+- [ ] Delete `lib/services/aiRevisionService.ts` (208 lines)
+
+---
 
 ## Current Structure
 
 ```
 client/src/lib/ai/
-├── __tests__/           # 297 AI-specific tests
-├── core/                # Integration code (32% coverage OK)
-├── features/
-│   ├── revision/        # ✓ Complete with utils.ts
-│   │   ├── config.ts
-│   │   ├── service.ts
-│   │   ├── types.ts
-│   │   ├── utils.ts     # NEW: Pure functions
-│   │   └── index.ts
-│   ├── speaker/         # ✓ Complete
-│   │   ├── config.ts
-│   │   ├── service.ts
-│   │   ├── types.ts
-│   │   ├── utils.ts
-│   │   └── index.ts
-│   ├── chapterDetection.ts    # Placeholder
-│   ├── contentTransformation.ts
-│   ├── segmentMerge.ts
+├── core/
+│   ├── batch.ts           # Batch processing utilities
+│   ├── formatting.ts      # Output formatting (truncateText, summarizeMessages)
+│   ├── errors.ts
+│   ├── aiFeatureService.ts
+│   ├── featureRegistry.ts
+│   ├── providerResolver.ts
+│   ├── types.ts
 │   └── index.ts
-├── parsing/             # ✓ Well tested (87%)
-├── prompts/             # ✓ Excellent coverage (98%)
-└── providers/           # Integration (32% coverage OK)
+├── features/
+│   ├── revision/          # ✅ Complete, equivalent to old service
+│   └── speaker/           # ✅ Complete, equivalent to old service
+├── parsing/
+├── prompts/
+└── providers/
 ```
 
-## Remaining Tasks
-
-### Optional: Additional Pure Function Extraction
-- [ ] Extract more pure functions from `speaker/service.ts` if needed
-- [ ] Extract response normalization to `speaker/utils.ts`
-
-### Future: Organize Placeholder Features
-When implementing:
-- [ ] `chapterDetection.ts` → `chapterDetection/`
-- [ ] `contentTransformation.ts` → `contentTransformation/`
-- [ ] `segmentMerge.ts` → `segmentMerge/`
+---
 
 ## Progress Log
-- 2026-01-03: Created migration plan, identified issues
-- 2026-01-03: Phase 1 completed - deleted duplicate files
-- 2026-01-03: Phase 2 completed - renamed Template → Prompt
-- 2026-01-03: Phase 3 completed - extracted pure functions, 38 new tests
-- 2026-01-03: Documented test coverage strategy (ADR-2026-01-03)
-- 2026-01-03: All 641 tests passing
+
+- 2026-01-03: Phase 1-3 completed
+- 2026-01-03: Phase 4.1 completed - extracted speaker pure functions
+- 2026-01-03: Phase 4.2 completed - consolidated cross-cutting concerns into core/
+- 2026-01-03: Phase 4.3 completed - verified service equivalence
+- 2026-01-03: All 712 tests passing

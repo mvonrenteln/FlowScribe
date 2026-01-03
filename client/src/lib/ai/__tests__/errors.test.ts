@@ -15,6 +15,7 @@ import {
   getErrorMessage,
   isCancellationError,
   toAIError,
+  summarizeAIError,
 } from "../core/errors";
 
 describe("AIError", () => {
@@ -163,5 +164,51 @@ describe("getErrorMessage", () => {
   it("should convert and get message from regular error", () => {
     const error = new Error("Test error");
     expect(getErrorMessage(error)).toBe("Test error");
+  });
+});
+
+describe("summarizeAIError", () => {
+  it("should return message for error without details", () => {
+    const error = new Error("Simple error");
+    expect(summarizeAIError(error)).toBe("Simple error");
+  });
+
+  it("should extract string issues from details", () => {
+    const error = new AIError("Failed", "TEST", {
+      issues: ["issue one", "issue two"],
+    });
+    expect(summarizeAIError(error)).toBe("Failed: issue one; issue two");
+  });
+
+  it("should extract object issues with message property", () => {
+    const error = new AIError("Failed", "TEST", {
+      issues: [{ message: "obj issue" }, { message: "another" }],
+    });
+    const result = summarizeAIError(error);
+    expect(result).toContain("obj issue");
+    expect(result).toContain("another");
+  });
+
+  it("should handle mixed issue types", () => {
+    const error = new AIError("Failed", "TEST", {
+      issues: ["string issue", { msg: "msg prop" }, { error: "error prop" }],
+    });
+    const result = summarizeAIError(error);
+    expect(result).toContain("string issue");
+    expect(result).toContain("msg prop");
+    expect(result).toContain("error prop");
+  });
+
+  it("should truncate beyond 3 issues", () => {
+    const error = new AIError("Failed", "TEST", {
+      issues: ["a", "b", "c", "d", "e"],
+    });
+    const result = summarizeAIError(error);
+    expect(result).toBe("Failed: a; b; c (+2 more)");
+  });
+
+  it("should handle empty issues array", () => {
+    const error = new AIError("Failed", "TEST", { issues: [] });
+    expect(summarizeAIError(error)).toBe("Failed");
   });
 });
