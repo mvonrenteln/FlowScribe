@@ -15,6 +15,7 @@ export {
   chapterDetectionConfig,
   chapterResponseSchema,
 } from "./chapterDetection";
+
 // ==================== Content Transformation (Placeholder) ====================
 export {
   type ContentTransformationInput,
@@ -26,29 +27,30 @@ export {
   TRANSFORMATION_TYPES,
   type TransformationType,
 } from "./contentTransformation";
+// ==================== Text Revision ====================
+// Re-export from revision/ module
 export type {
   BatchRevisionParams,
   BatchRevisionResult,
+  RevisionPrompt,
   RevisionResult,
-  RevisionTemplate,
+  RevisionTemplate, // deprecated alias
   SingleRevisionParams,
+  TextRevisionInput,
+  TextRevisionOutput,
 } from "./revision";
-// ==================== Text Revision ====================
-// Re-export from new revision/ module
-// Also export service functions from revision module
-// Legacy re-exports for backward compatibility
 export {
-  BUILTIN_REVISION_TEMPLATES,
-  BUILTIN_REVISION_TEMPLATES as BUILTIN_REVISION_PROMPTS,
+  BUILTIN_REVISION_PROMPTS,
+  BUILTIN_REVISION_TEMPLATES, // deprecated alias
   buildRevisionPrompt,
-  findTemplate,
-  getDefaultTemplate,
+  findPrompt,
+  findTemplate, // deprecated alias
+  getDefaultPrompt,
+  getDefaultTemplate, // deprecated alias
   hasChanges,
   REVISION_CLARITY_SYSTEM_PROMPT,
   REVISION_CLEANUP_SYSTEM_PROMPT,
   REVISION_CLEANUP_USER_TEMPLATE,
-  REVISION_CLEANUP_USER_TEMPLATE as REVISION_CLEANUP_USER_TEMPLATE_LEGACY,
-  REVISION_FORMALIZE_SYSTEM_PROMPT,
   reviseSegment,
   reviseSegmentsBatch,
   textRevisionConfig,
@@ -64,8 +66,7 @@ export {
   segmentMergeConfig,
 } from "./segmentMerge";
 // ==================== Speaker Classification ====================
-// Re-export from new speaker/ module
-// Also export utilities from speaker module
+// Re-export from speaker/ module
 export {
   formatSegmentsForPrompt,
   formatSpeakersForPrompt,
@@ -80,8 +81,3 @@ export {
   speakerClassificationConfig,
   speakerResponseSchema,
 } from "./speaker";
-
-export type {
-  TextRevisionInput,
-  TextRevisionOutput,
-} from "./textRevision";

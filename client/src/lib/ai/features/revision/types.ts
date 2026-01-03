@@ -41,8 +41,8 @@ export interface SingleRevisionParams {
     speaker?: string;
   };
 
-  /** Prompt template to use */
-  prompt: RevisionTemplate;
+  /** Prompt configuration to use */
+  prompt: RevisionPrompt;
 
   /** Previous segment for context */
   previousSegment?: {
@@ -80,8 +80,8 @@ export interface BatchRevisionParams {
     speaker?: string;
   }>;
 
-  /** Prompt template to use */
-  prompt: RevisionTemplate;
+  /** Prompt configuration to use */
+  prompt: RevisionPrompt;
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
@@ -94,10 +94,10 @@ export interface BatchRevisionParams {
 }
 
 /**
- * Revision prompt template.
+ * Revision prompt configuration.
  */
-export interface RevisionTemplate {
-  /** Template ID */
+export interface RevisionPrompt {
+  /** Prompt ID */
   id: string;
 
   /** Display name */
@@ -109,9 +109,14 @@ export interface RevisionTemplate {
   /** User prompt template (supports {{text}}, {{previousText}}, {{nextText}}, {{speaker}}) */
   userPromptTemplate: string;
 
-  /** Whether this is a built-in template */
+  /** Whether this is a built-in prompt */
   isBuiltin?: boolean;
 }
+
+/**
+ * @deprecated Use RevisionPrompt instead
+ */
+export type RevisionTemplate = RevisionPrompt;
 
 /**
  * Result of batch revision.
@@ -140,4 +145,24 @@ export interface RevisionIssue {
   message: string;
   segmentId?: string;
   context?: Record<string, unknown>;
+}
+
+// ==================== Input/Output Types ====================
+
+/**
+ * Input for text revision.
+ */
+export interface TextRevisionInput {
+  text: string;
+  previousText?: string;
+  nextText?: string;
+  speaker?: string;
+}
+
+/**
+ * Output from text revision.
+ */
+export interface TextRevisionOutput {
+  revisedText: string;
+  hasChanges: boolean;
 }

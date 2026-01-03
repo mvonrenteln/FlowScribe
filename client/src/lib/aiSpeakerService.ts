@@ -12,10 +12,7 @@
  * - JSON parsing (from ai/parsing/jsonParser)
  */
 
-import {
-  SPEAKER_SYSTEM_PROMPT,
-  SPEAKER_USER_PROMPT_TEMPLATE,
-} from "./ai/features/speakerClassification";
+import { SPEAKER_SYSTEM_PROMPT, SPEAKER_USER_PROMPT_TEMPLATE } from "./ai/features/speaker";
 import { type AIProviderConfig, createAIProvider } from "./services/aiProviderService";
 import { initializeSettings } from "./settings/settingsStorage";
 import type { AISpeakerConfig, AISpeakerSuggestion, Segment } from "./store/types";

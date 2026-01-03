@@ -7,7 +7,7 @@
  */
 
 import type { AIFeatureConfig } from "../../core/types";
-import type { RevisionTemplate } from "./types";
+import type { RevisionPrompt } from "./types";
 
 // ==================== Default Prompts ====================
 
@@ -113,9 +113,12 @@ export const textRevisionConfig: AIFeatureConfig = {
   responseSchema: undefined,
 };
 
-// ==================== Built-in Prompt Templates ====================
+// ==================== Built-in Prompts ====================
 
-export const BUILTIN_REVISION_TEMPLATES: RevisionTemplate[] = [
+/**
+ * Built-in revision prompts.
+ */
+export const BUILTIN_REVISION_PROMPTS: RevisionPrompt[] = [
   {
     id: "builtin-text-cleanup",
     name: "Transcript Cleanup",
@@ -140,20 +143,35 @@ export const BUILTIN_REVISION_TEMPLATES: RevisionTemplate[] = [
 ];
 
 /**
- * Get the default revision template.
+ * @deprecated Use BUILTIN_REVISION_PROMPTS instead
  */
-export function getDefaultTemplate(): RevisionTemplate {
-  return BUILTIN_REVISION_TEMPLATES[0];
+export const BUILTIN_REVISION_TEMPLATES = BUILTIN_REVISION_PROMPTS;
+
+/**
+ * Get the default revision prompt.
+ */
+export function getDefaultPrompt(): RevisionPrompt {
+  return BUILTIN_REVISION_PROMPTS[0];
 }
 
 /**
- * Find a template by ID.
+ * @deprecated Use getDefaultPrompt instead
  */
-export function findTemplate(
+export const getDefaultTemplate = getDefaultPrompt;
+
+/**
+ * Find a prompt by ID.
+ */
+export function findPrompt(
   id: string,
-  customTemplates: RevisionTemplate[] = [],
-): RevisionTemplate | undefined {
+  customPrompts: RevisionPrompt[] = [],
+): RevisionPrompt | undefined {
   return (
-    BUILTIN_REVISION_TEMPLATES.find((t) => t.id === id) || customTemplates.find((t) => t.id === id)
+    BUILTIN_REVISION_PROMPTS.find((p) => p.id === id) || customPrompts.find((p) => p.id === id)
   );
 }
+
+/**
+ * @deprecated Use findPrompt instead
+ */
+export const findTemplate = findPrompt;

@@ -130,13 +130,13 @@ export function getRegistrySize(): number {
 export function registerDefaultFeatures(): void {
   // Import and register default feature configs
   // These are defined in separate files for better organization
-  import("../features/speakerClassification").then(({ speakerClassificationConfig }) => {
+  import("../features/speaker").then(({ speakerClassificationConfig }) => {
     if (!hasFeature("speaker-classification")) {
       registerFeature(speakerClassificationConfig);
     }
   });
 
-  import("../features/textRevision").then(({ textRevisionConfig }) => {
+  import("../features/revision").then(({ textRevisionConfig }) => {
     if (!hasFeature("text-revision")) {
       registerFeature(textRevisionConfig);
     }

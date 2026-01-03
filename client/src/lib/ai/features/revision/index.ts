@@ -8,15 +8,19 @@
 
 // Configuration
 export {
-  BUILTIN_REVISION_TEMPLATES,
-  findTemplate,
-  getDefaultTemplate,
+  BUILTIN_REVISION_PROMPTS,
+  BUILTIN_REVISION_TEMPLATES, // deprecated alias
+  findPrompt,
+  findTemplate, // deprecated alias
+  getDefaultPrompt,
+  getDefaultTemplate, // deprecated alias
   REVISION_CLARITY_SYSTEM_PROMPT,
   REVISION_CLEANUP_SYSTEM_PROMPT,
   REVISION_CLEANUP_USER_TEMPLATE,
   REVISION_FORMALIZE_SYSTEM_PROMPT,
   textRevisionConfig,
 } from "./config";
+
 // Service
 export {
   buildRevisionPrompt,
@@ -25,12 +29,16 @@ export {
   reviseSegment,
   reviseSegmentsBatch,
 } from "./service";
+
 // Types
 export type {
   BatchRevisionParams,
   BatchRevisionResult,
   RevisionIssue,
+  RevisionPrompt,
   RevisionResult,
-  RevisionTemplate,
+  RevisionTemplate, // deprecated alias
   SingleRevisionParams,
+  TextRevisionInput,
+  TextRevisionOutput,
 } from "./types";
