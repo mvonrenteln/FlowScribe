@@ -71,9 +71,6 @@
     └── revisionService.test.ts   # 15 tests
 ```
 
-### Migration Progress
-
-See [ai-migration-plan.md](./ai-migration-plan.md) for detailed migration status.
 
 ---
 
