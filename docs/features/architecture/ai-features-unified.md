@@ -1,0 +1,1717 @@
+# AI Features: Unified Architecture & Implementation Guide
+
+*Last Updated: January 4, 2026*
+*Status: Phase 1 Complete ✅ - Phase 2 In Progress 🔄*
+
+---
+
+## Current Implementation Status
+
+### File Structure (Implemented)
+
+```
+/src/lib/ai/
+├── core/                         # Core infrastructure
+│   ├── types.ts                  # Unified types
+│   ├── aiFeatureService.ts       # Feature execution service
+│   ├── featureRegistry.ts        # Feature registration
+│   ├── providerResolver.ts       # Provider resolution
+│   ├── errors.ts                 # Unified error types
+│   └── index.ts                  # Public exports
+│
+├── providers/                    # AI Provider Layer
+│   ├── types.ts                  # Provider interfaces
+│   ├── factory.ts                # Provider factory
+│   ├── ollama.ts                 # Ollama provider
+│   ├── openai.ts                 # OpenAI provider
+│   └── index.ts                  # Public exports
+│
+├── prompts/                      # Prompt building
+│   ├── types.ts                  # Prompt types
+│   ├── promptBuilder.ts          # Template compilation
+│   └── index.ts
+│
+├── parsing/                      # Response parsing
+│   ├── jsonParser.ts             # JSON extraction
+│   ├── responseParser.ts         # Response validation
+│   ├── textParser.ts             # Text response parsing
+│   ├── validator.ts              # Schema validation
+│   └── index.ts
+│
+├── features/                     # Feature definitions
+│   ├── speaker/                  # Speaker classification module
+│   │   ├── types.ts              # Type definitions
+│   │   ├── utils.ts              # Pure helper functions
+│   │   ├── config.ts             # Prompts & configuration
+│   │   ├── service.ts            # AI service functions
+│   │   └── index.ts              # Public exports
+│   ├── revision/                 # Text revision module
+│   │   ├── types.ts              # Type definitions
+│   │   ├── utils.ts              # Pure helper functions (NEW)
+│   │   ├── config.ts             # Prompts & configuration
+│   │   ├── service.ts            # AI service functions
+│   │   └── index.ts              # Public exports
+│   ├── chapterDetection.ts       # Chapter feature config (placeholder)
+│   ├── contentTransformation.ts  # Transform config (placeholder)
+│   ├── segmentMerge.ts           # Merge config (placeholder)
+│   └── index.ts
+│
+└── __tests__/                    # Test suite (641 total tests)
+    ├── errors.test.ts            # 24 tests
+    ├── featureRegistry.test.ts   # 17 tests
+    ├── promptBuilder.test.ts     # 30 tests
+    ├── jsonParser.test.ts        # 35 tests
+    ├── responseParser.test.ts    # 23 tests
+    ├── textParser.test.ts        # 42 tests
+    ├── aiFeatureService.test.ts  # 9 tests
+    ├── providerFactory.test.ts   # 21 tests
+    ├── speakerUtils.test.ts      # 29 tests
+    ├── speakerService.test.ts    # 14 tests
+    ├── revisionUtils.test.ts     # 38 tests (NEW)
+    └── revisionService.test.ts   # 15 tests
+```
+
+
+---
+
+## Overview
+
+This document describes the unified architecture for all AI features in FlowScribe. While each feature has distinct functionality, they share common infrastructure, patterns, and implementation approaches. This guide ensures consistent, maintainable, and extensible AI capabilities.
+
+---
+
+## 🎯 Core Design Principles
+
+### 1. Manual-First Principle ⭐
+
+> **"Every AI feature must have a fully functional manual alternative."**
+
+This is the most important design principle in FlowScribe:
+
+- **Users without AI API access must remain fully capable**
+- Manual features serve as the foundation; AI adds convenience
+- AI suggestions build upon existing manual workflows
+- Users learn the domain through manual work, then accelerate with AI
+
+**Implementation Pattern:**
+```
+1. Design & implement manual feature first
+2. Ensure manual feature is complete and usable
+3. Add AI as enhancement layer on top
+4. AI uses same data structures and operations as manual
+```
+
+**Current Examples:**
+| Domain | Manual Feature | AI Enhancement |
+|--------|---------------|----------------|
+| Text Editing | Direct segment editing | Transcript Revision |
+| Quality Check | Confidence indicators, Spellcheck, Glossary | Revision suggestions |
+| Speaker Labels | Manual speaker assignment | Speaker Classification |
+| Segment Merge | Manual merge (select + merge) | Merge Suggestions |
+| Chapters | Manual chapter creation (planned) | Chapter Detection (planned) |
+| Multi-Track | Manual track comparison (planned) | Track Merge AI (planned) |
+
+---
+
+### 2. Separation of Concerns
+
+Each feature is structured as an independent module:
+
+```
+/src/features/{feature-name}/
+├── components/          # UI components
+├── hooks/               # React hooks
+├── services/            # Business logic
+├── types/               # TypeScript types
+├── utils/               # Helper functions
+└── index.ts             # Public API
+```
+
+**Benefits:**
+- Features can be developed independently
+- Easy to test in isolation
+- Clear ownership and boundaries
+- Potential for lazy loading
+
+---
+
+### 3. DRY (Don't Repeat Yourself)
+
+Shared functionality extracted to common packages:
+
+```
+/src/lib/ai/
+├── core/                # AIFeatureService, types
+├── providers/           # OpenAI, Ollama, Anthropic adapters
+├── prompts/             # Prompt building utilities
+└── parsing/             # Response parsing utilities
+```
+
+**Rule:** If code is used by 2+ features, extract to shared lib.
+
+---
+
+### 4. YAGNI (You Aren't Gonna Need It)
+
+- Implement only what's needed for current phase
+- Don't build infrastructure for hypothetical features
+- Start simple, refactor when complexity is justified
+- Feature flags over feature bloat
+
+---
+
+### 5. Testability
+
+Every component designed for testability:
+
+- **Pure functions** for business logic (easy unit tests)
+- **Dependency injection** for services (mockable)
+- **Component isolation** (React Testing Library)
+- **Integration tests** for workflows (E2E with Playwright)
+
+#### Test Coverage Strategy (ADR-2026-01-03)
+
+**Decision:** Not all code requires 80% unit test coverage. We differentiate based on code category.
+
+**Rationale:**
+- Integration code (HTTP clients, AI orchestration) is difficult to unit test meaningfully
+- Mocking external dependencies often tests mocks, not real behavior
+- Pure functions provide high value per test; integration code does not
+- Limited resources should focus on high-value tests
+
+**Coverage Targets by Category:**
+
+| Category | Target | Rationale |
+|----------|--------|-----------|
+| **Pure Functions** (`utils.ts`, `parsing/`) | 80%+ | Easy to test, high value, no mocking needed |
+| **Prompt Building** (`prompts/`) | 90%+ | Critical for AI quality, pure string transforms |
+| **Feature Config** (`config.ts`) | 50%+ | Mostly static data, test structure not content |
+| **Orchestration** (`aiFeatureService.ts`) | 30-50% | Integration code, test critical paths only |
+| **HTTP Providers** (`providers/`) | 20-30% | External deps, prefer E2E tests |
+
+**Implementation Pattern:**
+```typescript
+// BAD: Trying to unit test integration code
+async function reviseSegment(params) {
+  const result = await executeFeature(...);  // Hard to mock meaningfully
+  const changes = computeChanges(...);       // Mixed concerns
+  return { ... };
+}
+
+// GOOD: Extract pure functions for testing
+// In utils.ts (easily testable):
+export function buildPromptVariables(segment, context) { ... }
+export function hasTextChanges(original, revised) { ... }
+export function validatePrompt(prompt) { ... }
+
+// In service.ts (integration, minimal testing):
+async function reviseSegment(params) {
+  const vars = buildPromptVariables(params.segment, context);  // Tested separately
+  const result = await executeFeature(...);                      // Integration only
+  return processResult(result);                                   // Tested separately
+}
+```
+
+**Current Coverage (as of 2026-01-03):**
+
+| Module | Coverage | Status |
+|--------|----------|--------|
+| `prompts/` | 98.46% | ✅ Excellent |
+| `parsing/` | 87.10% | ✅ Good |
+| `features/speaker/utils.ts` | 85%+ | ✅ Good |
+| `features/revision/utils.ts` | 90%+ | ✅ Good (38 tests) |
+| `core/` | 32.70% | ⚠️ Integration code |
+| `providers/` | 31.78% | ⚠️ HTTP clients |
+
+**Test File Organization:**
+```
+/src/lib/ai/__tests__/
+├── promptBuilder.test.ts     # Pure function tests (prompts/)
+├── jsonParser.test.ts        # Pure function tests (parsing/)
+├── responseParser.test.ts    # Pure function tests (parsing/)
+├── textParser.test.ts        # Pure function tests (parsing/)
+├── speakerUtils.test.ts      # Pure function tests (features/speaker/)
+├── revisionUtils.test.ts     # Pure function tests (features/revision/)
+├── featureRegistry.test.ts   # Registry operations (core/)
+├── errors.test.ts            # Error handling (core/)
+├── providerFactory.test.ts   # Factory tests (providers/)
+├── aiFeatureService.test.ts  # Integration tests (core/) - limited scope
+├── speakerService.test.ts    # Integration tests - limited scope
+└── revisionService.test.ts   # Integration tests - limited scope
+```
+
+---
+
+## Feature Matrix
+
+### Current & Planned Features
+
+| Feature | Manual Version | AI Enhancement | Status |
+|---------|---------------|----------------|--------|
+| **Text Editing** | ✅ Segment editor | ✅ Transcript Revision | Complete |
+| **Speaker Labels** | ✅ Manual assignment | ✅ Speaker Classification | Complete |
+| **Segment Merge** | ✅ Manual merge | 📋 Merge Suggestions | Manual: ✅, AI: Planned |
+| **Chapters** | 📋 Manual creation | 📋 Chapter Detection | Both: Planned |
+| **Multi-Track** | 📋 Manual comparison | 📋 AI Track Selection | Both: Planned |
+| **Content Export** | 📋 Manual summary | 📋 AI Transformation | Both: Planned |
+
+---
+
+## Feature Module Structure
+
+### Directory Layout
+
+Each feature is a self-contained module with clear boundaries:
+
+```
+/src/features/
+├── chapters/                     # Chapter feature module
+│   ├── components/               # UI components
+│   │   ├── ChapterEditor.tsx     # Manual chapter editing
+│   │   ├── ChapterList.tsx       # Display chapters
+│   │   ├── ChapterTimeline.tsx   # Visual timeline
+│   │   └── AIChapterPanel.tsx    # AI enhancement panel
+│   ├── hooks/
+│   │   ├── useChapters.ts        # Chapter state management
+│   │   └── useAIChapters.ts      # AI-specific hooks
+│   ├── services/
+│   │   ├── chapterService.ts     # Core chapter operations
+│   │   └── aiChapterService.ts   # AI enhancement layer
+│   ├── types/
+│   │   └── chapter.types.ts      # TypeScript definitions
+│   ├── utils/
+│   │   └── chapterUtils.ts       # Helper functions
+│   ├── __tests__/                # Tests for this feature
+│   └── index.ts                  # Public API
+│
+├── multi-track/                  # Multi-track merge module
+│   ├── components/
+│   │   ├── TrackLoader.tsx       # Load transcript tracks
+│   │   ├── TrackComparison.tsx   # Side-by-side view
+│   │   ├── SegmentSelector.tsx   # Manual selection
+│   │   └── AITrackPanel.tsx      # AI recommendations
+│   ├── hooks/
+│   │   ├── useMultiTrack.ts      # Track state management
+│   │   └── useAITrackMerge.ts    # AI-specific hooks
+│   ├── services/
+│   │   ├── trackService.ts       # Core track operations
+│   │   ├── alignmentService.ts   # Time alignment
+│   │   └── aiTrackService.ts     # AI enhancement layer
+│   ├── types/
+│   │   └── track.types.ts
+│   ├── __tests__/
+│   └── index.ts
+│
+├── segment-merge/                # Segment merge module
+│   ├── components/
+│   │   ├── MergePreview.tsx      # Preview merge result
+│   │   └── AIMergePanel.tsx      # AI suggestions panel
+│   ├── hooks/
+│   │   ├── useMerge.ts           # Merge operations
+│   │   └── useAIMerge.ts         # AI suggestions
+│   ├── services/
+│   │   ├── mergeService.ts       # Core merge logic
+│   │   └── aiMergeService.ts     # AI enhancement
+│   ├── types/
+│   │   └── merge.types.ts
+│   ├── __tests__/
+│   └── index.ts
+│
+└── content-export/               # Content export module
+    ├── components/
+    │   ├── ExportPreview.tsx     # Manual export preview
+    │   └── AITransformPanel.tsx  # AI transformations
+    ├── hooks/
+    │   └── useExport.ts
+    ├── services/
+    │   ├── exportService.ts      # Core export logic
+    │   └── aiTransformService.ts # AI transformations
+    ├── types/
+    │   └── export.types.ts
+    ├── __tests__/
+    └── index.ts
+```
+
+### Manual-First Implementation Order
+
+For each feature, implementation follows this order:
+
+```
+Phase A: Manual Feature (Required First)
+├── 1. Define types and data structures
+├── 2. Implement core service (business logic)
+├── 3. Create UI components
+├── 4. Add hooks for state management
+├── 5. Write tests
+└── 6. Document usage
+
+Phase B: AI Enhancement (Optional, After Phase A)
+├── 1. Create AI service using shared AIFeatureService
+├── 2. Add AI-specific UI components
+├── 3. Add AI hooks
+├── 4. Wire AI suggestions to manual operations
+├── 5. Write AI-specific tests
+└── 6. Document AI features
+```
+
+### Feature Public API
+
+Each feature exports a clean public API:
+
+```typescript
+// /src/features/chapters/index.ts
+export {
+  // Components
+  ChapterEditor,
+  ChapterList,
+  ChapterTimeline,
+  AIChapterPanel,       // AI enhancement
+  
+  // Hooks
+  useChapters,
+  useAIChapters,        // AI enhancement
+  
+  // Types
+  type Chapter,
+  type ChapterMetadata,
+  
+  // Services (for advanced usage)
+  chapterService,
+  aiChapterService,     // AI enhancement
+} from './internal';
+```
+
+### Lazy Loading Support
+
+Feature modules can be lazily loaded:
+
+```typescript
+// Lazy load feature when needed
+const ChaptersFeature = lazy(() => import('@/features/chapters'));
+const MultiTrackFeature = lazy(() => import('@/features/multi-track'));
+
+// Usage
+<Suspense fallback={<Loading />}>
+  <ChaptersFeature />
+</Suspense>
+```
+
+---
+
+## Common Architecture
+
+### High-Level Flow
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                          USER                               │
+│                    (via UI Components)                       │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                   FEATURE MODULES                            │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
+│  │   Speaker    │ │  Transcript  │ │    Merge     │        │
+│  │Classification│ │   Revision   │ │  Suggestion  │  ...   │
+│  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘        │
+└─────────┼────────────────┼────────────────┼────────────────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                  UNIFIED AI SERVICE LAYER                    │
+│  ┌────────────────────────────────────────────────────────┐ │
+│  │ Prompt System   │ Response Parser  │ State Manager    │ │
+│  │ Request Builder │ Error Handling   │ Progress Tracking│ │
+│  └────────────────────────────────────────────────────────┘ │
+└────────────────────┬────────────────────────────────────────┘
+                     │
+                     ▼
+┌─────────────────────────────────────────────────────────────┐
+│                    PROVIDER ADAPTERS                         │
+│  ┌──────────────┐ ┌──────────────┐ ┌──────────────┐        │
+│  │    OpenAI    │ │    Ollama    │ │  Anthropic   │  ...   │
+│  │   Adapter    │ │   Adapter    │ │   Adapter    │        │
+│  └──────┬───────┘ └──────┬───────┘ └──────┬───────┘        │
+└─────────┼────────────────┼────────────────┼────────────────┘
+          │                │                │
+          └────────────────┼────────────────┘
+                           ▼
+┌─────────────────────────────────────────────────────────────┐
+│                      AI PROVIDERS                            │
+│         (OpenAI API, Ollama Local, Anthropic API)           │
+└─────────────────────────────────────────────────────────────┘
+```
+
+---
+
+## Core Concepts
+
+### 1. Feature Types
+
+All AI features fall into one of these categories:
+
+#### Type A: Metadata Generation
+- **Input:** Transcript segments
+- **Output:** Structured metadata (labels, tags, IDs)
+- **Examples:** Speaker Classification, Chapter Detection
+- **Characteristics:** 
+  - Returns non-text data
+  - Applied to transcript structure
+  - Reversible (can undo)
+
+#### Type B: Text Transformation
+- **Input:** Transcript text
+- **Output:** Modified text
+- **Examples:** Transcript Revision
+- **Characteristics:**
+  - Returns revised text
+  - Replaces or augments original
+  - Undoable with history
+
+#### Type C: Structural Operations
+- **Input:** Multiple segments/transcripts
+- **Output:** Operation suggestions (merge, split, select)
+- **Examples:** Segment Merge, Multi-Track Merge
+- **Characteristics:**
+  - Returns instructions, not data
+  - User reviews and approves
+  - Modifies transcript structure
+
+#### Type D: Content Export
+- **Input:** Full/partial transcript
+- **Output:** Formatted document (summary, article, etc.)
+- **Examples:** Content Transformation
+- **Characteristics:**
+  - Creates new artifact
+  - Doesn't modify original
+  - Various output formats
+
+---
+
+### 2. Common Patterns
+
+#### Pattern: Single vs. Batch
+
+**Single Processing**
+- User selects one item (segment, chapter boundary, etc.)
+- Immediate AI request
+- Quick response and preview
+- Used for: Quick revisions, spot checks
+
+**Batch Processing**
+- User selects multiple items or full transcript
+- Sequential or parallel AI requests
+- Progress tracking required
+- Used for: Full transcript operations, bulk changes
+
+#### Pattern: Streaming vs. Complete
+
+**Streaming Response**
+- AI returns data incrementally (token by token)
+- Real-time UI updates
+- Used for: Long-form content (summaries, articles)
+- Better UX for slow operations
+
+**Complete Response**
+- AI returns full result at once
+- UI updates when complete
+- Used for: Structured data (JSON), short responses
+- Simpler to implement
+
+#### Pattern: Suggestion vs. Direct Application
+
+**Suggestion Mode**
+- AI proposes changes
+- User reviews in diff/preview
+- Accept or reject
+- Used for: Text revision, merge suggestions
+
+**Direct Application**
+- AI result applied immediately
+- User can undo if needed
+- Used for: Metadata generation, transformations
+
+---
+
+## Unified Service Architecture
+
+### Core Service: `AIFeatureService` ✅ Implemented
+
+The service provides a single entry point for all AI feature execution:
+
+```typescript
+// Execute a single feature
+const result = await executeFeature<SpeakerSuggestion[]>(
+  "speaker-classification",
+  {
+    speakers: "Alice, Bob, [SL]",
+    segments: "[1] Hello there...",
+  },
+  { model: "gpt-4" }
+);
+
+if (result.success) {
+  console.log(result.data);  // SpeakerSuggestion[]
+  console.log(result.metadata.durationMs);
+}
+
+// Execute batch processing
+const batchResult = await executeBatch<string>(
+  "text-revision",
+  [
+    { text: "Um, hello there!", speaker: "Alice" },
+    { text: "Yeah, so like...", speaker: "Bob" },
+  ],
+  { model: "gpt-4" },
+  {
+    onProgress: (done, total) => console.log(`${done}/${total}`),
+    onItemComplete: (i, result) => console.log(`Item ${i} done`),
+  }
+);
+```
+
+### Feature Configuration ✅ Implemented
+
+```typescript
+export interface AIFeatureConfig {
+  // Identity
+  id: AIFeatureType;
+  name: string;
+  category: "metadata" | "text" | "structural" | "export";
+
+  // Prompt templates (using Handlebars syntax)
+  systemPrompt: string;
+  userPromptTemplate: string;
+
+  // Processing capabilities
+  batchable: boolean;
+  streamable: boolean;
+  defaultBatchSize: number;
+
+  // UI configuration
+  shortcut?: string;
+  icon?: string;
+  requiresConfirmation: boolean;
+
+  // Available variables for prompts
+  availablePlaceholders: string[];
+
+  // Response validation schema
+  responseSchema?: SimpleSchema;
+}
+```
+
+### Prompt System ✅ Implemented
+
+Prompts use **Handlebars syntax** for variable interpolation:
+
+```typescript
+// System prompt (fixed)
+const systemPrompt = `You are a professional transcript editor.
+
+TASK: Clean up and improve the transcript text while preserving voice.
+
+CORRECTIONS:
+- Fix spelling and grammar errors
+- Remove filler words (um, uh, like, you know)
+- Fix punctuation
+- Improve clarity
+
+PRESERVE:
+- Speaker's unique voice and style
+- Technical terms and proper nouns
+- Intentional informal language`;
+
+// User prompt template (variables substituted at runtime)
+const userPromptTemplate = `{{#if previousText}}
+CONTEXT (previous segment): {{previousText}}
+{{/if}}
+
+TEXT TO REVISE:
+{{text}}
+
+{{#if nextText}}
+CONTEXT (next segment): {{nextText}}
+{{/if}}
+
+Provide the corrected text:`;
+
+// Compile template with variables
+const compiled = compileTemplate(userPromptTemplate, {
+  text: "Um, hello there!",
+  previousText: "Welcome everyone.",
+  nextText: "Today we'll discuss AI.",
+});
+```
+
+### Response Parser ✅ Implemented
+
+```typescript
+// Parse with schema validation
+const result = parseResponse<Chapter[]>(response, {
+  schema: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        startTime: { type: "number" },
+        title: { type: "string" },
+        summary: { type: "string" },
+      },
+      required: ["startTime", "title"],
+    },
+  },
+});
+
+if (result.success) {
+  console.log(result.data);       // Typed as Chapter[]
+  console.log(result.metadata);   // Extraction method, warnings, etc.
+} else {
+  console.error(result.error);    // ParseError with details
+}
+```
+
+---
+
+## API Usage Guide
+
+### Pattern 1: Simple Single Execution
+
+**Use Case:** Quick revision of one segment
+
+```typescript
+import { executeFeature } from "@/lib/ai/core/aiFeatureService";
+
+async function reviseSegment(text: string, speaker: string) {
+  const result = await executeFeature<string>(
+    "text-revision",
+    {
+      text,
+      speaker,
+    },
+    {
+      model: "gpt-4",
+    }
+  );
+
+  if (result.success) {
+    return result.data;  // Revised text
+  } else {
+    console.error("Revision failed:", result.error);
+    return null;
+  }
+}
+```
+
+### Pattern 2: Batch Processing with Progress
+
+**Use Case:** Revise 50 segments with progress tracking
+
+```typescript
+import { executeBatch } from "@/lib/ai/core/aiFeatureService";
+
+async function reviseAllSegments(segments: Segment[]) {
+  const inputs = segments.map(seg => ({
+    text: seg.text,
+    speaker: seg.speaker,
+    previousText: seg.previous?.text,
+    nextText: seg.next?.text,
+  }));
+
+  const result = await executeBatch<string>(
+    "text-revision",
+    inputs,
+    { model: "gpt-4" },
+    {
+      onProgress: (processed, total) => {
+        console.log(`Progress: ${processed}/${total}`);
+        updateProgressBar(processed, total);
+      },
+      onItemComplete: (index, itemResult) => {
+        if (itemResult.success) {
+          updateSegmentInUI(index, itemResult.data);
+        }
+      },
+      onItemError: (index, error) => {
+        console.error(`Segment ${index} failed:`, error);
+      },
+    }
+  );
+
+  return result.results;
+}
+```
+
+### Pattern 3: Speaker Classification
+
+**Use Case:** Classify speakers for all segments
+
+```typescript
+import { executeFeature } from "@/lib/ai/core/aiFeatureService";
+
+interface SpeakerSuggestion {
+  tag: string;
+  confidence: "high" | "medium" | "low";
+  reason?: string;
+}
+
+async function classifySegmentSpeakers(
+  segments: Segment[],
+  availableSpeakers: string[]
+) {
+  // Format segments for the prompt
+  const segmentsText = segments
+    .map((s, i) => `[${i + 1}] [${s.currentSpeaker}]: "${s.text}"`)
+    .join("\n");
+
+  const result = await executeFeature<SpeakerSuggestion[]>(
+    "speaker-classification",
+    {
+      segments: segmentsText,
+      speakers: availableSpeakers.join(", "),
+    },
+    { model: "gpt-4" }
+  );
+
+  if (result.success) {
+    // result.data is SpeakerSuggestion[]
+    console.log(result.data);
+    console.log(`Completed in ${result.metadata.durationMs}ms`);
+    return result.data;
+  }
+}
+```
+
+### Pattern 4: Custom Prompt
+
+**Use Case:** Use a custom prompt instead of default
+
+```typescript
+import { executeFeature } from "@/lib/ai/core/aiFeatureService";
+
+async function reviseWithCustomPrompt(text: string) {
+  const result = await executeFeature<string>(
+    "text-revision",
+    { text, speaker: "Alice" },
+    {
+      model: "gpt-4",
+      customPrompt: {
+        systemPrompt: `You are a grammar expert. Only fix grammar, \
+preserve all other content exactly as-is.`,
+        userPromptTemplate: `Fix grammar: {{text}}`,
+      },
+    }
+  );
+
+  return result.success ? result.data : null;
+}
+```
+
+---
+
+## Feature Implementation Structure
+
+### Speaker Classification Example
+
+Directory structure:
+
+```
+/src/lib/ai/features/speaker/
+├── types.ts               # TypeScript interfaces
+├── config.ts              # Feature config & prompts
+├── service.ts             # AI service functions
+├── utils.ts               # Pure helper functions
+└── index.ts               # Public exports
+```
+
+**types.ts** - Define data structures:
+
+```typescript
+export interface SpeakerSuggestion {
+  tag: string;
+  confidence: "high" | "medium" | "low";
+  reason?: string;
+}
+
+export interface SpeakerClassificationInput {
+  speakers: string;
+  segments: string;
+}
+
+export interface SpeakerClassificationOutput {
+  suggestions: SpeakerSuggestion[];
+  summary: string;
+}
+```
+
+**config.ts** - Define prompts and feature configuration:
+
+```typescript
+export const SPEAKER_SYSTEM_PROMPT = `You are an expert at analyzing transcripts...`;
+
+export const SPEAKER_USER_PROMPT_TEMPLATE = `Available speakers: {{speakers}}
+
+Segments to classify:
+{{segments}}
+
+Provide suggestions in JSON format...`;
+
+export const speakerClassificationConfig: AIFeatureConfig = {
+  id: "speaker-classification",
+  name: "Speaker Classification",
+  category: "metadata",
+  
+  systemPrompt: SPEAKER_SYSTEM_PROMPT,
+  userPromptTemplate: SPEAKER_USER_PROMPT_TEMPLATE,
+  
+  batchable: true,
+  streamable: false,
+  defaultBatchSize: 15,
+  
+  requiresConfirmation: true,
+  availablePlaceholders: ["speakers", "segments"],
+  
+  responseSchema: {
+    type: "array",
+    items: {
+      type: "object",
+      properties: {
+        tag: { type: "string" },
+        confidence: { 
+          type: "string", 
+          enum: ["high", "medium", "low"]
+        },
+      },
+      required: ["tag"],
+    },
+  },
+};
+```
+
+**service.ts** - Implement AI operations:
+
+```typescript
+import { executeFeature } from "@/lib/ai/core/aiFeatureService";
+import {
+  SPEAKER_SYSTEM_PROMPT,
+  SPEAKER_USER_PROMPT_TEMPLATE,
+} from "./config";
+
+export async function classifySpeakers(
+  segments: Segment[],
+  availableSpeakers: string[],
+  options: AIFeatureOptions = {}
+): Promise<AIFeatureResult<SpeakerSuggestion[]>> {
+  // Format segments for prompt
+  const segmentsText = segments
+    .map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`)
+    .join("\n");
+
+  return executeFeature<SpeakerSuggestion[]>(
+    "speaker-classification",
+    {
+      speakers: availableSpeakers.join(", "),
+      segments: segmentsText,
+    },
+    {
+      customPrompt: {
+        systemPrompt: SPEAKER_SYSTEM_PROMPT,
+        userPromptTemplate: SPEAKER_USER_PROMPT_TEMPLATE,
+      },
+      ...options,
+    }
+  );
+}
+```
+
+**utils.ts** - Pure helper functions:
+
+```typescript
+export function normalizeSpeakerTag(tag: string): string {
+  return tag.toUpperCase().replace(/\s+/g, "_");
+}
+
+export function resolveSuggestedSpeaker(
+  suggestion: SpeakerSuggestion,
+  currentSpeaker: string
+): string {
+  return suggestion.confidence === "high" ? suggestion.tag : currentSpeaker;
+}
+
+export function formatSegmentsForPrompt(segments: Segment[]): string {
+  return segments
+    .map((s, i) => `[${i + 1}] [${s.speaker}]: "${s.text}"`)
+    .join("\n");
+}
+```
+
+**index.ts** - Public API:
+
+```typescript
+export { classifySpeakers } from "./service";
+export { SPEAKER_SYSTEM_PROMPT, SPEAKER_USER_PROMPT_TEMPLATE } from "./config";
+export type { SpeakerSuggestion, SpeakerClassificationInput } from "./types";
+```
+
+---
+
+## Revision Feature Example
+
+### Text Revision Pattern
+
+Directory structure (same as speaker):
+
+```
+/src/lib/ai/features/revision/
+├── types.ts
+├── config.ts
+├── service.ts
+├── utils.ts
+└── index.ts
+```
+
+**config.ts** - Multiple prompts for different operations:
+
+```typescript
+// Cleanup prompt
+export const REVISION_CLEANUP_SYSTEM_PROMPT = `You are a professional \
+transcript editor. Fix spelling, grammar, remove fillers, improve clarity.`;
+
+
+  // Extract structured data
+  extractJSON(response: string): any;
+
+  // Validate response
+  validate<TOutput>(
+    parsed: TOutput,
+    schema: JSONSchema
+  ): ValidationResult;
+
+  // Handle parse errors
+  handleParseError(
+    error: Error,
+    rawResponse: string
+  ): ParsedResult | null;
+}
+```
+
+---
+
+## Implementation Strategy
+
+### Phase 1: Core Infrastructure ✅
+**Status:** Completed (Revision & Speaker Classification)
+
+**Components:**
+- Provider adapter system
+- Basic prompt system
+- Settings UI for AI providers
+- Error handling and retry logic
+
+**What's Working:**
+- OpenAI and Ollama integration
+- Custom prompts (for revision)
+- Batch processing (basic)
+- Progress tracking
+
+---
+
+### Phase 2: Unified Service Layer 🔄
+**Status:** Next Priority
+
+**Goals:**
+- Extract common code from existing features
+- Create `AIFeatureService` as single entry point
+- Unified prompt management
+- Standardized response parsing
+
+**Tasks:**
+1. Create `src/lib/services/aiFeatureService.ts`
+2. Define feature registry
+3. Migrate Speaker Classification to use service
+4. Migrate Transcript Revision to use service
+5. Create feature configuration system
+
+**Deliverables:**
+- `AIFeatureService` with type-safe API
+- Feature configuration registry
+- Unified prompt templates
+- Response parsing utilities
+
+**Estimated Time:** 2 weeks
+
+---
+
+### Phase 3: Segment Merge Suggestions 📋
+**Status:** Planned
+
+**Dependencies:** Phase 2 complete
+**Prerequisite:** ✅ Manual merge already exists (select segments → merge action)
+
+**Tasks:**
+1. Define merge suggestion data schema
+2. Create prompt template for merge analysis
+3. Implement response parser for merge suggestions
+4. Build UI components:
+   - AI analysis panel
+   - Merge preview (reuse existing)
+   - Accept/reject controls
+5. Integrate with transcript state
+6. Add merge operation to history/undo
+
+**Key Challenges:**
+- Defining "merge confidence" algorithm
+- Handling edge cases (large time gaps, speaker changes)
+- Performance for large transcripts
+
+**Estimated Time:** 3 weeks
+
+---
+
+### Phase 4: Chapter Feature 📋
+
+**Status:** Planned (Blocked on Phase 2)
+
+**Phase 4A: Manual Chapter Feature (Required First)**
+
+**Tasks:**
+1. Define chapter data structure
+2. Implement chapter CRUD operations
+3. Build UI components:
+   - Chapter list/overview
+   - Chapter editor (title, summary, time range)
+   - Timeline visualization with chapter markers
+   - Chapter navigation (jump to chapter)
+4. Integrate with transcript store
+5. Add export formats (YouTube, Markdown)
+
+**Deliverables:**
+- Users can manually create/edit/delete chapters
+- Chapters displayed in transcript view
+- Chapter-based navigation
+
+**Estimated Time:** 2-3 weeks
+
+**Phase 4B: AI Chapter Detection (Enhancement)**
+
+**Tasks:**
+1. Create AI prompt for chapter boundary detection
+2. Implement response parser for chapters
+3. Add AI-specific UI:
+   - "Detect Chapters" button
+   - Granularity selector
+   - Review/edit detected chapters
+4. Wire AI suggestions to manual chapter operations
+
+**Estimated Time:** 2 weeks
+
+**Total Phase 4:** 4-5 weeks
+
+---
+
+### Phase 5: Multi-Track Merge Feature 📋
+**Status:** Planned
+
+**Dependencies:** Phase 2 complete
+
+> ⚠️ **Manual-First:** This phase has TWO sub-phases!
+
+**Phase 5A: Manual Multi-Track Feature (Required First)**
+
+**Tasks:**
+1. Create multi-transcript data model
+2. Implement track loading/management
+3. Build time alignment algorithm
+4. Build UI components:
+   - Track loader (add/remove tracks)
+   - Side-by-side comparison view
+   - Manual segment selection (click to choose)
+   - Merge progress/preview
+5. Implement merge algorithm (combine selected segments)
+
+**Deliverables:**
+- Users can load 2+ transcripts
+- Side-by-side view with time sync
+- Manual selection of best segments
+- Merge into single transcript
+
+**Estimated Time:** 3-4 weeks
+
+**Phase 5B: AI Track Merge Suggestions (Enhancement)**
+
+**Tasks:**
+1. Create AI prompt for quality assessment
+2. Create AI prompt for primary speaker detection
+3. Build UI for AI recommendations:
+   - Quality indicators per segment
+   - "Auto-select best" option
+   - Accept AI suggestions
+4. Wire AI suggestions to manual selection
+
+**Estimated Time:** 2-3 weeks
+
+**Total Phase 5:** 5-7 weeks
+
+---
+
+### Phase 6: Content Transformation 📋
+**Status:** Planned
+
+**Dependencies:** Phase 2 complete
+
+> ⚠️ **Manual-First:** Basic export templates first, AI transformations second.
+
+**Phase 6A: Manual Export Templates (Required First)**
+
+**Tasks:**
+1. Define export template structure
+2. Build basic export formats:
+   - Plain text (cleaned)
+   - Markdown with speakers
+   - Simple summary template
+3. Export preview and editing
+
+**Estimated Time:** 1-2 weeks
+
+**Phase 6B: AI Content Transformation (Enhancement)**
+
+**Tasks:**
+1. Define transformation types
+2. Create prompt templates for each type
+3. Implement streaming for long outputs
+4. Build AI-specific UI:
+   - Transformation type selector
+   - Options configuration
+   - AI results viewer
+5. Add export format handlers
+
+**Estimated Time:** 3-4 weeks
+
+**Total Phase 6:** 4-6 weeks
+
+---
+
+## Shared Components
+
+### UI Components (Reusable)
+
+```
+/src/components/ai/
+├── AIFeaturePanel.tsx           # Generic feature panel wrapper
+├── AIProviderSelector.tsx       # Provider/model selection
+├── AIProgressIndicator.tsx      # Progress bar with status
+├── AIResultsViewer.tsx          # Generic results display
+├── AIBatchControls.tsx          # Batch operation controls
+├── AIDiffViewer.tsx             # Text comparison (for revision)
+├── AIConfidenceIndicator.tsx    # Visual confidence badges
+└── AIErrorMessage.tsx           # Error display with retry
+```
+
+### State Management
+
+```typescript
+// Zustand store for AI features
+interface AIFeatureStore {
+  // Active operations
+  activeOperations: Map<string, AIOperation>;
+  
+  // Results cache
+  results: Map<string, AIFeatureResult<any>>;
+  
+  // Settings
+  defaultProvider: string;
+  defaultModel: string;
+  
+  // Actions
+  startOperation: (id: string, feature: AIFeatureType) => void;
+  updateProgress: (id: string, progress: number) => void;
+  completeOperation: (id: string, result: any) => void;
+  cancelOperation: (id: string) => void;
+  
+  // Results
+  cacheResult: (key: string, result: any) => void;
+  getResult: (key: string) => any | null;
+  clearResult: (key: string) => void;
+}
+```
+
+---
+
+## Data Flow Examples
+
+### Example 1: Segment Merge Suggestion
+
+```
+1. User Action
+   └─> Click "AI Merge Analysis" button
+   └─> Select scope (filtered segments)
+
+2. UI Component (MergeAnalysisPanel)
+   └─> Collect options (max time gap, confidence threshold)
+   └─> Call AIFeatureService.executeFeature()
+
+3. AIFeatureService
+   └─> Load feature config (segment-merge)
+   └─> Build prompt with segment data
+   └─> Call provider adapter
+
+4. Provider Adapter (OpenAI)
+   └─> Format request for OpenAI API
+   └─> Send HTTP request
+   └─> Return raw response
+
+5. Response Parser
+   └─> Parse JSON from response
+   └─> Validate against schema
+   └─> Return typed MergeSuggestion[]
+
+6. AIFeatureService
+   └─> Cache result
+   └─> Return to UI component
+
+7. UI Component
+   └─> Update state with suggestions
+   └─> Render MergeSuggestionsList
+
+8. User Review
+   └─> User accepts/rejects each suggestion
+   └─> UI applies merges to transcript store
+```
+
+---
+
+### Example 2: Chapter Detection (Streaming)
+
+```
+1. User Action
+   └─> Click "Detect Chapters"
+   └─> Select granularity (medium)
+
+2. UI Component (ChapterDetectionPanel)
+   └─> Call AIFeatureService.executeStreaming()
+
+3. AIFeatureService
+   └─> Chunk transcript (if needed)
+   └─> Build prompt for each chunk
+   └─> For each chunk:
+       └─> Call provider with onChunk callback
+
+4. Provider Adapter (Streaming)
+   └─> Open SSE connection
+   └─> For each chunk received:
+       └─> Parse delta
+       └─> Call onChunk callback
+
+5. UI Component (onChunk callback)
+   └─> Append chunk to buffer
+   └─> Update progress indicator
+   └─> Try to parse partial JSON
+
+6. Complete
+   └─> Parse final JSON
+   └─> Validate chapters
+   └─> Render ChapterTimeline
+```
+
+---
+
+## Prompt Template System
+
+### Template Variables
+
+All prompts have access to these variables:
+
+```typescript
+interface PromptVariables {
+  // Segment data
+  text: string;
+  speaker: string;
+  confidence: number;
+  timestamp: string;
+  
+  // Context
+  previousSegments: Segment[];
+  nextSegments: Segment[];
+  
+  // Transcript metadata
+  transcriptTitle: string;
+  transcriptDuration: number;
+  totalSegments: number;
+  
+  // Feature-specific
+  [key: string]: any;
+}
+```
+
+### Template Examples
+
+**Transcript Revision:**
+```
+System: You are editing a transcript. Fix spelling, grammar, and remove filler words while preserving meaning and speaker voice.
+
+User: Revise this transcript segment:
+Speaker: {{speaker}}
+Text: {{text}}
+
+Provide only the revised text, no explanation.
+```
+
+**Segment Merge:**
+```
+System: You analyze transcript segments to identify merge candidates. Suggest merging segments only when they clearly belong together (same speaker, incomplete sentence, short time gap).
+
+User: Analyze these consecutive segments:
+
+{{#each segments}}
+Segment {{index}}: [{{speaker}}] "{{text}}" ({{start}} - {{end}})
+{{/each}}
+
+Return JSON array of merge suggestions with format:
+[
+  {
+    "segmentIds": ["seg_1", "seg_2"],
+    "confidence": "high|medium|low",
+    "reason": "explanation"
+  }
+]
+```
+
+**Chapter Detection:**
+```
+System: You analyze transcripts to identify natural chapter boundaries. Consider topic shifts, speaker changes, and content structure. Generate descriptive titles and summaries for each chapter.
+
+User: Analyze this transcript and identify chapters:
+
+Duration: {{duration}}
+Segments: {{segmentCount}}
+Granularity: {{granularity}}
+
+{{transcriptText}}
+
+Return JSON with chapters array:
+[
+  {
+    "startTime": 0.0,
+    "endTime": 180.5,
+    "title": "Introduction",
+    "summary": "...",
+    "keyPoints": ["...", "..."]
+  }
+]
+```
+
+---
+
+## Error Handling Strategy
+
+### Error Categories
+
+1. **Network Errors**
+   - Timeout
+   - Connection refused
+   - DNS failure
+   - **Strategy:** Retry with exponential backoff
+
+2. **API Errors**
+   - Rate limit exceeded
+   - Invalid API key
+   - Model not available
+   - **Strategy:** Show error, suggest alternative provider/model
+
+3. **Parsing Errors**
+   - Invalid JSON
+   - Schema mismatch
+   - Incomplete response
+   - **Strategy:** Attempt recovery, show warning, allow manual edit
+
+4. **Validation Errors**
+   - Output doesn't match schema
+   - Missing required fields
+   - Invalid data types
+   - **Strategy:** Use defaults, show warning, allow retry
+
+### Error Recovery
+
+```typescript
+interface ErrorRecoveryStrategy {
+  // Determine if error is recoverable
+  isRecoverable(error: Error): boolean;
+
+  // Attempt recovery
+  recover(
+    error: Error,
+    context: FeatureContext
+  ): Promise<RecoveryResult>;
+
+  // Get user-facing message
+  getUserMessage(error: Error): string;
+
+  // Get suggested action
+  getSuggestedAction(error: Error): Action | null;
+}
+```
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+**For each feature:**
+- Prompt building with various inputs
+- Response parsing (happy path)
+- Response parsing (malformed input)
+- Error handling
+- Validation logic
+
+**Shared services:**
+- Provider adapters (mocked APIs)
+- Response parsers
+- State management
+
+### Integration Tests
+
+**Feature workflows:**
+- Single segment revision
+- Batch processing
+- Streaming responses
+- Cancel operations
+- Retry on failure
+
+### E2E Tests
+
+**User scenarios:**
+- Complete revision workflow
+- Chapter detection on real transcript
+- Multi-track merge simulation
+- Content transformation variations
+
+---
+
+## Performance Considerations
+
+### Optimization Strategies
+
+1. **Batching**
+   - Combine multiple small requests when possible
+   - Trade-off: Latency vs. throughput
+
+2. **Caching**
+   - Cache AI results keyed by input hash
+   - Invalidate on prompt change
+   - Store in IndexedDB for persistence
+
+3. **Parallel Processing**
+   - Process independent requests in parallel
+   - Limit concurrency to avoid rate limits
+
+4. **Chunking**
+   - Split very long transcripts into chunks
+   - Process chunks separately
+   - Combine results
+
+5. **Progressive Enhancement**
+   - Show partial results as they arrive
+   - Streaming for long outputs
+   - Interruptible operations
+
+### Performance Targets
+
+| Operation | Target | Notes |
+|-----------|--------|-------|
+| Single segment revision | < 3s | 95th percentile |
+| Batch 10 segments | < 15s | Sequential processing |
+| Chapter detection (1h) | < 60s | With chunking |
+| Multi-track merge (2 tracks) | < 30s | Analysis only |
+| Full transcript summary | < 45s | Streaming enabled |
+
+---
+
+## Security & Privacy
+
+### Data Handling
+
+1. **Audio files never sent** to AI providers
+2. **Transcript text** sent only for selected features
+3. **Metadata** (timestamps, IDs) included only when necessary
+4. **User can choose provider** (local Ollama for privacy)
+
+### Settings
+
+```typescript
+interface PrivacySettings {
+  // Provider preference
+  preferLocalProvider: boolean;
+  
+  // Data sending
+  includeTimestamps: boolean;
+  includeSpeakerLabels: boolean;
+  includeConfidenceScores: boolean;
+  
+  // Caching
+  cacheResults: boolean;
+  cacheExpiryDays: number;
+  
+  // Telemetry
+  allowAnonymousUsageStats: boolean;
+}
+```
+
+---
+
+## Configuration & Extensibility
+
+### Adding New Feature
+
+1. **Define feature config:**
+```typescript
+const newFeatureConfig: AIFeatureConfig = {
+  id: 'my-new-feature',
+  name: 'My New Feature',
+  type: 'metadata',
+  systemPrompt: '...',
+  userPromptTemplate: '...',
+  // ...
+};
+```
+
+2. **Register feature:**
+```typescript
+aiFeatureService.registerFeature(newFeatureConfig);
+```
+
+3. **Create UI component:**
+```tsx
+<AIFeaturePanel
+  feature="my-new-feature"
+  onComplete={handleComplete}
+/>
+```
+
+4. **Done!** Service layer handles the rest.
+
+---
+
+## Migration Path
+
+### From Current Implementation
+
+**Phase 2 Migration Steps:**
+
+1. **Create service layer** (new code, no changes to existing)
+2. **Add feature configs** for existing features
+3. **Create adapter layer** between old and new
+4. **Migrate Speaker Classification** to new service
+5. **Migrate Transcript Revision** to new service
+6. **Remove old implementation** once verified
+7. **Build new features** on new service
+
+**Risk Mitigation:**
+- Feature flag for new service
+- A/B testing capability
+- Rollback plan (keep old code until stable)
+
+---
+
+## Open Questions & Decisions Needed
+
+### Q1: Prompt Versioning
+**Question:** How do we handle prompt updates without breaking existing results?
+
+**Options:**
+- A: Version prompts (v1, v2), allow users to choose
+- B: Always use latest, cache invalidation on change
+- C: Store prompt with result for reproducibility
+
+**Recommendation:** B for simplicity, C for power users
+
+---
+
+### Q2: Long Transcript Handling
+**Question:** How do we handle transcripts that exceed token limits?
+
+**Options:**
+- A: Automatic chunking with context overlap
+- B: Summarize first, then analyze summary
+- C: User selects sections manually
+
+**Recommendation:** A + C (automatic with manual override)
+
+---
+
+### Q3: Result Storage
+**Question:** Should we persist AI results between sessions?
+
+**Options:**
+- A: Store in IndexedDB (persistent)
+- B: Memory only (cleared on reload)
+- C: User choice in settings
+
+**Recommendation:** C (default to A for convenience)
+
+---
+
+## Success Metrics
+
+### Feature Adoption
+- % of users who try each feature
+- Features per session (average)
+- Return usage rate (within 7 days)
+
+### Quality Metrics
+- Acceptance rate (suggestions accepted vs. rejected)
+- Edit rate (results edited after generation)
+- Undo rate (results undone)
+
+### Performance Metrics
+- Average response time per feature
+- Error rate per provider
+- Retry rate
+
+### User Satisfaction
+- Feature ratings (in-app feedback)
+- Support tickets per feature
+- User interviews (qualitative)
+
+---
+
+## Roadmap Summary
+
+### Completed ✅
+
+**Phase 1:** Core Infrastructure
+- Complete unified AI service layer
+- Speaker Classification feature (ready for production)
+- Text Revision feature (ready for production)
+- 682+ tests, 80%+ coverage on core utilities
+
+**Phase 2:** Service Layer Migration
+- All features migrated to unified API
+- 900+ lines of old code removed
+- All deprecated aliases cleaned up
+- Documentation complete
+
+### Next 🎯
+
+**Phase 3:** Segment Merge Suggestions (~3 weeks)
+- Uses unified service with existing manual merge
+
+**Phase 4:** Chapter Feature (~4-5 weeks)
+- Phase 4A: Manual chapters (2-3 weeks) ← Foundation first!
+- Phase 4B: AI chapter detection (2 weeks)
+
+**Phase 5:** Multi-Track Merge (~5-7 weeks)
+- Phase 5A: Manual multi-track (3-4 weeks) ← Foundation first!
+- Phase 5B: AI track suggestions (2-3 weeks)
+
+**Phase 6:** Content Transformation (~4-6 weeks)
+- Phase 6A: Manual export templates (1-2 weeks)
+- Phase 6B: AI transformations (3-4 weeks)
+
+---
+
+*Last Updated: January 4, 2026*
+*Next Review: January 11, 2026*
+

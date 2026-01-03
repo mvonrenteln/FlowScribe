@@ -1,8 +1,10 @@
 /**
- * OpenAI Provider Service
+ * OpenAI Provider
  *
  * Implementation of AIProviderService using the official OpenAI SDK.
  * Supports OpenAI API and compatible endpoints (like Azure, local proxies).
+ *
+ * @module ai/providers/openai
  */
 
 import OpenAI, { APIError } from "openai";
@@ -12,14 +14,33 @@ import type {
   ChatMessage,
   ChatOptions,
   ChatResponse,
-} from "./aiProviderTypes";
+} from "./types";
 import {
   AIProviderAuthError,
   AIProviderConnectionError,
   type AIProviderError,
   AIProviderRateLimitError,
-} from "./aiProviderTypes";
+} from "./types";
 
+/**
+ * AI Provider implementation for OpenAI and compatible APIs.
+ *
+ * @example
+ * ```ts
+ * const provider = new OpenAIProvider({
+ *   id: "openai-main",
+ *   type: "openai",
+ *   name: "OpenAI",
+ *   baseUrl: "https://api.openai.com/v1",
+ *   apiKey: "sk-...",
+ *   model: "gpt-4",
+ * });
+ *
+ * const response = await provider.chat([
+ *   { role: "user", content: "Hello!" },
+ * ]);
+ * ```
+ */
 export class OpenAIProvider implements AIProviderService {
   readonly config: AIProviderConfig;
   private client: OpenAI;
@@ -33,6 +54,9 @@ export class OpenAIProvider implements AIProviderService {
     });
   }
 
+  /**
+   * Send a chat completion request to OpenAI.
+   */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
     try {
       const completion = await this.client.chat.completions.create(
@@ -68,6 +92,9 @@ export class OpenAIProvider implements AIProviderService {
     }
   }
 
+  /**
+   * List available models from OpenAI.
+   */
   async listModels(): Promise<string[]> {
     try {
       const models = await this.client.models.list();
@@ -77,6 +104,9 @@ export class OpenAIProvider implements AIProviderService {
     }
   }
 
+  /**
+   * Test connection to OpenAI by listing models.
+   */
   async testConnection(): Promise<boolean> {
     try {
       await this.listModels();
@@ -86,6 +116,9 @@ export class OpenAIProvider implements AIProviderService {
     }
   }
 
+  /**
+   * Convert OpenAI SDK errors to unified error types.
+   */
   private handleError(error: unknown): AIProviderError {
     if (error instanceof APIError) {
       const status = error.status;
@@ -126,8 +159,10 @@ export class OpenAIProvider implements AIProviderService {
     );
   }
 
+  /**
+   * Parse retry-after header from rate limit response.
+   */
   private parseRetryAfter(error: APIError): number | undefined {
-    // Try to extract retry-after from headers if available
     const headers = error.headers;
     if (headers) {
       const retryAfter = headers.get("retry-after");

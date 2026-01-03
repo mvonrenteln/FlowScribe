@@ -6,7 +6,9 @@
  */
 
 import type { StoreApi } from "zustand";
-import { runAnalysis, summarizeIssues } from "@/lib/aiSpeakerService";
+import { summarizeAIError } from "@/lib/ai/core/errors";
+import { summarizeMessages } from "@/lib/ai/core/formatting";
+import { runAnalysis } from "@/lib/ai/features/speaker";
 
 import type {
   AIPrompt,
@@ -99,17 +101,17 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
         const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, entry];
         let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
         if (insight.fatal) {
-          const summary = summarizeIssues(insight.issues);
+          const summary = summarizeMessages(insight.issues);
           discrepancyNotice = `Batch ${insight.batchIndex + 1} failed: ${summary || "unknown"}. See batch log.`;
         } else if (insight.ignoredCount && insight.ignoredCount > 0) {
           const returned = insight.rawItemCount;
           const expected = insight.batchSize;
           const used = Math.min(returned, expected);
           const ignored = insight.ignoredCount ?? 0;
-          const summary = summarizeIssues(insight.issues);
+          const summary = summarizeMessages(insight.issues);
           discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned ${returned} (expected ${expected}, used ${used}, ignored ${ignored}). ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
         } else if (insight.rawItemCount < insight.batchSize) {
-          const summary = summarizeIssues(insight.issues);
+          const summary = summarizeMessages(insight.issues);
           discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
         }
         set({
@@ -120,7 +122,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       },
       onError: (error) => {
         set({
-          aiSpeakerError: summarizeAiSpeakerError(error),
+          aiSpeakerError: summarizeAIError(error),
           aiSpeakerIsProcessing: false,
         });
       },
@@ -269,32 +271,3 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     set({ aiSpeakerBatchLog: entries });
   },
 });
-
-export function summarizeAiSpeakerError(error: Error): string {
-  if ("details" in error && error.details && typeof error.details === "object") {
-    const details = error.details as Record<string, unknown>;
-    const rawIssues = details.issues;
-    if (Array.isArray(rawIssues) && rawIssues.length > 0) {
-      // Build a safe summary from rawIssues (which may be strings or objects)
-      const msgs: string[] = rawIssues
-        .map((i) => {
-          if (typeof i === "string") return i;
-          if (i && typeof i === "object") {
-            const rec = i as Record<string, unknown>;
-            const candidate =
-              rec.message ?? rec.msg ?? rec.msgText ?? rec.error ?? JSON.stringify(rec);
-            return String(candidate);
-          }
-          return String(i);
-        })
-        .filter(Boolean);
-      if (msgs.length === 0) return `${error.message}: ${String(rawIssues[0])}`;
-      const summary =
-        msgs.length <= 3
-          ? msgs.join("; ")
-          : `${msgs.slice(0, 3).join("; ")} (+${msgs.length - 3} more)`;
-      return `${error.message}: ${summary}`;
-    }
-  }
-  return error.message;
-}

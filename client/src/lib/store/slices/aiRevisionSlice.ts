@@ -9,7 +9,7 @@
  */
 
 import type { StoreApi } from "zustand";
-import type { RevisionResult } from "@/lib/services/aiRevisionService";
+import type { RevisionResult } from "@/lib/ai/features/revision";
 import type {
   AIPrompt,
   AIRevisionConfig,
@@ -249,10 +249,10 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
     // Run revision asynchronously - dynamic import to avoid circular dependencies
     console.log("[AIRevision] Starting async import for segment:", segmentId);
-    import("@/lib/services/aiRevisionService")
-      .then(({ runRevision }) => {
-        console.log("[AIRevision] Import successful, calling runRevision");
-        return runRevision({
+    import("@/lib/ai/features/revision")
+      .then(({ reviseSegment }) => {
+        console.log("[AIRevision] Import successful, calling reviseSegment");
+        return reviseSegment({
           segment,
           prompt: selectedPrompt,
           previousSegment,
@@ -358,8 +358,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     });
 
     // Run batch revision asynchronously - dynamic import to avoid circular dependencies
-    import("@/lib/services/aiRevisionService").then(({ runBatchRevision }) => {
-      runBatchRevision({
+    import("@/lib/ai/features/revision").then(({ reviseSegmentsBatch }) => {
+      reviseSegmentsBatch({
         segments,
         allSegments: state.segments,
         prompt: selectedPrompt,

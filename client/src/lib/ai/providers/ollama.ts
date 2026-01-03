@@ -1,8 +1,10 @@
 /**
- * Ollama Provider Service
+ * Ollama Provider
  *
  * Implementation of AIProviderService for local Ollama instances.
- * Extracted from the existing aiSpeakerService.ts for reusability.
+ * Communicates with Ollama's REST API for chat completions and model listing.
+ *
+ * @module ai/providers/ollama
  */
 
 import type {
@@ -11,9 +13,28 @@ import type {
   ChatMessage,
   ChatOptions,
   ChatResponse,
-} from "./aiProviderTypes";
-import { AIProviderConnectionError, AIProviderError } from "./aiProviderTypes";
+} from "./types";
+import { AIProviderConnectionError, AIProviderError } from "./types";
 
+/**
+ * AI Provider implementation for Ollama.
+ *
+ * @example
+ * ```ts
+ * const provider = new OllamaProvider({
+ *   id: "local",
+ *   type: "ollama",
+ *   name: "Local Ollama",
+ *   baseUrl: "http://localhost:11434",
+ *   model: "llama3.2",
+ * });
+ *
+ * const response = await provider.chat([
+ *   { role: "system", content: "You are helpful." },
+ *   { role: "user", content: "Hello!" },
+ * ]);
+ * ```
+ */
 export class OllamaProvider implements AIProviderService {
   readonly config: AIProviderConfig;
 
@@ -21,6 +42,9 @@ export class OllamaProvider implements AIProviderService {
     this.config = config;
   }
 
+  /**
+   * Send a chat completion request to Ollama.
+   */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
     const apiUrl = `${this.config.baseUrl.replace(/\/$/, "")}/api/generate`;
 
@@ -86,6 +110,9 @@ export class OllamaProvider implements AIProviderService {
     }
   }
 
+  /**
+   * List available models from Ollama.
+   */
   async listModels(): Promise<string[]> {
     const apiUrl = `${this.config.baseUrl.replace(/\/$/, "")}/api/tags`;
 
@@ -118,6 +145,9 @@ export class OllamaProvider implements AIProviderService {
     }
   }
 
+  /**
+   * Test connection to Ollama by listing models.
+   */
   async testConnection(): Promise<boolean> {
     try {
       await this.listModels();

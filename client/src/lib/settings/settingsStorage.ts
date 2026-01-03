@@ -5,7 +5,7 @@
  * Handles persistence, migration, and validation of settings.
  */
 
-import type { AIProviderConfig } from "@/lib/services/aiProviderTypes";
+import type { AIProviderConfig } from "@/lib/ai/providers/types";
 
 const SETTINGS_STORAGE_KEY = "flowscribe:settings";
 const SETTINGS_VERSION = 1;

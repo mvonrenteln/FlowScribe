@@ -1,4 +1,7 @@
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT_TEMPLATE } from "@/lib/aiSpeakerService";
+import {
+  SPEAKER_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
+  SPEAKER_USER_PROMPT_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
+} from "@/lib/ai/features/speaker";
 import type { AIPrompt, AISpeakerConfig } from "../types";
 
 export const DEFAULT_SPEAKER_PROMPT: AIPrompt = {

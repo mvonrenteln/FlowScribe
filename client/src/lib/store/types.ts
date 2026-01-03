@@ -375,9 +375,6 @@ export interface AIRevisionSuggestion {
   reasoning?: string;
 }
 
-// AIRevisionTemplate is now just AIPrompt with type: 'text'
-export type AIRevisionTemplate = AIPrompt;
-
 export interface AIRevisionConfig {
   prompts: AIPrompt[];
   defaultPromptId: string | null;

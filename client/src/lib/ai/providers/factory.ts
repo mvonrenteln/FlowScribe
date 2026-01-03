@@ -1,18 +1,15 @@
 /**
- * AI Provider Service Factory
+ * AI Provider Factory
  *
  * Central module for creating and managing AI provider instances.
  * Provides a unified interface to work with different AI backends.
+ *
+ * @module ai/providers/factory
  */
 
-import type { AIProviderConfig, AIProviderService } from "./aiProviderTypes";
-import { OllamaProvider } from "./ollamaProvider";
-import { OpenAIProvider } from "./openaiProvider";
-
-// Re-export types for convenience
-export * from "./aiProviderTypes";
-export { OllamaProvider } from "./ollamaProvider";
-export { OpenAIProvider } from "./openaiProvider";
+import { OllamaProvider } from "./ollama";
+import { OpenAIProvider } from "./openai";
+import type { AIProviderConfig, AIProviderService } from "./types";
 
 /**
  * Creates an AI provider instance based on the configuration type.
@@ -23,7 +20,7 @@ export { OpenAIProvider } from "./openaiProvider";
  *
  * @example
  * ```ts
- * const provider = createAIProvider({
+ * const provider = createProvider({
  *   id: "local-ollama",
  *   type: "ollama",
  *   name: "Local Ollama",
@@ -36,7 +33,7 @@ export { OpenAIProvider } from "./openaiProvider";
  * ]);
  * ```
  */
-export function createAIProvider(config: AIProviderConfig): AIProviderService {
+export function createProvider(config: AIProviderConfig): AIProviderService {
   switch (config.type) {
     case "ollama":
       return new OllamaProvider(config);

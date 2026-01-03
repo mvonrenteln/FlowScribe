@@ -1,0 +1,58 @@
+/**
+ * Speaker Classification Feature
+ *
+ * Public API for the speaker classification feature.
+ *
+ * @module ai/features/speaker
+ */
+
+// Configuration
+export {
+  buildSpeakerPrompt,
+  SPEAKER_SYSTEM_PROMPT,
+  SPEAKER_USER_PROMPT_TEMPLATE,
+  speakerClassificationConfig,
+  speakerResponseSchema,
+} from "./config";
+
+// Service
+export type {
+  AnalysisOptions,
+  ClassifySpeakersBatchOptions,
+  ClassifySpeakersBatchResult,
+  ClassifySpeakersOptions,
+} from "./service";
+
+export {
+  classifySpeakers,
+  classifySpeakersBatch,
+  parseRawResponse,
+  runAnalysis,
+} from "./service";
+
+// Types
+export type {
+  BatchIssue,
+  BatchSegment,
+  ParsedSuggestionsResult,
+  RawSpeakerResponseItem,
+  SpeakerClassificationConfig,
+  SpeakerClassificationInput,
+  SpeakerClassificationOutput,
+  SpeakerClassificationResult,
+  SpeakerSuggestion,
+} from "./types";
+
+// Utilities
+export {
+  buildCurrentSpeakersMap,
+  estimateTokens,
+  formatSegmentsForPrompt,
+  formatSpeakersForPrompt,
+  markNewSpeaker,
+  normalizeSpeakerTag,
+  prepareBatch,
+  prepareBatchSegments,
+  resolveSuggestedSpeaker,
+  truncateForPrompt,
+} from "./utils";

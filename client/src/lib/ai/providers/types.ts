@@ -4,12 +4,21 @@
  * Shared type definitions for AI provider services.
  * These types define the common interface for all AI providers
  * (Ollama, OpenAI, Custom).
+ *
+ * @module ai/providers/types
  */
 
 // ==================== Provider Configuration ====================
 
+/**
+ * Supported AI provider types.
+ */
 export type AIProviderType = "ollama" | "openai" | "custom";
 
+/**
+ * Configuration for an AI provider.
+ * Stores connection details and preferences.
+ */
 export interface AIProviderConfig {
   /** Unique identifier for this provider configuration */
   id: string;
@@ -37,13 +46,22 @@ export interface AIProviderConfig {
 
 // ==================== Chat Interface ====================
 
+/**
+ * Role of a message in a chat conversation.
+ */
 export type ChatRole = "system" | "user" | "assistant";
 
+/**
+ * A single message in a chat conversation.
+ */
 export interface ChatMessage {
   role: ChatRole;
   content: string;
 }
 
+/**
+ * Options for a chat completion request.
+ */
 export interface ChatOptions {
   /** Maximum tokens to generate */
   maxTokens?: number;
@@ -53,6 +71,9 @@ export interface ChatOptions {
   signal?: AbortSignal;
 }
 
+/**
+ * Response from a chat completion request.
+ */
 export interface ChatResponse {
   /** Generated text content */
   content: string;
@@ -66,6 +87,10 @@ export interface ChatResponse {
 
 // ==================== Provider Service Interface ====================
 
+/**
+ * Interface that all AI providers must implement.
+ * Provides a unified way to interact with different AI backends.
+ */
 export interface AIProviderService {
   /** Provider configuration */
   readonly config: AIProviderConfig;
@@ -93,6 +118,9 @@ export interface AIProviderService {
 
 // ==================== Provider Errors ====================
 
+/**
+ * Base error class for AI provider errors.
+ */
 export class AIProviderError extends Error {
   constructor(
     message: string,
@@ -104,6 +132,9 @@ export class AIProviderError extends Error {
   }
 }
 
+/**
+ * Error thrown when connection to provider fails.
+ */
 export class AIProviderConnectionError extends AIProviderError {
   constructor(
     message: string,
@@ -116,6 +147,9 @@ export class AIProviderConnectionError extends AIProviderError {
   }
 }
 
+/**
+ * Error thrown when authentication fails.
+ */
 export class AIProviderAuthError extends AIProviderError {
   constructor(message: string, providerType: AIProviderType, details?: Record<string, unknown>) {
     super(message, providerType, details);
@@ -123,6 +157,9 @@ export class AIProviderAuthError extends AIProviderError {
   }
 }
 
+/**
+ * Error thrown when rate limit is exceeded.
+ */
 export class AIProviderRateLimitError extends AIProviderError {
   constructor(
     message: string,
