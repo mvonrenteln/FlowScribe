@@ -143,21 +143,11 @@ export const BUILTIN_REVISION_PROMPTS: RevisionPrompt[] = [
 ];
 
 /**
- * @deprecated Use BUILTIN_REVISION_PROMPTS instead
- */
-export const BUILTIN_REVISION_TEMPLATES = BUILTIN_REVISION_PROMPTS;
-
-/**
  * Get the default revision prompt.
  */
 export function getDefaultPrompt(): RevisionPrompt {
   return BUILTIN_REVISION_PROMPTS[0];
 }
-
-/**
- * @deprecated Use getDefaultPrompt instead
- */
-export const getDefaultTemplate = getDefaultPrompt;
 
 /**
  * Find a prompt by ID.
@@ -170,8 +160,3 @@ export function findPrompt(
     BUILTIN_REVISION_PROMPTS.find((p) => p.id === id) || customPrompts.find((p) => p.id === id)
   );
 }
-
-/**
- * @deprecated Use findPrompt instead
- */
-export const findTemplate = findPrompt;

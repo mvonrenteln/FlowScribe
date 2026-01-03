@@ -35,8 +35,6 @@ import {
 export interface ClassifySpeakersOptions extends AIFeatureOptions {
   /** Minimum confidence threshold (0-1) */
   minConfidence?: number;
-  /** Provider ID to use (alternative to provider object) */
-  providerId?: string;
 }
 
 /**
@@ -103,19 +101,6 @@ export async function classifySpeakers(
   const segmentsText = formatSegmentsForPrompt(segments);
   const speakersText = formatSpeakersForPrompt(availableSpeakers);
 
-  console.log(
-    "[Speaker Service] Classifying",
-    segments.length,
-    "segments with",
-    availableSpeakers.length,
-    "speakers",
-  );
-  console.log("[Speaker Service] Options:", {
-    hasCustomPrompt: !!options.customPrompt,
-    providerId: (options as { providerId?: string }).providerId,
-    model: options.model,
-  });
-
   // Execute feature
   const result = await executeFeature<SpeakerSuggestion[]>(
     "speaker-classification",
@@ -126,27 +111,13 @@ export async function classifySpeakers(
     options,
   );
 
-  console.log("[Speaker Service] Result:", {
-    success: result.success,
-    hasData: !!result.data,
-    dataLength: result.data?.length,
-    error: result.error,
-  });
-
   if (!result.success || !result.data) {
     console.error("[Speaker Service] Classification failed:", result.error);
     return [];
   }
 
   // Map suggestions to results
-  const mapped = mapSuggestionsToResults(
-    result.data,
-    segments,
-    availableSpeakers,
-    options.minConfidence,
-  );
-  console.log("[Speaker Service] Mapped results:", mapped.length);
-  return mapped;
+  return mapSuggestionsToResults(result.data, segments, availableSpeakers, options.minConfidence);
 }
 
 /**

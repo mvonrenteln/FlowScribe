@@ -9,7 +9,6 @@
 
 // Factory
 export {
-  createAIProvider, // deprecated alias
   createProvider,
   createProviderConfig,
   DEFAULT_PROVIDER_CONFIGS,

@@ -8,7 +8,7 @@
  * @module ai/core/types
  */
 
-import type { AIProviderConfig, ChatMessage, ChatOptions } from "@/lib/services/aiProviderTypes";
+import type { AIProviderConfig, ChatMessage, ChatOptions } from "../providers/types";
 
 // ==================== Feature Types ====================
 
@@ -89,6 +89,9 @@ export interface AIFeatureConfig {
 export interface AIFeatureOptions {
   /** Provider configuration to use */
   provider?: AIProviderConfig;
+
+  /** Provider ID to use (alternative to full provider config) */
+  providerId?: string;
 
   /** Model to use (overrides provider default) */
   model?: string;

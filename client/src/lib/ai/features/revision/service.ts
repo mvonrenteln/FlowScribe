@@ -16,8 +16,8 @@ import type {
   BatchRevisionParams,
   BatchRevisionResult,
   RevisionIssue,
+  RevisionPrompt,
   RevisionResult,
-  RevisionTemplate,
   SingleRevisionParams,
 } from "./types";
 
@@ -181,7 +181,7 @@ export async function reviseSegmentsBatch(
  * @returns Compiled prompt
  */
 export function buildRevisionPrompt(
-  template: RevisionTemplate,
+  template: RevisionPrompt,
   text: string,
   context: {
     previousText?: string;

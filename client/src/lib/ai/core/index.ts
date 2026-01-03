@@ -34,7 +34,6 @@ export {
   getErrorMessage,
   isCancellationError,
   summarizeAIError,
-  summarizeAiSpeakerError,
   toAIError,
 } from "./errors";
 // Feature Registry
@@ -52,11 +51,8 @@ export {
 } from "./featureRegistry";
 // Formatting
 export {
-  previewResponse,
-  previewText,
   type Summarizable,
   summarizeError,
-  summarizeIssues,
   summarizeMessages,
   truncateText,
 } from "./formatting";
@@ -66,7 +62,6 @@ export {
   type ProviderResolveOptions,
   type ResolvedProvider,
   resolveProvider,
-  resolveProviderSync,
 } from "./providerResolver";
 
 // Types

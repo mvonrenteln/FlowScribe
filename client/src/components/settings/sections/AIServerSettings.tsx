@@ -32,13 +32,8 @@ import {
 } from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
-import {
-  type AIProviderConfig,
-  type AIProviderType,
-  createAIProvider,
-  createProviderConfig,
-  validateProviderConfig,
-} from "@/lib/services/aiProviderService";
+import { createProvider, createProviderConfig, validateProviderConfig } from "@/lib/ai/providers";
+import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types";
 import {
   addProviderToSettings,
   initializeSettings,
@@ -108,7 +103,7 @@ function ProviderForm({ initialData, onSave, onCancel, isEditing }: ProviderForm
         apiKey: form.apiKey || undefined,
         model: form.model || "temp",
       });
-      const provider = createAIProvider(tempConfig);
+      const provider = createProvider(tempConfig);
       const models = await provider.listModels();
       setForm((prev) => ({
         ...prev,
@@ -546,7 +541,7 @@ export function AIServerSettings() {
 
   const handleTestProvider = useCallback(async (provider: AIProviderConfig): Promise<boolean> => {
     try {
-      const service = createAIProvider(provider);
+      const service = createProvider(provider);
       const success = await service.testConnection();
 
       // Update test status

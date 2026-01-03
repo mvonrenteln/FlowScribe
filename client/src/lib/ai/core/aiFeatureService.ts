@@ -58,9 +58,8 @@ export async function executeFeature<TOutput>(
   const config = getFeatureOrThrow(featureId);
 
   // Resolve provider using unified resolver
-  // Support both provider.id and direct providerId
   const resolveOptions: ProviderResolveOptions = {
-    providerId: (options as { providerId?: string }).providerId ?? options.provider?.id,
+    providerId: options.providerId ?? options.provider?.id,
     model: options.model,
   };
 

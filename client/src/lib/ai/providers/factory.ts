@@ -49,11 +49,6 @@ export function createProvider(config: AIProviderConfig): AIProviderService {
 }
 
 /**
- * @deprecated Use `createProvider` instead.
- */
-export const createAIProvider = createProvider;
-
-/**
  * Default provider configurations for quick setup.
  */
 export const DEFAULT_PROVIDER_CONFIGS: Omit<AIProviderConfig, "id">[] = [

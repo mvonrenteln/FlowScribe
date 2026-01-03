@@ -169,11 +169,5 @@ export function getErrorMessage(error: unknown): string {
 
 // ==================== Error Summarization ====================
 
-// Re-export from formatting module for backward compatibility
-/**
- * @deprecated Use summarizeAIError instead
- */
-export {
-  summarizeError as summarizeAIError,
-  summarizeError as summarizeAiSpeakerError,
-} from "./formatting";
+// Re-export from formatting module
+export { summarizeError as summarizeAIError } from "./formatting";

@@ -2,31 +2,14 @@
  * Speaker Classification Utilities
  *
  * Helper functions for speaker classification.
- * Cross-cutting concerns are re-exported from core/.
  *
  * @module ai/features/speaker/utils
  */
 
-import { buildMap, filterSegments as coreFilterSegments, sliceBatch } from "../../core/batch";
-import { previewText, summarizeMessages } from "../../core/formatting";
+import { buildMap, sliceBatch } from "../../core/batch";
 import type { BatchSegment } from "./types";
 
-// ==================== Re-exports from Core ====================
-
-/**
- * @deprecated Use filterSegments from core/batch instead
- */
-export const filterSegmentsForAnalysis = coreFilterSegments;
-
-/**
- * @deprecated Use summarizeMessages from core/formatting instead
- */
-export const summarizeIssues = summarizeMessages;
-
-/**
- * @deprecated Use previewText from core/formatting instead
- */
-export const previewResponse = previewText;
+// ==================== Helpers using Core ====================
 
 /**
  * Build a current speakers map from batch segments.

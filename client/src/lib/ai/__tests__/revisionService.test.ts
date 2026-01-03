@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import { getDefaultTemplate } from "../features/revision/config";
+import { getDefaultPrompt } from "../features/revision/config";
 import { buildRevisionPrompt, getChangePreview, hasChanges } from "../features/revision/service";
 
 describe("Revision Service", () => {
@@ -32,7 +32,7 @@ describe("Revision Service", () => {
   });
 
   describe("buildRevisionPrompt", () => {
-    const template = getDefaultTemplate();
+    const template = getDefaultPrompt();
 
     it("should include the text to revise", () => {
       const prompt = buildRevisionPrompt(template, "Hello world");
@@ -82,9 +82,9 @@ describe("Revision Service", () => {
     });
   });
 
-  describe("getDefaultTemplate", () => {
+  describe("getDefaultPrompt", () => {
     it("should return a valid template", () => {
-      const template = getDefaultTemplate();
+      const template = getDefaultPrompt();
       expect(template).toBeDefined();
       expect(template.id).toBeDefined();
       expect(template.systemPrompt).toBeDefined();
@@ -92,7 +92,7 @@ describe("Revision Service", () => {
     });
 
     it("should return cleanup template as default", () => {
-      const template = getDefaultTemplate();
+      const template = getDefaultPrompt();
       expect(template.id).toContain("cleanup");
     });
   });

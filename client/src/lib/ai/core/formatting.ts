@@ -35,16 +35,6 @@ export function truncateText(
   return text.slice(0, maxLength - ellipsis.length) + ellipsis;
 }
 
-/**
- * @deprecated Use truncateText instead
- */
-export const previewText = truncateText;
-
-/**
- * @deprecated Use truncateText instead
- */
-export const previewResponse = truncateText;
-
 // ==================== Issue Summarization ====================
 
 /**
@@ -136,10 +126,3 @@ export function summarizeError(error: Error): string {
 
   return error.message;
 }
-
-// ==================== Deprecated Aliases ====================
-
-/**
- * @deprecated Use summarizeMessages instead
- */
-export const summarizeIssues = summarizeMessages;

@@ -5,20 +5,16 @@
  */
 
 import { describe, expect, it } from "vitest";
-import type { BatchIssue } from "../features/speaker/types";
 import {
   buildCurrentSpeakersMap,
   estimateTokens,
-  filterSegmentsForAnalysis,
   formatSegmentsForPrompt,
   formatSpeakersForPrompt,
   markNewSpeaker,
   normalizeSpeakerTag,
   prepareBatch,
   prepareBatchSegments,
-  previewResponse,
   resolveSuggestedSpeaker,
-  summarizeIssues,
   truncateForPrompt,
 } from "../features/speaker/utils";
 
@@ -217,95 +213,8 @@ describe("Speaker Utils", () => {
     });
   });
 
-  describe("filterSegmentsForAnalysis", () => {
-    const segments = [
-      { id: "1", speaker: "Alice", text: "A", confirmed: false },
-      { id: "2", speaker: "Bob", text: "B", confirmed: true },
-      { id: "3", speaker: "Alice", text: "C", confirmed: false },
-      { id: "4", speaker: "Charlie", text: "D", confirmed: false },
-    ];
-
-    it("should return all segments when no filters", () => {
-      const result = filterSegmentsForAnalysis(segments, [], false);
-      expect(result).toHaveLength(4);
-    });
-
-    it("should exclude confirmed segments", () => {
-      const result = filterSegmentsForAnalysis(segments, [], true);
-      expect(result).toHaveLength(3);
-      expect(result.find((s) => s.id === "2")).toBeUndefined();
-    });
-
-    it("should filter by selected speakers", () => {
-      const result = filterSegmentsForAnalysis(segments, ["Alice"], false);
-      expect(result).toHaveLength(2);
-      expect(result.every((s) => s.speaker === "Alice")).toBe(true);
-    });
-
-    it("should combine filters", () => {
-      const result = filterSegmentsForAnalysis(segments, ["Alice", "Bob"], true);
-      expect(result).toHaveLength(2);
-      expect(result.find((s) => s.speaker === "Bob")).toBeUndefined();
-    });
-
-    it("should be case insensitive for speakers", () => {
-      const result = filterSegmentsForAnalysis(segments, ["ALICE"], false);
-      expect(result).toHaveLength(2);
-    });
-  });
-
-  describe("summarizeIssues", () => {
-    it("should return empty string for undefined", () => {
-      expect(summarizeIssues(undefined)).toBe("");
-    });
-
-    it("should return empty string for empty array", () => {
-      expect(summarizeIssues([])).toBe("");
-    });
-
-    it("should join up to 3 messages", () => {
-      const issues: BatchIssue[] = [
-        { level: "warn", message: "first" },
-        { level: "warn", message: "second" },
-        { level: "error", message: "third" },
-      ];
-      expect(summarizeIssues(issues)).toBe("first; second; third");
-    });
-
-    it("should truncate beyond 3 messages", () => {
-      const issues: BatchIssue[] = [
-        { level: "warn", message: "m1" },
-        { level: "warn", message: "m2" },
-        { level: "warn", message: "m3" },
-        { level: "error", message: "m4" },
-        { level: "error", message: "m5" },
-      ];
-      expect(summarizeIssues(issues)).toBe("m1; m2; m3 (+2 more)");
-    });
-  });
-
-  describe("previewResponse", () => {
-    it("should return '<empty>' for empty string", () => {
-      expect(previewResponse("")).toBe("<empty>");
-    });
-
-    it("should return full text if under limit", () => {
-      expect(previewResponse("Hello world", 100)).toBe("Hello world");
-    });
-
-    it("should truncate long text with ellipsis", () => {
-      const longText = "a".repeat(100);
-      const result = previewResponse(longText, 50);
-      expect(result.length).toBe(50); // maxLength includes ellipsis
-      expect(result.endsWith("…")).toBe(true);
-    });
-
-    it("should use default max length", () => {
-      const longText = "a".repeat(700);
-      const result = previewResponse(longText);
-      expect(result.length).toBe(600); // default maxLength includes ellipsis
-    });
-  });
+  // Note: filterSegmentsForAnalysis, summarizeIssues, and previewResponse
+  // have been moved to core/batch.ts and core/formatting.ts and are tested there.
 
   describe("buildCurrentSpeakersMap", () => {
     it("should build map from batch segments", () => {

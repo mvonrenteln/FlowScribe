@@ -114,11 +114,6 @@ export interface RevisionPrompt {
 }
 
 /**
- * @deprecated Use RevisionPrompt instead
- */
-export type RevisionTemplate = RevisionPrompt;
-
-/**
  * Result of batch revision.
  */
 export interface BatchRevisionResult {

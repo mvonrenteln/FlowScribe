@@ -19,7 +19,8 @@ import {
   DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { type AIProviderConfig, createAIProvider } from "@/lib/services/aiProviderService";
+import { createProvider } from "@/lib/ai/providers";
+import type { AIProviderConfig } from "@/lib/ai/providers/types";
 import {
   initializeSettings,
   updateProviderModel,
@@ -53,7 +54,7 @@ export function AIProviderSelector({ className, compact }: AIProviderSelectorPro
 
     try {
       setLoadingModels((prev) => new Set([...prev, provider.id]));
-      const aiProvider = createAIProvider(provider);
+      const aiProvider = createProvider(provider);
       const models = await aiProvider.listModels();
       setAvailableModels((prev) => new Map([...prev, [provider.id, models]]));
     } catch (error) {
