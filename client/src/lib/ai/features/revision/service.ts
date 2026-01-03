@@ -33,7 +33,7 @@ import type {
  * ```ts
  * const result = await reviseSegment({
  *   segment: { id: "1", text: "Um, hello there!" },
- *   prompt: getDefaultTemplate(),
+ *   prompt: getDefaultPrompt(),
  * });
  * ```
  */

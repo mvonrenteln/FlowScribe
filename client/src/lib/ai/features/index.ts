@@ -34,19 +34,15 @@ export type {
   BatchRevisionResult,
   RevisionPrompt,
   RevisionResult,
-  RevisionTemplate, // deprecated alias
   SingleRevisionParams,
   TextRevisionInput,
   TextRevisionOutput,
 } from "./revision";
 export {
   BUILTIN_REVISION_PROMPTS,
-  BUILTIN_REVISION_TEMPLATES, // deprecated alias
   buildRevisionPrompt,
   findPrompt,
-  findTemplate, // deprecated alias
   getDefaultPrompt,
-  getDefaultTemplate, // deprecated alias
   hasChanges,
   REVISION_CLARITY_SYSTEM_PROMPT,
   REVISION_CLEANUP_SYSTEM_PROMPT,
