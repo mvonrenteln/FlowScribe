@@ -16,7 +16,7 @@ import {
   registerFeature,
   unregisterFeature,
 } from "../core/featureRegistry";
-import type { AIFeatureConfig } from "../core/types";
+import type { AIFeatureConfig, AIFeatureType } from "../core/types";
 
 describe("Feature Registry", () => {
   // Clear registry before each test
@@ -54,6 +54,8 @@ describe("Feature Registry", () => {
     availablePlaceholders: ["segments", "speakers"],
   };
 
+  const unregisteredFeatureId: AIFeatureType = "segment-merge";
+
   describe("registerFeature", () => {
     it("should register a new feature", () => {
       registerFeature(testFeature);
@@ -80,7 +82,7 @@ describe("Feature Registry", () => {
     });
 
     it("should return undefined for unregistered feature", () => {
-      const feature = getFeature("nonexistent" as any);
+      const feature = getFeature(unregisteredFeatureId);
       expect(feature).toBeUndefined();
     });
   });
@@ -93,7 +95,7 @@ describe("Feature Registry", () => {
     });
 
     it("should throw for unregistered feature", () => {
-      expect(() => getFeatureOrThrow("nonexistent" as any)).toThrow("not registered");
+      expect(() => getFeatureOrThrow(unregisteredFeatureId)).toThrow("not registered");
     });
   });
 
@@ -156,7 +158,7 @@ describe("Feature Registry", () => {
     });
 
     it("should return false for unregistered feature", () => {
-      const removed = unregisterFeature("nonexistent" as any);
+      const removed = unregisterFeature(unregisteredFeatureId);
       expect(removed).toBe(false);
     });
   });

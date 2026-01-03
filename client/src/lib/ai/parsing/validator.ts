@@ -211,9 +211,11 @@ function validateArray(
     return data;
   }
 
+  const itemSchema = schema.items;
+
   return data.map((item, index) => {
     const itemPath = `${path}[${index}]`;
-    return validateNode(item, schema.items!, itemPath, errors, warnings, applyDefaults);
+    return validateNode(item, itemSchema, itemPath, errors, warnings, applyDefaults);
   });
 }
 

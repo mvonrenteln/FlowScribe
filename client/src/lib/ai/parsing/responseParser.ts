@@ -89,7 +89,7 @@ export function parseResponse<T>(
     const validationResult = validate<T>(extracted, schema, applyDefaults);
     wasValidated = true;
 
-    if (!validationResult.valid) {
+    if (!validationResult.valid || !validationResult.data) {
       return {
         success: false,
         error: new Error(
@@ -104,7 +104,7 @@ export function parseResponse<T>(
       } as ParseResult<T>;
     }
 
-    validated = validationResult.data!;
+    validated = validationResult.data;
     warnings.push(...validationResult.warnings);
   } else {
     // No schema, use extracted data as-is

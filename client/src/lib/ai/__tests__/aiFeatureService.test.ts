@@ -47,8 +47,10 @@ describe("AIFeatureService", () => {
     });
 
     it("should throw for unregistered feature", () => {
+      // Ensure registry is empty to test missing feature behavior
+      clearRegistry();
       expect(() => {
-        getFeatureOrThrow("nonexistent" as any);
+        getFeatureOrThrow("speaker-classification");
       }).toThrow("not registered");
     });
   });

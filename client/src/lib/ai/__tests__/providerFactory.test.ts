@@ -62,7 +62,7 @@ describe("createProvider", () => {
   });
 
   it("should throw for unknown provider type", () => {
-    const invalidConfig = { ...ollamaConfig, type: "invalid" as any };
+    const invalidConfig = { ...ollamaConfig, type: "invalid" } as unknown as AIProviderConfig;
     expect(() => createProvider(invalidConfig)).toThrow("Unknown provider type");
   });
 });

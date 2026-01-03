@@ -93,7 +93,7 @@ export async function executeFeature<TOutput>(
         schema: config.responseSchema,
       });
 
-      if (!parseResult.success) {
+      if (!parseResult.success || !parseResult.data) {
         return {
           success: false,
           error: parseResult.error?.message ?? "Failed to parse response",
@@ -102,7 +102,7 @@ export async function executeFeature<TOutput>(
         };
       }
 
-      data = parseResult.data!;
+      data = parseResult.data;
     } else {
       // Plain text response (e.g., text revision)
       data = response.content as unknown as TOutput;

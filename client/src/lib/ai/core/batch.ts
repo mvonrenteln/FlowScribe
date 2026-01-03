@@ -95,7 +95,7 @@ export function filterItems<T>(items: T[], options: FilterOptions<T>): T[] {
 
   return items.filter((item) => {
     // Check exclusion condition
-    if (excludeIf && excludeIf(item)) {
+    if (excludeIf?.(item)) {
       return false;
     }
 

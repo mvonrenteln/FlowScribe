@@ -375,7 +375,6 @@ export interface AIRevisionSuggestion {
   reasoning?: string;
 }
 
-
 export interface AIRevisionConfig {
   prompts: AIPrompt[];
   defaultPromptId: string | null;
