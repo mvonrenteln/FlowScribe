@@ -5,11 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
-import {
-  summarizeError,
-  summarizeMessages,
-  truncateText,
-} from "../core/formatting";
+import { summarizeError, summarizeMessages, truncateText } from "../core/formatting";
 
 describe("truncateText", () => {
   it("should return '<empty>' for null", () => {
@@ -127,4 +123,3 @@ describe("summarizeError", () => {
     expect(summarizeError(error)).toBe("Failed: a; b; c (+2 more)");
   });
 });
-

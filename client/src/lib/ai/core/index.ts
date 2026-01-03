@@ -16,11 +16,11 @@ export {
 export {
   buildMap,
   calculateBatches,
+  type FilterOptions,
   filterItems,
   filterSegments,
   prepareBatch,
   sliceBatch,
-  type FilterOptions,
 } from "./batch";
 
 // Errors
@@ -37,18 +37,6 @@ export {
   summarizeAiSpeakerError,
   toAIError,
 } from "./errors";
-
-// Formatting
-export {
-  previewResponse,
-  previewText,
-  summarizeError,
-  summarizeIssues,
-  summarizeMessages,
-  truncateText,
-  type Summarizable,
-} from "./formatting";
-
 // Feature Registry
 export {
   clearRegistry,
@@ -62,6 +50,16 @@ export {
   registerFeature,
   unregisterFeature,
 } from "./featureRegistry";
+// Formatting
+export {
+  previewResponse,
+  previewText,
+  type Summarizable,
+  summarizeError,
+  summarizeIssues,
+  summarizeMessages,
+  truncateText,
+} from "./formatting";
 
 // Provider Resolver
 export {

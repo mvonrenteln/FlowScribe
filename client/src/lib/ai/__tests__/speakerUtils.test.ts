@@ -5,6 +5,7 @@
  */
 
 import { describe, expect, it } from "vitest";
+import type { BatchIssue } from "../features/speaker/types";
 import {
   buildCurrentSpeakersMap,
   estimateTokens,
@@ -20,7 +21,6 @@ import {
   summarizeIssues,
   truncateForPrompt,
 } from "../features/speaker/utils";
-import type { BatchIssue } from "../features/speaker/types";
 
 describe("Speaker Utils", () => {
   describe("normalizeSpeakerTag", () => {

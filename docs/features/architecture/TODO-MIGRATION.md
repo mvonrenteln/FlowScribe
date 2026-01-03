@@ -9,96 +9,95 @@
 
 ---
 
-## Migration Status Overview
+## Migration Status: ✅ COMPLETE
 
-### Old Services (to be replaced)
+### Old Services: DELETED ✓
 
-| File | Lines | UI Bindings | Status |
-|------|-------|-------------|--------|
-| `lib/aiSpeakerService.ts` | 699 | 1 file (runAnalysis only) | ⚠️ Partial - only runAnalysis left |
-| `lib/services/aiRevisionService.ts` | 208 | 0 files | ✅ **UNUSED** - ready to delete |
+| File | Status |
+|------|--------|
+| `lib/aiSpeakerService.ts` | ✅ **DELETED** (699 lines removed) |
+| `lib/services/aiRevisionService.ts` | ✅ **DELETED** (208 lines removed) |
+| `lib/__tests__/aiSpeakerService.test.ts` | ✅ **DELETED** (3 tests moved) |
 
-### New Services (target)
+**Total: 907 lines of old service code removed**
+
+### New Services: ACTIVE ✓
 
 | File | Lines | Status |
 |------|-------|--------|
-| `lib/ai/features/speaker/service.ts` | 422 | ✅ Complete |
-| `lib/ai/features/revision/service.ts` | 225 | ✅ Complete, UI migrated |
+| `lib/ai/features/speaker/service.ts` | 590 | ✅ Complete + Legacy adapter |
+| `lib/ai/features/revision/service.ts` | 225 | ✅ Complete |
+
+**Total Tests: 709 (all passing)**
 
 ---
 
-## Completed Tasks
+## Remaining Tasks: Deprecation Cleanup
 
-### Phase 1-4: ✓ (All completed)
+### Phase 8: Remove Deprecated Code (Future)
 
-### Phase 5: Update UI Bindings ✓
-- [x] `AITemplateSettings.tsx` → `SPEAKER_SYSTEM_PROMPT`, `SPEAKER_USER_PROMPT_TEMPLATE` from ai/features/speaker
-- [x] `aiSpeakerConfig.ts` → same as above
-- [x] `aiSpeakerSlice.ts`:
-  - [x] `summarizeIssues` → `summarizeMessages` from core/formatting
-  - [x] `summarizeAiSpeakerError` → `summarizeAIError` from core/errors
-  - [x] Removed local duplicate `summarizeAiSpeakerError` function
-  - [ ] `runAnalysis` - **TODO: requires adapter or slice refactor**
-- [x] `aiRevisionSlice.ts`:
-  - [x] `RevisionResult` → from ai/features/revision
-  - [x] `runRevision` → `reviseSegment` from ai/features/revision
-  - [x] `runBatchRevision` → `reviseSegmentsBatch` from ai/features/revision
+**Priority: Low** - These are backward-compatibility aliases. Remove when all consumers are updated.
 
-**Verification:**
-- ✅ No imports from `@/lib/services/aiRevisionService` anymore
-- ✅ New ai/ module does not import old services (only comment reference)
-- ⚠️ Only `aiSpeakerSlice.ts` still imports `runAnalysis` from old service
+#### Core Module
+- [ ] `core/formatting.ts`: Remove `previewText` alias (use `truncateText`)
+- [ ] `core/formatting.ts`: Remove `previewResponse` alias (use `truncateText`)
+- [ ] `core/formatting.ts`: Remove `summarizeIssues` alias (use `summarizeMessages`)
+- [ ] `core/errors.ts`: Remove `summarizeAiSpeakerError` alias (use `summarizeAIError`)
+- [ ] `core/providerResolver.ts`: Remove `resolveProviderSync` (use `resolveProvider`)
 
-**Total Tests: 712 (all passing)**
+#### Features Module
+- [ ] `features/speaker/utils.ts`: Remove `filterSegmentsForAnalysis` alias (use `core/batch.filterSegments`)
+- [ ] `features/speaker/utils.ts`: Remove `summarizeIssues` re-export
+- [ ] `features/speaker/utils.ts`: Remove `previewResponse` re-export
+- [ ] `features/revision/config.ts`: Remove `BUILTIN_REVISION_TEMPLATES` alias
+- [ ] `features/revision/config.ts`: Remove `getDefaultTemplate` alias
+- [ ] `features/revision/config.ts`: Remove `findTemplate` alias
+- [ ] `features/revision/types.ts`: Remove `RevisionTemplate` alias (use `RevisionPrompt`)
 
----
+#### Old Provider Files (lib/services/)
+- [ ] Delete `lib/services/aiProviderService.ts` (re-export only)
+- [ ] Delete `lib/services/aiProviderTypes.ts` (re-export only)
+- [ ] Delete `lib/services/ollamaProvider.ts` (re-export only)
+- [ ] Delete `lib/services/openaiProvider.ts` (re-export only)
 
-## Remaining Tasks
+#### Store Types
+- [ ] `store/types.ts`: Remove deprecated `ollamaUrl` from AISpeakerConfig
+- [ ] `store/types.ts`: Remove deprecated `model` from AISpeakerConfig
 
-### Phase 5b: Migrate runAnalysis (Optional - can be deferred)
-The `runAnalysis` function has a complex interface with `onBatchInfo` callback.
-Options:
-1. Create adapter in ai/features/speaker that wraps classifySpeakersBatch
-2. Refactor aiSpeakerSlice to use new API directly
-3. Keep for now, delete old service later when ready
-
-### Phase 6: Test Cleanup
-
-- [ ] Delete `lib/__tests__/aiSpeakerService.test.ts` (covered by new tests)
-
-### Phase 7: Final Cleanup
-
-- [x] Delete `lib/services/aiRevisionService.ts` - ✅ **DELETED**
-- [ ] Delete `lib/aiSpeakerService.ts` - needs runAnalysis migration first
+#### Providers
+- [ ] `ai/providers/factory.ts`: Remove `createAIProvider` alias (use `createProvider`)
 
 ---
 
-## Current Import Status
+## Current Structure
 
-**Old Service Imports:**
 ```
-lib/aiSpeakerService.ts:
-  - aiSpeakerSlice.ts: runAnalysis only (TODO)
-  - aiSpeakerService.test.ts: old tests (to delete)
-
-lib/services/aiRevisionService.ts:
-  - (none) ✅ READY TO DELETE
-```
-
-**New Module Usage:**
-```
-ai/features/speaker:
-  - AITemplateSettings.tsx ✅
-  - aiSpeakerConfig.ts ✅
-
-ai/features/revision:
-  - aiRevisionSlice.ts ✅
-
-ai/core/formatting:
-  - aiSpeakerSlice.ts ✅
-
-ai/core/errors:
-  - aiSpeakerSlice.ts ✅
+client/src/lib/ai/
+├── core/
+│   ├── batch.ts           # Batch processing utilities
+│   ├── formatting.ts      # Output formatting
+│   ├── errors.ts          # Error types and utilities
+│   ├── aiFeatureService.ts
+│   ├── featureRegistry.ts # Auto-registers features on import
+│   ├── providerResolver.ts
+│   ├── types.ts
+│   └── index.ts
+├── features/
+│   ├── revision/          # ✅ Complete
+│   │   ├── config.ts
+│   │   ├── service.ts
+│   │   ├── types.ts
+│   │   ├── utils.ts
+│   │   └── index.ts
+│   └── speaker/           # ✅ Complete + runAnalysis legacy adapter
+│       ├── config.ts
+│       ├── service.ts     # Includes runAnalysis for backward compat
+│       ├── types.ts
+│       ├── utils.ts
+│       └── index.ts
+├── parsing/
+├── prompts/
+└── providers/
 ```
 
 ---
@@ -107,7 +106,9 @@ ai/core/errors:
 
 - 2026-01-03: Phase 1-4 completed
 - 2026-01-03: Phase 5 completed - UI bindings updated
-- 2026-01-03: aiRevisionService fully migrated, ready to delete
-- 2026-01-03: Only runAnalysis left in old service
-- 2026-01-03: All 712 tests passing
-- 2026-01-03: Fixed feature registration - changed from async to sync imports to avoid race condition
+- 2026-01-03: Phase 5b completed - runAnalysis migrated with legacy adapter
+- 2026-01-03: Phase 6 completed - Old tests deleted
+- 2026-01-03: Phase 7 completed - Old services deleted (907 lines removed)
+- 2026-01-03: Fixed feature registration - changed from async to sync imports
+- 2026-01-03: **MIGRATION COMPLETE** - 709 tests passing
+- 2026-01-03: Added Phase 8 TODO for deprecation cleanup

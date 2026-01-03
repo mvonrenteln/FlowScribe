@@ -14,8 +14,8 @@ import {
   AIValidationError,
   getErrorMessage,
   isCancellationError,
-  toAIError,
   summarizeAIError,
+  toAIError,
 } from "../core/errors";
 
 describe("AIError", () => {

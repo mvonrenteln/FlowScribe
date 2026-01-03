@@ -35,6 +35,8 @@ import {
 export interface ClassifySpeakersOptions extends AIFeatureOptions {
   /** Minimum confidence threshold (0-1) */
   minConfidence?: number;
+  /** Provider ID to use (alternative to provider object) */
+  providerId?: string;
 }
 
 /**
@@ -101,6 +103,19 @@ export async function classifySpeakers(
   const segmentsText = formatSegmentsForPrompt(segments);
   const speakersText = formatSpeakersForPrompt(availableSpeakers);
 
+  console.log(
+    "[Speaker Service] Classifying",
+    segments.length,
+    "segments with",
+    availableSpeakers.length,
+    "speakers",
+  );
+  console.log("[Speaker Service] Options:", {
+    hasCustomPrompt: !!options.customPrompt,
+    providerId: (options as { providerId?: string }).providerId,
+    model: options.model,
+  });
+
   // Execute feature
   const result = await executeFeature<SpeakerSuggestion[]>(
     "speaker-classification",
@@ -111,13 +126,27 @@ export async function classifySpeakers(
     options,
   );
 
+  console.log("[Speaker Service] Result:", {
+    success: result.success,
+    hasData: !!result.data,
+    dataLength: result.data?.length,
+    error: result.error,
+  });
+
   if (!result.success || !result.data) {
     console.error("[Speaker Service] Classification failed:", result.error);
     return [];
   }
 
   // Map suggestions to results
-  return mapSuggestionsToResults(result.data, segments, availableSpeakers, options.minConfidence);
+  const mapped = mapSuggestionsToResults(
+    result.data,
+    segments,
+    availableSpeakers,
+    options.minConfidence,
+  );
+  console.log("[Speaker Service] Mapped results:", mapped.length);
+  return mapped;
 }
 
 /**
@@ -418,4 +447,185 @@ function extractWithRegex(raw: string): RawSpeakerResponseItem[] {
   }
 
   return items;
+}
+
+// ==================== Legacy API Adapter ====================
+
+/**
+ * Legacy suggestion format (matches store/types.ts AISpeakerSuggestion).
+ */
+export interface LegacySpeakerSuggestion {
+  segmentId: string;
+  currentSpeaker: string;
+  suggestedSpeaker: string;
+  status: "pending" | "accepted" | "rejected";
+  confidence?: number;
+  reason?: string;
+  isNewSpeaker?: boolean;
+}
+
+/**
+ * Options for runAnalysis (legacy API compatibility).
+ */
+export interface AnalysisOptions {
+  segments: Array<{ id: string; speaker: string; text: string; confirmed?: boolean }>;
+  speakers: string[];
+  config: {
+    batchSize: number;
+    prompts: Array<{ id: string; systemPrompt: string; userPromptTemplate: string }>;
+    activePromptId: string;
+    selectedProviderId?: string;
+    selectedModel?: string;
+  };
+  selectedSpeakers: string[];
+  excludeConfirmed: boolean;
+  signal: AbortSignal;
+  onProgress?: (processed: number, total: number) => void;
+  onBatchComplete?: (suggestions: LegacySpeakerSuggestion[]) => void;
+  onError?: (error: Error) => void;
+  onBatchInfo?: (info: {
+    batchIndex: number;
+    batchSize: number;
+    rawItemCount: number;
+    unchangedAssignments: number;
+    suggestionCount: number;
+    processedTotal: number;
+    totalExpected: number;
+    issues?: BatchIssue[];
+    fatal?: boolean;
+    rawResponsePreview?: string;
+    ignoredCount?: number;
+    batchDurationMs?: number;
+    elapsedMs?: number;
+  }) => void;
+}
+
+/**
+ * Run speaker analysis with legacy API compatibility.
+ * This wraps classifySpeakersBatch to provide the old interface.
+ *
+ * @param options - Analysis options
+ * @returns Promise that resolves when analysis completes
+ */
+export async function runAnalysis(options: AnalysisOptions): Promise<void> {
+  const {
+    segments,
+    speakers,
+    config,
+    selectedSpeakers,
+    excludeConfirmed,
+    signal,
+    onProgress,
+    onBatchComplete,
+    onError,
+    onBatchInfo,
+  } = options;
+
+  const overallStart = Date.now();
+
+  // Get active prompt from config
+  const activePrompt =
+    config.prompts.find((p) => p.id === config.activePromptId) ?? config.prompts[0];
+
+  try {
+    // Filter segments based on selection criteria
+    const filteredSegments = segments.filter((segment) => {
+      if (excludeConfirmed && segment.confirmed) return false;
+      if (selectedSpeakers.length > 0) {
+        return selectedSpeakers.some((s) => s.toLowerCase() === segment.speaker.toLowerCase());
+      }
+      return true;
+    });
+
+    if (filteredSegments.length === 0) {
+      return;
+    }
+
+    const batchSize = config.batchSize || 10;
+    const total = filteredSegments.length;
+    let processed = 0;
+    let batchIndex = 0;
+
+    // Process in batches
+    for (let i = 0; i < total; i += batchSize) {
+      if (signal.aborted) {
+        return;
+      }
+
+      const batchStart = Date.now();
+      const batchSegments = filteredSegments.slice(i, Math.min(i + batchSize, total));
+
+      try {
+        const results = await classifySpeakers(batchSegments, speakers, {
+          signal,
+          customPrompt: activePrompt
+            ? {
+                systemPrompt: activePrompt.systemPrompt,
+                userPromptTemplate: activePrompt.userPromptTemplate,
+              }
+            : undefined,
+          // Pass provider config
+          providerId: config.selectedProviderId,
+          model: config.selectedModel,
+        });
+
+        processed = Math.min(i + batchSize, total);
+        const batchEnd = Date.now();
+
+        // Convert results to legacy suggestion format
+        const suggestions: LegacySpeakerSuggestion[] = results.map((r) => ({
+          segmentId: r.segmentId,
+          currentSpeaker: r.originalSpeaker ?? "",
+          suggestedSpeaker: r.suggestedSpeaker,
+          status: "pending" as const,
+          confidence: r.confidence,
+          reason: r.reason,
+          isNewSpeaker: r.isNew,
+        }));
+
+        // Call callbacks
+        if (suggestions.length > 0) {
+          onBatchComplete?.(suggestions);
+        }
+
+        onProgress?.(processed, total);
+
+        onBatchInfo?.({
+          batchIndex,
+          batchSize: batchSegments.length,
+          rawItemCount: batchSegments.length,
+          unchangedAssignments: batchSegments.length - results.length,
+          suggestionCount: suggestions.length,
+          processedTotal: processed,
+          totalExpected: total,
+          issues: [],
+          fatal: false,
+          ignoredCount: 0,
+          batchDurationMs: batchEnd - batchStart,
+          elapsedMs: batchEnd - overallStart,
+        });
+      } catch (batchError) {
+        onBatchInfo?.({
+          batchIndex,
+          batchSize: batchSegments.length,
+          rawItemCount: 0,
+          unchangedAssignments: 0,
+          suggestionCount: 0,
+          processedTotal: processed,
+          totalExpected: total,
+          issues: [{ level: "error", message: String(batchError) }],
+          fatal: true,
+          ignoredCount: 0,
+          batchDurationMs: Date.now() - batchStart,
+          elapsedMs: Date.now() - overallStart,
+        });
+      }
+
+      batchIndex++;
+    }
+  } catch (error) {
+    if (!signal.aborted) {
+      onError?.(error instanceof Error ? error : new Error(String(error)));
+    }
+  }
 }

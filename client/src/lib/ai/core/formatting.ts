@@ -90,10 +90,7 @@ function extractMessage(issue: unknown): string {
  * // "a; b; c (+2 more)"
  * ```
  */
-export function summarizeMessages(
-  issues: unknown[] | undefined | null,
-  maxMessages = 3,
-): string {
+export function summarizeMessages(issues: unknown[] | undefined | null, maxMessages = 3): string {
   if (!issues || issues.length === 0) return "";
 
   const messages = issues.map(extractMessage).filter(Boolean);

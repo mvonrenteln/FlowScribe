@@ -8,11 +8,11 @@
  * @module ai/core/featureRegistry
  */
 
-import type { AIFeatureConfig, AIFeatureType, FeatureRegistryEntry } from "./types";
+import { textRevisionConfig } from "../features/revision/config";
 
 // Import feature configs synchronously to ensure they're available immediately
 import { speakerClassificationConfig } from "../features/speaker/config";
-import { textRevisionConfig } from "../features/revision/config";
+import type { AIFeatureConfig, AIFeatureType, FeatureRegistryEntry } from "./types";
 
 // ==================== Registry State ====================
 

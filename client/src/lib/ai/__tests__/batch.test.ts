@@ -156,7 +156,11 @@ describe("buildMap", () => {
   });
 
   it("should handle empty array", () => {
-    const map = buildMap([], () => "k", () => "v");
+    const map = buildMap(
+      [],
+      () => "k",
+      () => "v",
+    );
     expect(map.size).toBe(0);
   });
 
@@ -201,4 +205,3 @@ describe("calculateBatches", () => {
     expect(batches[0]).toEqual({ index: 0, start: 0, end: 3, size: 3 });
   });
 });
-

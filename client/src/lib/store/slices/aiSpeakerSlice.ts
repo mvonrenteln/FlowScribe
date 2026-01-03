@@ -6,11 +6,9 @@
  */
 
 import type { StoreApi } from "zustand";
-// TODO: Migrate to classifySpeakersBatch from new module
-// For now, keep using old service to avoid breaking changes
-import { runAnalysis } from "@/lib/aiSpeakerService";
-import { summarizeMessages } from "@/lib/ai/core/formatting";
 import { summarizeAIError } from "@/lib/ai/core/errors";
+import { summarizeMessages } from "@/lib/ai/core/formatting";
+import { runAnalysis } from "@/lib/ai/features/speaker";
 
 import type {
   AIPrompt,
@@ -273,4 +271,3 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     set({ aiSpeakerBatchLog: entries });
   },
 });
-

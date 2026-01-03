@@ -17,6 +17,7 @@ export {
 
 // Service
 export type {
+  AnalysisOptions,
   ClassifySpeakersBatchOptions,
   ClassifySpeakersBatchResult,
   ClassifySpeakersOptions,
@@ -26,6 +27,7 @@ export {
   classifySpeakers,
   classifySpeakersBatch,
   parseRawResponse,
+  runAnalysis,
 } from "./service";
 
 // Types
