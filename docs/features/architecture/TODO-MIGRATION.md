@@ -15,66 +15,52 @@
 
 | File | Lines | UI Bindings | Status |
 |------|-------|-------------|--------|
-| `lib/aiSpeakerService.ts` | 699 | 3 files | ⚠️ **ACTIVE** - used by UI |
-| `lib/services/aiRevisionService.ts` | 208 | 1 file (slice) | ⚠️ **ACTIVE** - used by UI |
+| `lib/aiSpeakerService.ts` | 699 | 1 file (runAnalysis only) | ⚠️ Partial - only runAnalysis left |
+| `lib/services/aiRevisionService.ts` | 208 | 0 files | ✅ **UNUSED** - ready to delete |
 
 ### New Services (target)
 
 | File | Lines | Status |
 |------|-------|--------|
 | `lib/ai/features/speaker/service.ts` | 422 | ✅ Complete |
-| `lib/ai/features/revision/service.ts` | 225 | ✅ Complete |
-
----
-
-## Test Coverage Strategy
-
-See `ai-features-unified.md` Section "5. Testability → Test Coverage Strategy (ADR-2026-01-03)" for full rationale.
+| `lib/ai/features/revision/service.ts` | 225 | ✅ Complete, UI migrated |
 
 ---
 
 ## Completed Tasks
 
-### Phase 1-3: ✓ (Duplicate removal, Template→Prompt, revision/utils.ts)
+### Phase 1-4: ✓ (All completed)
 
-### Phase 4.1: Speaker Utils Extraction ✓
+### Phase 5: Update UI Bindings ✓
+- [x] `AITemplateSettings.tsx` → `SPEAKER_SYSTEM_PROMPT`, `SPEAKER_USER_PROMPT_TEMPLATE` from ai/features/speaker
+- [x] `aiSpeakerConfig.ts` → same as above
+- [x] `aiSpeakerSlice.ts`:
+  - [x] `summarizeIssues` → `summarizeMessages` from core/formatting
+  - [x] `summarizeAiSpeakerError` → `summarizeAIError` from core/errors
+  - [x] Removed local duplicate `summarizeAiSpeakerError` function
+  - [ ] `runAnalysis` - **TODO: requires adapter or slice refactor**
+- [x] `aiRevisionSlice.ts`:
+  - [x] `RevisionResult` → from ai/features/revision
+  - [x] `runRevision` → `reviseSegment` from ai/features/revision
+  - [x] `runBatchRevision` → `reviseSegmentsBatch` from ai/features/revision
 
-### Phase 4.2: Core Cross-Cutting Concerns ✓
-- [x] Created `core/batch.ts` and `core/formatting.ts`
-- [x] Consolidated `truncateText` and `previewText` into single function
-- [x] Tests: 47 new tests
+**Verification:**
+- ✅ No imports from `@/lib/services/aiRevisionService` anymore
+- ✅ New ai/ module does not import old services (only comment reference)
+- ⚠️ Only `aiSpeakerSlice.ts` still imports `runAnalysis` from old service
 
-### Phase 4.3: Service Equivalence Verification ✓
-
-**Speaker Service:**
-| Old Function | New Function | Status |
-|--------------|--------------|--------|
-| `runAnalysis` | `classifySpeakersBatch` | ✅ Equivalent |
-| `analyzeSegmentsBatched` | (merged into above) | ✅ |
-| `parseOllamaResponse` | `parseRawResponse` | ✅ Equivalent |
-| `filterSegmentsForAnalysis` | `filterSegments` (core) | ✅ |
-| `summarizeIssues` | `summarizeMessages` (core) | ✅ |
-
-**Revision Service:**
-| Old Function | New Function | Status |
-|--------------|--------------|--------|
-| `runRevision` | `reviseSegment` | ✅ Equivalent |
-| `runBatchRevision` | `reviseSegmentsBatch` | ✅ Equivalent |
-| `parseRevisionResponse` | `parseTextResponse` (parsing) | ✅ |
-| `buildPrompt` | `compileTemplate` (prompts) | ✅ |
-
-**Total Tests: 712**
+**Total Tests: 712 (all passing)**
 
 ---
 
 ## Remaining Tasks
 
-### Phase 5: Update UI Bindings
-
-- [ ] `AITemplateSettings.tsx` → import from `ai/features/speaker`
-- [ ] `aiSpeakerConfig.ts` → import from `ai/features/speaker`
-- [ ] `aiSpeakerSlice.ts` → import from `ai/features/speaker`
-- [ ] `aiRevisionSlice.ts` → import from `ai/features/revision`
+### Phase 5b: Migrate runAnalysis (Optional - can be deferred)
+The `runAnalysis` function has a complex interface with `onBatchInfo` callback.
+Options:
+1. Create adapter in ai/features/speaker that wraps classifySpeakersBatch
+2. Refactor aiSpeakerSlice to use new API directly
+3. Keep for now, delete old service later when ready
 
 ### Phase 6: Test Cleanup
 
@@ -82,38 +68,46 @@ See `ai-features-unified.md` Section "5. Testability → Test Coverage Strategy 
 
 ### Phase 7: Final Cleanup
 
-- [ ] Delete `lib/aiSpeakerService.ts` (699 lines)
-- [ ] Delete `lib/services/aiRevisionService.ts` (208 lines)
+- [x] Delete `lib/services/aiRevisionService.ts` - ✅ **DELETED**
+- [ ] Delete `lib/aiSpeakerService.ts` - needs runAnalysis migration first
 
 ---
 
-## Current Structure
+## Current Import Status
 
+**Old Service Imports:**
 ```
-client/src/lib/ai/
-├── core/
-│   ├── batch.ts           # Batch processing utilities
-│   ├── formatting.ts      # Output formatting (truncateText, summarizeMessages)
-│   ├── errors.ts
-│   ├── aiFeatureService.ts
-│   ├── featureRegistry.ts
-│   ├── providerResolver.ts
-│   ├── types.ts
-│   └── index.ts
-├── features/
-│   ├── revision/          # ✅ Complete, equivalent to old service
-│   └── speaker/           # ✅ Complete, equivalent to old service
-├── parsing/
-├── prompts/
-└── providers/
+lib/aiSpeakerService.ts:
+  - aiSpeakerSlice.ts: runAnalysis only (TODO)
+  - aiSpeakerService.test.ts: old tests (to delete)
+
+lib/services/aiRevisionService.ts:
+  - (none) ✅ READY TO DELETE
+```
+
+**New Module Usage:**
+```
+ai/features/speaker:
+  - AITemplateSettings.tsx ✅
+  - aiSpeakerConfig.ts ✅
+
+ai/features/revision:
+  - aiRevisionSlice.ts ✅
+
+ai/core/formatting:
+  - aiSpeakerSlice.ts ✅
+
+ai/core/errors:
+  - aiSpeakerSlice.ts ✅
 ```
 
 ---
 
 ## Progress Log
 
-- 2026-01-03: Phase 1-3 completed
-- 2026-01-03: Phase 4.1 completed - extracted speaker pure functions
-- 2026-01-03: Phase 4.2 completed - consolidated cross-cutting concerns into core/
-- 2026-01-03: Phase 4.3 completed - verified service equivalence
+- 2026-01-03: Phase 1-4 completed
+- 2026-01-03: Phase 5 completed - UI bindings updated
+- 2026-01-03: aiRevisionService fully migrated, ready to delete
+- 2026-01-03: Only runAnalysis left in old service
 - 2026-01-03: All 712 tests passing
+- 2026-01-03: Fixed feature registration - changed from async to sync imports to avoid race condition

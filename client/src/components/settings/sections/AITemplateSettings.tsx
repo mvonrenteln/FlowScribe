@@ -31,7 +31,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
-import { DEFAULT_SYSTEM_PROMPT, DEFAULT_USER_PROMPT_TEMPLATE } from "@/lib/aiSpeakerService";
+import {
+  SPEAKER_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
+  SPEAKER_USER_PROMPT_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
+} from "@/lib/ai/features/speaker";
 import { useTranscriptStore } from "@/lib/store";
 import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { cn } from "@/lib/utils";

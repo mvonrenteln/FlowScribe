@@ -10,6 +10,10 @@
 
 import type { AIFeatureConfig, AIFeatureType, FeatureRegistryEntry } from "./types";
 
+// Import feature configs synchronously to ensure they're available immediately
+import { speakerClassificationConfig } from "../features/speaker/config";
+import { textRevisionConfig } from "../features/revision/config";
+
 // ==================== Registry State ====================
 
 const registry = new Map<AIFeatureType, FeatureRegistryEntry>();
@@ -128,20 +132,16 @@ export function getRegistrySize(): number {
  * Called automatically when module is imported.
  */
 export function registerDefaultFeatures(): void {
-  // Import and register default feature configs
-  // These are defined in separate files for better organization
-  import("../features/speaker").then(({ speakerClassificationConfig }) => {
-    if (!hasFeature("speaker-classification")) {
-      registerFeature(speakerClassificationConfig);
-    }
-  });
+  // Register speaker classification
+  if (!hasFeature("speaker-classification")) {
+    registerFeature(speakerClassificationConfig);
+  }
 
-  import("../features/revision").then(({ textRevisionConfig }) => {
-    if (!hasFeature("text-revision")) {
-      registerFeature(textRevisionConfig);
-    }
-  });
+  // Register text revision
+  if (!hasFeature("text-revision")) {
+    registerFeature(textRevisionConfig);
+  }
 }
 
 // Auto-register on module load
-// registerDefaultFeatures();  // Uncomment when feature configs are ready
+registerDefaultFeatures();
