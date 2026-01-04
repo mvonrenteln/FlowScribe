@@ -159,6 +159,14 @@ export interface InitialStoreState {
     message?: string;
     timestamp: number;
   } | null;
+  // AI Segment Merge state
+  aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
+  aiSegmentMergeIsProcessing: boolean;
+  aiSegmentMergeProcessedCount: number;
+  aiSegmentMergeTotalToProcess: number;
+  aiSegmentMergeConfig: AISegmentMergeConfig;
+  aiSegmentMergeError: string | null;
+  aiSegmentMergeAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -171,7 +179,8 @@ export type TranscriptStore = InitialStoreState &
   SpellcheckSlice &
   AISpeakerSlice &
   ConfidenceSlice &
-  AIRevisionSlice;
+  AIRevisionSlice &
+  AISegmentMergeSlice;
 
 export interface ConfidenceSlice {
   setHighlightLowConfidence: (enabled: boolean) => void;
@@ -399,4 +408,74 @@ export interface AIRevisionSlice {
   setDefaultRevisionPrompt: (id: string | null) => void;
   setQuickAccessPrompts: (ids: string[]) => void;
   toggleQuickAccessPrompt: (id: string) => void;
+}
+
+// ==================== AI Segment Merge Types ====================
+
+export type AISegmentMergeSuggestionStatus = "pending" | "accepted" | "rejected";
+
+export interface AISegmentMergeSuggestion {
+  /** Unique ID for this suggestion */
+  id: string;
+  /** IDs of segments to merge (in order) */
+  segmentIds: string[];
+  /** Confidence level */
+  confidence: "high" | "medium" | "low";
+  /** Confidence score (0-1) */
+  confidenceScore: number;
+  /** Reason for suggesting merge */
+  reason: string;
+  /** Current status */
+  status: AISegmentMergeSuggestionStatus;
+  /** Merged text (without smoothing) */
+  mergedText: string;
+  /** Smoothed text (if smoothing enabled) */
+  smoothedText?: string;
+  /** Description of smoothing changes */
+  smoothingChanges?: string;
+  /** Time range of merged segment */
+  timeRange: {
+    start: number;
+    end: number;
+  };
+  /** Speaker name */
+  speaker: string;
+  /** Time gap between segments in seconds */
+  timeGap: number;
+}
+
+export interface AISegmentMergeConfig {
+  /** Default maximum time gap (seconds) */
+  defaultMaxTimeGap: number;
+  /** Default minimum confidence level */
+  defaultMinConfidence: "high" | "medium" | "low";
+  /** Enable smoothing by default */
+  defaultEnableSmoothing: boolean;
+  /** Show inline hints after analysis */
+  showInlineHints: boolean;
+  /** Selected AI provider ID */
+  selectedProviderId?: string;
+  /** Selected model */
+  selectedModel?: string;
+  /** Batch size for analysis */
+  batchSize: number;
+}
+
+export interface AISegmentMergeSlice {
+  // State is in InitialStoreState with aiSegmentMerge* prefix
+  // Actions
+  startMergeAnalysis: (options: {
+    segmentIds?: string[];
+    maxTimeGap?: number;
+    minConfidence?: "high" | "medium" | "low";
+    sameSpeakerOnly?: boolean;
+    enableSmoothing?: boolean;
+  }) => void;
+  cancelMergeAnalysis: () => void;
+  acceptMergeSuggestion: (suggestionId: string) => void;
+  rejectMergeSuggestion: (suggestionId: string) => void;
+  acceptAllHighConfidence: () => void;
+  rejectAllSuggestions: () => void;
+  clearMergeSuggestions: () => void;
+  updateMergeConfig: (config: Partial<AISegmentMergeConfig>) => void;
 }

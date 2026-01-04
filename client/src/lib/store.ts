@@ -19,6 +19,10 @@ import {
   initialAIRevisionState,
   normalizeAIRevisionConfig,
 } from "./store/slices/aiRevisionSlice";
+import {
+  createAISegmentMergeSlice,
+  initialAISegmentMergeState,
+} from "./store/slices/aiSegmentMergeSlice";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
@@ -115,6 +119,8 @@ const initialState: InitialStoreState = {
   // AI Revision state
   ...initialAIRevisionState,
   aiRevisionConfig: normalizeAIRevisionConfig(globalState?.aiRevisionConfig),
+  // AI Segment Merge state
+  ...initialAISegmentMergeState,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -146,6 +152,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAISpeakerSlice(set, get),
       ...createConfidenceSlice(set, get),
       ...createAIRevisionSlice(set, get),
+      ...createAISegmentMergeSlice(set, get),
     };
   }),
 );

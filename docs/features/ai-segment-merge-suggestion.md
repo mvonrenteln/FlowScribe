@@ -1,5 +1,5 @@
 # Segment Merge – User Guide
-*Last Updated: January 1, 2026*
+*Last Updated: January 4, 2026*
 
 ---
 
@@ -8,6 +8,16 @@
 **Segment Merge** helps you combine fragmented transcript segments into coherent units. Merge manually with a click, or let AI suggest which segments should be combined.
 
 > 💡 **Manual-First Design:** Manual merging is fully functional and has been available since the beginning. AI suggestions are an optional enhancement.
+
+### New: Text Smoothing 🆕
+
+When merging segments, AI can optionally suggest **text smoothing** to fix common Whisper transcription artifacts:
+
+- **Incorrect sentence breaks:** Whisper sometimes adds a period and capitalizes the next word mid-sentence
+- **Fragmented punctuation:** Commas or periods at wrong positions
+- **Grammatical inconsistencies:** When segments merge, the combined text may need minor adjustments
+
+Text smoothing is optional and shows a preview before applying.
 
 ---
 
@@ -93,6 +103,7 @@ AI analyzes your transcript and suggests segments that should be merged based on
 - **Incomplete sentences** spanning multiple segments
 - **Short time gaps** (< configurable threshold)
 - **Semantic coherence**
+- **Text smoothing opportunities** (optional)
 
 > ⚠️ **Requires:** Uses the same merge operation as manual. AI just identifies candidates.
 
@@ -121,6 +132,11 @@ AI analyzes your transcript and suggests segments that should be merged based on
 │ ☑ Same speaker only                                        │
 │ ☐ Include low-confidence suggestions                       │
 │                                                             │
+│ Text Smoothing:                                            │
+│ ☑ Enable text smoothing                                    │
+│ ℹ AI will suggest grammatical fixes for merged text        │
+│   (e.g., fix incorrect sentence breaks, punctuation)       │
+│                                                             │
 │ Provider: [OpenAI ▼]                                       │
 │                                                             │
 │ [    ✨ Analyze    ]                                       │
@@ -141,8 +157,15 @@ AI analyzes your transcript and suggests segments that should be merged based on
 │ │ Speaker: Host                                           │ │
 │ │ Reason: Incomplete sentence, 0.3s gap                   │ │
 │ │                                                         │ │
-│ │ "So what we're trying to"                              │ │
-│ │ + "achieve here is better performance."                │ │
+│ │ BEFORE:                                                 │ │
+│ │ "So what we're trying to."                             │ │
+│ │ + "Achieve here is better performance."                │ │
+│ │                                                         │ │
+│ │ AFTER (with smoothing):                                │ │
+│ │ "So what we're trying to achieve here is better        │ │
+│ │ performance."                                          │ │
+│ │                                                         │ │
+│ │ 💡 Smoothing: Removed incorrect period, fixed casing   │ │
 │ │                                                         │ │
 │ │ [✗ Reject] [✓ Accept]                                  │ │
 │ └─────────────────────────────────────────────────────────┘ │
@@ -162,6 +185,25 @@ AI analyzes your transcript and suggests segments that should be merged based on
 | 🟢 **High** | Very likely should merge | Usually accept |
 | 🟡 **Medium** | Possibly should merge | Review carefully |
 | 🔴 **Low** | Uncertain | Usually reject |
+
+### Text Smoothing Details
+
+When text smoothing is enabled, the AI will:
+
+1. **Detect transcription artifacts:**
+   - Mid-sentence periods followed by capital letters
+   - Incorrect comma placement
+   - Sentence fragments
+
+2. **Suggest corrections:**
+   - Remove incorrect punctuation
+   - Fix capitalization
+   - Ensure grammatical flow after merge
+
+3. **Show before/after preview:**
+   - Original concatenated text
+   - Smoothed merged text
+   - Explanation of changes
 
 ### Batch Actions
 
@@ -212,6 +254,7 @@ After analysis, segments show merge hints:
    - First segment ends without punctuation
    - First segment ends with conjunction
    - Text clearly continues in next segment
+   - **New:** Detects incorrect sentence breaks (period + capital mid-sentence)
 
 3. **Time Gap**
    - Gap between segments < threshold (default 2s)
@@ -220,6 +263,10 @@ After analysis, segments show merge hints:
 4. **Semantic Connection**
    - Related content
    - Logical flow from one to next
+
+5. **Smoothing Opportunities** (when enabled)
+   - Detects patterns like "word. Next" that should be "word next"
+   - Identifies fragmented sentences that need joining
 
 ### When AI Does NOT Suggest Merge
 
@@ -245,6 +292,7 @@ After analysis, segments show merge hints:
 2. **Review medium carefully:** Read both segments
 3. **Skip low confidence:** Usually better not to merge
 4. **Verify with audio:** When unsure, listen
+5. **Check smoothing previews:** Ensure suggested text changes are correct
 
 ### General Tips
 
@@ -271,6 +319,12 @@ After analysis, segments show merge hints:
 - Use Ctrl+Z to undo
 - Check original segment text
 - May need manual text editing
+- Disable smoothing if changes are unwanted
+
+### Smoothing Changes Too Much
+- Review smoothing previews carefully
+- Disable smoothing for conservative merging
+- Apply merge without smoothing, then edit manually
 
 ### Performance Issues
 - Analyze smaller selection
@@ -295,6 +349,7 @@ Access via Settings → Editor → Segment Merge:
 │ Default max time gap: [2.0] seconds                        │
 │ Default min confidence: [Medium ▼]                         │
 │ ☑ Show inline merge hints after analysis                   │
+│ ☑ Enable text smoothing by default                         │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -302,7 +357,26 @@ Access via Settings → Editor → Segment Merge:
 
 ## Examples
 
-### Example 1: Sentence Fragment (High Confidence)
+### Example 1: Sentence Fragment with Smoothing (High Confidence)
+
+**Before:**
+```
+[#12] "So what we're trying to."
+[#13] "Achieve here is better performance."
+```
+
+**AI Analysis:**
+- Detected: Incorrect sentence break (mid-sentence period + capital)
+- Smoothing: Remove period, lowercase "Achieve"
+
+**After merge (with smoothing):**
+```
+[#12] "So what we're trying to achieve here is better performance."
+```
+
+✅ Same speaker, incomplete sentence, 0.3s gap, smoothing applied
+
+### Example 2: Simple Merge Without Smoothing (High Confidence)
 
 **Before:**
 ```
@@ -315,9 +389,9 @@ Access via Settings → Editor → Segment Merge:
 [#12] "So what we're trying to achieve here is better performance."
 ```
 
-✅ Same speaker, incomplete sentence, 0.3s gap
+✅ Same speaker, incomplete sentence, 0.3s gap, no smoothing needed
 
-### Example 2: Related Thoughts (Medium Confidence)
+### Example 3: Related Thoughts (Medium Confidence)
 
 **Before:**
 ```
@@ -332,7 +406,7 @@ Access via Settings → Editor → Segment Merge:
 
 🟡 Same speaker, complete sentences, but related
 
-### Example 3: Don't Merge (Low Confidence)
+### Example 4: Don't Merge (Low Confidence)
 
 **Segments:**
 ```

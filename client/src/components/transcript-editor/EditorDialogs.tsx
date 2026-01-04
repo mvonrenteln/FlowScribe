@@ -1,3 +1,4 @@
+import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
 import { AISpeakerDialog } from "../AISpeakerDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
@@ -30,6 +31,8 @@ export function EditorDialogs({
   defaultRevisionName,
   showAISpeaker,
   onAISpeakerChange,
+  showAISegmentMerge,
+  onAISegmentMergeChange,
   showSettings,
   onSettingsChange,
   onOpenSettings,
@@ -58,6 +61,11 @@ export function EditorDialogs({
       <AISpeakerDialog
         open={showAISpeaker}
         onOpenChange={onAISpeakerChange}
+        onOpenSettings={onOpenSettings}
+      />
+      <AISegmentMergeDialog
+        open={showAISegmentMerge}
+        onOpenChange={onAISegmentMergeChange}
         onOpenSettings={onOpenSettings}
       />
       <SettingsSheet open={showSettings} onOpenChange={onSettingsChange} showTrigger={false} />

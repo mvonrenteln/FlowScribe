@@ -66,6 +66,7 @@ const result = await executeBatch<string>(
 |---------|-------|--------|--------|
 | `text-revision` | `{ text, speaker, previousText?, nextText? }` | `string` | ✅ Yes |
 | `speaker-classification` | `{ speakers, segments }` | `SpeakerSuggestion[]` | ✅ Yes |
+| `segment-merge` | `{ segmentPairs, maxTimeGap, enableSmoothing }` | `MergeSuggestion[]` | ✅ Yes |
 
 ---
 
@@ -186,6 +187,7 @@ const result = parseResponse<Chapter[]>(aiResponse, {
 ```typescript
 "text-revision"             // Text Revision (3 prompt variants)
 "speaker-classification"    // Speaker Classification
+"segment-merge"             // Segment Merge Suggestions (with smoothing)
 ```
 
 ---

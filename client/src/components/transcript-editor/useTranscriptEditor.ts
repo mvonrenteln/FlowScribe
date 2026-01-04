@@ -203,6 +203,7 @@ export const useTranscriptEditor = () => {
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showAISpeaker, setShowAISpeaker] = useState(false);
+  const [showAISegmentMerge, setShowAISegmentMerge] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
@@ -558,6 +559,7 @@ export const useTranscriptEditor = () => {
     onShowSettings: () => setShowSettings(true),
     onRunDefaultAIRevision: handleRunDefaultAIRevision,
     onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
+    onOpenAISegmentMerge: () => setShowAISegmentMerge(true),
   });
 
   const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
@@ -780,6 +782,7 @@ export const useTranscriptEditor = () => {
       glossaryHighlightActive: showLexiconMatches,
       onShowGlossary: () => setShowLexicon(true),
       onShowAISpeaker: () => setShowAISpeaker(true),
+      onShowAISegmentMerge: () => setShowAISegmentMerge(true),
     }),
     [
       activateSession,
@@ -1014,6 +1017,8 @@ export const useTranscriptEditor = () => {
               .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
       showAISpeaker,
       onAISpeakerChange: setShowAISpeaker,
+      showAISegmentMerge,
+      onAISegmentMergeChange: setShowAISegmentMerge,
       showSettings,
       onSettingsChange: setShowSettings,
       onOpenSettings: () => setShowSettings(true),
@@ -1034,6 +1039,7 @@ export const useTranscriptEditor = () => {
       sessionKey,
       sessionLabel,
       showAISpeaker,
+      showAISegmentMerge,
       showSettings,
     ],
   );

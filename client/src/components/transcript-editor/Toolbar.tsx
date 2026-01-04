@@ -18,6 +18,7 @@ import {
   SpellCheck,
   Trash2,
   Undo2,
+  GitMerge,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -63,6 +64,7 @@ export function Toolbar({
   canRedo,
   onShowShortcuts,
   onShowExport,
+  onShowAISegmentMerge,
   highlightLowConfidence,
   onToggleHighlightLowConfidence,
   spellcheckEnabled,
@@ -425,9 +427,27 @@ export function Toolbar({
               <TooltipContent>AI Speaker Classification</TooltipContent>
             </Tooltip>
 
-            {/* AI Provider/Model Selector */}
-            <AIProviderSelector className="hidden md:flex" />
-          </div>
+            {/* AI Merge Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onShowAISegmentMerge}
+                  aria-label="AI Segment Merge"
+                  data-testid="button-ai-merge"
+                  className="px-2 gap-2"
+                >
+                  <GitMerge className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">AI Merge</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Segment Merge Analysis (Alt+Shift+M)</TooltipContent>
+            </Tooltip>
+
+             {/* AI Provider/Model Selector */}
+             <AIProviderSelector className="hidden md:flex" />
+           </div>
         </div>
 
         <Separator orientation="vertical" className="h-6" />
