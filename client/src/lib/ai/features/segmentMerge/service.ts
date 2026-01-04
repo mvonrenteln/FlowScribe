@@ -9,8 +9,7 @@
 
 import { executeFeature } from "@/lib/ai";
 import { parseResponse } from "@/lib/ai/parsing/responseParser";
-import { getMergeSystemPrompt, getMergeUserTemplate } from "./config";
-import { mergeResponseSchema } from "./config";
+import { getMergeSystemPrompt, getMergeUserTemplate, mergeResponseSchema } from "./config";
 import type {
   BatchMergeAnalysisParams,
   MergeAnalysisIssue,
@@ -131,7 +130,7 @@ export async function analyzeMergeCandidates(
         console.warn("[AISegmentMerge][DEBUG] Full rawResponse:", rawResponse);
       }
     }
-    let parsedData: RawMergeSuggestion[] | undefined = undefined;
+    let parsedData: RawMergeSuggestion[] | undefined;
 
     // If provider returned parsed data directly (success), use it
     if (result.success && result.data) {
@@ -156,7 +155,10 @@ export async function analyzeMergeCandidates(
           console.warn("[AISegmentMerge] Lenient parse warnings:", lenientParsed.metadata.warnings);
         }
       } else {
-        console.warn("[AISegmentMerge] Lenient parse failed or returned no data:", lenientParsed.error?.message);
+        console.warn(
+          "[AISegmentMerge] Lenient parse failed or returned no data:",
+          lenientParsed.error?.message,
+        );
 
         // 2) Try recoverPartialArray to extract items from messy output
         try {
@@ -170,9 +172,15 @@ export async function analyzeMergeCandidates(
             );
           };
 
-          const { recovered, skipped } = recoverPartialArray<RawMergeSuggestion>(rawText, isRawSuggestion);
+          const { recovered, skipped } = recoverPartialArray<RawMergeSuggestion>(
+            rawText,
+            isRawSuggestion,
+          );
           if (recovered.length > 0) {
-            console.warn("[AISegmentMerge] Recovered partial suggestions:", { recoveredCount: recovered.length, skipped });
+            console.warn("[AISegmentMerge] Recovered partial suggestions:", {
+              recoveredCount: recovered.length,
+              skipped,
+            });
             // Normalize recovered items to expected RawMergeSuggestion shape
             parsedData = recovered.map((r) => {
               // Ensure segmentIds is array of strings
@@ -199,7 +207,9 @@ export async function analyzeMergeCandidates(
                 try {
                   const parsedCandidate = JSON.parse(jsonCandidate);
                   if (Array.isArray(parsedCandidate) && parsedCandidate.length > 0) {
-                    console.warn("[AISegmentMerge] Parsed JSON array candidate from raw text, using as recovered data");
+                    console.warn(
+                      "[AISegmentMerge] Parsed JSON array candidate from raw text, using as recovered data",
+                    );
                     parsedData = (parsedCandidate as any[]).map((r) => {
                       let sids: unknown = r.segmentIds ?? r.segmentId ?? [];
                       if (!Array.isArray(sids)) sids = [sids];
@@ -214,15 +224,24 @@ export async function analyzeMergeCandidates(
                     });
                   }
                 } catch (jsonEx) {
-                  console.warn("[AISegmentMerge] JSON.parse of candidate failed:", jsonEx instanceof Error ? jsonEx.message : String(jsonEx));
+                  console.warn(
+                    "[AISegmentMerge] JSON.parse of candidate failed:",
+                    jsonEx instanceof Error ? jsonEx.message : String(jsonEx),
+                  );
                 }
               }
             } catch (ex) {
-              console.warn("[AISegmentMerge] JSON array fallback extraction failed:", ex instanceof Error ? ex.message : String(ex));
+              console.warn(
+                "[AISegmentMerge] JSON array fallback extraction failed:",
+                ex instanceof Error ? ex.message : String(ex),
+              );
             }
           }
         } catch (ex) {
-          console.warn("[AISegmentMerge] recoverPartialArray failed:", ex instanceof Error ? ex.message : String(ex));
+          console.warn(
+            "[AISegmentMerge] recoverPartialArray failed:",
+            ex instanceof Error ? ex.message : String(ex),
+          );
         }
       }
     }
@@ -232,7 +251,11 @@ export async function analyzeMergeCandidates(
       issues.push({ level: "error", message: result.error || "Failed to analyze segments" });
       return {
         suggestions: [],
-        summary: { analyzed: segments.length - 1, found: 0, byConfidence: { high: 0, medium: 0, low: 0 } },
+        summary: {
+          analyzed: segments.length - 1,
+          found: 0,
+          byConfidence: { high: 0, medium: 0, low: 0 },
+        },
         issues,
       };
     }

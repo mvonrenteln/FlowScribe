@@ -102,47 +102,71 @@ export async function executeFeature<TOutput>(
             error: parseResult.error?.message,
             // parseResult does not expose a list of errors; expose the top-level error message instead
             parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
-            rawResponsePreview: response.content ? (typeof response.content === "string" ? response.content.slice(0, 5000) : JSON.stringify(response.content).slice(0, 5000)) : undefined,
+            rawResponsePreview: response.content
+              ? typeof response.content === "string"
+                ? response.content.slice(0, 5000)
+                : JSON.stringify(response.content).slice(0, 5000)
+              : undefined,
             parseMetadata: parseResult.metadata,
           });
 
-           // Try a lenient parse to show what can be extracted
-           try {
-             const lenient = parseResponse(response.content, { jsonOptions: { lenient: true } });
-             console.warn("[AIFeatureService] Lenient parse result:", {
-               success: lenient.success,
-               dataPreview: lenient.data ? (Array.isArray(lenient.data) ? (lenient.data as any[]).slice(0, 5) : lenient.data) : undefined,
-               metadata: lenient.metadata,
-               error: lenient.error?.message,
-             });
+          // Try a lenient parse to show what can be extracted
+          try {
+            const lenient = parseResponse(response.content, { jsonOptions: { lenient: true } });
+            console.warn("[AIFeatureService] Lenient parse result:", {
+              success: lenient.success,
+              dataPreview: lenient.data
+                ? Array.isArray(lenient.data)
+                  ? (lenient.data as any[]).slice(0, 5)
+                  : lenient.data
+                : undefined,
+              metadata: lenient.metadata,
+              error: lenient.error?.message,
+            });
 
-             // If lenient extraction produced usable data, try normalization for known features
-             if (lenient.success && lenient.data) {
+            // If lenient extraction produced usable data, try normalization for known features
+            if (lenient.success && lenient.data) {
               // Feature-specific normalization: segment-merge often returns variant types
               if (featureId === "segment-merge") {
                 try {
                   const raw = lenient.data as any[];
                   const normalized = raw.map((item) => {
-                    const segIdsRaw = item.segmentIds ?? item.segmentId ?? item.segment_ids ?? item.ids ?? [];
+                    const segIdsRaw =
+                      item.segmentIds ?? item.segmentId ?? item.segment_ids ?? item.ids ?? [];
                     let segIdsArray = Array.isArray(segIdsRaw) ? segIdsRaw : [segIdsRaw];
-                    segIdsArray = segIdsArray.map((v) => (v === undefined || v === null ? "" : String(v)));
+                    segIdsArray = segIdsArray.map((v) =>
+                      v === undefined || v === null ? "" : String(v),
+                    );
 
                     const confidenceRaw = item.confidence ?? item.conf ?? undefined;
-                    const confidenceNum = typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
+                    const confidenceNum =
+                      typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
 
                     return {
                       segmentIds: segIdsArray,
                       confidence: Number.isNaN(confidenceNum) ? undefined : confidenceNum,
                       reason: item.reason ?? item.explanation ?? item.note ?? "",
-                      smoothedText: item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
-                      smoothingChanges: item.smoothingChanges ?? item.smoothing_changes ?? item.changes ?? undefined,
+                      smoothedText:
+                        item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
+                      smoothingChanges:
+                        item.smoothingChanges ??
+                        item.smoothing_changes ??
+                        item.changes ??
+                        undefined,
                     };
                   });
 
                   // Try to validate normalized data against the schema
-                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), { schema: config.responseSchema });
+                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), {
+                    schema: config.responseSchema,
+                  });
                   if (validateAttempt.success && validateAttempt.data) {
-                    const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+                    const metadata = buildMetadata(
+                      featureId,
+                      providerConfig,
+                      startTime,
+                      response.usage,
+                    );
                     (metadata as any).parseWarnings = parseResult.metadata?.warnings ?? [];
                     (metadata as any).lenient = true;
 
@@ -153,10 +177,17 @@ export async function executeFeature<TOutput>(
                       metadata,
                     };
                   } else {
-                    console.warn("[AIFeatureService] Normalized validation failed:", validateAttempt.error?.message, validateAttempt.metadata?.warnings);
+                    console.warn(
+                      "[AIFeatureService] Normalized validation failed:",
+                      validateAttempt.error?.message,
+                      validateAttempt.metadata?.warnings,
+                    );
                   }
                 } catch (normEx) {
-                  console.warn("[AIFeatureService] Normalization for segment-merge failed:", normEx instanceof Error ? normEx.message : String(normEx));
+                  console.warn(
+                    "[AIFeatureService] Normalization for segment-merge failed:",
+                    normEx instanceof Error ? normEx.message : String(normEx),
+                  );
                 }
               }
 
@@ -172,15 +203,23 @@ export async function executeFeature<TOutput>(
               };
             }
           } catch (lenEx) {
-            console.warn("[AIFeatureService] Lenient parse failed:", lenEx instanceof Error ? lenEx.message : String(lenEx));
+            console.warn(
+              "[AIFeatureService] Lenient parse failed:",
+              lenEx instanceof Error ? lenEx.message : String(lenEx),
+            );
           }
         } catch (logEx) {
-          console.warn("[AIFeatureService] Failed to log parse failure details:", logEx instanceof Error ? logEx.message : String(logEx));
+          console.warn(
+            "[AIFeatureService] Failed to log parse failure details:",
+            logEx instanceof Error ? logEx.message : String(logEx),
+          );
         }
 
         const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
         // Attach parse diagnostics to metadata for callers
-        (metadata as any).parseErrors = parseResult.error ? [{ message: parseResult.error.message }] : [];
+        (metadata as any).parseErrors = parseResult.error
+          ? [{ message: parseResult.error.message }]
+          : [];
         (metadata as any).parseWarnings = parseResult.metadata?.warnings ?? [];
 
         return {

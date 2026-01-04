@@ -7,6 +7,7 @@ import {
   Clock,
   Download,
   FilePenLine,
+  GitMerge,
   Highlighter,
   Keyboard,
   PanelLeft,
@@ -18,7 +19,6 @@ import {
   SpellCheck,
   Trash2,
   Undo2,
-  GitMerge,
 } from "lucide-react";
 import { useMemo } from "react";
 import { Button } from "@/components/ui/button";
@@ -445,9 +445,9 @@ export function Toolbar({
               <TooltipContent>AI Segment Merge Analysis (Alt+Shift+M)</TooltipContent>
             </Tooltip>
 
-             {/* AI Provider/Model Selector */}
-             <AIProviderSelector className="hidden md:flex" />
-           </div>
+            {/* AI Provider/Model Selector */}
+            <AIProviderSelector className="hidden md:flex" />
+          </div>
         </div>
 
         <Separator orientation="vertical" className="h-6" />

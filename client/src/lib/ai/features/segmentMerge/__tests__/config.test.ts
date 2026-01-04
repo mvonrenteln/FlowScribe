@@ -8,8 +8,8 @@ import { describe, expect, it } from "vitest";
 import {
   getMergeSystemPrompt,
   getMergeUserTemplate,
-  segmentMergeConfig,
   mergeResponseSchema,
+  segmentMergeConfig,
 } from "../config";
 
 describe("segmentMergeConfig - structural checks", () => {
