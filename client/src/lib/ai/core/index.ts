@@ -12,6 +12,25 @@ export {
   reviseText,
 } from "./aiFeatureService";
 
+// Batch ID Mapping
+export {
+  addPair,
+  type BatchIdMapping,
+  type BatchPairMapping,
+  createBatchIdMapping,
+  createBatchPairMapping,
+  deserializeBatchMapping,
+  extractSegmentIdsGeneric,
+  type RawAIItem,
+  getPairIds,
+  normalizeIds,
+  parseIdReference,
+  realToSimpleId,
+  serializeBatchMapping,
+  serializePairMapping,
+  simpleToRealId,
+} from "./batchIdMapping";
+
 // Batch Processing
 export {
   buildMap,

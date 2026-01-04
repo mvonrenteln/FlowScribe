@@ -8,12 +8,12 @@
  * @module ai/core/aiFeatureService
  */
 
-import { parseResponse } from "../parsing/responseParser";
-import { compileTemplate } from "../prompts/promptBuilder";
-import type { PromptVariables } from "../prompts/types";
+import { parseResponse } from "@/lib/ai";
+import { compileTemplate } from "@/lib/ai";
+import type { PromptVariables } from "@/lib/ai";
 import type { ChatMessage } from "../providers/types";
 import { AICancellationError, isCancellationError, toAIError } from "./errors";
-import { getFeatureOrThrow } from "./featureRegistry";
+import { getFeatureOrThrow } from "@/lib/ai";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
@@ -22,6 +22,7 @@ import type {
   AIFeatureType,
   BatchCallbacks,
 } from "./types";
+import { mapPairIndexToSegmentIds } from "../features/segmentMerge/utils";
 
 // ==================== Main Service ====================
 
@@ -64,6 +65,20 @@ export async function executeFeature<TOutput>(
   };
 
   const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
+  let pairIndexMap: Record<number, string[]> | undefined;
+  if (featureId === "segment-merge" && typeof variables.segmentPairsJson === "string") {
+    try {
+      const parsed = JSON.parse(variables.segmentPairsJson) as Array<{ pairIndex: number; segmentIds: string[] }>;
+      pairIndexMap = parsed.reduce<Record<number, string[]>>((acc, entry) => {
+        if (Array.isArray(entry.segmentIds) && entry.segmentIds.length >= 2) {
+          acc[entry.pairIndex] = entry.segmentIds.map((s) => String(s));
+        }
+        return acc;
+      }, {});
+    } catch {
+      // Ignore parse errors; feature will fall back to lenient normalization
+    }
+  }
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -127,39 +142,66 @@ export async function executeFeature<TOutput>(
             // If lenient extraction produced usable data, try normalization for known features
             if (lenient.success && lenient.data) {
               // Feature-specific normalization: segment-merge often returns variant types
-              if (featureId === "segment-merge") {
+              if (featureId === "segment-merge" && Array.isArray(lenient.data)) {
                 try {
                   const raw = lenient.data as any[];
-                  const normalized = raw.map((item) => {
-                    const segIdsRaw =
-                      item.segmentIds ?? item.segmentId ?? item.segment_ids ?? item.ids ?? [];
-                    let segIdsArray = Array.isArray(segIdsRaw) ? segIdsRaw : [segIdsRaw];
-                    segIdsArray = segIdsArray.map((v) =>
-                      v === undefined || v === null ? "" : String(v),
-                    );
+                  // Minimal normalization here - just ensure basic structure
+                  // Full ID mapping happens in service.ts with the proper BatchIdMapping
+                  const normalized = raw
+                    .map((item) => {
+                      // Try to get segment IDs from pairIndexMap (contains real IDs now)
+                      let segIdsArray: string[] = [];
 
-                    const confidenceRaw = item.confidence ?? item.conf ?? undefined;
-                    const confidenceNum =
-                      typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
+                      const pairIdx = item.pairId ?? item.pairIndex ?? item.pair;
+                      if (typeof pairIdx === "number" && pairIndexMap && pairIndexMap[pairIdx]) {
+                        segIdsArray = [...pairIndexMap[pairIdx]];
+                      }
 
-                    return {
-                      segmentIds: segIdsArray,
-                      confidence: Number.isNaN(confidenceNum) ? undefined : confidenceNum,
-                      reason: item.reason ?? item.explanation ?? item.note ?? "",
-                      smoothedText:
-                        item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
-                      smoothingChanges:
-                        item.smoothingChanges ??
-                        item.smoothing_changes ??
-                        item.changes ??
-                        undefined,
-                    };
-                  });
+                      // Fallback: try mergeId as pair index
+                      if (segIdsArray.length === 0 && item.mergeId !== undefined) {
+                        const mergeIdNum = typeof item.mergeId === "number"
+                          ? item.mergeId
+                          : parseInt(String(item.mergeId).split("-")[0], 10);
+                        if (!isNaN(mergeIdNum) && pairIndexMap && pairIndexMap[mergeIdNum]) {
+                          segIdsArray = [...pairIndexMap[mergeIdNum]];
+                        }
+                      }
+
+                      // Fallback: try segmentA/segmentB
+                      if (segIdsArray.length === 0 && item.segmentA?.id && item.segmentB?.id) {
+                        segIdsArray = [String(item.segmentA.id), String(item.segmentB.id)];
+                      }
+
+                      // Fallback: try segmentIds array directly
+                      if (segIdsArray.length === 0 && Array.isArray(item.segmentIds)) {
+                        segIdsArray = item.segmentIds.map((id: any) => String(id));
+                      }
+
+                      if (segIdsArray.length < 2) {
+                        return null;
+                      }
+
+                      const confidenceRaw = item.confidence ?? item.conf ?? undefined;
+                      const confidenceNum = typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
+
+                      const smoothingRaw = item.smoothingChanges ?? item.smoothing_changes ?? item.changes;
+                      const smoothingChanges = Array.isArray(smoothingRaw)
+                        ? smoothingRaw.join("; ")
+                        : smoothingRaw;
+
+                      return {
+                        segmentIds: segIdsArray,
+                        confidence: Number.isNaN(confidenceNum) ? 0.5 : confidenceNum,
+                        reason:
+                          item.reason ?? item.explanation ?? item.note ?? item.summary ?? "AI merge suggestion",
+                        smoothedText: item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
+                        smoothingChanges,
+                      };
+                    })
+                    .filter(Boolean);
 
                   // Try to validate normalized data against the schema
-                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), {
-                    schema: config.responseSchema,
-                  });
+                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), { schema: config.responseSchema });
                   if (validateAttempt.success && validateAttempt.data) {
                     const metadata = buildMetadata(
                       featureId,

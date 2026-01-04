@@ -14,6 +14,15 @@ import type {
   RawMergeSuggestion,
   TextSmoothingInfo,
 } from "./types";
+import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
+import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
+
+export interface SegmentPairInfo {
+  pairIndex: number;
+  segmentA: MergeAnalysisSegment;
+  segmentB: MergeAnalysisSegment;
+  gap: number;
+}
 
 // ==================== Time & Gap Calculations ====================
 
@@ -155,75 +164,81 @@ export function detectIncorrectSentenceBreak(
   const text1 = segment1.text.trim();
   const text2 = segment2.text.trim();
 
-  // Pattern: First segment ends with period, second starts with lowercase-looking word
-  // that was capitalized (common Whisper artifact)
-  if (endsWithSentencePunctuation(text1) && startsWithCapital(text2)) {
-    // Check if second segment starts with a word that's usually lowercase
-    const firstWord = text2.split(/\s+/)[0]?.toLowerCase();
-    const usuallyLowercaseWords = [
-      "achieve",
-      "because",
-      "but",
-      "and",
-      "or",
-      "so",
-      "which",
-      "that",
-      "when",
-      "where",
-      "how",
-      "what",
-      "if",
-      "as",
-      "than",
-      "to",
-      "for",
-      "with",
-      "about",
-      "into",
-      "through",
-      "during",
-      "before",
-      "after",
-      "above",
-      "below",
-      "from",
-      "up",
-      "down",
-      "in",
-      "out",
-      "on",
-      "off",
-      "over",
-      "under",
-      "again",
-      "further",
-      "then",
-      "once",
-      "here",
-      "there",
-      "all",
-      "each",
-      "few",
-      "more",
-      "most",
-      "other",
-      "some",
-      "such",
-      "no",
-      "nor",
-      "not",
-      "only",
-      "own",
-      "same",
-      "too",
-      "very",
-      "just",
-      "also",
-      "now",
-    ];
+  // Pattern: First segment ends with punctuation, second may start with capitalization
+  if (endsWithSentencePunctuation(text1)) {
+    // If second starts with a capitalized word that is usually lowercase, it's likely an incorrect split
+    if (startsWithCapital(text2)) {
+      const firstWord = text2.split(/\s+/)[0]?.toLowerCase();
+      const usuallyLowercaseWords = [
+        "achieve",
+        "because",
+        "but",
+        "and",
+        "or",
+        "so",
+        "which",
+        "that",
+        "when",
+        "where",
+        "how",
+        "what",
+        "if",
+        "as",
+        "than",
+        "to",
+        "for",
+        "with",
+        "about",
+        "into",
+        "through",
+        "during",
+        "before",
+        "after",
+        "above",
+        "below",
+        "from",
+        "up",
+        "down",
+        "in",
+        "out",
+        "on",
+        "off",
+        "over",
+        "under",
+        "again",
+        "further",
+        "then",
+        "once",
+        "here",
+        "there",
+        "all",
+        "each",
+        "few",
+        "more",
+        "most",
+        "other",
+        "some",
+        "such",
+        "no",
+        "nor",
+        "not",
+        "only",
+        "own",
+        "same",
+        "too",
+        "very",
+        "just",
+        "also",
+        "now",
+      ];
 
-    if (firstWord && usuallyLowercaseWords.includes(firstWord)) {
+      if (firstWord && usuallyLowercaseWords.includes(firstWord)) {
+        return true;
+      }
+    }
+
+    // If second starts with lowercase while the first ends with punctuation, likely a continuation
+    if (!startsWithCapital(text2)) {
       return true;
     }
   }
@@ -362,38 +377,8 @@ export function formatSegmentPairsForPrompt(
   maxTimeGap: number,
   sameSpeakerOnly: boolean,
 ): string {
-  const pairs: string[] = [];
-
-  for (let i = 0; i < segments.length - 1; i++) {
-    const seg1 = segments[i];
-    const seg2 = segments[i + 1];
-
-    // Skip if different speakers (when required)
-    if (sameSpeakerOnly && !isSameSpeaker(seg1, seg2)) {
-      continue;
-    }
-
-    // Skip if time gap too large
-    const gap = calculateTimeGap(seg1, seg2);
-    if (!isTimeGapAcceptable(gap, maxTimeGap)) {
-      continue;
-    }
-
-    pairs.push(`--- Pair ${pairs.length + 1} ---
-Segment A [${seg1.id}]:
-  Speaker: ${seg1.speaker}
-  Time: ${formatTimeRange(seg1.start, seg1.end)}
-  Text: "${seg1.text}"
-
-Segment B [${seg2.id}]:
-  Speaker: ${seg2.speaker}
-  Time: ${formatTimeRange(seg2.start, seg2.end)}
-  Text: "${seg2.text}"
-
-Gap: ${gap.toFixed(2)}s`);
-  }
-
-  return pairs.join("\n\n");
+  const pairInfos = collectSegmentPairs(segments, maxTimeGap, sameSpeakerOnly);
+  return formatSegmentPairs(pairInfos);
 }
 
 // ==================== Suggestion Processing ====================
@@ -571,4 +556,267 @@ export function validateMergeCandidate(
   }
 
   return { valid: true };
+}
+
+/**
+ * Collect segment pairs for analysis.
+ * Groups consecutive segments based on time gap and speaker similarity.
+ *
+ * @param segments - All segments
+ * @param maxTimeGap - Maximum time gap to consider
+ * @param sameSpeakerOnly - Only include same-speaker pairs
+ * @returns Array of SegmentPairInfo
+ */
+export function collectSegmentPairs(
+  segments: MergeAnalysisSegment[],
+  maxTimeGap: number,
+  sameSpeakerOnly: boolean,
+): SegmentPairInfo[] {
+  const pairs: SegmentPairInfo[] = [];
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const segmentA = segments[i];
+    const segmentB = segments[i + 1];
+
+    if (sameSpeakerOnly && !isSameSpeaker(segmentA, segmentB)) {
+      continue;
+    }
+
+    const gap = calculateTimeGap(segmentA, segmentB);
+    if (!isTimeGapAcceptable(gap, maxTimeGap)) {
+      continue;
+    }
+
+    pairs.push({
+      pairIndex: pairs.length + 1,
+      segmentA,
+      segmentB,
+      gap,
+    });
+  }
+
+  return pairs;
+}
+
+/**
+ * Map pair indices to segment ID tuples.
+ * Helper to access canonical pair IDs.
+ *
+ * @param pairInfos - Array of SegmentPairInfo
+ * @returns Record mapping pair index to segment ID tuple
+ */
+export function mapPairIndexToSegmentIds(pairInfos: SegmentPairInfo[]): Record<number, string[]> {
+  return pairInfos.reduce<Record<number, string[]>>((acc, pair) => {
+    acc[pair.pairIndex] = [pair.segmentA.id, pair.segmentB.id];
+    return acc;
+  }, {});
+}
+
+export function formatSegmentPairs(pairInfos: SegmentPairInfo[]): string {
+  return pairInfos
+    .map(
+      (pair) => `--- Pair ${pair.pairIndex} ---
+Segment A [${pair.segmentA.id}]:
+  Speaker: ${pair.segmentA.speaker}
+  Time: ${formatTimeRange(pair.segmentA.start, pair.segmentA.end)}
+  Text: "${pair.segmentA.text}"
+
+Segment B [${pair.segmentB.id}]:
+  Speaker: ${pair.segmentB.speaker}
+  Time: ${formatTimeRange(pair.segmentB.start, pair.segmentB.end)}
+  Text: "${pair.segmentB.text}"
+
+Gap: ${pair.gap.toFixed(2)}s`,
+    )
+    .join("\n\n");
+}
+
+/**
+ * Format segments for prompt using simple numeric IDs.
+ * Better for smaller models that struggle with complex IDs like "seg-335".
+ *
+ * @param segments - Segments to format
+ * @param mapping - ID mapping to populate
+ * @returns Formatted string for prompt
+ */
+export function formatSegmentsWithSimpleIds(
+  segments: MergeAnalysisSegment[],
+  getSimpleId?: (realId: string) => number,
+): string {
+  return segments
+    .map((seg, idx) => {
+      const simpleId = getSimpleId ? getSimpleId(seg.id) : idx + 1;
+      const timeRange = formatTimeRange(seg.start, seg.end);
+      return `[${simpleId}] [${seg.speaker}] (${timeRange}): "${seg.text}"`;
+    })
+    .join("\n");
+}
+
+/**
+ * Collect segment pairs with simple IDs for prompts.
+ *
+ * @param segments - Segments in the batch
+ * @param maxTimeGap - Maximum time gap
+ * @param sameSpeakerOnly - Only same-speaker pairs
+ * @param mapping - ID mapping to populate with pair info
+ * @returns Array of pairs with simple IDs
+ */
+export function collectSegmentPairsWithSimpleIds(
+  segments: MergeAnalysisSegment[],
+  maxTimeGap: number,
+  sameSpeakerOnly: boolean,
+  mapping: BatchPairMapping,
+  getSimpleId: (realId: string) => number,
+): Array<{
+  pairIndex: number;
+  simpleIdA: number;
+  simpleIdB: number;
+  segmentA: MergeAnalysisSegment;
+  segmentB: MergeAnalysisSegment;
+  gap: number;
+}> {
+  const pairs: Array<{
+    pairIndex: number;
+    simpleIdA: number;
+    simpleIdB: number;
+    segmentA: MergeAnalysisSegment;
+    segmentB: MergeAnalysisSegment;
+    gap: number;
+  }> = [];
+
+  for (let i = 0; i < segments.length - 1; i++) {
+    const segmentA = segments[i];
+    const segmentB = segments[i + 1];
+
+    if (sameSpeakerOnly && !isSameSpeaker(segmentA, segmentB)) {
+      continue;
+    }
+
+    const gap = calculateTimeGap(segmentA, segmentB);
+    if (!isTimeGapAcceptable(gap, maxTimeGap)) {
+      continue;
+    }
+
+    const pairIndex = pairs.length + 1; // 1-based within batch
+    const simpleIdA = getSimpleId(segmentA.id);
+    const simpleIdB = getSimpleId(segmentB.id);
+
+    mapping.pairToIds.set(pairIndex, [segmentA.id, segmentB.id]);
+
+    pairs.push({
+      pairIndex,
+      simpleIdA,
+      simpleIdB,
+      segmentA,
+      segmentB,
+      gap,
+    });
+  }
+
+  return pairs;
+}
+
+/**
+ * Format segment pairs with simple IDs for prompt.
+ *
+ * @param pairs - Pairs with simple IDs
+ * @returns Formatted string for prompt
+ */
+export function formatSegmentPairsWithSimpleIds(
+  pairs: Array<{
+    pairIndex: number;
+    simpleIdA: number;
+    simpleIdB: number;
+    segmentA: MergeAnalysisSegment;
+    segmentB: MergeAnalysisSegment;
+    gap: number;
+  }>,
+): string {
+  return pairs
+    .map(
+      (pair) => `--- Pair ${pair.pairIndex} ---
+Segment A [${pair.simpleIdA}]:
+  Speaker: ${pair.segmentA.speaker}
+  Time: ${formatTimeRange(pair.segmentA.start, pair.segmentA.end)}
+  Text: "${pair.segmentA.text}"
+
+Segment B [${pair.simpleIdB}]:
+  Speaker: ${pair.segmentB.speaker}
+  Time: ${formatTimeRange(pair.segmentB.start, pair.segmentB.end)}
+  Text: "${pair.segmentB.text}"
+
+Gap: ${pair.gap.toFixed(2)}s`,
+    )
+    .join("\n\n");
+}
+
+/**
+ * Normalize raw AI suggestion by mapping simple IDs back to real segment IDs.
+ *
+ * @param raw - Raw suggestion from AI (may use simple IDs or pairIndex)
+ * @param mapping - ID mapping from batch
+ * @returns Normalized suggestion with real segment IDs, or null if invalid
+ */
+export function normalizeRawSuggestion(
+  raw: RawAIItem,
+  mapping: BatchPairMapping,
+): RawMergeSuggestion | null {
+  // Use core extractor to get real segment IDs (data-agnostic)
+  const ids = extractSegmentIdsGeneric(raw, mapping as any);
+  if (!ids) return null;
+
+  // Feature-specific normalization (local to segment-merge)
+  const confidenceRaw = raw.confidence ?? raw.conf ?? 0.5;
+  const confidence = typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw) || 0.5;
+
+  const smoothingRaw = raw.smoothingChanges ?? raw.smoothing_changes ?? raw.changes;
+  const smoothingChanges = Array.isArray(smoothingRaw) ? smoothingRaw.join("; ") : typeof smoothingRaw === "string" ? smoothingRaw : undefined;
+
+  const smoothedText = raw.smoothedText ?? raw.smoothed_text ?? raw.smooth ?? undefined;
+
+  const reason = raw.reason ?? raw.explanation ?? raw.note ?? "AI merge suggestion";
+
+  return {
+    segmentIds: ids as string[],
+    confidence,
+    reason,
+    smoothedText,
+    smoothingChanges,
+  } as RawMergeSuggestion;
+}
+
+/**
+ * Simple ID context for mapping real segment IDs to batch-local simple IDs.
+ */
+export interface SimpleIdContext {
+  mapping: BatchPairMapping;
+  getSimpleId: (realId: string) => number;
+}
+
+/**
+ * Create SimpleIdContext for a batch of segments.
+ *
+ * @param segments - Segments in the batch
+ * @returns SimpleIdContext object
+ */
+export function createSimpleIdContext(segments: MergeAnalysisSegment[]): SimpleIdContext {
+  const simpleToReal = new Map<number, string>();
+  const realToSimple = new Map<string, number>();
+  const pairToIds = new Map<number, [string, string]>();
+  let nextSimpleId = 1;
+
+  const getSimpleId = (realId: string): number => {
+    let assigned = realToSimple.get(realId);
+    if (!assigned) {
+      assigned = nextSimpleId++;
+      realToSimple.set(realId, assigned);
+      simpleToReal.set(assigned, realId);
+    }
+    return assigned;
+  };
+
+  return {
+    mapping: { simpleToReal, realToSimple, pairToIds },
+    getSimpleId,
+  };
 }
