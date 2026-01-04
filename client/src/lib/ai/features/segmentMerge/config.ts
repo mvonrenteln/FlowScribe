@@ -116,6 +116,9 @@ export const mergeResponseSchema = {
       segmentIds: {
         type: "array" as const,
         items: { type: "string" as const },
+        // Relax validation: allow e.g. [1,2] or single values
+        allowNumericToStringArray: true,
+        allowSingleValueAsArray: true,
       },
       confidence: {
         type: "number" as const,

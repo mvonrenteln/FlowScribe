@@ -24,7 +24,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 // ==================== Constants ====================
 
 export const DEFAULT_SEGMENT_MERGE_CONFIG: AISegmentMergeConfig = {
-  defaultMaxTimeGap: 2.0,
+  defaultMaxTimeGap: 2,
   defaultMinConfidence: "medium",
   defaultEnableSmoothing: true,
   showInlineHints: true,
@@ -134,6 +134,11 @@ export const createAISegmentMergeSlice = (
         const currentState = get();
         if (!currentState.aiSegmentMergeIsProcessing) return; // Cancelled
 
+        console.log("[AISegmentMerge] Full analysis result:", result);
+        if (result.issues && result.issues.length > 0) {
+          console.warn("[AISegmentMerge] Analysis issues:", result.issues);
+        }
+
         const storeSuggestions = result.suggestions.map(toStoreSuggestion);
 
         console.log("[AISegmentMerge] Analysis complete:", {
@@ -174,7 +179,7 @@ export const createAISegmentMergeSlice = (
     const state = get();
     const suggestion = state.aiSegmentMergeSuggestions.find((s) => s.id === suggestionId);
 
-    if (!suggestion || suggestion.status !== "pending") {
+    if (suggestion?.status !== "pending") {
       return;
     }
 

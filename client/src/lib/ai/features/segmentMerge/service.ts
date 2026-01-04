@@ -8,7 +8,9 @@
  */
 
 import { executeFeature } from "@/lib/ai";
+import { parseResponse } from "@/lib/ai/parsing/responseParser";
 import { getMergeSystemPrompt, getMergeUserTemplate } from "./config";
+import { mergeResponseSchema } from "./config";
 import type {
   BatchMergeAnalysisParams,
   MergeAnalysisIssue,
@@ -113,34 +115,141 @@ export async function analyzeMergeCandidates(
       signal,
     });
 
-    if (!result.success || !result.data) {
-      issues.push({
-        level: "error",
-        message: result.error || "Failed to analyze segments",
+    console.log("[AISegmentMerge] Raw executeFeature result:", {
+      success: result.success,
+      hasData: !!result.data,
+      error: result.error,
+      metadata: result.metadata,
+    });
+
+    // Determine raw content to inspect: prefer result.data if present, otherwise rawResponse
+    const rawResponse = (result as any).rawResponse ?? null;
+    const debugEnabled = (globalThis as any).__AISegmentMergeDebug === true;
+    if (debugEnabled) {
+      console.warn("[AISegmentMerge][DEBUG] debugEnabled = true");
+      if (rawResponse !== null) {
+        console.warn("[AISegmentMerge][DEBUG] Full rawResponse:", rawResponse);
+      }
+    }
+    let parsedData: RawMergeSuggestion[] | undefined = undefined;
+
+    // If provider returned parsed data directly (success), use it
+    if (result.success && result.data) {
+      parsedData = result.data as unknown as RawMergeSuggestion[];
+    } else if (rawResponse !== null) {
+      // Try to leniently parse raw response (string or object)
+      const rawText = typeof rawResponse === "string" ? rawResponse : JSON.stringify(rawResponse);
+      console.warn("[AISegmentMerge] executeFeature returned error:", result.error);
+      console.warn("[AISegmentMerge] Raw response preview:", rawText.slice(0, 2000));
+
+      // 1) Try parseResponse leniently with schema
+      const lenientParsed = parseResponse<RawMergeSuggestion[]>(rawText, {
+        schema: mergeResponseSchema,
+        applyDefaults: true,
+        jsonOptions: { lenient: true },
       });
 
+      if (lenientParsed.success && lenientParsed.data) {
+        console.warn("[AISegmentMerge] Lenient parsed data usable, proceeding with that");
+        parsedData = lenientParsed.data;
+        if (lenientParsed.metadata.warnings.length) {
+          console.warn("[AISegmentMerge] Lenient parse warnings:", lenientParsed.metadata.warnings);
+        }
+      } else {
+        console.warn("[AISegmentMerge] Lenient parse failed or returned no data:", lenientParsed.error?.message);
+
+        // 2) Try recoverPartialArray to extract items from messy output
+        try {
+          const { recoverPartialArray } = await import("@/lib/ai/parsing/responseParser");
+          const isRawSuggestion = (item: unknown): item is RawMergeSuggestion => {
+            return (
+              typeof item === "object" &&
+              item !== null &&
+              // segmentIds may be string|number|array, check presence
+              ("segmentIds" in (item as any) || "segmentId" in (item as any))
+            );
+          };
+
+          const { recovered, skipped } = recoverPartialArray<RawMergeSuggestion>(rawText, isRawSuggestion);
+          if (recovered.length > 0) {
+            console.warn("[AISegmentMerge] Recovered partial suggestions:", { recoveredCount: recovered.length, skipped });
+            // Normalize recovered items to expected RawMergeSuggestion shape
+            parsedData = recovered.map((r) => {
+              // Ensure segmentIds is array of strings
+              let sids: unknown = (r as any).segmentIds ?? (r as any).segmentId ?? [];
+              if (!Array.isArray(sids)) sids = [sids];
+              const sidsStr = (sids as any[]).map((v) => String(v));
+              return {
+                segmentIds: sidsStr,
+                confidence: (r as any).confidence ?? 0.5,
+                reason: (r as any).reason ?? (r as any).reason ?? "",
+                smoothedText: (r as any).smoothedText,
+                smoothingChanges: (r as any).smoothingChanges,
+              } as RawMergeSuggestion;
+            });
+          } else {
+            console.warn("[AISegmentMerge] No recoverable suggestions found in raw response");
+
+            // Final fallback: try to extract first JSON array substring from the rawText
+            try {
+              const firstBracket = rawText.indexOf("[");
+              const lastBracket = rawText.lastIndexOf("]");
+              if (firstBracket !== -1 && lastBracket !== -1 && lastBracket > firstBracket) {
+                const jsonCandidate = rawText.slice(firstBracket, lastBracket + 1);
+                try {
+                  const parsedCandidate = JSON.parse(jsonCandidate);
+                  if (Array.isArray(parsedCandidate) && parsedCandidate.length > 0) {
+                    console.warn("[AISegmentMerge] Parsed JSON array candidate from raw text, using as recovered data");
+                    parsedData = (parsedCandidate as any[]).map((r) => {
+                      let sids: unknown = r.segmentIds ?? r.segmentId ?? [];
+                      if (!Array.isArray(sids)) sids = [sids];
+                      const sidsStr = (sids as any[]).map((v) => String(v));
+                      return {
+                        segmentIds: sidsStr,
+                        confidence: r.confidence ?? 0.5,
+                        reason: r.reason ?? "",
+                        smoothedText: r.smoothedText,
+                        smoothingChanges: r.smoothingChanges ?? r.smoothing_changes,
+                      } as RawMergeSuggestion;
+                    });
+                  }
+                } catch (jsonEx) {
+                  console.warn("[AISegmentMerge] JSON.parse of candidate failed:", jsonEx instanceof Error ? jsonEx.message : String(jsonEx));
+                }
+              }
+            } catch (ex) {
+              console.warn("[AISegmentMerge] JSON array fallback extraction failed:", ex instanceof Error ? ex.message : String(ex));
+            }
+          }
+        } catch (ex) {
+          console.warn("[AISegmentMerge] recoverPartialArray failed:", ex instanceof Error ? ex.message : String(ex));
+        }
+      }
+    }
+
+    if (!parsedData) {
+      // No usable data found — record issue and exit
+      issues.push({ level: "error", message: result.error || "Failed to analyze segments" });
       return {
         suggestions: [],
-        summary: {
-          analyzed: segments.length - 1,
-          found: 0,
-          byConfidence: { high: 0, medium: 0, low: 0 },
-        },
+        summary: { analyzed: segments.length - 1, found: 0, byConfidence: { high: 0, medium: 0, low: 0 } },
         issues,
       };
     }
 
+    // At this point we have parsedData (array of RawMergeSuggestion)
     // Process raw suggestions
-    const suggestions = processSuggestions(result.data, segments, minConfidence);
+    const suggestions = processSuggestions(parsedData, segments, minConfidence);
     const byConfidence = countByConfidence(suggestions);
+
+    console.log("[AISegmentMerge] Suggestions after processing:", {
+      total: suggestions.length,
+      byConfidence,
+    });
 
     return {
       suggestions,
-      summary: {
-        analyzed: segments.length - 1,
-        found: suggestions.length,
-        byConfidence,
-      },
+      summary: { analyzed: segments.length - 1, found: suggestions.length, byConfidence },
       issues,
     };
   } catch (error) {
