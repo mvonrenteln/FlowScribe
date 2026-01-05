@@ -403,10 +403,27 @@ export function processSuggestion(
 ): MergeSuggestion | null {
   // Validate segment IDs
   const relevantSegments = raw.segmentIds
-    .map((id) => segmentMap.get(id))
+    .map((id) => {
+      const segment = segmentMap.get(id);
+      if (!segment) {
+        console.warn("[SegmentMerge] Segment ID not found in map:", {
+          requestedId: id,
+          availableIds: Array.from(segmentMap.keys()).slice(0, 10),
+          totalAvailable: segmentMap.size,
+          reason: raw.reason,
+        });
+      }
+      return segment;
+    })
     .filter((s): s is MergeAnalysisSegment => s !== undefined);
 
   if (relevantSegments.length < 2) {
+    console.warn("[SegmentMerge] Insufficient segments found:", {
+      requestedIds: raw.segmentIds,
+      foundCount: relevantSegments.length,
+      requiredCount: 2,
+      reason: raw.reason,
+    });
     return null;
   }
 

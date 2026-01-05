@@ -22,9 +22,21 @@ const logger = createLogger({ feature: "SegmentMerge" });
 
 /**
  * Type guard for raw merge suggestions
+ *
+ * Only accepts formats that can be properly validated:
+ * - segmentIds: explicit array of IDs
+ * - segmentId: single ID
+ * - mergeId: numeric ID that maps to a pair
+ * - pairIndex: explicit pair index
+ *
+ * Does NOT accept segmentA/segmentB format as it cannot be validated.
  */
 export function isRawMergeSuggestion(item: unknown): item is RawMergeSuggestion {
-  return typeof item === "object" && item !== null && ("segmentIds" in item || "segmentId" in item);
+  return (
+    typeof item === "object" &&
+    item !== null &&
+    ("segmentIds" in item || "segmentId" in item || "mergeId" in item || "pairIndex" in item)
+  );
 }
 
 /**
@@ -77,10 +89,16 @@ export function extractRawResponse(result: AIFeatureResult<any>): string | null 
 
 /**
  * Normalize recovered item to RawMergeSuggestion format
+ *
+ * NOTE: This function should NOT extract IDs from segmentA/segmentB objects,
+ * as these cannot be validated and may cause incorrect segment assignment.
+ * Only use segmentIds array, pairIndex, or mergeId which can be validated
+ * through the ID mapping.
  */
 export function normalizeRecoveredItem(item: any): RawMergeSuggestion {
-  // Extract segment IDs
+  // Extract segment IDs - only from explicit segmentIds field
   let sids: unknown = item.segmentIds ?? item.segmentId ?? [];
+
   if (!Array.isArray(sids)) {
     sids = [sids];
   }
@@ -92,8 +110,8 @@ export function normalizeRecoveredItem(item: any): RawMergeSuggestion {
   // Extract reason
   const reason = item.reason ?? item.explanation ?? "";
 
-  // Extract smoothing data
-  const smoothedText = item.smoothedText ?? item.smoothed_text;
+  // Extract smoothing data (also check mergedText as alternative)
+  const smoothedText = item.smoothedText ?? item.smoothed_text ?? item.mergedText;
   const smoothingChanges = item.smoothingChanges ?? item.smoothing_changes;
 
   return {

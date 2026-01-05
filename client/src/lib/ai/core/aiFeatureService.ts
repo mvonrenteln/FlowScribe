@@ -112,17 +112,27 @@ export async function executeFeature<TOutput>(
       if (!parseResult.success || !parseResult.data) {
         // Detailed logging for debugging malformed provider outputs
         try {
+          const rawContent = response.content
+            ? typeof response.content === "string"
+              ? response.content
+              : JSON.stringify(response.content)
+            : "";
+
+          // Show start and end of response for better debugging
+          const MAX_PREVIEW = 15000;
+          const rawResponsePreview =
+            rawContent.length <= MAX_PREVIEW
+              ? rawContent
+              : `${rawContent.slice(0, MAX_PREVIEW / 2)}\n\n... [${rawContent.length - MAX_PREVIEW} chars omitted] ...\n\n${rawContent.slice(-MAX_PREVIEW / 2)}`;
+
           console.warn("[AIFeatureService] Structured parse failed for feature:", featureId, {
             providerId: providerConfig.id,
             model: providerConfig.model,
             error: parseResult.error?.message,
             // parseResult does not expose a list of errors; expose the top-level error message instead
             parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
-            rawResponsePreview: response.content
-              ? typeof response.content === "string"
-                ? response.content.slice(0, 5000)
-                : JSON.stringify(response.content).slice(0, 5000)
-              : undefined,
+            rawResponsePreview,
+            rawResponseLength: rawContent.length,
             parseMetadata: parseResult.metadata,
           });
 

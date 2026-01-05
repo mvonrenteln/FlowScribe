@@ -45,19 +45,40 @@ DO NOT SUGGEST MERGE WHEN:
 
 OUTPUT FORMAT
 -------------
-Return a JSON array of merge suggestions. Each suggestion must include:
-- segmentIds: Array of segment IDs to merge (usually 2)
+Return a JSON array of merge suggestions. Each suggestion MUST use one of these formats:
+
+FORMAT 1 (Preferred): Using segmentIds
+- segmentIds: Array of segment IDs from the pairs above (use the numbers in brackets, e.g. [1, 2])
 - confidence: Number between 0 and 1
 - reason: Brief explanation for the merge suggestion
+
+FORMAT 2 (Alternative): Using pairIndex
+- pairIndex: The pair number (e.g. 1 for "Pair 1")
+- confidence: Number between 0 and 1
+- reason: Brief explanation for the merge suggestion
+
+IMPORTANT: Do NOT create objects with segmentA/segmentB fields or any other format.
+Only use segmentIds array or pairIndex as shown in the examples below.
 
 If smoothing is requested, also include:
 - smoothedText: The grammatically corrected merged text
 - smoothingChanges: Brief description of what was changed
 
-Example output:
+Example output (using segmentIds):
 [
   {
-    "segmentIds": ["seg-12", "seg-13"],
+    "segmentIds": [1, 2],
+    "confidence": 0.95,
+    "reason": "Incomplete sentence continues in next segment",
+    "smoothedText": "So what we're trying to achieve here is better performance.",
+    "smoothingChanges": "Removed incorrect period, fixed capitalization"
+  }
+]
+
+Example output (using pairIndex):
+[
+  {
+    "pairIndex": 1,
     "confidence": 0.95,
     "reason": "Incomplete sentence continues in next segment",
     "smoothedText": "So what we're trying to achieve here is better performance.",

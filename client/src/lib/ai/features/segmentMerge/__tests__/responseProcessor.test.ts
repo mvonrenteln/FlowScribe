@@ -26,10 +26,27 @@ describe("Response Processor", () => {
       expect(isRawMergeSuggestion({ segmentId: "1" })).toBe(true);
     });
 
+    it("should return true for mergeId format", () => {
+      expect(isRawMergeSuggestion({ mergeId: 1 })).toBe(true);
+    });
+
+    it("should return true for pairIndex format", () => {
+      expect(isRawMergeSuggestion({ pairIndex: 1 })).toBe(true);
+    });
+
     it("should return false for invalid data", () => {
       expect(isRawMergeSuggestion(null)).toBe(false);
       expect(isRawMergeSuggestion({})).toBe(false);
       expect(isRawMergeSuggestion({ other: "field" })).toBe(false);
+    });
+
+    it("should return false for segmentA/segmentB format (not validated)", () => {
+      expect(
+        isRawMergeSuggestion({
+          segmentA: { id: 137 },
+          segmentB: { id: 138 },
+        }),
+      ).toBe(false);
     });
   });
 
@@ -112,6 +129,28 @@ describe("Response Processor", () => {
       const normalized = normalizeRecoveredItem(item);
 
       expect(normalized.segmentIds).toEqual(["1", "2", "3"]);
+    });
+
+    it("should handle mergedText as smoothedText fallback", () => {
+      const item = {
+        segmentIds: [1, 2],
+        mergedText: "Merged content",
+      };
+
+      const normalized = normalizeRecoveredItem(item);
+
+      expect(normalized.smoothedText).toBe("Merged content");
+    });
+
+    it("should return empty segmentIds array when no IDs provided", () => {
+      const item = {
+        confidence: 0.8,
+        reason: "Test",
+      };
+
+      const normalized = normalizeRecoveredItem(item);
+
+      expect(normalized.segmentIds).toEqual([]);
     });
   });
 
