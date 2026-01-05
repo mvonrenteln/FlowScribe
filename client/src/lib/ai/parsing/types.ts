@@ -117,6 +117,17 @@ export interface SimpleSchema {
   maxLength?: number;
   minimum?: number;
   maximum?: number;
+  // Lax validation options (optional, feature-specific)
+  /**
+   * If type is "array" and items.type is "string":
+   * allow incoming values like [1, 2, 3] and coerce them to strings.
+   */
+  allowNumericToStringArray?: boolean;
+  /**
+   * If type is "array": allow a single non-array value and wrap it into an array.
+   * For example: "id-1" → ["id-1"], or 1 → [1].
+   */
+  allowSingleValueAsArray?: boolean;
 }
 
 // ==================== Parser Options ====================

@@ -75,8 +75,41 @@ function validateNode(
     return data;
   }
 
+  // Special handling for arrays when a single value is provided
+  if (schema.type === "array" && !Array.isArray(data) && schema.allowSingleValueAsArray) {
+    warnings.push(`${path || "root"}: single value coerced to array`);
+    data = [data];
+  }
+
   // Type check
   const actualType = getType(data);
+
+  // New coercions: array -> string/number when reasonable
+  if (actualType === "array" && (schema.type === "string" || schema.type === "number")) {
+    // Try to coerce an array to a string by joining elements
+    try {
+      const arr = data as unknown[];
+      if (arr.length === 0) {
+        // empty array cannot be coerced
+      } else {
+        const joined = arr.map((v) => (v === null || v === undefined ? "" : String(v))).join(" ");
+        if (schema.type === "string") {
+          warnings.push(`${path || "root"}: array coerced to string`);
+          return joined;
+        }
+        if (schema.type === "number") {
+          const parsed = Number(arr[0]);
+          if (!Number.isNaN(parsed)) {
+            warnings.push(`${path || "root"}: array coerced to number from first element`);
+            return parsed;
+          }
+        }
+      }
+    } catch {
+      // Fall through to normal error handling
+    }
+  }
+
   if (actualType !== schema.type) {
     // Special case: allow number for string if it's a numeric string
     if (schema.type === "string" && actualType === "number") {
@@ -215,6 +248,17 @@ function validateArray(
 
   return data.map((item, index) => {
     const itemPath = `${path}[${index}]`;
+
+    // Lax handling: if we expect strings but got a number, coerce to string when allowed
+    if (
+      schema.allowNumericToStringArray &&
+      itemSchema.type === "string" &&
+      typeof item === "number"
+    ) {
+      warnings.push(`${itemPath}: number coerced to string in array`);
+      return String(item);
+    }
+
     return validateNode(item, itemSchema, itemPath, errors, warnings, applyDefaults);
   });
 }

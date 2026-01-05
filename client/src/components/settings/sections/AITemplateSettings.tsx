@@ -14,6 +14,7 @@ import {
   Copy,
   Download,
   FileText,
+  GitMerge,
   MessageSquare,
   Plus,
   Sparkles,
@@ -54,6 +55,21 @@ const DEFAULT_TEXT_USER_PROMPT = `Please revise the following text:
 
 {{text}}`;
 
+const DEFAULT_SEGMENT_MERGE_SYSTEM_PROMPT = `You analyze transcript segments to identify which ones should be merged together.
+
+Your task is to evaluate the CONTENT and determine if merging makes semantic sense.`;
+
+const DEFAULT_SEGMENT_MERGE_USER_PROMPT = `Analyze these pre-filtered transcript segment pairs for potential merges.
+
+CONTEXT:
+- Maximum time gap allowed: {{maxTimeGap}} seconds
+- Text smoothing: {{enableSmoothing}}
+
+SEGMENT PAIRS TO ANALYZE:
+{{segmentPairs}}
+
+Return merge suggestions as a JSON array.`;
+
 const PLACEHOLDER_HELP = {
   speaker: [
     { placeholder: "{{speakers}}", description: "List of known speaker names" },
@@ -65,7 +81,13 @@ const PLACEHOLDER_HELP = {
     { placeholder: "{{previousText}}", description: "Previous segment text (optional)" },
     { placeholder: "{{nextText}}", description: "Next segment text (optional)" },
   ],
-};
+  "segment-merge": [
+    { placeholder: "{{segmentPairs}}", description: "Pre-filtered segment pairs to analyze" },
+    { placeholder: "{{segments}}", description: "All segments for context" },
+    { placeholder: "{{maxTimeGap}}", description: "Maximum time gap in seconds" },
+    { placeholder: "{{enableSmoothing}}", description: "Whether smoothing is enabled" },
+  ],
+} as const;
 
 // ==================== Prompt Form ====================
 
@@ -80,8 +102,18 @@ interface PromptFormData {
 const getEmptyForm = (type: PromptType): PromptFormData => ({
   name: "",
   type,
-  systemPrompt: type === "speaker" ? DEFAULT_SYSTEM_PROMPT : DEFAULT_TEXT_SYSTEM_PROMPT,
-  userPromptTemplate: type === "speaker" ? DEFAULT_USER_PROMPT_TEMPLATE : DEFAULT_TEXT_USER_PROMPT,
+  systemPrompt:
+    type === "speaker"
+      ? DEFAULT_SYSTEM_PROMPT
+      : type === "text"
+        ? DEFAULT_TEXT_SYSTEM_PROMPT
+        : DEFAULT_SEGMENT_MERGE_SYSTEM_PROMPT,
+  userPromptTemplate:
+    type === "speaker"
+      ? DEFAULT_USER_PROMPT_TEMPLATE
+      : type === "text"
+        ? DEFAULT_TEXT_USER_PROMPT
+        : DEFAULT_SEGMENT_MERGE_USER_PROMPT,
   quickAccess: false,
 });
 
@@ -383,13 +415,33 @@ export function AITemplateSettings() {
   const setActiveTextPrompt = useTranscriptStore((s) => s.setDefaultRevisionPrompt);
   const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessPrompt);
 
+  // Segment merge prompts
+  const segmentMergePrompts = useTranscriptStore((s) => s.aiSegmentMergeConfig.prompts);
+  const activeSegmentMergePromptId = useTranscriptStore(
+    (s) => s.aiSegmentMergeConfig.activePromptId,
+  );
+  const addSegmentMergePrompt = useTranscriptStore((s) => s.addSegmentMergePrompt);
+  const updateSegmentMergePrompt = useTranscriptStore((s) => s.updateSegmentMergePrompt);
+  const deleteSegmentMergePrompt = useTranscriptStore((s) => s.deleteSegmentMergePrompt);
+  const setActiveSegmentMergePrompt = useTranscriptStore((s) => s.setActiveSegmentMergePrompt);
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
   // Get prompts for current tab
-  const prompts = activeTab === "speaker" ? speakerPrompts : textPrompts;
-  const activePromptId = activeTab === "speaker" ? activeSpeakerPromptId : activeTextPromptId;
+  const prompts =
+    activeTab === "speaker"
+      ? speakerPrompts
+      : activeTab === "text"
+        ? textPrompts
+        : segmentMergePrompts;
+  const activePromptId =
+    activeTab === "speaker"
+      ? activeSpeakerPromptId
+      : activeTab === "text"
+        ? activeTextPromptId
+        : activeSegmentMergePromptId;
 
   const handleAddPrompt = useCallback(
     (data: PromptFormData) => {
@@ -404,12 +456,14 @@ export function AITemplateSettings() {
 
       if (data.type === "speaker") {
         addSpeakerPrompt(promptData);
-      } else {
+      } else if (data.type === "text") {
         addTextPrompt(promptData);
+      } else {
+        addSegmentMergePrompt(promptData);
       }
       setShowAddForm(false);
     },
-    [addSpeakerPrompt, addTextPrompt],
+    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt],
   );
 
   const handleEditPrompt = useCallback(
@@ -423,34 +477,40 @@ export function AITemplateSettings() {
 
       if (activeTab === "speaker") {
         updateSpeakerPrompt(id, updates);
-      } else {
+      } else if (activeTab === "text") {
         updateTextPrompt(id, updates);
+      } else {
+        updateSegmentMergePrompt(id, updates);
       }
       setEditingId(null);
     },
-    [activeTab, updateSpeakerPrompt, updateTextPrompt],
+    [activeTab, updateSpeakerPrompt, updateTextPrompt, updateSegmentMergePrompt],
   );
 
   const handleDeletePrompt = useCallback(
     (id: string) => {
       if (activeTab === "speaker") {
         deleteSpeakerPrompt(id);
-      } else {
+      } else if (activeTab === "text") {
         deleteTextPrompt(id);
+      } else {
+        deleteSegmentMergePrompt(id);
       }
     },
-    [activeTab, deleteSpeakerPrompt, deleteTextPrompt],
+    [activeTab, deleteSpeakerPrompt, deleteTextPrompt, deleteSegmentMergePrompt],
   );
 
   const handleSetActivePrompt = useCallback(
     (id: string) => {
       if (activeTab === "speaker") {
         setActiveSpeakerPrompt(id);
-      } else {
+      } else if (activeTab === "text") {
         setActiveTextPrompt(id);
+      } else {
+        setActiveSegmentMergePrompt(id);
       }
     },
-    [activeTab, setActiveSpeakerPrompt, setActiveTextPrompt],
+    [activeTab, setActiveSpeakerPrompt, setActiveTextPrompt, setActiveSegmentMergePrompt],
   );
 
   const handleDuplicate = useCallback(
@@ -589,7 +649,7 @@ export function AITemplateSettings() {
 
       {/* Tabs for prompt types */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as PromptType)}>
-        <TabsList className="grid w-full grid-cols-2">
+        <TabsList className="grid w-full grid-cols-3">
           <TabsTrigger value="speaker" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Speaker Classification
@@ -597,6 +657,10 @@ export function AITemplateSettings() {
           <TabsTrigger value="text" className="flex items-center gap-2">
             <Sparkles className="h-4 w-4" />
             Text Revision
+          </TabsTrigger>
+          <TabsTrigger value="segment-merge" className="flex items-center gap-2">
+            <GitMerge className="h-4 w-4" />
+            Segment Merge
           </TabsTrigger>
         </TabsList>
 
@@ -619,6 +683,12 @@ export function AITemplateSettings() {
               the prompts to your language to avoid unwanted translations.
             </AlertDescription>
           </Alert>
+        </TabsContent>
+
+        <TabsContent value="segment-merge" className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">
+            Prompts for analyzing segments and suggesting which ones should be merged together.
+          </p>
         </TabsContent>
       </Tabs>
 

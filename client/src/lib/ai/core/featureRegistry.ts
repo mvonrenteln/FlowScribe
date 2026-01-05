@@ -9,6 +9,7 @@
  */
 
 import { textRevisionConfig } from "../features/revision/config";
+import { segmentMergeConfig } from "../features/segmentMerge/config";
 
 // Import feature configs synchronously to ensure they're available immediately
 import { speakerClassificationConfig } from "../features/speaker/config";
@@ -140,6 +141,11 @@ export function registerDefaultFeatures(): void {
   // Register text revision
   if (!hasFeature("text-revision")) {
     registerFeature(textRevisionConfig);
+  }
+
+  // Register segment merge
+  if (!hasFeature("segment-merge")) {
+    registerFeature(segmentMergeConfig);
   }
 }
 

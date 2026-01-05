@@ -144,6 +144,34 @@ describe("parseResponse", () => {
       expect(result.metadata.warnings.length).toBeGreaterThan(0);
     });
   });
+
+  describe("with lax array validation", () => {
+    it("should coerce single value to array when allowSingleValueAsArray is set", () => {
+      const schema: SimpleSchema = {
+        type: "array",
+        items: { type: "string" },
+        allowSingleValueAsArray: true,
+      };
+
+      const result = parseResponse<string>('"one"', { schema });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(["one"]);
+      expect(result.metadata.warnings.join(" ")).toMatch(/single value coerced to array/);
+    });
+
+    it("should coerce numeric items in array to strings when allowNumericToStringArray is set", () => {
+      const schema: SimpleSchema = {
+        type: "array",
+        items: { type: "string" },
+        allowNumericToStringArray: true,
+      };
+
+      const result = parseResponse<string[]>("[1, 2, 3]", { schema });
+      expect(result.success).toBe(true);
+      expect(result.data).toEqual(["1", "2", "3"]);
+      expect(result.metadata.warnings.length).toBeGreaterThan(0);
+    });
+  });
 });
 
 describe("parseArrayResponse", () => {

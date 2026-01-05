@@ -8,12 +8,10 @@
  * @module ai/core/aiFeatureService
  */
 
-import { parseResponse } from "../parsing/responseParser";
-import { compileTemplate } from "../prompts/promptBuilder";
-import type { PromptVariables } from "../prompts/types";
+import type { PromptVariables } from "@/lib/ai";
+import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
 import type { ChatMessage } from "../providers/types";
 import { AICancellationError, isCancellationError, toAIError } from "./errors";
-import { getFeatureOrThrow } from "./featureRegistry";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
@@ -64,6 +62,23 @@ export async function executeFeature<TOutput>(
   };
 
   const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
+  let pairIndexMap: Record<number, string[]> | undefined;
+  if (featureId === "segment-merge" && typeof variables.segmentPairsJson === "string") {
+    try {
+      const parsed = JSON.parse(variables.segmentPairsJson) as Array<{
+        pairIndex: number;
+        segmentIds: string[];
+      }>;
+      pairIndexMap = parsed.reduce<Record<number, string[]>>((acc, entry) => {
+        if (Array.isArray(entry.segmentIds) && entry.segmentIds.length >= 2) {
+          acc[entry.pairIndex] = entry.segmentIds.map((s) => String(s));
+        }
+        return acc;
+      }, {});
+    } catch {
+      // Ignore parse errors; feature will fall back to lenient normalization
+    }
+  }
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -94,11 +109,200 @@ export async function executeFeature<TOutput>(
       });
 
       if (!parseResult.success || !parseResult.data) {
+        // Detailed logging for debugging malformed provider outputs
+        try {
+          const rawContent = response.content
+            ? typeof response.content === "string"
+              ? response.content
+              : JSON.stringify(response.content)
+            : "";
+
+          // Show start and end of response for better debugging
+          const MAX_PREVIEW = 15000;
+          const rawResponsePreview =
+            rawContent.length <= MAX_PREVIEW
+              ? rawContent
+              : `${rawContent.slice(0, MAX_PREVIEW / 2)}\n\n... [${rawContent.length - MAX_PREVIEW} chars omitted] ...\n\n${rawContent.slice(-MAX_PREVIEW / 2)}`;
+
+          console.warn("[AIFeatureService] Structured parse failed for feature:", featureId, {
+            providerId: providerConfig.id,
+            model: providerConfig.model,
+            error: parseResult.error?.message,
+            // parseResult does not expose a list of errors; expose the top-level error message instead
+            parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
+            rawResponsePreview,
+            rawResponseLength: rawContent.length,
+            parseMetadata: parseResult.metadata,
+          });
+
+          // Try a lenient parse to show what can be extracted
+          try {
+            const lenient = parseResponse(response.content, { jsonOptions: { lenient: true } });
+            console.warn("[AIFeatureService] Lenient parse result:", {
+              success: lenient.success,
+              dataPreview: lenient.data
+                ? Array.isArray(lenient.data)
+                  ? (lenient.data as unknown[]).slice(0, 5)
+                  : lenient.data
+                : undefined,
+              metadata: lenient.metadata,
+              error: lenient.error?.message,
+            });
+
+            // If lenient extraction produced usable data, try normalization for known features
+            if (lenient.success && lenient.data) {
+              // Feature-specific normalization: segment-merge often returns variant types
+              if (featureId === "segment-merge" && Array.isArray(lenient.data)) {
+                try {
+                  const raw = lenient.data as unknown[];
+                  // Minimal normalization here - just ensure basic structure
+                  // Full ID mapping happens in service.ts with the proper BatchIdMapping
+                  const normalized = raw
+                    .map((itemUnknown) => {
+                      const item = itemUnknown as Record<string, unknown>;
+                      // Try to get segment IDs from pairIndexMap (contains real IDs now)
+                      let segIdsArray: string[] = [];
+
+                      const pairIdx = item.pairId ?? item.pairIndex ?? item.pair;
+                      if (typeof pairIdx === "number" && pairIndexMap && pairIndexMap[pairIdx]) {
+                        segIdsArray = [...pairIndexMap[pairIdx]];
+                      }
+
+                      // Fallback: try mergeId as pair index
+                      if (segIdsArray.length === 0 && item.mergeId !== undefined) {
+                        const mergeIdNum =
+                          typeof item.mergeId === "number"
+                            ? item.mergeId
+                            : parseInt(String(item.mergeId).split("-")[0], 10);
+                        if (!Number.isNaN(mergeIdNum) && pairIndexMap && pairIndexMap[mergeIdNum]) {
+                          segIdsArray = [...pairIndexMap[mergeIdNum]];
+                        }
+                      }
+
+                      // Fallback: try segmentA/segmentB
+                      if (
+                        segIdsArray.length === 0 &&
+                        typeof item.segmentA === "object" &&
+                        item.segmentA &&
+                        "id" in item.segmentA &&
+                        typeof item.segmentB === "object" &&
+                        item.segmentB &&
+                        "id" in item.segmentB
+                      ) {
+                        segIdsArray = [
+                          String((item.segmentA as Record<string, unknown>).id),
+                          String((item.segmentB as Record<string, unknown>).id),
+                        ];
+                      }
+
+                      // Fallback: try segmentIds array directly
+                      if (segIdsArray.length === 0 && Array.isArray(item.segmentIds)) {
+                        segIdsArray = item.segmentIds.map((id: unknown) => String(id));
+                      }
+
+                      if (segIdsArray.length < 2) {
+                        return null;
+                      }
+
+                      const confidenceRaw = item.confidence ?? item.conf ?? undefined;
+                      const confidenceNum =
+                        typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
+
+                      const smoothingRaw =
+                        item.smoothingChanges ?? item.smoothing_changes ?? item.changes;
+                      const smoothingChanges = Array.isArray(smoothingRaw)
+                        ? smoothingRaw.join("; ")
+                        : smoothingRaw;
+
+                      return {
+                        segmentIds: segIdsArray,
+                        confidence: Number.isNaN(confidenceNum) ? 0.5 : confidenceNum,
+                        reason:
+                          item.reason ??
+                          item.explanation ??
+                          item.note ??
+                          item.summary ??
+                          "AI merge suggestion",
+                        smoothedText:
+                          item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
+                        smoothingChanges,
+                      };
+                    })
+                    .filter(Boolean);
+
+                  // Try to validate normalized data against the schema
+                  const validateAttempt = parseResponse<unknown>(JSON.stringify(normalized), {
+                    schema: config.responseSchema,
+                  });
+                  if (validateAttempt.success && validateAttempt.data) {
+                    const metadata = buildMetadata(
+                      featureId,
+                      providerConfig,
+                      startTime,
+                      response.usage,
+                    );
+                    (metadata as Record<string, unknown>).parseWarnings =
+                      parseResult.metadata?.warnings ?? [];
+                    (metadata as Record<string, unknown>).lenient = true;
+
+                    return {
+                      success: true,
+                      data: validateAttempt.data as unknown as TOutput,
+                      rawResponse: response.content,
+                      metadata,
+                    };
+                  } else {
+                    console.warn(
+                      "[AIFeatureService] Normalized validation failed:",
+                      validateAttempt.error?.message,
+                      validateAttempt.metadata?.warnings,
+                    );
+                  }
+                } catch (normEx) {
+                  console.warn(
+                    "[AIFeatureService] Normalization for segment-merge failed:",
+                    normEx instanceof Error ? normEx.message : String(normEx),
+                  );
+                }
+              }
+
+              const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+              (metadata as Record<string, unknown>).parseWarnings =
+                parseResult.metadata?.warnings ?? [];
+              (metadata as Record<string, unknown>).lenient = true;
+
+              return {
+                success: true,
+                data: lenient.data as unknown as TOutput,
+                rawResponse: response.content,
+                metadata,
+              };
+            }
+          } catch (lenEx) {
+            console.warn(
+              "[AIFeatureService] Lenient parse failed:",
+              lenEx instanceof Error ? lenEx.message : String(lenEx),
+            );
+          }
+        } catch (logEx) {
+          console.warn(
+            "[AIFeatureService] Failed to log parse failure details:",
+            logEx instanceof Error ? logEx.message : String(logEx),
+          );
+        }
+
+        const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+        // Attach parse diagnostics to metadata for callers
+        (metadata as Record<string, unknown>).parseErrors = parseResult.error
+          ? [{ message: parseResult.error.message }]
+          : [];
+        (metadata as Record<string, unknown>).parseWarnings = parseResult.metadata?.warnings ?? [];
+
         return {
           success: false,
           error: parseResult.error?.message ?? "Failed to parse response",
           rawResponse: response.content,
-          metadata: buildMetadata(featureId, providerConfig, startTime, response.usage),
+          metadata,
         };
       }
 

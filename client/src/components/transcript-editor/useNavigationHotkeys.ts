@@ -37,6 +37,8 @@ interface UseNavigationHotkeysOptions {
   // AI Revision
   onRunDefaultAIRevision?: () => void;
   onOpenAIRevisionMenu?: () => void;
+  // AI Segment Merge
+  onOpenAISegmentMerge?: () => void;
 }
 
 export function useNavigationHotkeys({
@@ -73,6 +75,7 @@ export function useNavigationHotkeys({
   onShowSettings,
   onRunDefaultAIRevision,
   onOpenAIRevisionMenu,
+  onOpenAISegmentMerge,
 }: UseNavigationHotkeysOptions) {
   useEffect(() => {
     const handleGlobalSpace = (event: KeyboardEvent) => {
@@ -367,6 +370,16 @@ export function useNavigationHotkeys({
       if (isTranscriptEditing()) return;
       if (!selectedSegmentId) return;
       onOpenAIRevisionMenu?.();
+    },
+    { enableOnFormTags: false, preventDefault: true },
+  );
+
+  // AI Segment Merge: Alt+Shift+M to open dialog
+  useHotkeys(
+    "alt+shift+m",
+    () => {
+      if (isTranscriptEditing()) return;
+      onOpenAISegmentMerge?.();
     },
     { enableOnFormTags: false, preventDefault: true },
   );

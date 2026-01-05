@@ -51,15 +51,59 @@ export {
   reviseSegmentsBatch,
   textRevisionConfig,
 } from "./revision";
-// ==================== Segment Merge (Placeholder) ====================
+export type {
+  MergeAnalysisIssue,
+  MergeAnalysisParams,
+  MergeAnalysisResult,
+  MergeAnalysisSegment,
+  MergeConfidenceLevel,
+  MergeSuggestion,
+  MergeSuggestionStatus,
+  RawMergeSuggestion,
+  SegmentMergeConfig,
+  SegmentMergeState,
+  TextSmoothingInfo,
+} from "./segmentMerge";
+// ==================== Segment Merge ====================
+// Re-export from segmentMerge/ module
 export {
-  MERGE_SYSTEM_PROMPT,
-  MERGE_USER_PROMPT_TEMPLATE,
-  type MergeSuggestion,
+  // Service
+  analyzeMergeCandidates,
+  // Utils
+  applyBasicSmoothing,
+  calculateTimeGap,
+  concatenateTexts,
+  countByConfidence,
+  createSmoothingInfo,
+  // Constants
+  DEFAULT_SEGMENT_MERGE_CONFIG,
+  detectIncorrectSentenceBreak,
+  endsIncomplete,
+  endsWithSentencePunctuation,
+  filterByStatus,
+  formatSegmentPairsForPrompt,
+  formatSegmentsForPrompt as formatMergeSegmentsForPrompt,
+  formatTime,
+  formatTimeRange,
+  generateSuggestionId,
+  getMergeSystemPrompt,
+  getMergeUserTemplate,
+  groupByConfidence,
+  INITIAL_SEGMENT_MERGE_STATE,
+  isSameSpeaker,
+  isTimeGapAcceptable,
+  // Config
+  MERGE_ANALYSIS_SYSTEM_PROMPT,
+  MERGE_ANALYSIS_USER_TEMPLATE,
+  MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE,
+  meetsConfidenceThreshold,
   mergeResponseSchema,
-  type SegmentMergeInput,
-  type SegmentMergeOutput,
+  processSuggestion,
+  processSuggestions,
+  scoreToConfidenceLevel,
   segmentMergeConfig,
+  startsWithCapital,
+  validateMergeCandidate,
 } from "./segmentMerge";
 // ==================== Speaker Classification ====================
 // Re-export from speaker/ module

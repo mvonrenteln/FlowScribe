@@ -7,6 +7,7 @@ import {
   Clock,
   Download,
   FilePenLine,
+  GitMerge,
   Highlighter,
   Keyboard,
   PanelLeft,
@@ -63,6 +64,7 @@ export function Toolbar({
   canRedo,
   onShowShortcuts,
   onShowExport,
+  onShowAISegmentMerge,
   highlightLowConfidence,
   onToggleHighlightLowConfidence,
   spellcheckEnabled,
@@ -423,6 +425,24 @@ export function Toolbar({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>AI Speaker Classification</TooltipContent>
+            </Tooltip>
+
+            {/* AI Merge Button */}
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onShowAISegmentMerge}
+                  aria-label="AI Segment Merge"
+                  data-testid="button-ai-merge"
+                  className="px-2 gap-2"
+                >
+                  <GitMerge className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">AI Merge</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>AI Segment Merge Analysis (Alt+Shift+M)</TooltipContent>
             </Tooltip>
 
             {/* AI Provider/Model Selector */}

@@ -1,5 +1,6 @@
 import type {
   AIRevisionConfig,
+  AISegmentMergeConfig,
   LexiconEntry,
   PersistedGlobalState,
   SpellcheckLanguage,
@@ -20,6 +21,7 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
   aiRevisionConfig: AIRevisionConfig;
+  aiSegmentMergeConfig: AISegmentMergeConfig;
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -36,4 +38,5 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   highlightLowConfidence: state.highlightLowConfidence,
   manualConfidenceThreshold: state.manualConfidenceThreshold,
   aiRevisionConfig: state.aiRevisionConfig,
+  aiSegmentMergeConfig: state.aiSegmentMergeConfig,
 });

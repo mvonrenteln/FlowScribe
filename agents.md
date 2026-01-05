@@ -6,10 +6,39 @@ A professional audio transcription editor webapp that loads audio files (MP3, WA
 
 ## Project Structure
 
+### Frontend Application
+
 - `client/src/components/`: Feature-focused React components. UI layout (shell, theming, navigation), media controls (waveform/transport/zoom), transcript editing surfaces (segment rows, speaker sidebar, keyboard shortcuts/help), and import/export dialogs live here.
 - `client/src/lib/`: Shared client utilities and application state. The central Zustand store, transcript parsing/formatting helpers, and reusable hooks belong in this layer.
+  - `ai/`: Unified AI features infrastructure (see below)
+  - `store/`: Application state management (Zustand)
+  - Other utilities: audio handling, file reference, spellcheck, search, etc.
 - `client/src/App.tsx`: Application entrypoint that wires providers, theming, layout, and route-level features.
+
+### AI Features Infrastructure (`client/src/lib/ai/`)
+
+- `core/`: Core AI infrastructure (types, service, feature registry, provider resolver, errors)
+- `providers/`: AI provider implementations (OpenAI, Ollama, factory)
+- `parsing/`: Response parsing utilities
+  - `recoveryStrategies.ts`: Strategy Pattern for flexible response recovery (NEW)
+  - `responseParser.ts`, `jsonParser.ts`, `textParser.ts`, `validator.ts`: Parsing components
+- `logging/`: Centralized logging service with feature-specific debug control (NEW)
+- `features/`: Feature-specific implementations
+  - `speaker/`: Speaker classification feature (production-ready)
+  - `revision/`: Text revision feature (production-ready)
+  - `segmentMerge/`: Segment merge feature (NEW, refactored with separation of concerns)
+    - `validation.ts`: Rule-based validation (NEW)
+    - `responseProcessor.ts`: Response processing pipeline (NEW)
+    - `promptBuilder.ts`: Prompt construction (NEW)
+    - `service.ts`: Main orchestration (refactored, 37% smaller)
+    - `utils.ts`, `config.ts`, `types.ts`: Supporting modules
+
+### Documentation & Configuration
+
 - `docs/`: Project design notes and usage docs aimed at contributors and product stakeholders.
+  - `features/architecture/`: AI architecture and implementation guides
+    - `ai-features-unified.md`: Comprehensive AI features guide (includes developer APIs and patterns)
+    - `README.md`: Documentation overview
 - Root config (`vite.config.ts`, `tailwind.config.ts`, `tsconfig.json`, `biome.json`, `postcss.config.js`, etc.): Build/lint/format pipeline and design-system configuration.
 
 ## Supported Transcript Formats
@@ -110,7 +139,73 @@ act(() => {
 /* assert on the output */
 ```
 
+## Fundamental Architecture Rules
+
+### Code Quality Principles
+
+1. **Separation of Concerns** - Each module should have a single, well-defined responsibility
+   - Extract functions with different concerns into separate modules
+   - Keep service layers focused on orchestration, utilities focused on computation
+   - Example: Response parsing logic should be separate from feature-specific business logic
+
+2. **Testability through Pure Functions**
+   - Pure functions (no side effects, deterministic) should be extracted into separate utility modules
+   - Service functions (with side effects like API calls) should be integration-tested with limited scope
+   - Aim for 85%+ coverage on pure function utilities, 30-40% on service integration code
+   - Never mix pure and impure logic in the same function
+
+3. **Reusability and Composability**
+   - Extract patterns that can be used across multiple features
+   - Use established patterns (Strategy Pattern, Rule Pattern) instead of duplicating inline logic
+   - Example: Recovery strategies for malformed responses, validation rules for input checking
+   - Document reusable patterns for other developers to follow
+
+4. **Maintainability through Clear Structure**
+   - Changes to one concern should not affect unrelated modules
+   - Keep module boundaries clean: types → utilities → services
+   - Avoid deep nesting and complex interdependencies
+   - Use established patterns to reduce complexity
+
+### Architecture Patterns
+
+1. **Strategy Pattern for Flexible Recovery**
+   - Use when handling multiple fallback approaches
+   - Example: Response recovery strategies (lenient-parse, partial-array, json-substring)
+   - Allows adding new strategies without modifying existing code
+   - Each strategy is independently testable
+
+2. **Rule Pattern for Flexible Validation**
+   - Use for validation logic that may change or extend
+   - Example: Input validation rules with configurable issue levels
+   - Separate rules from validation engine
+   - Makes it easy to add/remove/modify rules
+
+3. **Service Layer Separation**
+   - **Pure Utilities** (in `utils.ts`): Formatting, calculations, data transformations
+   - **Response Processing** (in `responseProcessor.ts`): Recovery, normalization, extraction
+   - **Main Service** (in `service.ts`): Orchestration, AI execution, logging
+   - Keep main service lean by delegating to specialized modules
+
+4. **Type-Safe ID Mapping**
+   - Use typed mapping structures (e.g., `BatchPairMapping`) instead of loose objects
+   - Centralize ID transformation logic
+   - Make ID mapping concerns explicit and separate
+
+### Best Practices
+
+- **Extract early**: If a function grows beyond ~30 lines or mixes concerns, extract it
+- **Test utilities first**: Pure functions should be tested before being used in services
+- **Log strategically**: Use structured logging (not console.log) for debugging and monitoring
+- **Use established libraries**: Don't reinvent logging, validation, or parsing—use proven solutions
+- **Document patterns**: When introducing new patterns, add examples to the architecture guide
+
+### Developer Documentation
+- All developer documentation is referenced in `docs/features/architecture/README.md`. Consult it for an overview of available docs.
+- For detailed developer documentation on AI features, see [AI Features Documentation](docs/features/architecture/ai-features-unified.md).
+- Always orient on the documented architecture patterns and best practices when implementing new features.
+
 ## Warning
+
 
 **File Synchronization:**
 When using AI agents (like Copilot), always ensure that in-memory file changes are saved to disk BEFORE running terminal commands (like `npm run check` or `npm run test`). Otherwise, the terminal sees a stale version of the file, causing confusion where the agent thinks there's a cache issue when it's actually a sync issue. Rule: **Save first, then run commands.**

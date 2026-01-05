@@ -38,6 +38,7 @@ const shortcuts = {
     { keys: ["Alt", "R"], description: "Run default AI revision prompt" },
     { keys: ["Alt", "Shift", "R"], description: "Open AI revision menu" },
   ],
+  "AI Merge": [{ keys: ["Alt", "Shift", "M"], description: "Open AI merge analysis" }],
   Export: [
     { keys: ["Ctrl", "E"], description: "Export transcript" },
     { keys: ["Ctrl", ","], description: "Open settings" },
