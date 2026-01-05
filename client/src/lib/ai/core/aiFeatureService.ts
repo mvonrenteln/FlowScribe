@@ -8,12 +8,11 @@
  * @module ai/core/aiFeatureService
  */
 
-import { parseResponse } from "@/lib/ai";
-import { compileTemplate } from "@/lib/ai";
 import type { PromptVariables } from "@/lib/ai";
+import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
+import { mapPairIndexToSegmentIds } from "../features/segmentMerge/utils";
 import type { ChatMessage } from "../providers/types";
 import { AICancellationError, isCancellationError, toAIError } from "./errors";
-import { getFeatureOrThrow } from "@/lib/ai";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
@@ -22,7 +21,6 @@ import type {
   AIFeatureType,
   BatchCallbacks,
 } from "./types";
-import { mapPairIndexToSegmentIds } from "../features/segmentMerge/utils";
 
 // ==================== Main Service ====================
 
@@ -68,7 +66,10 @@ export async function executeFeature<TOutput>(
   let pairIndexMap: Record<number, string[]> | undefined;
   if (featureId === "segment-merge" && typeof variables.segmentPairsJson === "string") {
     try {
-      const parsed = JSON.parse(variables.segmentPairsJson) as Array<{ pairIndex: number; segmentIds: string[] }>;
+      const parsed = JSON.parse(variables.segmentPairsJson) as Array<{
+        pairIndex: number;
+        segmentIds: string[];
+      }>;
       pairIndexMap = parsed.reduce<Record<number, string[]>>((acc, entry) => {
         if (Array.isArray(entry.segmentIds) && entry.segmentIds.length >= 2) {
           acc[entry.pairIndex] = entry.segmentIds.map((s) => String(s));
@@ -159,9 +160,10 @@ export async function executeFeature<TOutput>(
 
                       // Fallback: try mergeId as pair index
                       if (segIdsArray.length === 0 && item.mergeId !== undefined) {
-                        const mergeIdNum = typeof item.mergeId === "number"
-                          ? item.mergeId
-                          : parseInt(String(item.mergeId).split("-")[0], 10);
+                        const mergeIdNum =
+                          typeof item.mergeId === "number"
+                            ? item.mergeId
+                            : parseInt(String(item.mergeId).split("-")[0], 10);
                         if (!isNaN(mergeIdNum) && pairIndexMap && pairIndexMap[mergeIdNum]) {
                           segIdsArray = [...pairIndexMap[mergeIdNum]];
                         }
@@ -182,9 +184,11 @@ export async function executeFeature<TOutput>(
                       }
 
                       const confidenceRaw = item.confidence ?? item.conf ?? undefined;
-                      const confidenceNum = typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
+                      const confidenceNum =
+                        typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
 
-                      const smoothingRaw = item.smoothingChanges ?? item.smoothing_changes ?? item.changes;
+                      const smoothingRaw =
+                        item.smoothingChanges ?? item.smoothing_changes ?? item.changes;
                       const smoothingChanges = Array.isArray(smoothingRaw)
                         ? smoothingRaw.join("; ")
                         : smoothingRaw;
@@ -193,15 +197,22 @@ export async function executeFeature<TOutput>(
                         segmentIds: segIdsArray,
                         confidence: Number.isNaN(confidenceNum) ? 0.5 : confidenceNum,
                         reason:
-                          item.reason ?? item.explanation ?? item.note ?? item.summary ?? "AI merge suggestion",
-                        smoothedText: item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
+                          item.reason ??
+                          item.explanation ??
+                          item.note ??
+                          item.summary ??
+                          "AI merge suggestion",
+                        smoothedText:
+                          item.smoothedText ?? item.smoothed_text ?? item.smooth ?? undefined,
                         smoothingChanges,
                       };
                     })
                     .filter(Boolean);
 
                   // Try to validate normalized data against the schema
-                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), { schema: config.responseSchema });
+                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), {
+                    schema: config.responseSchema,
+                  });
                   if (validateAttempt.success && validateAttempt.data) {
                     const metadata = buildMetadata(
                       featureId,

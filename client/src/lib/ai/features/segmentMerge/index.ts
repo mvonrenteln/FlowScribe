@@ -18,12 +18,7 @@ export {
 } from "./config";
 
 // Service
-export {
-  analyzeMergeCandidates,
-  analyzeMergeCandidatesBatch,
-  getMergePreview,
-  hasSmoothingChanges,
-} from "./service";
+export { analyzeMergeCandidates } from "./service";
 
 // Types
 export type {

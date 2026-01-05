@@ -7,6 +7,8 @@
  * @module ai/features/segmentMerge/utils
  */
 
+import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
+import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
 import type {
   MergeAnalysisSegment,
   MergeConfidenceLevel,
@@ -14,8 +16,6 @@ import type {
   RawMergeSuggestion,
   TextSmoothingInfo,
 } from "./types";
-import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
-import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
 
 export interface SegmentPairInfo {
   pairIndex: number;
@@ -767,10 +767,15 @@ export function normalizeRawSuggestion(
 
   // Feature-specific normalization (local to segment-merge)
   const confidenceRaw = raw.confidence ?? raw.conf ?? 0.5;
-  const confidence = typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw) || 0.5;
+  const confidence =
+    typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw) || 0.5;
 
   const smoothingRaw = raw.smoothingChanges ?? raw.smoothing_changes ?? raw.changes;
-  const smoothingChanges = Array.isArray(smoothingRaw) ? smoothingRaw.join("; ") : typeof smoothingRaw === "string" ? smoothingRaw : undefined;
+  const smoothingChanges = Array.isArray(smoothingRaw)
+    ? smoothingRaw.join("; ")
+    : typeof smoothingRaw === "string"
+      ? smoothingRaw
+      : undefined;
 
   const smoothedText = raw.smoothedText ?? raw.smoothed_text ?? raw.smooth ?? undefined;
 

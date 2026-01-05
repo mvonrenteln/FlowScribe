@@ -70,7 +70,6 @@ export type {
 export {
   // Service
   analyzeMergeCandidates,
-  analyzeMergeCandidatesBatch,
   // Utils
   applyBasicSmoothing,
   calculateTimeGap,
@@ -88,11 +87,9 @@ export {
   formatTime,
   formatTimeRange,
   generateSuggestionId,
-  getMergePreview,
   getMergeSystemPrompt,
   getMergeUserTemplate,
   groupByConfidence,
-  hasSmoothingChanges,
   INITIAL_SEGMENT_MERGE_STATE,
   isSameSpeaker,
   isTimeGapAcceptable,

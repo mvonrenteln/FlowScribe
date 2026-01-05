@@ -1,23 +1,18 @@
-import { describe, it, expect } from "vitest";
+import { describe, expect, it } from "vitest";
 import {
   addPair,
+  type BatchIdMapping,
+  type BatchPairMapping,
   createBatchIdMapping,
   createBatchPairMapping,
   extractSegmentIdsGeneric,
   getPairIds,
   normalizeIds,
   parseIdReference,
-  type BatchIdMapping,
-  type BatchPairMapping,
   type RawAIItem,
 } from "@/lib/ai/core/batchIdMapping";
 
-const sampleItems = [
-  { id: "item-1" },
-  { id: "item-2" },
-  { id: "item-3" },
-  { id: "item-4" },
-];
+const sampleItems = [{ id: "item-1" }, { id: "item-2" }, { id: "item-3" }, { id: "item-4" }];
 const getId = (item: { id: string }) => item.id;
 
 describe("createBatchIdMapping", () => {
@@ -125,4 +120,3 @@ describe("extractSegmentIdsGeneric", () => {
     expect(extractSegmentIdsGeneric(rawUnknown, pairMap)).toBeNull();
   });
 });
-

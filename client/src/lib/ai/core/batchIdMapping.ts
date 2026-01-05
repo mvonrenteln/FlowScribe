@@ -93,10 +93,7 @@ export function createBatchPairMapping<TItem, TId = string>(
  * @param mapping - ID mapping
  * @returns Real ID or undefined if not found
  */
-export function simpleToRealId<T>(
-  simpleId: number,
-  mapping: BatchIdMapping<T>,
-): T | undefined {
+export function simpleToRealId<T>(simpleId: number, mapping: BatchIdMapping<T>): T | undefined {
   return mapping.simpleToReal.get(simpleId);
 }
 
@@ -107,10 +104,7 @@ export function simpleToRealId<T>(
  * @param mapping - ID mapping
  * @returns Simple ID or undefined if not found
  */
-export function realToSimpleId<T>(
-  realId: T,
-  mapping: BatchIdMapping<T>,
-): number | undefined {
+export function realToSimpleId<T>(realId: T, mapping: BatchIdMapping<T>): number | undefined {
   return mapping.realToSimple.get(realId);
 }
 
@@ -122,10 +116,7 @@ export function realToSimpleId<T>(
  * @param mapping - ID mapping
  * @returns Array of real IDs
  */
-export function normalizeIds<T = string>(
-  ids: unknown[],
-  mapping: BatchIdMapping<T>,
-): T[] {
+export function normalizeIds<T = string>(ids: unknown[], mapping: BatchIdMapping<T>): T[] {
   return ids
     .map((id) => {
       // If it's a number, try to map from simple ID
@@ -159,10 +150,7 @@ export function normalizeIds<T = string>(
  * @param mapping - ID mapping
  * @returns Array of real IDs, or empty array if unparseable
  */
-export function parseIdReference<T = string>(
-  ref: unknown,
-  mapping: BatchIdMapping<T>,
-): T[] {
+export function parseIdReference<T = string>(ref: unknown, mapping: BatchIdMapping<T>): T[] {
   if (ref === undefined || ref === null) {
     return [];
   }
@@ -219,12 +207,7 @@ export function parseIdReference<T = string>(
  * @param idB - Second ID in the pair (real ID)
  * @param mapping - Pair mapping to update
  */
-export function addPair<T>(
-  pairIndex: number,
-  idA: T,
-  idB: T,
-  mapping: BatchPairMapping<T>,
-): void {
+export function addPair<T>(pairIndex: number, idA: T, idB: T, mapping: BatchPairMapping<T>): void {
   mapping.pairToIds.set(pairIndex, [idA, idB]);
 }
 
@@ -235,10 +218,7 @@ export function addPair<T>(
  * @param mapping - Pair mapping
  * @returns Tuple of IDs or undefined if not found
  */
-export function getPairIds<T>(
-  pairIndex: number,
-  mapping: BatchPairMapping<T>,
-): [T, T] | undefined {
+export function getPairIds<T>(pairIndex: number, mapping: BatchPairMapping<T>): [T, T] | undefined {
   return mapping.pairToIds.get(pairIndex);
 }
 
@@ -251,9 +231,9 @@ export function getPairIds<T>(
  * @param mapping - Batch mapping to serialize
  * @returns JSON-serializable object
  */
-export function serializeBatchMapping<T>(
-  mapping: BatchIdMapping<T>,
-): { entries: Array<{ simple: number; real: T }> } {
+export function serializeBatchMapping<T>(mapping: BatchIdMapping<T>): {
+  entries: Array<{ simple: number; real: T }>;
+} {
   const entries: Array<{ simple: number; real: T }> = [];
   for (const [simple, real] of mapping.simpleToReal) {
     entries.push({ simple, real });
@@ -267,9 +247,9 @@ export function serializeBatchMapping<T>(
  * @param mapping - Pair mapping to serialize
  * @returns JSON-serializable object with pairs
  */
-export function serializePairMapping<T>(
-  mapping: BatchPairMapping<T>,
-): { pairs: Array<{ pairIndex: number; ids: [T, T] }> } {
+export function serializePairMapping<T>(mapping: BatchPairMapping<T>): {
+  pairs: Array<{ pairIndex: number; ids: [T, T] }>;
+} {
   const pairs: Array<{ pairIndex: number; ids: [T, T] }> = [];
   for (const [pairIndex, ids] of mapping.pairToIds) {
     pairs.push({ pairIndex, ids });
@@ -283,9 +263,9 @@ export function serializePairMapping<T>(
  * @param data - Serialized mapping data
  * @returns Reconstructed BatchIdMapping
  */
-export function deserializeBatchMapping<T>(
-  data: { entries: Array<{ simple: number; real: T }> },
-): BatchIdMapping<T> {
+export function deserializeBatchMapping<T>(data: {
+  entries: Array<{ simple: number; real: T }>;
+}): BatchIdMapping<T> {
   const simpleToReal = new Map<number, T>();
   const realToSimple = new Map<T, number>();
 
@@ -321,84 +301,94 @@ export interface RawAIItem {
  * Returns an array of two or more IDs (T[]) or null when not extractable.
  * This function only focuses on ID extraction and is intentionally data-agnostic.
  */
-export function extractSegmentIdsGeneric<T = string>(raw: RawAIItem, mapping: BatchPairMapping<T> | BatchIdMapping<T>): T[] | null {
-   const debugEnabled = typeof globalThis !== "undefined" && (globalThis as any).__AISegmentMergeDebug === true;
+export function extractSegmentIdsGeneric<T = string>(
+  raw: RawAIItem,
+  mapping: BatchPairMapping<T> | BatchIdMapping<T>,
+): T[] | null {
+  const debugEnabled =
+    typeof globalThis !== "undefined" && (globalThis as any).__AISegmentMergeDebug === true;
 
-   const tryParseRef = (ref: unknown): T[] => {
-     if (ref === undefined || ref === null) return [];
+  const tryParseRef = (ref: unknown): T[] => {
+    if (ref === undefined || ref === null) return [];
 
-     // If mapping supports pairs, try pair-to-ids lookup first
-     if ((mapping as BatchPairMapping<T>).pairToIds) {
-       const pairMap = (mapping as BatchPairMapping<T>).pairToIds;
-       const num = typeof ref === "number" ? ref : parseInt(String(ref), 10);
-       if (!isNaN(num) && pairMap.has(num)) {
-         return [...(pairMap.get(num) as [T, T])];
-       }
-       // range like "A-B" where A/B are simple numeric IDs
-       if (typeof ref === "string" && ref.includes("-")) {
-         const parts = (ref as string).split("-").map((p) => parseInt(p.trim(), 10)).filter((n) => !isNaN(n));
-         if (parts.length >= 2) {
-           const a = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[0]);
-           const b = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[1]);
-           if (a !== undefined && b !== undefined) return [a, b];
-         }
-       }
-     }
+    // If mapping supports pairs, try pair-to-ids lookup first
+    if ((mapping as BatchPairMapping<T>).pairToIds) {
+      const pairMap = (mapping as BatchPairMapping<T>).pairToIds;
+      const num = typeof ref === "number" ? ref : parseInt(String(ref), 10);
+      if (!isNaN(num) && pairMap.has(num)) {
+        return [...(pairMap.get(num) as [T, T])];
+      }
+      // range like "A-B" where A/B are simple numeric IDs
+      if (typeof ref === "string" && ref.includes("-")) {
+        const parts = (ref as string)
+          .split("-")
+          .map((p) => parseInt(p.trim(), 10))
+          .filter((n) => !isNaN(n));
+        if (parts.length >= 2) {
+          const a = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[0]);
+          const b = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[1]);
+          if (a !== undefined && b !== undefined) return [a, b];
+        }
+      }
+    }
 
-     // Array of ids (simple or real)
-     if (Array.isArray(ref)) {
-       const ids = normalizeIds(ref, mapping as BatchIdMapping<T>);
-       if (ids.length > 0) return ids;
-     }
+    // Array of ids (simple or real)
+    if (Array.isArray(ref)) {
+      const ids = normalizeIds(ref, mapping as BatchIdMapping<T>);
+      if (ids.length > 0) return ids;
+    }
 
-     // Try parsing generic id reference (numbers, string numbers, real IDs)
-     const parsed = parseIdReference(ref, mapping as BatchIdMapping<T>);
-     if (parsed.length > 0) return parsed;
+    // Try parsing generic id reference (numbers, string numbers, real IDs)
+    const parsed = parseIdReference(ref, mapping as BatchIdMapping<T>);
+    if (parsed.length > 0) return parsed;
 
-     return [];
-   };
+    return [];
+  };
 
-   // Try fields in order of likelihood
-   let ids: T[] = [];
+  // Try fields in order of likelihood
+  let ids: T[] = [];
 
-   // 1) pairIndex / pairId / pair
-   ids = tryParseRef(raw.pairIndex ?? raw.pairId ?? raw.pair);
+  // 1) pairIndex / pairId / pair
+  ids = tryParseRef(raw.pairIndex ?? raw.pairId ?? raw.pair);
 
-   // 2) mergeId (could be "A-B" where A/B are simple IDs, or a numeric pairIndex)
-   if (ids.length < 2 && raw.mergeId !== undefined) {
-     ids = tryParseRef(raw.mergeId);
-   }
+  // 2) mergeId (could be "A-B" where A/B are simple IDs, or a numeric pairIndex)
+  if (ids.length < 2 && raw.mergeId !== undefined) {
+    ids = tryParseRef(raw.mergeId);
+  }
 
-   // 3) explicit segmentIds array
-   if (ids.length < 2 && Array.isArray(raw.segmentIds)) {
-     ids = normalizeIds(raw.segmentIds, mapping as BatchIdMapping<T>);
-   }
+  // 3) explicit segmentIds array
+  if (ids.length < 2 && Array.isArray(raw.segmentIds)) {
+    ids = normalizeIds(raw.segmentIds, mapping as BatchIdMapping<T>);
+  }
 
-   // 4) segmentA/segmentB objects
-   if (ids.length < 2 && raw.segmentA?.id && raw.segmentB?.id) {
-     const aRef = raw.segmentA.id;
-     const bRef = raw.segmentB.id;
-     const a = parseIdReference(aRef, mapping as BatchIdMapping<T>);
-     const b = parseIdReference(bRef, mapping as BatchIdMapping<T>);
-     if (a.length === 1 && b.length === 1) {
-       ids = [a[0], b[0]];
-     } else {
-       // fallback to raw strings
-       ids = [String(aRef) as unknown as T, String(bRef) as unknown as T];
-     }
-   }
+  // 4) segmentA/segmentB objects
+  if (ids.length < 2 && raw.segmentA?.id && raw.segmentB?.id) {
+    const aRef = raw.segmentA.id;
+    const bRef = raw.segmentB.id;
+    const a = parseIdReference(aRef, mapping as BatchIdMapping<T>);
+    const b = parseIdReference(bRef, mapping as BatchIdMapping<T>);
+    if (a.length === 1 && b.length === 1) {
+      ids = [a[0], b[0]];
+    } else {
+      // fallback to raw strings
+      ids = [String(aRef) as unknown as T, String(bRef) as unknown as T];
+    }
+  }
 
-   // 5) ids field (simple numeric ids)
-   if (ids.length < 2 && Array.isArray(raw.ids)) {
-     ids = normalizeIds(raw.ids, mapping as BatchIdMapping<T>);
-   }
+  // 5) ids field (simple numeric ids)
+  if (ids.length < 2 && Array.isArray(raw.ids)) {
+    ids = normalizeIds(raw.ids, mapping as BatchIdMapping<T>);
+  }
 
-   if (ids.length < 2) {
-     if (debugEnabled) {
-       console.warn("[extractSegmentIdsGeneric] Unable to extract two segment IDs from raw suggestion", raw);
-     }
-     return null;
-   }
+  if (ids.length < 2) {
+    if (debugEnabled) {
+      console.warn(
+        "[extractSegmentIdsGeneric] Unable to extract two segment IDs from raw suggestion",
+        raw,
+      );
+    }
+    return null;
+  }
 
-   return ids;
- }
+  return ids;
+}

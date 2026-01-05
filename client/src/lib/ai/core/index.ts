@@ -11,26 +11,6 @@ export {
   executeFeature,
   reviseText,
 } from "./aiFeatureService";
-
-// Batch ID Mapping
-export {
-  addPair,
-  type BatchIdMapping,
-  type BatchPairMapping,
-  createBatchIdMapping,
-  createBatchPairMapping,
-  deserializeBatchMapping,
-  extractSegmentIdsGeneric,
-  type RawAIItem,
-  getPairIds,
-  normalizeIds,
-  parseIdReference,
-  realToSimpleId,
-  serializeBatchMapping,
-  serializePairMapping,
-  simpleToRealId,
-} from "./batchIdMapping";
-
 // Batch Processing
 export {
   buildMap,
@@ -41,6 +21,24 @@ export {
   prepareBatch,
   sliceBatch,
 } from "./batch";
+// Batch ID Mapping
+export {
+  addPair,
+  type BatchIdMapping,
+  type BatchPairMapping,
+  createBatchIdMapping,
+  createBatchPairMapping,
+  deserializeBatchMapping,
+  extractSegmentIdsGeneric,
+  getPairIds,
+  normalizeIds,
+  parseIdReference,
+  type RawAIItem,
+  realToSimpleId,
+  serializeBatchMapping,
+  serializePairMapping,
+  simpleToRealId,
+} from "./batchIdMapping";
 
 // Errors
 export {
