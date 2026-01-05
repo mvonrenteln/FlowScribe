@@ -1,7 +1,16 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
 import { useTranscriptEditor } from "../useTranscriptEditor";
+
+vi.mock("../useNavigationHotkeys", () => ({
+  useNavigationHotkeys: vi.fn(),
+}));
+
+vi.mock("@/lib/audioHandleStorage", () => ({
+  loadAudioHandle: vi.fn().mockResolvedValue(null),
+  queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
+}));
 
 const resetStore = () => {
   useTranscriptStore.setState({
@@ -10,6 +19,7 @@ const resetStore = () => {
     audioRef: null,
     transcriptRef: null,
     sessionKey: "audio:none|transcript:none",
+    baseSessionKey: null,
     segments: [],
     speakers: [],
     selectedSegmentId: null,
@@ -24,6 +34,8 @@ const resetStore = () => {
     lexiconThreshold: 0.82,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    highlightLowConfidence: false,
+    manualConfidenceThreshold: null,
     spellcheckEnabled: false,
     spellcheckLanguages: ["de"],
     spellcheckIgnoreWords: [],
@@ -112,5 +124,37 @@ describe("useTranscriptEditor", () => {
     expect(state.currentTime).toBeCloseTo(1.2, 5);
     expect(state.seekRequestTime).toBeNull();
     expect(state.segments).toHaveLength(2);
+  });
+
+  it("selects the first search match segment", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo Welt",
+          words: [{ word: "Hallo", start: 0, end: 0.5 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Servus",
+          words: [{ word: "Servus", start: 1, end: 2 }],
+        },
+      ],
+      selectedSegmentId: null,
+    });
+
+    const { result } = renderHook(() => useTranscriptEditor());
+
+    act(() => {
+      result.current.filterPanelProps.onSearchQueryChange("Hallo");
+    });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
   });
 });

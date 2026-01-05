@@ -205,6 +205,71 @@ describe("TranscriptSegment", () => {
     expect(screen.getByText("Welt")).toBeInTheDocument();
   });
 
+  it("opens edit mode on double-click anywhere in segment (not just on text)", async () => {
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const segmentElement = screen.getByTestId("segment-seg-1");
+    fireEvent.doubleClick(segmentElement);
+
+    // Edit mode should be active
+    expect(screen.getByTestId("textarea-segment-seg-1")).toBeInTheDocument();
+  });
+
+  it("does not call onSelect during a double-click on inactive segment", async () => {
+    vi.useFakeTimers();
+    const onSelect = vi.fn();
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={onSelect}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const segmentElement = screen.getByTestId("segment-seg-1");
+
+    // Simulate a double-click (two clicks in rapid succession)
+    fireEvent.click(segmentElement);
+    fireEvent.click(segmentElement);
+    fireEvent.doubleClick(segmentElement);
+
+    // Advance timers to trigger any delayed onSelect calls
+    vi.advanceTimersByTime(300);
+
+    // onSelect should not be called during a double-click
+    expect(onSelect).not.toHaveBeenCalled();
+
+    // Edit mode should be active
+    expect(screen.getByTestId("textarea-segment-seg-1")).toBeInTheDocument();
+
+    vi.useRealTimers();
+  });
+
   it("seeks when activating word with keyboard", () => {
     const onSeek = vi.fn();
     render(
