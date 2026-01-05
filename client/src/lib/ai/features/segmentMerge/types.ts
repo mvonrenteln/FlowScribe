@@ -144,6 +144,9 @@ export interface MergeAnalysisParams {
   /** Enable text smoothing suggestions */
   enableSmoothing: boolean;
 
+  /** Batch size for processing segments */
+  batchSize?: number;
+
   /** Abort signal for cancellation */
   signal?: AbortSignal;
 }

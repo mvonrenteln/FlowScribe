@@ -470,6 +470,7 @@ export interface AISegmentMergeSlice {
     minConfidence?: "high" | "medium" | "low";
     sameSpeakerOnly?: boolean;
     enableSmoothing?: boolean;
+    batchSize?: number;
   }) => void;
   cancelMergeAnalysis: () => void;
   acceptMergeSuggestion: (suggestionId: string) => void;

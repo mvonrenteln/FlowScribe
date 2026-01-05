@@ -21,17 +21,8 @@ describe("Response Processor", () => {
   });
 
   describe("isRawMergeSuggestion", () => {
-    it("should return true for valid suggestion", () => {
+    it("should return true for valid suggestion with segmentIds", () => {
       expect(isRawMergeSuggestion({ segmentIds: ["1", "2"] })).toBe(true);
-      expect(isRawMergeSuggestion({ segmentId: "1" })).toBe(true);
-    });
-
-    it("should return true for mergeId format", () => {
-      expect(isRawMergeSuggestion({ mergeId: 1 })).toBe(true);
-    });
-
-    it("should return true for pairIndex format", () => {
-      expect(isRawMergeSuggestion({ pairIndex: 1 })).toBe(true);
     });
 
     it("should return false for invalid data", () => {
@@ -40,7 +31,10 @@ describe("Response Processor", () => {
       expect(isRawMergeSuggestion({ other: "field" })).toBe(false);
     });
 
-    it("should return false for segmentA/segmentB format (not validated)", () => {
+    it("should return false for alternative formats (pairIndex, mergeId, segmentA/segmentB)", () => {
+      expect(isRawMergeSuggestion({ pairIndex: 1 })).toBe(false);
+      expect(isRawMergeSuggestion({ mergeId: 1 })).toBe(false);
+      expect(isRawMergeSuggestion({ segmentId: "1" })).toBe(false);
       expect(
         isRawMergeSuggestion({
           segmentA: { id: 137 },

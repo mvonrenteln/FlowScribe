@@ -23,20 +23,13 @@ const logger = createLogger({ feature: "SegmentMerge" });
 /**
  * Type guard for raw merge suggestions
  *
- * Only accepts formats that can be properly validated:
- * - segmentIds: explicit array of IDs
- * - segmentId: single ID
- * - mergeId: numeric ID that maps to a pair
- * - pairIndex: explicit pair index
+ * Only accepts ONE format to avoid confusing the AI:
+ * - segmentIds: explicit array of segment IDs (e.g., [1, 2])
  *
- * Does NOT accept segmentA/segmentB format as it cannot be validated.
+ * Does NOT accept any other format (pairIndex, mergeId, segmentA/segmentB, etc.)
  */
 export function isRawMergeSuggestion(item: unknown): item is RawMergeSuggestion {
-  return (
-    typeof item === "object" &&
-    item !== null &&
-    ("segmentIds" in item || "segmentId" in item || "mergeId" in item || "pairIndex" in item)
-  );
+  return typeof item === "object" && item !== null && "segmentIds" in item;
 }
 
 /**

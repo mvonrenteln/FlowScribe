@@ -120,6 +120,7 @@ export const createAISegmentMergeSlice = (
       minConfidence: options.minConfidence ?? config.defaultMinConfidence,
       sameSpeakerOnly: options.sameSpeakerOnly ?? true,
       enableSmoothing: options.enableSmoothing ?? config.defaultEnableSmoothing,
+      batchSize: options.batchSize ?? 10,
       signal: abortController.signal,
     };
 

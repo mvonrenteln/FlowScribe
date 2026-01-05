@@ -45,26 +45,25 @@ DO NOT SUGGEST MERGE WHEN:
 
 OUTPUT FORMAT
 -------------
-Return a JSON array of merge suggestions. Each suggestion MUST use one of these formats:
+Return a JSON array of merge suggestions. Each suggestion MUST have this EXACT format:
 
-FORMAT 1 (Preferred): Using segmentIds
-- segmentIds: Array of segment IDs from the pairs above (use the numbers in brackets, e.g. [1, 2])
-- confidence: Number between 0 and 1
-- reason: Brief explanation for the merge suggestion
-
-FORMAT 2 (Alternative): Using pairIndex
-- pairIndex: The pair number (e.g. 1 for "Pair 1")
-- confidence: Number between 0 and 1
-- reason: Brief explanation for the merge suggestion
-
-IMPORTANT: Do NOT create objects with segmentA/segmentB fields or any other format.
-Only use segmentIds array or pairIndex as shown in the examples below.
+{
+  "segmentIds": [number, number],  // Array with the two segment IDs from brackets, e.g. [1, 2]
+  "confidence": number,             // Number between 0 and 1
+  "reason": string                  // Brief explanation
+}
 
 If smoothing is requested, also include:
 - smoothedText: The grammatically corrected merged text
 - smoothingChanges: Brief description of what was changed
 
-Example output (using segmentIds):
+CRITICAL: Use ONLY the format shown below. Do NOT use any other format like:
+- ❌ pairIndex
+- ❌ mergeId
+- ❌ segmentA/segmentB objects
+- ❌ Any other fields or structures
+
+Example output:
 [
   {
     "segmentIds": [1, 2],
@@ -72,17 +71,11 @@ Example output (using segmentIds):
     "reason": "Incomplete sentence continues in next segment",
     "smoothedText": "So what we're trying to achieve here is better performance.",
     "smoothingChanges": "Removed incorrect period, fixed capitalization"
-  }
-]
-
-Example output (using pairIndex):
-[
+  },
   {
-    "pairIndex": 1,
-    "confidence": 0.95,
-    "reason": "Incomplete sentence continues in next segment",
-    "smoothedText": "So what we're trying to achieve here is better performance.",
-    "smoothingChanges": "Removed incorrect period, fixed capitalization"
+    "segmentIds": [3, 4],
+    "confidence": 0.85,
+    "reason": "Short pause between related phrases"
   }
 ]
 
@@ -166,7 +159,7 @@ export const segmentMergeConfig: AIFeatureConfig = {
 
   batchable: true,
   streamable: false,
-  defaultBatchSize: 20,
+  defaultBatchSize: 10,
 
   shortcut: "Alt+Shift+M",
   icon: "git-merge",

@@ -90,6 +90,7 @@ export function AISegmentMergeDialog({
   );
   const [sameSpeakerOnly, setSameSpeakerOnly] = useState(true);
   const [enableSmoothing, setEnableSmoothing] = useState(config.defaultEnableSmoothing);
+  const [batchSize, setBatchSize] = useState(10);
 
   // Collapsible state for confidence groups
   const [highOpen, setHighOpen] = useState(true);
@@ -157,6 +158,7 @@ export function AISegmentMergeDialog({
       minConfidence,
       sameSpeakerOnly,
       enableSmoothing,
+      batchSize: batchSize || 10,
     });
   };
 
@@ -185,6 +187,18 @@ export function AISegmentMergeDialog({
                 step={0.1}
                 value={maxTimeGap}
                 onChange={(e) => setMaxTimeGap(e.target.value)}
+                className="w-full"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label className="text-sm">Batch Size</Label>
+              <Input
+                type="number"
+                min={5}
+                max={50}
+                step={5}
+                value={batchSize}
+                onChange={(e) => setBatchSize(Number.parseInt(e.target.value) || 10)}
                 className="w-full"
               />
             </div>
