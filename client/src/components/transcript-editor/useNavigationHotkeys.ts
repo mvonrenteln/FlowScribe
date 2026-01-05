@@ -340,6 +340,8 @@ export function useNavigationHotkeys({
         const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
         if (isFormElement || target.isContentEditable) return;
       }
+
+      // Always prevent default and use arrow keys for segment navigation
       event.preventDefault();
       if (event.key === "ArrowUp") {
         selectPreviousSegment();
