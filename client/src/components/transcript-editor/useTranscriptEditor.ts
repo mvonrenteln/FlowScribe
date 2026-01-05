@@ -172,45 +172,38 @@ export const useTranscriptEditor = () => {
 
   const waveformSegments = useMemo(() => {
     const prev = waveSegmentsRef.current;
-    let changed =
-      segments.length !== prev.length || segments.some((seg, idx) => seg.id !== prev[idx]?.id);
 
-    if (!changed) {
-      for (let i = 0; i < segments.length; i += 1) {
-        const seg = segments[i];
-        const prevSeg = prev[i];
-        if (
-          !prevSeg ||
-          seg.start !== prevSeg.start ||
-          seg.end !== prevSeg.end ||
-          seg.speaker !== prevSeg.speaker
-        ) {
-          changed = true;
-          break;
-        }
+    // Fast path: Check if length or IDs changed
+    if (segments.length !== prev.length) {
+      waveSegmentsRef.current = segments;
+      return segments;
+    }
+
+    // Check if any waveform-relevant property changed
+    let hasWaveformChange = false;
+    for (let i = 0; i < segments.length; i += 1) {
+      const seg = segments[i];
+      const prevSeg = prev[i];
+      if (
+        !prevSeg ||
+        seg.id !== prevSeg.id ||
+        seg.start !== prevSeg.start ||
+        seg.end !== prevSeg.end ||
+        seg.speaker !== prevSeg.speaker
+      ) {
+        hasWaveformChange = true;
+        break;
       }
     }
 
-    if (!changed) {
+    // If no waveform-relevant changes, return previous array to prevent re-render
+    if (!hasWaveformChange) {
       return prev;
     }
 
-    const next = segments.map((seg, idx) => {
-      const prevSeg = prev[idx];
-      if (
-        prevSeg &&
-        prevSeg.id === seg.id &&
-        prevSeg.start === seg.start &&
-        prevSeg.end === seg.end &&
-        prevSeg.speaker === seg.speaker
-      ) {
-        return prevSeg;
-      }
-      return seg;
-    });
-
-    waveSegmentsRef.current = next;
-    return next;
+    // Something changed, update the ref and return new segments
+    waveSegmentsRef.current = segments;
+    return segments;
   }, [segments]);
 
   const isTranscriptEditing = useCallback(

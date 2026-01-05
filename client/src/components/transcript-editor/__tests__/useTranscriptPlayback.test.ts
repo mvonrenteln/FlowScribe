@@ -93,16 +93,6 @@ describe("useTranscriptPlayback", () => {
     expect(requestSeek).toHaveBeenCalledWith(12.5);
   });
 
-  it("selects the segment when seeking into its range", () => {
-    const { result } = renderHook(() => useTranscriptPlayback(defaultParams));
-
-    act(() => {
-      result.current.handleSeekInternal(7);
-    });
-
-    expect(setSelectedSegmentId).toHaveBeenCalledWith("s2");
-  });
-
   it("does not request seek when waveform reports a seek", () => {
     const { result } = renderHook(() => useTranscriptPlayback(defaultParams));
 
@@ -112,7 +102,6 @@ describe("useTranscriptPlayback", () => {
 
     expect(setCurrentTime).toHaveBeenCalledWith(7);
     expect(requestSeek).not.toHaveBeenCalled();
-    expect(setSelectedSegmentId).toHaveBeenCalledWith("s2");
   });
 
   it("wires hotkeys with the provided callbacks", () => {
