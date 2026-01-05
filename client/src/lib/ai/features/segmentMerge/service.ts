@@ -15,7 +15,6 @@ import type {
   MergeAnalysisIssue,
   MergeAnalysisParams,
   MergeAnalysisResult,
-  MergeAnalysisSegment,
   RawMergeSuggestion,
 } from "./types";
 import {

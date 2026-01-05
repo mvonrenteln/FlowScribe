@@ -828,7 +828,10 @@ export function normalizeRawSuggestion(
   mapping: BatchPairMapping,
 ): RawMergeSuggestion | null {
   // Use core extractor to get real segment IDs (data-agnostic)
-  const ids = extractSegmentIdsGeneric(raw, mapping as any);
+  const ids = extractSegmentIdsGeneric(
+    raw,
+    mapping as unknown as BatchIdMapping<string> | BatchPairMapping<string>,
+  );
   if (!ids) return null;
 
   // Feature-specific normalization (local to segment-merge)
@@ -870,7 +873,7 @@ export interface SimpleIdContext {
  * @param segments - Segments in the batch
  * @returns SimpleIdContext object
  */
-export function createSimpleIdContext(segments: MergeAnalysisSegment[]): SimpleIdContext {
+export function createSimpleIdContext(_segments: MergeAnalysisSegment[]): SimpleIdContext {
   const simpleToReal = new Map<number, string>();
   const realToSimple = new Map<string, number>();
   const pairToIds = new Map<number, [string, string]>();

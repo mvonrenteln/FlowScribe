@@ -62,7 +62,7 @@ describe("RecoveryStrategies", () => {
     });
 
     it("should return null when all strategies fail", () => {
-      const strategies: RecoveryStrategy<any>[] = [
+      const strategies: RecoveryStrategy<unknown>[] = [
         { name: "fail-1", attempt: () => null },
         { name: "fail-2", attempt: () => [] },
         {
@@ -81,7 +81,7 @@ describe("RecoveryStrategies", () => {
     });
 
     it("should handle strategy throwing errors", () => {
-      const strategies: RecoveryStrategy<any>[] = [
+      const strategies: RecoveryStrategy<unknown>[] = [
         {
           name: "throw-strategy",
           attempt: () => {
@@ -101,7 +101,7 @@ describe("RecoveryStrategies", () => {
     });
 
     it("should skip strategies that return empty arrays", () => {
-      const strategies: RecoveryStrategy<any>[] = [
+      const strategies: RecoveryStrategy<unknown>[] = [
         { name: "empty", attempt: () => [] },
         { name: "success", attempt: () => [{ id: "1" }] },
       ];

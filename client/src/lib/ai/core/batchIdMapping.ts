@@ -126,7 +126,7 @@ export function normalizeIds<T = string>(ids: unknown[], mapping: BatchIdMapping
       // If it's a string that looks like a number, try to parse and map
       if (typeof id === "string") {
         const numId = parseInt(id, 10);
-        if (!isNaN(numId) && mapping.simpleToReal.has(numId)) {
+        if (!Number.isNaN(numId) && mapping.simpleToReal.has(numId)) {
           return mapping.simpleToReal.get(numId);
         }
         // Check if it's already a real ID
@@ -169,7 +169,7 @@ export function parseIdReference<T = string>(ref: unknown, mapping: BatchIdMappi
       const results: T[] = [];
       for (const part of parts) {
         const numId = parseInt(part.trim(), 10);
-        if (!isNaN(numId)) {
+        if (!Number.isNaN(numId)) {
           const realId = mapping.simpleToReal.get(numId);
           if (realId !== undefined) {
             results.push(realId);
@@ -183,7 +183,7 @@ export function parseIdReference<T = string>(ref: unknown, mapping: BatchIdMappi
 
     // Check if it's a simple number string
     const numId = parseInt(ref, 10);
-    if (!isNaN(numId) && String(numId) === ref.trim()) {
+    if (!Number.isNaN(numId) && String(numId) === ref.trim()) {
       const realId = mapping.simpleToReal.get(numId);
       if (realId !== undefined) {
         return [realId];
@@ -306,7 +306,8 @@ export function extractSegmentIdsGeneric<T = string>(
   mapping: BatchPairMapping<T> | BatchIdMapping<T>,
 ): T[] | null {
   const debugEnabled =
-    typeof globalThis !== "undefined" && (globalThis as any).__AISegmentMergeDebug === true;
+    typeof globalThis !== "undefined" &&
+    (globalThis as Record<string, unknown>).__AISegmentMergeDebug === true;
 
   const tryParseRef = (ref: unknown): T[] => {
     if (ref === undefined || ref === null) return [];
@@ -315,7 +316,7 @@ export function extractSegmentIdsGeneric<T = string>(
     if ((mapping as BatchPairMapping<T>).pairToIds) {
       const pairMap = (mapping as BatchPairMapping<T>).pairToIds;
       const num = typeof ref === "number" ? ref : parseInt(String(ref), 10);
-      if (!isNaN(num) && pairMap.has(num)) {
+      if (!Number.isNaN(num) && pairMap.has(num)) {
         return [...(pairMap.get(num) as [T, T])];
       }
       // range like "A-B" where A/B are simple numeric IDs
@@ -323,7 +324,7 @@ export function extractSegmentIdsGeneric<T = string>(
         const parts = (ref as string)
           .split("-")
           .map((p) => parseInt(p.trim(), 10))
-          .filter((n) => !isNaN(n));
+          .filter((n) => !Number.isNaN(n));
         if (parts.length >= 2) {
           const a = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[0]);
           const b = (mapping as BatchIdMapping<T>).simpleToReal.get(parts[1]);

@@ -8,6 +8,7 @@
  */
 
 import { parseResponse, recoverPartialArray } from "./responseParser";
+import type { SimpleSchema } from "./types";
 
 /**
  * Recovery strategy for extracting data from malformed responses
@@ -79,7 +80,7 @@ export function applyRecoveryStrategies<T>(
           attemptedStrategies: strategies.indexOf(strategy) + 1,
         };
       }
-    } catch (error) {
+    } catch (_error) {
       // Strategy threw error, try next
     }
   }
@@ -99,7 +100,7 @@ export function applyRecoveryStrategies<T>(
  * @param schema - Zod schema for validation
  * @returns Recovery strategy
  */
-export function lenientParseStrategy<T>(schema: any): RecoveryStrategy<T> {
+export function lenientParseStrategy<T>(schema: SimpleSchema): RecoveryStrategy<T> {
   return {
     name: "lenient-parse",
     attempt: (rawResponse: string) => {
@@ -186,7 +187,7 @@ export function jsonSubstringStrategy<T>(): RecoveryStrategy<T> {
  * ```
  */
 export function createStandardStrategies<T>(
-  schema: any,
+  schema: SimpleSchema,
   typeGuard: (item: unknown) => item is T,
 ): RecoveryStrategy<T>[] {
   return [

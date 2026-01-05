@@ -12,7 +12,6 @@ import type { StoreApi } from "zustand";
 import type { MergeAnalysisResult, MergeSuggestion } from "@/lib/ai/features/segmentMerge";
 import type {
   AIPrompt,
-  AISegmentMergeConfig,
   AISegmentMergeSlice,
   AISegmentMergeSuggestion,
   Segment,
@@ -122,7 +121,7 @@ export const createAISegmentMergeSlice = (
       onProgress: (progress: {
         batchIndex: number;
         totalBatches: number;
-        batchSuggestions: any[];
+        batchSuggestions: AISegmentMergeSuggestion[];
         processedCount: number;
       }) => {
         // Update UI after each batch

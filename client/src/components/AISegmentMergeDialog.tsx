@@ -198,7 +198,7 @@ export function AISegmentMergeDialog({
                 max={50}
                 step={5}
                 value={batchSize}
-                onChange={(e) => setBatchSize(Number.parseInt(e.target.value) || 10)}
+                onChange={(e) => setBatchSize(Number.parseInt(e.target.value, 10) || 10)}
                 className="w-full"
               />
             </div>

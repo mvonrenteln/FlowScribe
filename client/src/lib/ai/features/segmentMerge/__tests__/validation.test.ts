@@ -82,7 +82,10 @@ describe("Segment Merge Validation", () => {
 
       expect(issues).toHaveLength(0); // Empty string is still a string
 
-      const invalidSegments = [createSegment({ text: undefined as any }), createSegment()];
+      const invalidSegments = [
+        createSegment({ text: undefined as unknown as string }),
+        createSegment(),
+      ];
       const invalidIssues = validateWithRules(invalidSegments, mergeValidationRules);
       expect(invalidIssues.some((i) => i.message.includes("text"))).toBe(true);
     });

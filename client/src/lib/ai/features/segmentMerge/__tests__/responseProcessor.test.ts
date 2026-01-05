@@ -49,7 +49,7 @@ describe("Response Processor", () => {
       const result = {
         success: false,
         rawResponse: "test response",
-      } as any;
+      } as unknown as AIFeatureResult<unknown>;
 
       expect(extractRawResponse(result)).toBe("test response");
     });
@@ -58,13 +58,13 @@ describe("Response Processor", () => {
       const result = {
         success: false,
         rawResponse: { data: "test" },
-      } as any;
+      } as unknown as AIFeatureResult<unknown>;
 
       expect(extractRawResponse(result)).toBe('{"data":"test"}');
     });
 
     it("should return null when no raw response", () => {
-      const result = { success: true } as any;
+      const result = { success: true } as unknown as AIFeatureResult<unknown>;
       expect(extractRawResponse(result)).toBeNull();
     });
   });
@@ -115,7 +115,7 @@ describe("Response Processor", () => {
 
       expect(normalized.reason).toBe("Alt reason");
       expect(normalized.smoothedText).toBe("Smoothed");
-      expect(normalized.smoothingChanges).toEqual(["change1"]);
+      expect(normalized.smoothingChanges).toBe("change1"); // Array is joined with "; "
     });
 
     it("should convert segment IDs to strings", () => {
@@ -162,7 +162,7 @@ describe("Response Processor", () => {
     };
 
     it("should process successful response", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: true,
         data: [{ segmentIds: ["1", "2"], confidence: 0.9, reason: "Good match" }],
         metadata: {},
@@ -176,7 +176,7 @@ describe("Response Processor", () => {
     });
 
     it("should handle failed response with recovery", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: false,
         error: "Parse failed",
         rawResponse: '[{"segmentIds":["1","2"],"confidence":0.8}]',
@@ -191,7 +191,7 @@ describe("Response Processor", () => {
     });
 
     it("should handle complete failure", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: false,
         error: "Complete failure",
         rawResponse: "not parseable at all",
@@ -205,7 +205,7 @@ describe("Response Processor", () => {
     });
 
     it("should normalize suggestions with ID mapping", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: true,
         data: [{ segmentIds: ["1", "2"], confidence: 0.9, reason: "Test" }],
         metadata: {},
@@ -218,7 +218,7 @@ describe("Response Processor", () => {
     });
 
     it("should handle missing raw response", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: false,
         error: "No response",
         metadata: {},
@@ -233,7 +233,7 @@ describe("Response Processor", () => {
     it("should log debug info when enabled", () => {
       enableFeatureDebug("SegmentMerge");
 
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: true,
         data: [],
         rawResponse: "debug test",
@@ -246,7 +246,7 @@ describe("Response Processor", () => {
     });
 
     it("should handle items that fail normalization", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: true,
         data: [
           { segmentIds: ["1", "2"], confidence: 0.9 },
@@ -263,7 +263,7 @@ describe("Response Processor", () => {
     });
 
     it("should recover from embedded JSON text", () => {
-      const result: AIFeatureResult<any> = {
+      const result: AIFeatureResult<unknown[]> = {
         success: false,
         error: "Parse error",
         rawResponse: 'Error occurred: [{"segmentIds":["1","2"],"confidence":0.7}] end',

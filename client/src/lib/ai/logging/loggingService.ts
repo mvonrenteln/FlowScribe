@@ -61,8 +61,9 @@ export class AILogger {
    * Check if debug mode is enabled for this feature
    */
   get isDebugEnabled(): boolean {
-    const globalDebug = (globalThis as any).__AIDebugMode === true;
-    const featureDebug = (globalThis as any)[`__AI${this.feature}Debug`] === true;
+    const globalDebug = (globalThis as Record<string, unknown>).__AIDebugMode === true;
+    const featureDebug =
+      (globalThis as Record<string, unknown>)[`__AI${this.feature}Debug`] === true;
     return globalDebug || featureDebug;
   }
 
@@ -141,7 +142,7 @@ export function createLogger(options: LoggerOptions): AILogger {
  * Enable debug mode globally for all AI features
  */
 export function enableGlobalDebug(): void {
-  (globalThis as any).__AIDebugMode = true;
+  (globalThis as Record<string, unknown>).__AIDebugMode = true;
   log.setLevel("debug");
 }
 
@@ -149,7 +150,7 @@ export function enableGlobalDebug(): void {
  * Disable debug mode globally
  */
 export function disableGlobalDebug(): void {
-  (globalThis as any).__AIDebugMode = false;
+  (globalThis as Record<string, unknown>).__AIDebugMode = false;
   log.setLevel("info");
 }
 
@@ -163,7 +164,7 @@ export function disableGlobalDebug(): void {
  * ```
  */
 export function enableFeatureDebug(feature: string): void {
-  (globalThis as any)[`__AI${feature}Debug`] = true;
+  (globalThis as Record<string, unknown>)[`__AI${feature}Debug`] = true;
   const logger = log.getLogger(`AI:${feature}`);
   logger.setLevel("debug");
 }
@@ -172,7 +173,7 @@ export function enableFeatureDebug(feature: string): void {
  * Disable debug mode for a specific feature
  */
 export function disableFeatureDebug(feature: string): void {
-  (globalThis as any)[`__AI${feature}Debug`] = false;
+  (globalThis as Record<string, unknown>)[`__AI${feature}Debug`] = false;
   const logger = log.getLogger(`AI:${feature}`);
   logger.setLevel("info");
 }

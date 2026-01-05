@@ -7,7 +7,7 @@
  * @module ai/features/segmentMerge/responseProcessor
  */
 
-import type { BatchPairMapping } from "@/lib/ai/core/batchIdMapping";
+import type { BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
 import type { AIFeatureResult } from "@/lib/ai/core/types";
 import { createLogger } from "@/lib/ai/logging/loggingService";
 import {
@@ -70,8 +70,8 @@ export interface ProcessedResponse {
 /**
  * Extract raw response content from AI result
  */
-export function extractRawResponse(result: AIFeatureResult<any>): string | null {
-  const rawResponse = (result as any).rawResponse ?? null;
+export function extractRawResponse(result: AIFeatureResult<unknown>): string | null {
+  const rawResponse = (result as unknown as Record<string, unknown>).rawResponse ?? null;
 
   if (rawResponse === null) {
     return null;
@@ -88,31 +88,32 @@ export function extractRawResponse(result: AIFeatureResult<any>): string | null 
  * Only use segmentIds array, pairIndex, or mergeId which can be validated
  * through the ID mapping.
  */
-export function normalizeRecoveredItem(item: any): RawMergeSuggestion {
+export function normalizeRecoveredItem(item: Record<string, unknown>): RawMergeSuggestion {
   // Extract segment IDs - only from explicit segmentIds field
   let sids: unknown = item.segmentIds ?? item.segmentId ?? [];
 
   if (!Array.isArray(sids)) {
     sids = [sids];
   }
-  const segmentIds = (sids as any[]).map((v) => String(v));
+  const segmentIds = (sids as unknown[]).map((v) => String(v));
 
   // Extract confidence
   const confidence = typeof item.confidence === "number" ? item.confidence : 0.5;
 
   // Extract reason
-  const reason = item.reason ?? item.explanation ?? "";
+  const reason = String(item.reason ?? item.explanation ?? "");
 
   // Extract smoothing data (also check mergedText as alternative)
   const smoothedText = item.smoothedText ?? item.smoothed_text ?? item.mergedText;
-  const smoothingChanges = item.smoothingChanges ?? item.smoothing_changes;
+  const smoothingRaw = item.smoothingChanges ?? item.smoothing_changes;
+  const smoothingChanges = Array.isArray(smoothingRaw) ? smoothingRaw.join("; ") : smoothingRaw;
 
   return {
     segmentIds,
     confidence,
     reason,
-    smoothedText,
-    smoothingChanges,
+    smoothedText: typeof smoothedText === "string" ? smoothedText : undefined,
+    smoothingChanges: typeof smoothingChanges === "string" ? smoothingChanges : undefined,
   };
 }
 
@@ -137,12 +138,12 @@ export function normalizeRecoveredItem(item: any): RawMergeSuggestion {
  * ```
  */
 export function processAIResponse(
-  result: AIFeatureResult<any>,
+  result: AIFeatureResult<unknown>,
   options: ResponseProcessOptions,
 ): ProcessedResponse {
   const { idMapping } = options;
   const issues: MergeAnalysisIssue[] = [];
-  let parsedData: any[] | undefined;
+  let parsedData: unknown[] | undefined;
   let recoveryStrategy: string | undefined;
 
   logger.info("Processing AI response", {
@@ -163,7 +164,7 @@ export function processAIResponse(
   // 1. Try to use direct result data (if successful)
   if (result.success && result.data) {
     logger.info("Using direct result data");
-    parsedData = result.data as any[];
+    parsedData = result.data as unknown[];
   }
   // 2. Try recovery strategies
   else {
@@ -194,7 +195,9 @@ export function processAIResponse(
         count: recoveryResult.data.length,
       });
 
-      parsedData = recoveryResult.data.map(normalizeRecoveredItem);
+      parsedData = recoveryResult.data.map((item) =>
+        normalizeRecoveredItem(item as unknown as Record<string, unknown>),
+      );
       recoveryStrategy = recoveryResult.usedStrategy ?? undefined;
 
       issues.push({
@@ -224,7 +227,7 @@ export function processAIResponse(
   }
 
   for (const raw of parsedData) {
-    const normalized = normalizeRawSuggestion(raw, idMapping);
+    const normalized = normalizeRawSuggestion(raw as RawAIItem, idMapping);
 
     if (normalized) {
       normalizedSuggestions.push(normalized);

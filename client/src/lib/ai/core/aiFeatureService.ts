@@ -10,7 +10,6 @@
 
 import type { PromptVariables } from "@/lib/ai";
 import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
-import { mapPairIndexToSegmentIds } from "../features/segmentMerge/utils";
 import type { ChatMessage } from "../providers/types";
 import { AICancellationError, isCancellationError, toAIError } from "./errors";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
@@ -143,7 +142,7 @@ export async function executeFeature<TOutput>(
               success: lenient.success,
               dataPreview: lenient.data
                 ? Array.isArray(lenient.data)
-                  ? (lenient.data as any[]).slice(0, 5)
+                  ? (lenient.data as unknown[]).slice(0, 5)
                   : lenient.data
                 : undefined,
               metadata: lenient.metadata,
@@ -155,11 +154,12 @@ export async function executeFeature<TOutput>(
               // Feature-specific normalization: segment-merge often returns variant types
               if (featureId === "segment-merge" && Array.isArray(lenient.data)) {
                 try {
-                  const raw = lenient.data as any[];
+                  const raw = lenient.data as unknown[];
                   // Minimal normalization here - just ensure basic structure
                   // Full ID mapping happens in service.ts with the proper BatchIdMapping
                   const normalized = raw
-                    .map((item) => {
+                    .map((itemUnknown) => {
+                      const item = itemUnknown as Record<string, unknown>;
                       // Try to get segment IDs from pairIndexMap (contains real IDs now)
                       let segIdsArray: string[] = [];
 
@@ -174,19 +174,30 @@ export async function executeFeature<TOutput>(
                           typeof item.mergeId === "number"
                             ? item.mergeId
                             : parseInt(String(item.mergeId).split("-")[0], 10);
-                        if (!isNaN(mergeIdNum) && pairIndexMap && pairIndexMap[mergeIdNum]) {
+                        if (!Number.isNaN(mergeIdNum) && pairIndexMap && pairIndexMap[mergeIdNum]) {
                           segIdsArray = [...pairIndexMap[mergeIdNum]];
                         }
                       }
 
                       // Fallback: try segmentA/segmentB
-                      if (segIdsArray.length === 0 && item.segmentA?.id && item.segmentB?.id) {
-                        segIdsArray = [String(item.segmentA.id), String(item.segmentB.id)];
+                      if (
+                        segIdsArray.length === 0 &&
+                        typeof item.segmentA === "object" &&
+                        item.segmentA &&
+                        "id" in item.segmentA &&
+                        typeof item.segmentB === "object" &&
+                        item.segmentB &&
+                        "id" in item.segmentB
+                      ) {
+                        segIdsArray = [
+                          String((item.segmentA as Record<string, unknown>).id),
+                          String((item.segmentB as Record<string, unknown>).id),
+                        ];
                       }
 
                       // Fallback: try segmentIds array directly
                       if (segIdsArray.length === 0 && Array.isArray(item.segmentIds)) {
-                        segIdsArray = item.segmentIds.map((id: any) => String(id));
+                        segIdsArray = item.segmentIds.map((id: unknown) => String(id));
                       }
 
                       if (segIdsArray.length < 2) {
@@ -220,7 +231,7 @@ export async function executeFeature<TOutput>(
                     .filter(Boolean);
 
                   // Try to validate normalized data against the schema
-                  const validateAttempt = parseResponse<any>(JSON.stringify(normalized), {
+                  const validateAttempt = parseResponse<unknown>(JSON.stringify(normalized), {
                     schema: config.responseSchema,
                   });
                   if (validateAttempt.success && validateAttempt.data) {
@@ -230,8 +241,9 @@ export async function executeFeature<TOutput>(
                       startTime,
                       response.usage,
                     );
-                    (metadata as any).parseWarnings = parseResult.metadata?.warnings ?? [];
-                    (metadata as any).lenient = true;
+                    (metadata as Record<string, unknown>).parseWarnings =
+                      parseResult.metadata?.warnings ?? [];
+                    (metadata as Record<string, unknown>).lenient = true;
 
                     return {
                       success: true,
@@ -255,8 +267,9 @@ export async function executeFeature<TOutput>(
               }
 
               const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
-              (metadata as any).parseWarnings = parseResult.metadata?.warnings ?? [];
-              (metadata as any).lenient = true;
+              (metadata as Record<string, unknown>).parseWarnings =
+                parseResult.metadata?.warnings ?? [];
+              (metadata as Record<string, unknown>).lenient = true;
 
               return {
                 success: true,
@@ -280,10 +293,10 @@ export async function executeFeature<TOutput>(
 
         const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
         // Attach parse diagnostics to metadata for callers
-        (metadata as any).parseErrors = parseResult.error
+        (metadata as Record<string, unknown>).parseErrors = parseResult.error
           ? [{ message: parseResult.error.message }]
           : [];
-        (metadata as any).parseWarnings = parseResult.metadata?.warnings ?? [];
+        (metadata as Record<string, unknown>).parseWarnings = parseResult.metadata?.warnings ?? [];
 
         return {
           success: false,

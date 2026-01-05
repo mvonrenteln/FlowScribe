@@ -25,14 +25,14 @@ describe("segmentMerge utils", () => {
     start: 0,
     end: 1.2,
     text: "Hello world",
-  } as any;
+  } as MergeAnalysisSegment;
   const segB: MergeAnalysisSegment = {
     id: "seg-2",
     speaker: "A",
     start: 1.3,
     end: 2.5,
     text: "and welcome",
-  } as any;
+  } as MergeAnalysisSegment;
 
   it("calculateTimeGap and isTimeGapAcceptable", () => {
     expect(calculateTimeGap(segA, segB)).toBeCloseTo(1.3 - 1.2, 5);
@@ -72,13 +72,16 @@ describe("segmentMerge utils", () => {
       confidence: 0.9,
       smoothedText: "Hello world and welcome",
       smoothingChanges: "joined",
-    } as any;
+    } as Record<string, unknown>;
 
     const map = new Map([
       ["seg-1", segA],
       ["seg-2", segB],
     ]);
-    const sug = processSuggestion(raw as any, map as any);
+    const sug = processSuggestion(
+      raw as Record<string, unknown>,
+      map as Map<string, MergeAnalysisSegment>,
+    );
     expect(sug).not.toBeNull();
     expect(sug?.mergedText).toContain("Hello world");
     // Since smoothedText equals the concatenated original text, smoothing is considered not applied
@@ -87,11 +90,17 @@ describe("segmentMerge utils", () => {
 
   it("normalizeRawSuggestion wrapper handles RawAIItem shapes", () => {
     // create mapping using core helper
-    const pairMap = createBatchPairMapping([{ id: "seg-1" }, { id: "seg-2" }], (s: any) => s.id);
+    const pairMap = createBatchPairMapping(
+      [{ id: "seg-1" }, { id: "seg-2" }],
+      (s: { id: string }) => s.id,
+    );
     pairMap.pairToIds.set(1, ["seg-1", "seg-2"]);
 
-    const raw: any = { pairIndex: 1, confidence: 0.4, smoothedText: "merged" };
-    const normalized = normalizeRawSuggestion(raw, pairMap as any);
+    const raw = { pairIndex: 1, confidence: 0.4, smoothedText: "merged" } as Record<
+      string,
+      unknown
+    >;
+    const normalized = normalizeRawSuggestion(raw, pairMap);
     expect(normalized).not.toBeNull();
     expect(normalized?.segmentIds).toEqual(["seg-1", "seg-2"]);
     expect(normalized?.smoothedText).toBe("merged");
