@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
@@ -168,6 +168,50 @@ export const useTranscriptEditor = () => {
   const canUndoChecked = canUndo();
   const canRedoChecked = canRedo();
   const canCreateRevision = segments.length > 0;
+  const waveSegmentsRef = useRef<typeof segments>(segments);
+
+  const waveformSegments = useMemo(() => {
+    const prev = waveSegmentsRef.current;
+    let changed =
+      segments.length !== prev.length || segments.some((seg, idx) => seg.id !== prev[idx]?.id);
+
+    if (!changed) {
+      for (let i = 0; i < segments.length; i += 1) {
+        const seg = segments[i];
+        const prevSeg = prev[i];
+        if (
+          !prevSeg ||
+          seg.start !== prevSeg.start ||
+          seg.end !== prevSeg.end ||
+          seg.speaker !== prevSeg.speaker
+        ) {
+          changed = true;
+          break;
+        }
+      }
+    }
+
+    if (!changed) {
+      return prev;
+    }
+
+    const next = segments.map((seg, idx) => {
+      const prevSeg = prev[idx];
+      if (
+        prevSeg &&
+        prevSeg.id === seg.id &&
+        prevSeg.start === seg.start &&
+        prevSeg.end === seg.end &&
+        prevSeg.speaker === seg.speaker
+      ) {
+        return prevSeg;
+      }
+      return seg;
+    });
+
+    waveSegmentsRef.current = next;
+    return next;
+  }, [segments]);
 
   const isTranscriptEditing = useCallback(
     () => document.body?.dataset.transcriptEditing === "true",
@@ -398,7 +442,7 @@ export const useTranscriptEditor = () => {
   const waveformProps = useMemo(
     () => ({
       audioUrl,
-      segments,
+      segments: waveformSegments,
       speakers,
       currentTime,
       isPlaying,
@@ -419,7 +463,7 @@ export const useTranscriptEditor = () => {
       isWhisperXFormat,
       playback.playbackRate,
       playback.handleWaveformSeek,
-      segments,
+      waveformSegments,
       setCurrentTime,
       setDuration,
       setIsPlaying,
