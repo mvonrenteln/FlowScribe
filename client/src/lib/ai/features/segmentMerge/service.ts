@@ -18,7 +18,12 @@ import type {
   MergeAnalysisSegment,
   RawMergeSuggestion,
 } from "./types";
-import { countByConfidence, createSimpleIdContext, processSuggestions } from "./utils";
+import {
+  countByConfidence,
+  createSegmentBatches,
+  createSimpleIdContext,
+  processSuggestions,
+} from "./utils";
 import { hasValidationErrors, mergeValidationRules, validateWithRules } from "./validation";
 
 const logger = createLogger({ feature: "SegmentMerge" });
@@ -80,10 +85,7 @@ export async function analyzeMergeCandidates(
   }
 
   // Split segments into batches
-  const batches: MergeAnalysisSegment[][] = [];
-  for (let i = 0; i < segments.length; i += batchSize) {
-    batches.push(segments.slice(i, i + batchSize));
-  }
+  const batches = createSegmentBatches(segments, batchSize, sameSpeakerOnly);
 
   logger.info(`Processing ${batches.length} batches of up to ${batchSize} segments each`);
 

@@ -116,17 +116,34 @@ Return your merge suggestions as a JSON array.`;
 
 // ==================== User Prompt Template (Simple) ====================
 
-export const MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE = `Analyze these transcript segments for potential merges.
+export const MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE = `Analyze these pre-filtered transcript segment pairs for potential merges.
 
-Maximum time gap: {{maxTimeGap}} seconds
-{{#if enableSmoothing}}
-Text smoothing: ENABLED
-{{/if}}
+CONTEXT:
+- Maximum time gap allowed: {{maxTimeGap}} seconds
+- Text smoothing: {{#if enableSmoothing}}ENABLED - provide smoothed merged text{{else}}DISABLED{{/if}}
 
-SEGMENTS:
+IMPORTANT:
+Only consider the segment pairs listed below. They already satisfy speaker and time-gap requirements.
+Use the full segment list afterward only for additional context when crafting explanations.
+
+SEGMENT PAIRS TO ANALYZE:
+{{segmentPairs}}
+
+SEGMENTS FOR CONTEXT:
 {{segments}}
 
-Return merge suggestions as JSON array with segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
+{{#if enableSmoothing}}
+SMOOTHING INSTRUCTIONS:
+1. Remove incorrect sentence breaks (period + capital mid-sentence)
+2. Fix capitalization issues at merge points
+3. Ensure grammatical flow
+4. Preserve the speaker's voice and meaning
+5. Make minimal changes—only fix obvious transcription artifacts
+
+Include "smoothedText" and "smoothingChanges" for each accepted merge.
+{{/if}}
+
+Return merge suggestions as a JSON array with segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
 
 // ==================== Response Schema ====================
 

@@ -6,6 +6,7 @@ import {
   calculateTimeGap,
   collectSegmentPairsWithSimpleIds,
   concatenateTexts,
+  createSegmentBatches,
   createSimpleIdContext,
   createSmoothingInfo,
   detectIncorrectSentenceBreak,
@@ -274,6 +275,55 @@ describe("segmentMerge utils", () => {
       );
 
       expect(pairs).toHaveLength(0);
+    });
+  });
+
+  describe("createSegmentBatches", () => {
+    const makeSegment = (id: string, speaker: string): MergeAnalysisSegment => ({
+      id,
+      speaker,
+      start: Number(id),
+      end: Number(id) + 0.5,
+      text: `${speaker}-${id}`,
+    });
+
+    it("chunks purely by size when filtering is disabled", () => {
+      const segments = [makeSegment("1", "Alice"), makeSegment("2", "Bob"), makeSegment("3", "Eve")];
+      const batches = createSegmentBatches(segments, 2, false);
+
+      expect(batches).toHaveLength(2);
+      expect(batches[0].map((s) => s.id)).toEqual(["1", "2"]);
+      expect(batches[1].map((s) => s.id)).toEqual(["3"]);
+    });
+
+    it("splits batches at speaker boundaries when filtering is enabled", () => {
+      const segments = [
+        makeSegment("1", "Alice"),
+        makeSegment("2", "Alice"),
+        makeSegment("3", "Bob"),
+        makeSegment("4", "Bob"),
+        makeSegment("5", "Alice"),
+      ];
+
+      const batches = createSegmentBatches(segments, 5, true);
+      expect(batches).toHaveLength(3);
+      expect(new Set(batches[0].map((s) => s.speaker))).toEqual(new Set(["Alice"]));
+      expect(new Set(batches[1].map((s) => s.speaker))).toEqual(new Set(["Bob"]));
+      expect(new Set(batches[2].map((s) => s.speaker))).toEqual(new Set(["Alice"]));
+    });
+
+    it("still respects batch size limits within a single speaker run", () => {
+      const segments = [
+        makeSegment("1", "Alice"),
+        makeSegment("2", "Alice"),
+        makeSegment("3", "Alice"),
+        makeSegment("4", "Alice"),
+      ];
+
+      const batches = createSegmentBatches(segments, 2, true);
+      expect(batches).toHaveLength(2);
+      expect(batches[0]).toHaveLength(2);
+      expect(batches[1]).toHaveLength(2);
     });
   });
 });

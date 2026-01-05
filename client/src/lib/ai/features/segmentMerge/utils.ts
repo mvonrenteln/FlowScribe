@@ -575,6 +575,55 @@ export function validateMergeCandidate(
   return { valid: true };
 }
 
+// ==================== Batch Construction ====================
+
+/**
+ * Create batches of segments for AI processing.
+ * Ensures that batches never cross speaker boundaries when filtering is enabled.
+ */
+export function createSegmentBatches(
+  segments: MergeAnalysisSegment[],
+  batchSize: number,
+  sameSpeakerOnly: boolean,
+): MergeAnalysisSegment[][] {
+  if (segments.length === 0) {
+    return [];
+  }
+
+  const floored = Number.isFinite(batchSize) && batchSize > 0 ? Math.floor(batchSize) : 1;
+  const limit = Math.max(1, floored);
+  const batches: MergeAnalysisSegment[][] = [];
+  let currentBatch: MergeAnalysisSegment[] = [];
+  let currentSpeaker: string | null = null;
+
+  const flushBatch = () => {
+    if (currentBatch.length > 0) {
+      batches.push(currentBatch);
+      currentBatch = [];
+      currentSpeaker = null;
+    }
+  };
+
+  for (const segment of segments) {
+    const speakerChanged =
+      sameSpeakerOnly && currentBatch.length > 0 && currentSpeaker !== segment.speaker;
+    const batchFull = currentBatch.length >= limit;
+
+    if (speakerChanged || batchFull) {
+      flushBatch();
+    }
+
+    if (currentBatch.length === 0) {
+      currentSpeaker = segment.speaker;
+    }
+
+    currentBatch.push(segment);
+  }
+
+  flushBatch();
+  return batches;
+}
+
 /**
  * Collect segment pairs for analysis.
  * Groups consecutive segments based on time gap and speaker similarity.

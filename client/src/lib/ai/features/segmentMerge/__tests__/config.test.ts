@@ -35,6 +35,14 @@ describe("prompt helper functions", () => {
     expect(getMergeUserTemplate(5)).toBeDefined();
     expect(getMergeUserTemplate(100)).toBeDefined();
   });
+
+  it("always references pre-filtered segment pairs", () => {
+    const simpleTemplate = getMergeUserTemplate(5);
+    const fullTemplate = getMergeUserTemplate(50);
+
+    expect(simpleTemplate).toContain("{{segmentPairs}}");
+    expect(fullTemplate).toContain("{{segmentPairs}}");
+  });
 });
 
 describe("mergeResponseSchema", () => {
