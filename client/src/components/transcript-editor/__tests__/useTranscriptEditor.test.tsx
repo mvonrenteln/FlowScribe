@@ -125,4 +125,36 @@ describe("useTranscriptEditor", () => {
     expect(state.seekRequestTime).toBeNull();
     expect(state.segments).toHaveLength(2);
   });
+
+  it("selects the first search match segment", () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo Welt",
+          words: [{ word: "Hallo", start: 0, end: 0.5 }],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "Servus",
+          words: [{ word: "Servus", start: 1, end: 2 }],
+        },
+      ],
+      selectedSegmentId: null,
+    });
+
+    const { result } = renderHook(() => useTranscriptEditor());
+
+    act(() => {
+      result.current.filterPanelProps.onSearchQueryChange("Hallo");
+    });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+  });
 });

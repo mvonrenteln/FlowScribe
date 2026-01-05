@@ -1,4 +1,4 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
@@ -252,6 +252,12 @@ export const useTranscriptEditor = () => {
     allMatches,
   } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
 
+  useEffect(() => {
+    if (currentMatch) {
+      setSelectedSegmentId(currentMatch.segmentId);
+    }
+  }, [currentMatch, setSelectedSegmentId]);
+
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
       renameSpeaker(oldName, newName);
@@ -401,7 +407,7 @@ export const useTranscriptEditor = () => {
       onTimeUpdate: setCurrentTime,
       onPlayPause: setIsPlaying,
       onDurationChange: setDuration,
-      onSeek: setCurrentTime,
+      onSeek: playback.handleSeekInternal,
       onSegmentBoundaryChange: updateSegmentTiming,
       onReady: handleWaveReady,
     }),
@@ -412,6 +418,7 @@ export const useTranscriptEditor = () => {
       isPlaying,
       isWhisperXFormat,
       playback.playbackRate,
+      playback.handleSeekInternal,
       segments,
       setCurrentTime,
       setDuration,

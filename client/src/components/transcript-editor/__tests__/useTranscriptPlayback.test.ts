@@ -14,6 +14,10 @@ describe("useTranscriptPlayback", () => {
   const requestSeek = vi.fn();
   const setSelectedSegmentId = vi.fn();
   const setEditRequestId = vi.fn();
+  const segments = [
+    { id: "s1", speaker: "A", start: 0, end: 5, text: "hello", words: [] },
+    { id: "s2", speaker: "A", start: 6, end: 10, text: "world", words: [] },
+  ];
 
   beforeEach(() => {
     useNavigationHotkeysMock.mockReset();
@@ -31,7 +35,7 @@ describe("useTranscriptPlayback", () => {
     duration: 20,
     filteredSegments: [],
     selectedSegmentId: null as string | null,
-    segments: [],
+    segments,
     speakers: [],
     canUndo: () => false,
     canRedo: () => false,
@@ -87,6 +91,16 @@ describe("useTranscriptPlayback", () => {
 
     expect(setCurrentTime).toHaveBeenCalledWith(12.5);
     expect(requestSeek).toHaveBeenCalledWith(12.5);
+  });
+
+  it("selects the segment when seeking into its range", () => {
+    const { result } = renderHook(() => useTranscriptPlayback(defaultParams));
+
+    act(() => {
+      result.current.handleSeekInternal(7);
+    });
+
+    expect(setSelectedSegmentId).toHaveBeenCalledWith("s2");
   });
 
   it("wires hotkeys with the provided callbacks", () => {

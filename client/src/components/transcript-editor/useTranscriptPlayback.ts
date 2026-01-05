@@ -77,6 +77,22 @@ export const useTranscriptPlayback = ({
 }: UseTranscriptPlaybackParams) => {
   const [playbackRate, setPlaybackRate] = useState(1);
 
+  const findSegmentAtTime = useCallback(
+    (time: number) => {
+      if (isTranscriptEditing()) return null;
+      const segment =
+        segments.find((s) => time >= s.start && time <= s.end) ??
+        segments.find((s, idx) => {
+          const next = segments[idx + 1];
+          return next && time > s.end && time < next.start;
+        }) ??
+        segments[segments.length - 1] ??
+        null;
+      return segment;
+    },
+    [isTranscriptEditing, segments],
+  );
+
   const handlePlayPause = useCallback(() => {
     setIsPlaying(!isPlaying);
   }, [isPlaying, setIsPlaying]);
@@ -85,8 +101,12 @@ export const useTranscriptPlayback = ({
     (time: number) => {
       setCurrentTime(time);
       requestSeek(time);
+      const targetSegment = findSegmentAtTime(time);
+      if (targetSegment) {
+        setSelectedSegmentId(targetSegment.id);
+      }
     },
-    [requestSeek, setCurrentTime],
+    [findSegmentAtTime, requestSeek, setCurrentTime, setSelectedSegmentId],
   );
 
   const handleSkipBack = useCallback(() => {
