@@ -91,10 +91,50 @@ export function useSegmentEditing({
     [isEditing, onSelect],
   );
 
+  const clickTimeoutRef = useRef<number | null>(null);
+
   const handleSegmentClick = useCallback(() => {
     if (isEditing) return;
-    onSelect();
+
+    // Clear any pending timeout from a previous click
+    if (clickTimeoutRef.current !== null) {
+      clearTimeout(clickTimeoutRef.current);
+      clickTimeoutRef.current = null;
+    }
+
+    // Delay the selection to allow double-click to cancel it
+    clickTimeoutRef.current = window.setTimeout(() => {
+      clickTimeoutRef.current = null;
+      onSelect();
+    }, 200);
   }, [isEditing, onSelect]);
+
+  const handleSegmentDoubleClick = useCallback(
+    (event: React.MouseEvent) => {
+      if (isEditing) return;
+
+      // Cancel pending single-click action FIRST, before any other processing
+      if (clickTimeoutRef.current !== null) {
+        clearTimeout(clickTimeoutRef.current);
+        clickTimeoutRef.current = null;
+      }
+
+      event.preventDefault();
+      event.stopPropagation();
+
+      handleStartEdit();
+    },
+    [isEditing, handleStartEdit],
+  );
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (clickTimeoutRef.current !== null) {
+        clearTimeout(clickTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!editRequested) return;
@@ -111,6 +151,7 @@ export function useSegmentEditing({
     handleEditKeyDown,
     handleSaveEdit,
     handleSegmentClick,
+    handleSegmentDoubleClick,
     handleSelectKeyDown,
     handleStartEdit,
     isEditing,
