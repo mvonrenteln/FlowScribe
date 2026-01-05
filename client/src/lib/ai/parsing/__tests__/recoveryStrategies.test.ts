@@ -3,7 +3,6 @@
  */
 
 import { describe, expect, it, vi } from "vitest";
-import { z } from "zod";
 import {
   applyRecoveryStrategies,
   createStandardStrategies,
@@ -11,6 +10,30 @@ import {
   lenientParseStrategy,
   type RecoveryStrategy,
 } from "../recoveryStrategies";
+import type { SimpleSchema } from "../types";
+
+const arraySchemaWithValues: SimpleSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+      value: { type: "number" },
+    },
+    required: ["id", "value"],
+  },
+};
+
+const arraySchemaWithIds: SimpleSchema = {
+  type: "array",
+  items: {
+    type: "object",
+    properties: {
+      id: { type: "string" },
+    },
+    required: ["id"],
+  },
+};
 
 describe("RecoveryStrategies", () => {
   describe("applyRecoveryStrategies", () => {
@@ -90,7 +113,7 @@ describe("RecoveryStrategies", () => {
   });
 
   describe("lenientParseStrategy", () => {
-    const schema = z.array(z.object({ id: z.string(), value: z.number() }));
+    const schema = arraySchemaWithValues;
 
     it("should parse valid JSON", () => {
       const strategy = lenientParseStrategy(schema);
@@ -164,7 +187,7 @@ describe("RecoveryStrategies", () => {
   });
 
   describe("createStandardStrategies", () => {
-    const schema = z.array(z.object({ id: z.string() }));
+    const schema = arraySchemaWithIds;
     const typeGuard = (item: unknown): item is { id: string } =>
       typeof item === "object" && item !== null && "id" in item;
 
@@ -199,7 +222,7 @@ describe("RecoveryStrategies", () => {
 
   describe("Strategy Integration", () => {
     it("should fall back through strategies correctly", () => {
-      const schema = z.array(z.object({ id: z.string() }));
+      const schema = arraySchemaWithValues;
       const typeGuard = (item: unknown): item is { id: string } =>
         typeof item === "object" && item !== null && "id" in item;
 
@@ -210,7 +233,7 @@ describe("RecoveryStrategies", () => {
       const result = applyRecoveryStrategies(malformed, strategies);
 
       expect(result.data).toEqual([{ id: "1" }]);
-      expect(result.usedStrategy).toBe("json-substring");
+      expect(result.usedStrategy).toBe("partial-array");
       expect(result.attemptedStrategies).toBeGreaterThan(1);
     });
   });

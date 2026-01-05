@@ -52,7 +52,6 @@ export {
   textRevisionConfig,
 } from "./revision";
 export type {
-  BatchMergeAnalysisParams,
   MergeAnalysisIssue,
   MergeAnalysisParams,
   MergeAnalysisResult,

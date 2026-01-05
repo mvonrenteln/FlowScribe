@@ -149,7 +149,17 @@ describe("Response Processor", () => {
   });
 
   describe("processAIResponse", () => {
-    const idMapping = { "1": "real-1", "2": "real-2" };
+    const idMapping = {
+      simpleToReal: new Map([
+        [1, "real-1"],
+        [2, "real-2"],
+      ]),
+      realToSimple: new Map([
+        ["real-1", 1],
+        ["real-2", 2],
+      ]),
+      pairToIds: new Map<number, [string, string]>(),
+    };
 
     it("should process successful response", () => {
       const result: AIFeatureResult<any> = {
@@ -252,7 +262,7 @@ describe("Response Processor", () => {
       );
     });
 
-    it("should recover from JSON substring", () => {
+    it("should recover from embedded JSON text", () => {
       const result: AIFeatureResult<any> = {
         success: false,
         error: "Parse error",
@@ -263,7 +273,7 @@ describe("Response Processor", () => {
       const processed = processAIResponse(result, { idMapping });
 
       expect(processed.suggestions.length).toBeGreaterThan(0);
-      expect(processed.recoveryStrategy).toBe("json-substring");
+      expect(processed.recoveryStrategy).toBe("lenient-parse");
     });
   });
 });

@@ -122,6 +122,30 @@ export const createAISegmentMergeSlice = (
       enableSmoothing: options.enableSmoothing ?? config.defaultEnableSmoothing,
       batchSize: options.batchSize ?? 10,
       signal: abortController.signal,
+      onProgress: (progress: {
+        batchIndex: number;
+        totalBatches: number;
+        batchSuggestions: any[];
+        processedCount: number;
+      }) => {
+        // Update UI after each batch
+        const currentSuggestions = get().aiSegmentMergeSuggestions;
+        const newSuggestions = progress.batchSuggestions.map(toStoreSuggestion);
+
+        set({
+          aiSegmentMergeSuggestions: [...currentSuggestions, ...newSuggestions],
+          aiSegmentMergeProcessedCount: progress.processedCount,
+          aiSegmentMergeTotalToProcess: segmentsToAnalyze.length - 1,
+        });
+
+        console.log(
+          `[AISegmentMerge] Batch ${progress.batchIndex}/${progress.totalBatches} complete:`,
+          {
+            batchSuggestions: progress.batchSuggestions.length,
+            totalSuggestions: currentSuggestions.length + newSuggestions.length,
+          },
+        );
+      },
     };
 
     // Run analysis asynchronously - dynamic import to avoid circular dependencies

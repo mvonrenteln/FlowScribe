@@ -15,6 +15,7 @@ import type {
   MergeAnalysisIssue,
   MergeAnalysisParams,
   MergeAnalysisResult,
+  MergeAnalysisSegment,
   RawMergeSuggestion,
 } from "./types";
 import { countByConfidence, createSimpleIdContext, processSuggestions } from "./utils";
@@ -54,6 +55,7 @@ export async function analyzeMergeCandidates(
     enableSmoothing,
     batchSize = 10,
     signal,
+    onProgress,
   } = params;
 
   logger.info("Starting merge analysis", {
@@ -110,22 +112,29 @@ export async function analyzeMergeCandidates(
     // Check if we have eligible pairs
     if (!hasEligiblePairs(prompt)) {
       logger.debug(`Batch ${batchIndex + 1}: No eligible pairs`);
+      totalAnalyzed += batch.length - 1;
+
+      // Notify progress even if no pairs
+      if (onProgress) {
+        onProgress({
+          batchIndex: batchIndex + 1,
+          totalBatches: batches.length,
+          batchSuggestions: [],
+          processedCount: totalAnalyzed,
+        });
+      }
       continue;
     }
 
     try {
       // Execute AI analysis for this batch
-      const result = await executeFeature<RawMergeSuggestion[]>(
-        "segment-merge",
-        prompt.variables,
-        {
-          customPrompt: {
-            systemPrompt: prompt.systemPrompt,
-            userPromptTemplate: prompt.userTemplate,
-          },
-          signal,
+      const result = await executeFeature<RawMergeSuggestion[]>("segment-merge", prompt.variables, {
+        customPrompt: {
+          systemPrompt: prompt.systemPrompt,
+          userPromptTemplate: prompt.userTemplate,
         },
-      );
+        signal,
+      });
 
       logger.info(`Batch ${batchIndex + 1} AI execution complete`, {
         success: result.success,
@@ -140,6 +149,23 @@ export async function analyzeMergeCandidates(
       allSuggestions.push(...processed.suggestions);
       allIssues.push(...processed.issues);
       totalAnalyzed += batch.length - 1;
+
+      // Process and filter suggestions for this batch
+      const batchProcessedSuggestions = processSuggestions(
+        processed.suggestions,
+        segments,
+        minConfidence,
+      );
+
+      // Notify progress after each batch
+      if (onProgress) {
+        onProgress({
+          batchIndex: batchIndex + 1,
+          totalBatches: batches.length,
+          batchSuggestions: batchProcessedSuggestions,
+          processedCount: totalAnalyzed,
+        });
+      }
     } catch (error) {
       logger.error(`Batch ${batchIndex + 1} failed`, {
         error: error instanceof Error ? error.message : String(error),

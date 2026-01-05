@@ -69,8 +69,7 @@ export const mergeValidationRules: ValidationRule<MergeAnalysisSegment[]>[] = [
     },
   },
   {
-    check: (segments) =>
-      segments.every((s) => typeof s.start === "number" && typeof s.end === "number"),
+    check: (segments) => segments.every((s) => Number.isFinite(s.start) && Number.isFinite(s.end)),
     issue: {
       level: "error",
       message: "All segments must have valid timestamps",

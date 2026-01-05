@@ -33,9 +33,11 @@ export interface LoggerOptions {
 export class AILogger {
   private readonly logger: log.Logger;
   private readonly feature: string;
+  private readonly basePrefix: string;
 
   constructor(options: LoggerOptions) {
     this.feature = options.feature;
+    this.basePrefix = `[AI:${this.feature}]`;
     this.logger = log.getLogger(`AI:${options.feature}`);
 
     // Set level based on debug flags or provided minLevel
@@ -68,43 +70,55 @@ export class AILogger {
    * Log debug message (only if debug enabled)
    */
   debug(message: string, context?: LogContext): void {
-    if (context && Object.keys(context).length > 0) {
-      this.logger.debug(message, context);
-    } else {
-      this.logger.debug(message);
+    if (!this.isDebugEnabled) {
+      return;
     }
+
+    this.logWithPrefix("debug", message, context);
   }
 
   /**
    * Log info message
    */
   info(message: string, context?: LogContext): void {
-    if (context && Object.keys(context).length > 0) {
-      this.logger.info(message, context);
-    } else {
-      this.logger.info(message);
-    }
+    this.logWithPrefix("info", message, context);
   }
 
   /**
    * Log warning message
    */
   warn(message: string, context?: LogContext): void {
-    if (context && Object.keys(context).length > 0) {
-      this.logger.warn(message, context);
-    } else {
-      this.logger.warn(message);
-    }
+    this.logWithPrefix("warn", message, context);
   }
 
   /**
    * Log error message
    */
   error(message: string, context?: LogContext): void {
-    if (context && Object.keys(context).length > 0) {
-      this.logger.error(message, context);
-    } else {
-      this.logger.error(message);
+    this.logWithPrefix("error", message, context);
+  }
+
+  /**
+   * Format log arguments with feature prefix and optional context
+   */
+  private logWithPrefix(level: LogLevel, message: string, context?: LogContext): void {
+    const prefix = level === "debug" ? `${this.basePrefix}[DEBUG]` : this.basePrefix;
+    const hasContext = context && Object.keys(context).length > 0;
+    const args = hasContext ? [prefix, message, context] : [prefix, message];
+
+    switch (level) {
+      case "debug":
+        this.logger.debug(...args);
+        break;
+      case "info":
+        this.logger.info(...args);
+        break;
+      case "warn":
+        this.logger.warn(...args);
+        break;
+      case "error":
+        this.logger.error(...args);
+        break;
     }
   }
 }

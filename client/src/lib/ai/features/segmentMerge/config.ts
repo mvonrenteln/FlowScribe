@@ -14,14 +14,22 @@ export const MERGE_ANALYSIS_SYSTEM_PROMPT = `You analyze transcript segments to 
 
 TASK
 ----
-Analyze consecutive transcript segment pairs and suggest which ones should be merged.
+Analyze consecutive transcript segment pairs and determine if they should be merged.
 When text smoothing is requested, also provide a grammatically corrected merged text.
 
-MERGE CRITERIA (in order of importance):
-1. **Same speaker** - Only suggest merging segments from the same speaker
-2. **Incomplete sentence** - First segment's sentence continues in next segment
-3. **Short time gap** - Small pause between segments (typically < 2 seconds)
-4. **Semantic connection** - Content is clearly connected
+IMPORTANT: All segment pairs presented to you have already been pre-filtered:
+- Only same-speaker pairs (if speaker filtering is enabled)
+- Only pairs with acceptable time gaps (based on maxTimeGap parameter)
+
+Your job is to evaluate the CONTENT and determine if merging makes sense:
+- Does the first segment's sentence continue in the next segment?
+- Are the segments part of the same thought/idea?
+- Would merging improve readability?
+
+MERGE CRITERIA (evaluate these):
+1. **Incomplete sentence** - First segment's sentence clearly continues in next segment
+2. **Semantic connection** - Content is part of the same thought or topic
+3. **Natural flow** - Merging would improve readability and flow
 
 COMMON TRANSCRIPTION ARTIFACTS TO DETECT:
 - **Incorrect sentence breaks**: Whisper sometimes adds a period and capitalizes the next word mid-sentence
@@ -30,18 +38,15 @@ COMMON TRANSCRIPTION ARTIFACTS TO DETECT:
 - **Continuation markers**: First segment ends with conjunction or incomplete thought
 
 CONFIDENCE SCORING:
-- 0.9-1.0: Obvious merge (incomplete sentence, very short gap)
-- 0.7-0.89: Likely merge (related content, short gap, same speaker)
-- 0.5-0.69: Possible merge (complete sentences but related)
-- 0.3-0.49: Uncertain (consider context)
-- Below 0.3: Probably should not merge
+- 0.9-1.0: Obvious merge (incomplete sentence, clear continuation)
+- 0.7-0.89: Likely merge (related content, natural continuation)
+- 0.5-0.69: Possible merge (complete sentences but strongly related)
+- Below 0.5: Probably should not merge
 
 DO NOT SUGGEST MERGE WHEN:
-- Different speakers
-- Time gap exceeds threshold
-- Both segments are complete, standalone sentences
-- Topic clearly changes
-- Intentional pause (speaker thinking, dramatic effect)
+- Both segments are complete, standalone sentences without strong connection
+- Topic clearly changes between segments
+- Intentional pause for emphasis or dramatic effect
 
 OUTPUT FORMAT
 -------------
@@ -85,23 +90,26 @@ If no merges are suggested, return an empty array: []`;
 
 export const MERGE_ANALYSIS_USER_TEMPLATE = `Analyze these transcript segment pairs for potential merges.
 
-PARAMETERS:
+CONTEXT:
 - Maximum time gap allowed: {{maxTimeGap}} seconds
 - Text smoothing: {{#if enableSmoothing}}ENABLED - provide smoothed merged text{{else}}DISABLED{{/if}}
+
+NOTE: These pairs have been pre-filtered based on speaker and time gap criteria.
+Your task is to evaluate the CONTENT and determine if merging makes semantic sense.
 
 SEGMENT PAIRS TO ANALYZE:
 {{segmentPairs}}
 
 {{#if enableSmoothing}}
 SMOOTHING INSTRUCTIONS:
-When suggesting a merge, also provide a "smoothedText" that:
+When suggesting a merge, provide a "smoothedText" that:
 1. Removes incorrect sentence breaks (period + capital mid-sentence)
 2. Fixes capitalization issues at merge points
 3. Ensures grammatical flow
 4. Preserves the speaker's voice and meaning
 5. Makes minimal changes - only fix obvious transcription artifacts
 
-Always include "smoothingChanges" explaining what was changed.
+Include "smoothingChanges" explaining what was changed.
 {{/if}}
 
 Return your merge suggestions as a JSON array.`;

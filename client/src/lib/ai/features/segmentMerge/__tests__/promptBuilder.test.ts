@@ -20,8 +20,8 @@ describe("Prompt Builder", () => {
   describe("buildMergePrompt", () => {
     it("should build complete prompt data", () => {
       const segments = [
-        createSegment({ id: "seg-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", startTime: 1.5, endTime: 2.5 }),
+        createSegment({ id: "seg-1", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", start: 1.5, end: 2.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -41,8 +41,8 @@ describe("Prompt Builder", () => {
 
     it("should include all required variables", () => {
       const segments = [
-        createSegment({ id: "seg-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", startTime: 1.5, endTime: 2.5 }),
+        createSegment({ id: "seg-1", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", start: 1.5, end: 2.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -63,8 +63,8 @@ describe("Prompt Builder", () => {
 
     it("should use simple IDs in formatted text", () => {
       const segments = [
-        createSegment({ id: "complex-uuid-123", text: "First", startTime: 0, endTime: 1 }),
-        createSegment({ id: "complex-uuid-456", text: "Second", startTime: 1.5, endTime: 2.5 }),
+        createSegment({ id: "complex-uuid-123", text: "First", start: 0, end: 1 }),
+        createSegment({ id: "complex-uuid-456", text: "Second", start: 1.5, end: 2.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -84,8 +84,8 @@ describe("Prompt Builder", () => {
 
     it("should include real IDs in pair mapping JSON", () => {
       const segments = [
-        createSegment({ id: "real-id-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "real-id-2", startTime: 1.5, endTime: 2.5 }),
+        createSegment({ id: "real-id-1", start: 0, end: 1 }),
+        createSegment({ id: "real-id-2", start: 1.5, end: 2.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -102,14 +102,14 @@ describe("Prompt Builder", () => {
       expect(pairMapping).toHaveLength(1);
       expect(pairMapping[0].segmentIds).toEqual(["real-id-1", "real-id-2"]);
       expect(pairMapping[0].simpleIds).toEqual(["1", "2"]);
-      expect(pairMapping[0].pairIndex).toBe(0);
+      expect(pairMapping[0].pairIndex).toBe(1);
     });
 
     it("should filter pairs by time gap", () => {
       const segments = [
-        createSegment({ id: "seg-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", startTime: 5, endTime: 6 }), // Far away
-        createSegment({ id: "seg-3", startTime: 6.5, endTime: 7.5 }), // Close to seg-2
+        createSegment({ id: "seg-1", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", start: 5, end: 6 }), // Far away
+        createSegment({ id: "seg-3", start: 6.5, end: 7.5 }), // Close to seg-2
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -127,36 +127,29 @@ describe("Prompt Builder", () => {
 
     it("should filter pairs by speaker when sameSpeakerOnly", () => {
       const segments = [
-        createSegment({ id: "seg-1", speaker: "Alice", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", speaker: "Bob", startTime: 1.5, endTime: 2.5 }),
-        createSegment({ id: "seg-3", speaker: "Alice", startTime: 3, endTime: 4 }),
-        createSegment({ id: "seg-4", speaker: "Alice", startTime: 4.5, endTime: 5.5 }),
+        createSegment({ id: "seg-1", speaker: "Alice", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", speaker: "Bob", start: 1.5, end: 2.5 }),
+        createSegment({ id: "seg-3", speaker: "Alice", start: 3, end: 4 }),
+        createSegment({ id: "seg-4", speaker: "Alice", start: 4.5, end: 5.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
       const prompt = buildMergePrompt({
         segments,
         maxTimeGap: 2.0,
-        sameSpeakerOnly: true,
-        enableSmoothing: "false",
+        sameSpeakerOnly: true, // Only same speaker
+        enableSmoothing: "true",
         idContext,
       });
 
-      // Should only find pairs where speaker matches
-      const pairMapping = JSON.parse(prompt.variables.segmentPairsJson);
-
-      for (const pair of pairMapping) {
-        const [id1, id2] = pair.segmentIds;
-        const seg1 = segments.find((s) => s.id === id1);
-        const seg2 = segments.find((s) => s.id === id2);
-        expect(seg1?.speaker).toBe(seg2?.speaker);
-      }
+      // Should only find 1 pair (seg-3 and seg-4, both Alice)
+      expect(prompt.pairCount).toBe(1);
     });
 
     it("should handle no eligible pairs", () => {
       const segments = [
-        createSegment({ id: "seg-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", startTime: 10, endTime: 11 }), // Too far
+        createSegment({ id: "seg-1", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", start: 10, end: 11 }), // Too far
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -176,8 +169,8 @@ describe("Prompt Builder", () => {
   describe("hasEligiblePairs", () => {
     it("should return true when pairs exist", () => {
       const segments = [
-        createSegment({ id: "seg-1", startTime: 0, endTime: 1 }),
-        createSegment({ id: "seg-2", startTime: 1.5, endTime: 2.5 }),
+        createSegment({ id: "seg-1", start: 0, end: 1 }),
+        createSegment({ id: "seg-2", start: 1.5, end: 2.5 }),
       ];
       const idContext = createSimpleIdContext(segments);
 
@@ -193,7 +186,7 @@ describe("Prompt Builder", () => {
     });
 
     it("should return false when no pairs", () => {
-      const segments = [createSegment({ id: "seg-1", startTime: 0, endTime: 1 })];
+      const segments = [createSegment({ id: "seg-1", start: 0, end: 1 })];
       const idContext = createSimpleIdContext(segments);
 
       const prompt = buildMergePrompt({

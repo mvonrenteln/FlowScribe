@@ -149,20 +149,14 @@ export interface MergeAnalysisParams {
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
-}
 
-/**
- * Batch analysis parameters.
- */
-export interface BatchMergeAnalysisParams extends MergeAnalysisParams {
-  /** Batch size for processing */
-  batchSize: number;
-
-  /** Progress callback */
-  onProgress?: (processed: number, total: number) => void;
-
-  /** Called when suggestions are found */
-  onSuggestions?: (suggestions: MergeSuggestion[]) => void;
+  /** Progress callback for batch updates */
+  onProgress?: (progress: {
+    batchIndex: number;
+    totalBatches: number;
+    batchSuggestions: MergeSuggestion[];
+    processedCount: number;
+  }) => void;
 }
 
 // ==================== Analysis Results ====================

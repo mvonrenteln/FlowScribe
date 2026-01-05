@@ -22,7 +22,6 @@ export { analyzeMergeCandidates } from "./service";
 
 // Types
 export type {
-  BatchMergeAnalysisParams,
   MergeAnalysisIssue,
   MergeAnalysisParams,
   MergeAnalysisResult,

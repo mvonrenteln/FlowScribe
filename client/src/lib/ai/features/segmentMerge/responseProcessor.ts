@@ -173,7 +173,7 @@ export function processAIResponse(
       logger.warn("No raw response available for recovery");
       issues.push({
         level: "error",
-        message: result.error || "Failed to analyze segments",
+        message: "No raw response available for recovery",
       });
       return { suggestions: [], issues };
     }

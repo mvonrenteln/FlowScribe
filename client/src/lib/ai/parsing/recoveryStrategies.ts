@@ -157,9 +157,12 @@ export function jsonSubstringStrategy<T>(): RecoveryStrategy<T> {
       }
 
       const jsonCandidate = rawResponse.slice(firstBracket, lastBracket + 1);
-      const parsed = JSON.parse(jsonCandidate);
-
-      return Array.isArray(parsed) && parsed.length > 0 ? (parsed as T[]) : null;
+      try {
+        const parsed = JSON.parse(jsonCandidate);
+        return Array.isArray(parsed) && parsed.length > 0 ? (parsed as T[]) : null;
+      } catch {
+        return null;
+      }
     },
   };
 }

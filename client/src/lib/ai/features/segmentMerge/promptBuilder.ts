@@ -134,7 +134,7 @@ function buildPairMappingJson(pairs: ReturnType<typeof collectSegmentPairsWithSi
     pairs.map((pair) => ({
       pairIndex: pair.pairIndex,
       segmentIds: [pair.segmentA.id, pair.segmentB.id], // Real IDs
-      simpleIds: [pair.simpleIdA, pair.simpleIdB], // Simple IDs (for reference)
+      simpleIds: [String(pair.simpleIdA), String(pair.simpleIdB)], // Simple IDs (for reference)
     })),
   );
 }
