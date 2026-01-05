@@ -1,7 +1,16 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
 import { useTranscriptEditor } from "../useTranscriptEditor";
+
+vi.mock("../useNavigationHotkeys", () => ({
+  useNavigationHotkeys: vi.fn(),
+}));
+
+vi.mock("@/lib/audioHandleStorage", () => ({
+  loadAudioHandle: vi.fn().mockResolvedValue(null),
+  queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
+}));
 
 const resetStore = () => {
   useTranscriptStore.setState({
@@ -10,6 +19,7 @@ const resetStore = () => {
     audioRef: null,
     transcriptRef: null,
     sessionKey: "audio:none|transcript:none",
+    baseSessionKey: null,
     segments: [],
     speakers: [],
     selectedSegmentId: null,
@@ -24,6 +34,8 @@ const resetStore = () => {
     lexiconThreshold: 0.82,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    highlightLowConfidence: false,
+    manualConfidenceThreshold: null,
     spellcheckEnabled: false,
     spellcheckLanguages: ["de"],
     spellcheckIgnoreWords: [],

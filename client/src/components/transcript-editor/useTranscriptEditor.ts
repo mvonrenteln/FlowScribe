@@ -1,88 +1,13 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useMemo } from "react";
 import { toast } from "@/hooks/use-toast";
-import { loadAudioHandle, queryAudioHandlePermission } from "@/lib/audioHandleStorage";
-import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
-import { parseTranscriptData } from "@/lib/transcriptParsing";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
-import { useNavigationHotkeys } from "./useNavigationHotkeys";
-import { useScrollAndSelection } from "./useScrollAndSelection";
 import { useSearchAndReplace } from "./useSearchAndReplace";
+import { useSegmentSelection } from "./useSegmentSelection";
 import { useSpellcheck } from "./useSpellcheck";
-
-/**
- * SegmentHandlers
- *
- * Stable callback handlers for manipulating a single transcript segment.
- * These callbacks are intended to be passed directly to UI components
- * (for example `TranscriptSegment`) and should remain referentially
- * stable so child components can rely on memoization.
- *
- * Contract (inputs/outputs):
- * - onSelect(): void
- *     Selects the segment in the global store and typically causes the
- *     player to seek to the segment start time. No args, no return value.
- *
- * - onTextChange(text: string): void
- *     Replaces the segment's text with `text`. Implementations should
- *     call the appropriate store/update action and keep the UI in sync.
- *
- * - onSpeakerChange(speaker: string): void
- *     Changes the speaker for the segment. The string is the new speaker
- *     name (not id) as shown in the UI. Implementations should update
- *     the store and maintain consistent speaker lists.
- *
- * - onSplit(wordIndex: number): void
- *     Splits the segment at the given word index. `wordIndex` is the
- *     zero-based index of the word inside the segment at which the split
- *     should occur. Implementations should perform the split action and
- *     keep playback position / selection behaviour consistent.
- *
- * - onConfirm(): void
- *     Marks the segment as confirmed (accepted). No args.
- *
- * - onToggleBookmark(): void
- *     Toggles the bookmarked state for this segment.
- *
- * - onIgnoreLexiconMatch?(term: string, value: string): void
- *     Optional handler used to mark a lexicon match as a false positive
- *     (ignore for future matches). Parameters are the lexicon `term` and
- *     the matched `value` from the segment.
- *
- * - onMergeWithPrevious?(): void
- *     Optional handler to merge this segment with the previous adjacent
- *     segment. Present only when a merge-with-previous action is valid.
- *
- * - onMergeWithNext?(): void
- *     Optional handler to merge this segment with the next adjacent
- *     segment. Present only when a merge-with-next action is valid.
- *
- * - onDelete(): void
- *     Deletes the segment from the transcript.
- *
- * Usage notes / expectations:
- * - Handlers should be side-effecting: they typically call store actions
- *   (e.g. `updateSegmentText`, `splitSegment`, `mergeSegments`) and may
- *   update selection or playback state as appropriate.
- * - Optional handlers should be omitted when the corresponding action is
- *   not available (e.g. merging when segments are not adjacent). The UI
- *   can guard by checking for presence before rendering actionable items.
- * - Implementations should try to remain cheap and stable (use refs or
- *   store getters inside the handler) to avoid causing unnecessary re-renders
- *   in memoized children.
- */
-interface SegmentHandlers {
-  onSelect: () => void;
-  onTextChange: (text: string) => void;
-  onSpeakerChange: (speaker: string) => void;
-  onSplit: (wordIndex: number) => void;
-  onConfirm: () => void;
-  onToggleBookmark: () => void;
-  onIgnoreLexiconMatch?: (term: string, value: string) => void;
-  onMergeWithPrevious?: () => void;
-  onMergeWithNext?: () => void;
-  onDelete: () => void;
-}
+import { useTranscriptInitialization } from "./useTranscriptInitialization";
+import { useTranscriptPlayback } from "./useTranscriptPlayback";
+import { useTranscriptUIState } from "./useTranscriptUIState";
 
 export const useTranscriptEditor = () => {
   const transcriptActions = useMemo(() => {
@@ -102,7 +27,7 @@ export const useTranscriptEditor = () => {
       deleteSegment: state.deleteSegment,
       splitSegment: state.splitSegment,
       updateSegmentText: state.updateSegmentText,
-      updateSegmentsTexts: state.updateSegmentsTexts, // Added this action
+      updateSegmentsTexts: state.updateSegmentsTexts,
       updateSegmentSpeaker: state.updateSegmentSpeaker,
       updateSegmentTiming: state.updateSegmentTiming,
       addSpeaker: state.addSpeaker,
@@ -163,9 +88,41 @@ export const useTranscriptEditor = () => {
   const toggleHighlightLowConfidence = useTranscriptStore(
     (state) => state.toggleHighlightLowConfidence,
   );
-  const { setAudioFile, setAudioUrl, setAudioReference, activateSession, loadTranscript } =
-    transcriptActions;
+
   const {
+    sidebarOpen,
+    toggleSidebar,
+    showShortcuts,
+    setShowShortcuts,
+    showExport,
+    setShowExport,
+    showLexicon,
+    setShowLexicon,
+    showSpellcheckDialog,
+    setShowSpellcheckDialog,
+    showRevisionDialog,
+    setShowRevisionDialog,
+    showAISpeaker,
+    setShowAISpeaker,
+    showAISegmentMerge,
+    setShowAISegmentMerge,
+    showSettings,
+    setShowSettings,
+    confidencePopoverOpen,
+    setConfidencePopoverOpen,
+    spellcheckPopoverOpen,
+    setSpellcheckPopoverOpen,
+    editRequestId,
+    setEditRequestId,
+    handleClearEditRequest,
+  } = useTranscriptUIState();
+
+  const {
+    setAudioFile,
+    setAudioUrl,
+    setAudioReference,
+    activateSession,
+    loadTranscript,
     mergeSegments,
     setSelectedSegmentId,
     toggleSegmentBookmark,
@@ -173,7 +130,7 @@ export const useTranscriptEditor = () => {
     deleteSegment,
     splitSegment,
     updateSegmentText,
-    updateSegmentsTexts, // Destructured the new action
+    updateSegmentsTexts,
     updateSegmentSpeaker,
     updateSegmentTiming,
     addSpeaker,
@@ -184,10 +141,11 @@ export const useTranscriptEditor = () => {
     canUndo,
     canRedo,
     createRevision,
-  } = transcriptActions;
-  const { setCurrentTime, setIsPlaying, setDuration, requestSeek, clearSeekRequest } =
-    transcriptActions;
-  const {
+    setCurrentTime,
+    setIsPlaying,
+    setDuration,
+    requestSeek,
+    clearSeekRequest,
     loadSpellcheckCustomDictionaries,
     addSpellcheckIgnoreWord,
     addLexiconFalsePositive,
@@ -197,21 +155,16 @@ export const useTranscriptEditor = () => {
     setSpellcheckCustomEnabled,
   } = transcriptActions;
 
-  const [showShortcuts, setShowShortcuts] = useState(false);
-  const [showExport, setShowExport] = useState(false);
-  const [showLexicon, setShowLexicon] = useState(false);
-  const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
-  const [showRevisionDialog, setShowRevisionDialog] = useState(false);
-  const [showAISpeaker, setShowAISpeaker] = useState(false);
-  const [showAISegmentMerge, setShowAISegmentMerge] = useState(false);
-  const [showSettings, setShowSettings] = useState(false);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
-  const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
-  const [playbackRate, setPlaybackRate] = useState(1);
-  const [editRequestId, setEditRequestId] = useState<string | null>(null);
-  const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
-  const restoreAttemptedRef = useRef(false);
-  const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
+  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady, isWaveReady } =
+    useTranscriptInitialization({
+      audioFile,
+      audioUrl,
+      setAudioFile,
+      setAudioUrl,
+      setAudioReference,
+      loadTranscript,
+    });
+
   const canUndoChecked = canUndo();
   const canRedoChecked = canRedo();
   const canCreateRevision = segments.length > 0;
@@ -220,80 +173,6 @@ export const useTranscriptEditor = () => {
     () => document.body?.dataset.transcriptEditing === "true",
     [],
   );
-
-  const handleAudioUpload = useCallback(
-    (file: File) => {
-      setAudioFile(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setAudioReference(buildFileReference(file));
-    },
-    [setAudioFile, setAudioReference, setAudioUrl],
-  );
-
-  const handleTranscriptUpload = useCallback(
-    (data: unknown, reference?: FileReference | null) => {
-      const parsed = parseTranscriptData(data);
-      if (!parsed) {
-        console.error("Unknown transcript format. Expected Whisper or WhisperX format.");
-        return;
-      }
-
-      loadTranscript({
-        segments: parsed.segments,
-        isWhisperXFormat: parsed.isWhisperXFormat,
-        reference: reference ?? null,
-      });
-    },
-    [loadTranscript],
-  );
-
-  const handleCreateRevision = useCallback(
-    (name: string, overwrite?: boolean) => {
-      const createdKey = createRevision(name, overwrite);
-      if (createdKey) {
-        toast({
-          title: "Revision saved",
-          description: `“${name.trim()}” is now listed in Recent sessions.`,
-        });
-        setShowRevisionDialog(false);
-      }
-      return createdKey;
-    },
-    [createRevision],
-  );
-
-  useEffect(() => {
-    if (restoreAttemptedRef.current || audioFile) return;
-    restoreAttemptedRef.current = true;
-    let isMounted = true;
-
-    loadAudioHandle()
-      .then(async (handle) => {
-        if (!handle || !isMounted) return;
-        const granted = await queryAudioHandlePermission(handle);
-        if (!granted || !isMounted) return;
-        const file = await handle.getFile();
-        if (isMounted) {
-          handleAudioUpload(file);
-        }
-      })
-      .catch((err) => {
-        console.error("Failed to restore audio handle:", err);
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [audioFile, handleAudioUpload]);
-
-  useEffect(() => {
-    setIsWaveReady(!audioUrl);
-  }, [audioUrl]);
-
-  const handleWaveReady = useCallback(() => {
-    setIsWaveReady(true);
-  }, []);
 
   const {
     effectiveSpellcheckLanguages,
@@ -328,7 +207,6 @@ export const useTranscriptEditor = () => {
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
-    // highlightLowConfidence, setHighlightLowConfidence, setManualConfidenceThreshold from store
     activeSpeakerName,
     lowConfidenceThreshold,
     lexiconMatchesBySegment,
@@ -374,13 +252,6 @@ export const useTranscriptEditor = () => {
     allMatches,
   } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
 
-  // Sync selection and scroll to current match
-  useEffect(() => {
-    if (currentMatch) {
-      setSelectedSegmentId(currentMatch.segmentId);
-    }
-  }, [currentMatch, setSelectedSegmentId]);
-
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
       renameSpeaker(oldName, newName);
@@ -388,116 +259,45 @@ export const useTranscriptEditor = () => {
     [renameSpeaker],
   );
 
-  const handlePlayPause = useCallback(() => {
-    setIsPlaying(!isPlaying);
-  }, [isPlaying, setIsPlaying]);
-
-  const handleSeek = useCallback(
-    (time: number) => {
-      setCurrentTime(time);
-      requestSeek(time);
-    },
-    [requestSeek, setCurrentTime],
-  );
-
-  const handleSkipBack = useCallback(() => {
-    requestSeek(Math.max(0, currentTime - 5));
-  }, [currentTime, requestSeek]);
-
-  const handleSkipForward = useCallback(() => {
-    requestSeek(Math.min(duration, currentTime + 5));
-  }, [currentTime, duration, requestSeek]);
-
-  const getSelectedSegmentIndex = useCallback(() => {
-    return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
-  }, [filteredSegments, selectedSegmentId]);
-
-  const selectPreviousSegment = useCallback(() => {
-    const currentIndex = getSelectedSegmentIndex();
-    if (currentIndex > 0) {
-      const segment = filteredSegments[currentIndex - 1];
-      setSelectedSegmentId(segment.id);
-      handleSeek(segment.start);
-    } else if (currentIndex === -1 && filteredSegments.length > 0) {
-      const segment = filteredSegments[filteredSegments.length - 1];
-      setSelectedSegmentId(segment.id);
-      handleSeek(segment.start);
-    }
-  }, [getSelectedSegmentIndex, filteredSegments, setSelectedSegmentId, handleSeek]);
-
-  const selectNextSegment = useCallback(() => {
-    const currentIndex = getSelectedSegmentIndex();
-    if (currentIndex < filteredSegments.length - 1) {
-      const segment = filteredSegments[currentIndex + 1];
-      setSelectedSegmentId(segment.id);
-      handleSeek(segment.start);
-    } else if (currentIndex === -1 && filteredSegments.length > 0) {
-      const segment = filteredSegments[0];
-      setSelectedSegmentId(segment.id);
-      handleSeek(segment.start);
-    }
-  }, [getSelectedSegmentIndex, filteredSegments, setSelectedSegmentId, handleSeek]);
-
-  const { transcriptListRef, activeSegment } = useScrollAndSelection({
+  const {
+    transcriptListRef,
+    activeSegmentId,
+    activeWordIndex,
+    splitWordIndex,
+    canSplitAtCurrentWord,
+    handleSplitAtCurrentWord,
+    segmentHandlers,
+    selectPreviousSegment,
+    selectNextSegment,
+  } = useSegmentSelection({
     segments,
-    currentTime,
-    selectedSegmentId,
-    isPlaying,
-    isTranscriptEditing,
-    activeSpeakerName,
     filteredSegments,
-    restrictPlaybackToFiltered: filterLowConfidence,
-    lowConfidenceThreshold,
+    currentTime,
+    isPlaying,
+    selectedSegmentId,
     setSelectedSegmentId,
-    requestSeek,
+    setCurrentTime,
     setIsPlaying,
+    requestSeek,
+    clearSeekRequest,
+    splitSegment,
+    confirmSegment,
+    toggleSegmentBookmark,
+    deleteSegment,
+    updateSegmentText,
+    updateSegmentSpeaker,
+    mergeSegments,
+    addLexiconFalsePositive,
+    filterLowConfidence,
+    activeSpeakerName,
+    lowConfidenceThreshold,
+    isTranscriptEditing,
   });
-
-  const getSplitWordIndex = useCallback(() => {
-    if (!activeSegment) return null;
-    const { words } = activeSegment;
-    if (words.length < 2) return null;
-    let index = words.findIndex((word) => currentTime >= word.start && currentTime <= word.end);
-    if (index === -1) {
-      index = words.findIndex((word) => currentTime < word.start);
-      if (index === -1) {
-        index = words.length - 1;
-      }
-    }
-    if (index <= 0) {
-      return words.length > 1 ? 1 : null;
-    }
-    if (index >= words.length) return null;
-    return index;
-  }, [activeSegment, currentTime]);
-
-  const handleSplitSegment = useCallback(
-    (segmentId: string, wordIndex: number) => {
-      const wasPlaying = isPlaying;
-      const resumeTime = currentTime;
-      splitSegment(segmentId, wordIndex);
-      if (wasPlaying) {
-        setCurrentTime(resumeTime);
-        clearSeekRequest();
-      }
-    },
-    [clearSeekRequest, currentTime, isPlaying, setCurrentTime, splitSegment],
-  );
-
-  const handleSplitAtCurrentWord = useCallback(() => {
-    const index = getSplitWordIndex();
-    if (index === null || !activeSegment) return;
-    handleSplitSegment(activeSegment.id, index);
-  }, [activeSegment, getSplitWordIndex, handleSplitSegment]);
-
-  const splitWordIndex = getSplitWordIndex();
-  const canSplitAtCurrentWord = splitWordIndex !== null;
 
   // AI Revision: Get store functions
   const startSingleRevision = useTranscriptStore((state) => state.startSingleRevision);
   const aiRevisionConfig = useTranscriptStore((state) => state.aiRevisionConfig);
 
-  // AI Revision: Run default prompt on selected segment
   const handleRunDefaultAIRevision = useCallback(() => {
     if (!selectedSegmentId) return;
     const defaultPromptId = aiRevisionConfig.defaultPromptId;
@@ -510,12 +310,10 @@ export const useTranscriptEditor = () => {
       return;
     }
     startSingleRevision(selectedSegmentId, defaultPromptId);
-  }, [selectedSegmentId, aiRevisionConfig.defaultPromptId, startSingleRevision]);
+  }, [aiRevisionConfig.defaultPromptId, selectedSegmentId, startSingleRevision]);
 
-  // AI Revision: Open menu for selected segment (focus the segment's AI button)
   const handleOpenAIRevisionMenu = useCallback(() => {
     if (!selectedSegmentId) return;
-    // Find the AI button for the selected segment and click it
     const segmentEl = document.querySelector(`[data-segment-id="${selectedSegmentId}"]`);
     if (segmentEl) {
       const aiButton = segmentEl.querySelector('[aria-label*="AI"]') as HTMLButtonElement;
@@ -525,134 +323,60 @@ export const useTranscriptEditor = () => {
     }
   }, [selectedSegmentId]);
 
-  useNavigationHotkeys({
+  const playback = useTranscriptPlayback({
     isTranscriptEditing,
-    handleSkipBack,
-    handleSkipForward,
-    handleSeek,
-    duration,
+    isPlaying,
     currentTime,
-    handlePlayPause,
-    setSelectedSegmentId,
-    clearSpeakerFilter: () => setFilterSpeakerId(undefined),
+    duration,
+    filteredSegments,
     selectedSegmentId,
     segments,
     speakers,
-    updateSegmentSpeaker,
-    getSelectedSegmentIndex,
-    mergeSegments,
-    toggleSegmentBookmark,
-    confirmSegment,
-    deleteSegment,
-    setEditRequestId: (id) => setEditRequestId(id),
-    requestSeek,
-    setIsPlaying,
-    handleSplitAtCurrentWord,
     canUndo,
     canRedo,
     undo,
     redo,
+    handleSplitAtCurrentWord,
+    canSplitAtCurrentWord,
     selectPreviousSegment,
     selectNextSegment,
+    mergeSegments,
+    toggleSegmentBookmark,
+    confirmSegment,
+    deleteSegment,
+    updateSegmentSpeaker,
+    setSelectedSegmentId,
+    setCurrentTime,
+    setIsPlaying,
+    requestSeek,
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
     onShowSettings: () => setShowSettings(true),
     onRunDefaultAIRevision: handleRunDefaultAIRevision,
     onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
     onOpenAISegmentMerge: () => setShowAISegmentMerge(true),
+    setEditRequestId,
+    onClearSpeakerFilter: () => setFilterSpeakerId(undefined),
+    hasAudioSource: Boolean(audioUrl),
   });
 
-  const handleClearEditRequest = useCallback(() => setEditRequestId(null), []);
-  const activeSegmentId = activeSegment?.id ?? null;
-  const activeWordIndex = useMemo(() => {
-    if (!activeSegment) return -1;
-    return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
-  }, [activeSegment, currentTime]);
-
-  const handlerCacheRef = useRef<Map<string, SegmentHandlers>>(new Map());
-
-  const segmentHandlers = useMemo(() => {
-    // Clear cache entries for segments that are no longer in segments (optional but good)
-    const currentIds = new Set(segments.map((s) => s.id));
-    for (const id of Array.from(handlerCacheRef.current.keys())) {
-      if (!currentIds.has(id)) {
-        handlerCacheRef.current.delete(id);
+  const handleCreateRevision = useCallback(
+    (name: string, overwrite?: boolean) => {
+      const createdKey = createRevision(name, overwrite);
+      if (createdKey) {
+        toast({
+          title: "Revision saved",
+          description: `“${name.trim()}” is now listed in Recent sessions.`,
+        });
+        setShowRevisionDialog(false);
       }
-    }
+      return createdKey;
+    },
+    [createRevision, setShowRevisionDialog],
+  );
 
-    const segmentIndexById = new Map(segments.map((segment, idx) => [segment.id, idx]));
-
-    return filteredSegments.map((segment, index) => {
-      let handlers = handlerCacheRef.current.get(segment.id) as SegmentHandlers | undefined;
-
-      const previousSegment = filteredSegments[index - 1];
-      const nextSegment = filteredSegments[index + 1];
-
-      const areAdjacent = (idA: string, idB: string) => {
-        const indexA = segmentIndexById.get(idA);
-        const indexB = segmentIndexById.get(idB);
-        if (indexA === undefined || indexB === undefined) return false;
-        return Math.abs(indexA - indexB) === 1;
-      };
-
-      if (!handlers) {
-        handlers = {
-          onSelect: () => {
-            // Use stable refs/store for values that might change
-            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
-            if (current) {
-              setSelectedSegmentId(current.id);
-              handleSeek(current.start);
-            }
-          },
-          onTextChange: (text: string) => updateSegmentText(segment.id, text),
-          onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
-          onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
-          onConfirm: () => confirmSegment(segment.id),
-          onToggleBookmark: () => toggleSegmentBookmark(segment.id),
-          onIgnoreLexiconMatch: (term: string, value: string) =>
-            addLexiconFalsePositive(term, value),
-          onDelete: () => deleteSegment(segment.id),
-        };
-        handlerCacheRef.current.set(segment.id, handlers);
-      }
-
-      // Merge handlers are position-dependent, so we update them every time.
-      // But since they are only updated when filteredSegments changes, it's okay.
-      handlers.onMergeWithPrevious =
-        index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
-          ? () => {
-              const currentMergedId = mergeSegments(previousSegment.id, segment.id);
-              if (currentMergedId) setSelectedSegmentId(currentMergedId);
-            }
-          : undefined;
-
-      handlers.onMergeWithNext =
-        index < filteredSegments.length - 1 &&
-        nextSegment &&
-        areAdjacent(segment.id, nextSegment.id)
-          ? () => {
-              const currentMergedId = mergeSegments(segment.id, nextSegment.id);
-              if (currentMergedId) setSelectedSegmentId(currentMergedId);
-            }
-          : undefined;
-
-      return handlers;
-    });
-  }, [
-    filteredSegments,
-    mergeSegments,
-    setSelectedSegmentId,
-    handleSeek,
-    handleSplitSegment,
-    updateSegmentText,
-    updateSegmentSpeaker,
-    confirmSegment,
-    toggleSegmentBookmark,
-    addLexiconFalsePositive,
-    deleteSegment,
-    segments,
-  ]);
+  const activeSessionDisplayName =
+    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? "Current session";
 
   const emptyState = useMemo(
     () =>
@@ -672,7 +396,7 @@ export const useTranscriptEditor = () => {
       speakers,
       currentTime,
       isPlaying,
-      playbackRate,
+      playbackRate: playback.playbackRate,
       showSpeakerRegions: isWhisperXFormat,
       onTimeUpdate: setCurrentTime,
       onPlayPause: setIsPlaying,
@@ -687,7 +411,7 @@ export const useTranscriptEditor = () => {
       handleWaveReady,
       isPlaying,
       isWhisperXFormat,
-      playbackRate,
+      playback.playbackRate,
       segments,
       setCurrentTime,
       setDuration,
@@ -697,43 +421,10 @@ export const useTranscriptEditor = () => {
     ],
   );
 
-  const playbackControlsProps = useMemo(
-    () => ({
-      isPlaying,
-      currentTime,
-      duration,
-      playbackRate,
-      onPlaybackRateChange: setPlaybackRate,
-      onPlayPause: handlePlayPause,
-      onSeek: handleSeek,
-      onSkipBack: handleSkipBack,
-      onSkipForward: handleSkipForward,
-      onSplitAtCurrentWord: handleSplitAtCurrentWord,
-      canSplitAtCurrentWord,
-      disabled: !audioUrl,
-    }),
-    [
-      audioUrl,
-      canSplitAtCurrentWord,
-      currentTime,
-      duration,
-      handlePlayPause,
-      handleSeek,
-      handleSkipBack,
-      handleSkipForward,
-      handleSplitAtCurrentWord,
-      isPlaying,
-      playbackRate,
-    ],
-  );
-
-  const activeSessionDisplayName =
-    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? "Current session";
-
   const toolbarProps = useMemo(
     () => ({
       sidebarOpen,
-      onToggleSidebar: () => setSidebarOpen((current) => !current),
+      onToggleSidebar: toggleSidebar,
       onAudioUpload: handleAudioUpload,
       onTranscriptUpload: handleTranscriptUpload,
       audioFileName: audioFile?.name,
@@ -785,11 +476,11 @@ export const useTranscriptEditor = () => {
       onShowAISegmentMerge: () => setShowAISegmentMerge(true),
     }),
     [
+      sidebarOpen,
       activateSession,
       audioFile?.name,
       canRedoChecked,
       canUndoChecked,
-      confidencePopoverOpen,
       effectiveSpellcheckLanguages,
       handleAudioUpload,
       handleTranscriptUpload,
@@ -798,7 +489,6 @@ export const useTranscriptEditor = () => {
       recentSessions,
       redo,
       segments.length,
-      sidebarOpen,
       setHighlightLowConfidence,
       setManualConfidenceThreshold,
       setSpellcheckCustomEnabled,
@@ -809,10 +499,22 @@ export const useTranscriptEditor = () => {
       spellcheckDebugEnabled,
       spellcheckEnabled,
       spellcheckLanguages,
-      spellcheckPopoverOpen,
       spellcheckers,
       transcriptRef?.name,
       undo,
+      toggleSidebar,
+      setShowRevisionDialog,
+      setShowShortcuts,
+      setShowExport,
+      confidencePopoverOpen,
+      setConfidencePopoverOpen,
+      spellcheckPopoverOpen,
+      setSpellcheckPopoverOpen,
+      setShowSettings,
+      setShowSpellcheckDialog,
+      setShowLexicon,
+      setShowAISpeaker,
+      setShowAISegmentMerge,
       showLexiconMatches,
       showSpellcheckMatches,
       sessionKey,
@@ -934,7 +636,7 @@ export const useTranscriptEditor = () => {
       editRequestId,
       onClearEditRequest: handleClearEditRequest,
       segmentHandlers,
-      onSeek: handleSeek,
+      onSeek: playback.handleSeekInternal,
       onIgnoreSpellcheckMatch: addSpellcheckIgnoreWord,
       onAddSpellcheckToGlossary: addLexiconEntry,
       emptyState,
@@ -954,10 +656,8 @@ export const useTranscriptEditor = () => {
       addSpellcheckIgnoreWord,
       effectiveLexiconHighlightBackground,
       effectiveLexiconHighlightUnderline,
-      editRequestId,
       emptyState,
       filteredSegments,
-      handleSeek,
       highlightLowConfidence,
       lexiconMatchesBySegment,
       lowConfidenceThreshold,
@@ -969,6 +669,7 @@ export const useTranscriptEditor = () => {
       spellcheckMatchesBySegment,
       splitWordIndex,
       transcriptListRef,
+      playback.handleSeekInternal,
       searchQuery,
       isRegexSearch,
       currentMatch,
@@ -977,6 +678,7 @@ export const useTranscriptEditor = () => {
       onMatchClick,
       findMatchIndex,
       allMatches,
+      editRequestId,
       handleClearEditRequest,
     ],
   );
@@ -1030,17 +732,25 @@ export const useTranscriptEditor = () => {
       handleCreateRevision,
       sessionKind,
       segments,
-      showExport,
-      showRevisionDialog,
-      showLexicon,
-      showShortcuts,
-      showSpellcheckDialog,
       recentSessions,
       sessionKey,
       sessionLabel,
+      showShortcuts,
+      showExport,
+      showLexicon,
+      showSpellcheckDialog,
+      showRevisionDialog,
       showAISpeaker,
       showAISegmentMerge,
       showSettings,
+      setShowShortcuts,
+      setShowExport,
+      setShowLexicon,
+      setShowSpellcheckDialog,
+      setShowRevisionDialog,
+      setShowAISpeaker,
+      setShowAISegmentMerge,
+      setShowSettings,
     ],
   );
 
@@ -1050,7 +760,7 @@ export const useTranscriptEditor = () => {
     filterPanelProps,
     playbackPaneProps: {
       waveformProps,
-      playbackControlsProps,
+      playbackControlsProps: playback.playbackControlsProps,
     },
     transcriptListProps,
     dialogProps,
