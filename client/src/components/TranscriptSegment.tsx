@@ -1,4 +1,3 @@
-import type { KeyboardEvent } from "react";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -117,6 +116,7 @@ function TranscriptSegmentComponent({
     handleEditKeyDown,
     handleSaveEdit,
     handleSegmentClick,
+    handleSegmentDoubleClick,
     handleSelectKeyDown,
     handleStartEdit,
     isEditing,
@@ -139,13 +139,6 @@ function TranscriptSegmentComponent({
   const isConfirmed = segment.confirmed === true;
   const isBookmarked = segment.bookmarked === true;
 
-  const handleStartEditKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      handleStartEdit();
-    }
-  };
-
   return (
     <article // NOSONAR
       className={cn(
@@ -155,6 +148,7 @@ function TranscriptSegmentComponent({
         !isSelected && !isActive && "hover-elevate",
       )}
       onClick={handleSegmentClick}
+      onDoubleClick={handleSegmentDoubleClick}
       onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
@@ -218,10 +212,16 @@ function TranscriptSegmentComponent({
             />
           ) : (
             <div
-              onDoubleClick={handleStartEdit}
-              onKeyDown={handleStartEditKeyDown}
-              role="button"
-              tabIndex={0}
+              onMouseDown={(event) => {
+                // Only prevent default for single clicks, not double clicks
+                if (event.detail === 1) {
+                  event.preventDefault();
+                }
+              }}
+              className="text-base leading-relaxed outline-none"
+              role="textbox"
+              aria-readonly="true"
+              tabIndex={-1}
             >
               <WordList
                 segment={segment}
