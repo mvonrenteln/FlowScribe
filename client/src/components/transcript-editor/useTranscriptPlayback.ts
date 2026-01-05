@@ -97,25 +97,43 @@ export const useTranscriptPlayback = ({
     setIsPlaying(!isPlaying);
   }, [isPlaying, setIsPlaying]);
 
-  const handleSeek = useCallback(
+  const syncSelectionForTime = useCallback(
     (time: number) => {
       setCurrentTime(time);
-      requestSeek(time);
       const targetSegment = findSegmentAtTime(time);
       if (targetSegment) {
         setSelectedSegmentId(targetSegment.id);
       }
     },
-    [findSegmentAtTime, requestSeek, setCurrentTime, setSelectedSegmentId],
+    [findSegmentAtTime, setCurrentTime, setSelectedSegmentId],
+  );
+
+  const handleSeek = useCallback(
+    (time: number) => {
+      syncSelectionForTime(time);
+      requestSeek(time);
+    },
+    [requestSeek, syncSelectionForTime],
+  );
+
+  const handleWaveformSeek = useCallback(
+    (time: number) => {
+      syncSelectionForTime(time);
+    },
+    [syncSelectionForTime],
   );
 
   const handleSkipBack = useCallback(() => {
-    requestSeek(Math.max(0, currentTime - 5));
-  }, [currentTime, requestSeek]);
+    const target = Math.max(0, currentTime - 5);
+    syncSelectionForTime(target);
+    requestSeek(target);
+  }, [currentTime, requestSeek, syncSelectionForTime]);
 
   const handleSkipForward = useCallback(() => {
-    requestSeek(Math.min(duration, currentTime + 5));
-  }, [currentTime, duration, requestSeek]);
+    const target = Math.min(duration, currentTime + 5);
+    syncSelectionForTime(target);
+    requestSeek(target);
+  }, [currentTime, duration, requestSeek, syncSelectionForTime]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -192,6 +210,7 @@ export const useTranscriptPlayback = ({
     playbackControlsProps,
     playbackRate,
     handleSeek,
+    handleWaveformSeek,
     setPlaybackRate,
     handlePlayPause,
     handleSkipBack,
