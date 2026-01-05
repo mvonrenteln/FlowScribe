@@ -1,5 +1,5 @@
 # Segment Merge – User Guide
-*Last Updated: January 4, 2026*
+*Last Updated: January 5, 2026*
 
 ---
 
@@ -7,7 +7,7 @@
 
 **Segment Merge** helps you combine fragmented transcript segments into coherent units. Merge manually with a click, or let AI suggest which segments should be combined.
 
-> 💡 **Manual-First Design:** Manual merging is fully functional and has been available since the beginning. AI suggestions are an optional enhancement.
+> 💡 **Manual-First Design:** Manual merging is fully functional and has been available since the beginning. AI suggestions are an optional enhancement that uses integrated AI providers (OpenAI, Ollama, or custom).
 
 ### New: Text Smoothing 🆕
 
@@ -435,5 +435,5 @@ Use Ollama for fully local AI processing.
 
 ---
 
-*For technical details, see [Architecture](architecture/ai-features-unified.md).*
+*For technical details and developer documentation, see [AI Segment Merge – Technical Architecture](architecture/ai-segment-merge.md).*
 

@@ -16,3 +16,37 @@ Comprehensive guide to the unified AI architecture including:
 
 All developer APIs, patterns, and implementation guidelines are documented there.
 
+---
+
+## Feature-Specific Architecture
+
+### AI Segment Merge
+📄 [`ai-segment-merge.md`](./ai-segment-merge.md)
+
+Technical guide for segment merge feature including:
+- Manual merge engine and AI analysis service
+- Text smoothing system for fixing transcription artifacts
+- Response parsing and validation
+- State management and UI components
+- Testing strategy and extensibility points
+- Developer quick start
+
+User guide available at [`../ai-segment-merge-suggestion.md`](../ai-segment-merge-suggestion.md).
+
+### AI Text Revision
+📄 [`ai-transcript-revision.md`](./ai-transcript-revision.md)
+
+Technical architecture for text revision feature including:
+- Prompt system design (built-in and custom)
+- Provider/model abstraction
+- Diff computation and timing alignment
+- Batch processing workflows
+- UI components and accessibility
+- State management and testing
+
+---
+
+## Other References
+
+- **PR Segment Merge Implementation**: [`PR_segment_merge.md`](./PR_segment_merge.md) - Details of the segment merge feature implementation and integration
+
