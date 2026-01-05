@@ -150,13 +150,33 @@ export interface MergeAnalysisParams {
   /** Abort signal for cancellation */
   signal?: AbortSignal;
 
-  /** Progress callback for batch updates */
-  onProgress?: (progress: {
-    batchIndex: number;
-    totalBatches: number;
-    batchSuggestions: MergeSuggestion[];
-    processedCount: number;
-  }) => void;
+  /** Progress callback */
+  onProgress?: (progress: MergeAnalysisProgress) => void;
+
+  /** Optional system prompt override (from store) */
+  systemPrompt?: string;
+
+  /** Optional user template override (from store) */
+  userTemplate?: string;
+}
+
+// ==================== Analysis Progress ====================
+
+/**
+ * Progress information during batch analysis.
+ */
+export interface MergeAnalysisProgress {
+  /** Current batch index (1-based) */
+  batchIndex: number;
+
+  /** Total number of batches */
+  totalBatches: number;
+
+  /** Suggestions from the current batch */
+  batchSuggestions: MergeSuggestion[];
+
+  /** Total number of segments processed so far */
+  processedCount: number;
 }
 
 // ==================== Analysis Results ====================

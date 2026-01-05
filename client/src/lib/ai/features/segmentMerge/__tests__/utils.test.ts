@@ -288,7 +288,11 @@ describe("segmentMerge utils", () => {
     });
 
     it("chunks purely by size when filtering is disabled", () => {
-      const segments = [makeSegment("1", "Alice"), makeSegment("2", "Bob"), makeSegment("3", "Eve")];
+      const segments = [
+        makeSegment("1", "Alice"),
+        makeSegment("2", "Bob"),
+        makeSegment("3", "Eve"),
+      ];
       const batches = createSegmentBatches(segments, 2, false);
 
       expect(batches).toHaveLength(2);

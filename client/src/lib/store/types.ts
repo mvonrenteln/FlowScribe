@@ -88,6 +88,8 @@ export interface PersistedGlobalState {
   manualConfidenceThreshold?: number | null;
   // AI Revision config
   aiRevisionConfig?: AIRevisionConfig;
+  // AI Segment Merge config
+  aiSegmentMergeConfig?: AISegmentMergeConfig;
 }
 
 export interface RecentSessionSummary {
@@ -306,7 +308,7 @@ export interface AISpeakerBatchInsight {
   elapsedMs?: number;
 }
 
-export type PromptType = "speaker" | "text";
+export type PromptType = "speaker" | "text" | "segment-merge";
 
 export interface AIPrompt {
   id: string;
@@ -459,6 +461,10 @@ export interface AISegmentMergeConfig {
   selectedModel?: string;
   /** Batch size for analysis */
   batchSize: number;
+  /** Available prompts for segment merge analysis */
+  prompts: AIPrompt[];
+  /** ID of the currently active prompt */
+  activePromptId: string;
 }
 
 export interface AISegmentMergeSlice {
@@ -479,4 +485,9 @@ export interface AISegmentMergeSlice {
   rejectAllSuggestions: () => void;
   clearMergeSuggestions: () => void;
   updateMergeConfig: (config: Partial<AISegmentMergeConfig>) => void;
+  // Prompt management
+  addSegmentMergePrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updateSegmentMergePrompt: (id: string, updates: Partial<AIPrompt>) => void;
+  deleteSegmentMergePrompt: (id: string) => void;
+  setActiveSegmentMergePrompt: (id: string) => void;
 }

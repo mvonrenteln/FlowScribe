@@ -11,32 +11,26 @@
 import type { StoreApi } from "zustand";
 import type { MergeAnalysisResult, MergeSuggestion } from "@/lib/ai/features/segmentMerge";
 import type {
+  AIPrompt,
   AISegmentMergeConfig,
   AISegmentMergeSlice,
   AISegmentMergeSuggestion,
   Segment,
   TranscriptStore,
 } from "../types";
+import { normalizeAISegmentMergeConfig } from "../utils/aiSegmentMergeConfig";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
-// ==================== Constants ====================
-
-export const DEFAULT_SEGMENT_MERGE_CONFIG: AISegmentMergeConfig = {
-  defaultMaxTimeGap: 2,
-  defaultMinConfidence: "medium",
-  defaultEnableSmoothing: true,
-  showInlineHints: true,
-  batchSize: 20,
-};
+// ==================== Initial State ====================
 
 export const initialAISegmentMergeState = {
   aiSegmentMergeSuggestions: [] as AISegmentMergeSuggestion[],
   aiSegmentMergeIsProcessing: false,
   aiSegmentMergeProcessedCount: 0,
   aiSegmentMergeTotalToProcess: 0,
-  aiSegmentMergeConfig: { ...DEFAULT_SEGMENT_MERGE_CONFIG },
+  aiSegmentMergeConfig: normalizeAISegmentMergeConfig(),
   aiSegmentMergeError: null as string | null,
   aiSegmentMergeAbortController: null as AbortController | null,
 };
@@ -114,6 +108,7 @@ export const createAISegmentMergeSlice = (
     });
 
     // Prepare analysis parameters
+    const activePrompt = config.prompts.find((p) => p.id === config.activePromptId);
     const analysisParams = {
       segments: segmentsToAnalyze.map(toMergeAnalysisSegment),
       maxTimeGap: options.maxTimeGap ?? config.defaultMaxTimeGap,
@@ -122,6 +117,8 @@ export const createAISegmentMergeSlice = (
       enableSmoothing: options.enableSmoothing ?? config.defaultEnableSmoothing,
       batchSize: options.batchSize ?? 10,
       signal: abortController.signal,
+      systemPrompt: activePrompt?.systemPrompt,
+      userTemplate: activePrompt?.userPromptTemplate,
       onProgress: (progress: {
         batchIndex: number;
         totalBatches: number;
@@ -286,10 +283,64 @@ export const createAISegmentMergeSlice = (
   updateMergeConfig: (configUpdate) => {
     const state = get();
     set({
-      aiSegmentMergeConfig: {
+      aiSegmentMergeConfig: normalizeAISegmentMergeConfig({
         ...state.aiSegmentMergeConfig,
         ...configUpdate,
-      },
+      }),
+    });
+  },
+
+  addSegmentMergePrompt: (promptData) => {
+    const { aiSegmentMergeConfig } = get();
+    const newPrompt: AIPrompt = {
+      ...promptData,
+      id: crypto.randomUUID(),
+    };
+    set({
+      aiSegmentMergeConfig: normalizeAISegmentMergeConfig({
+        ...aiSegmentMergeConfig,
+        prompts: [...aiSegmentMergeConfig.prompts, newPrompt],
+      }),
+    });
+  },
+
+  updateSegmentMergePrompt: (id, updates) => {
+    const { aiSegmentMergeConfig } = get();
+    set({
+      aiSegmentMergeConfig: normalizeAISegmentMergeConfig({
+        ...aiSegmentMergeConfig,
+        prompts: aiSegmentMergeConfig.prompts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
+      }),
+    });
+  },
+
+  deleteSegmentMergePrompt: (id) => {
+    const { aiSegmentMergeConfig } = get();
+    // Cannot delete built-in prompts
+    const promptToDelete = aiSegmentMergeConfig.prompts.find((p) => p.id === id);
+    if (promptToDelete?.isBuiltIn) return;
+
+    const newPrompts = aiSegmentMergeConfig.prompts.filter((p) => p.id !== id);
+
+    set({
+      aiSegmentMergeConfig: normalizeAISegmentMergeConfig({
+        ...aiSegmentMergeConfig,
+        prompts: newPrompts,
+        activePromptId:
+          aiSegmentMergeConfig.activePromptId === id
+            ? (aiSegmentMergeConfig.prompts.find((p) => p.isBuiltIn)?.id ?? newPrompts[0]?.id ?? "")
+            : aiSegmentMergeConfig.activePromptId,
+      }),
+    });
+  },
+
+  setActiveSegmentMergePrompt: (id) => {
+    const { aiSegmentMergeConfig } = get();
+    set({
+      aiSegmentMergeConfig: normalizeAISegmentMergeConfig({
+        ...aiSegmentMergeConfig,
+        activePromptId: id,
+      }),
     });
   },
 });

@@ -61,6 +61,8 @@ export async function analyzeMergeCandidates(
     batchSize = 10,
     signal,
     onProgress,
+    systemPrompt,
+    userTemplate,
   } = params;
 
   logger.info("Starting merge analysis", {
@@ -109,6 +111,8 @@ export async function analyzeMergeCandidates(
       sameSpeakerOnly,
       enableSmoothing: enableSmoothing ? "true" : "false",
       idContext,
+      systemPrompt,
+      userTemplate,
     });
 
     // Check if we have eligible pairs

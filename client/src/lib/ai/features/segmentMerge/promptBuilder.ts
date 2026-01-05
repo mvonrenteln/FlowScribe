@@ -26,6 +26,10 @@ export interface PromptBuildParams {
   sameSpeakerOnly: boolean;
   enableSmoothing: string;
   idContext: SimpleIdContext;
+  /** Optional system prompt override (otherwise uses default from config) */
+  systemPrompt?: string;
+  /** Optional user template override (otherwise uses default from config) */
+  userTemplate?: string;
 }
 
 /**
@@ -82,7 +86,15 @@ export interface BuiltPrompt {
  * ```
  */
 export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
-  const { segments, maxTimeGap, sameSpeakerOnly, enableSmoothing, idContext } = params;
+  const {
+    segments,
+    maxTimeGap,
+    sameSpeakerOnly,
+    enableSmoothing,
+    idContext,
+    systemPrompt,
+    userTemplate,
+  } = params;
 
   // Collect segment pairs with simple IDs
   const pairsWithSimpleIds = collectSegmentPairsWithSimpleIds(
@@ -111,14 +123,14 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
     enableSmoothing,
   };
 
-  // Get prompts
-  const systemPrompt = getMergeSystemPrompt();
-  const userTemplate = getMergeUserTemplate(segments.length);
+  // Get prompts (use provided or fallback to defaults)
+  const finalSystemPrompt = systemPrompt ?? getMergeSystemPrompt();
+  const finalUserTemplate = userTemplate ?? getMergeUserTemplate(segments.length);
 
   return {
     variables,
-    systemPrompt,
-    userTemplate,
+    systemPrompt: finalSystemPrompt,
+    userTemplate: finalUserTemplate,
     pairCount: pairsWithSimpleIds.length,
   };
 }

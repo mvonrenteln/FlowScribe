@@ -47,6 +47,7 @@ import type {
   TranscriptStore,
   Word,
 } from "./store/types";
+import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfig";
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
@@ -121,6 +122,7 @@ const initialState: InitialStoreState = {
   aiRevisionConfig: normalizeAIRevisionConfig(globalState?.aiRevisionConfig),
   // AI Segment Merge state
   ...initialAISegmentMergeState,
+  aiSegmentMergeConfig: normalizeAISegmentMergeConfig(globalState?.aiSegmentMergeConfig),
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
