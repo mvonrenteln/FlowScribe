@@ -224,3 +224,11 @@ Zoom handling in `client/src/components/WaveformPlayer.tsx` can cause repeated W
 **Keyboard Navigation & Event Handling:**
 - **Arrow Key Navigation**: In `useNavigationHotkeys.ts`, arrow key handling (Up/Down) uses `preventDefault()` to prevent default scroll behavior and implement segment navigation instead. **CRITICAL**: Always call `preventDefault()` for arrow keys (except in form elements) to ensure they navigate between segments rather than scrolling the container. Without `preventDefault()`, users cannot reliably navigate between segments with keyboard.
 - **Double-Click vs Single-Click**: In `TranscriptSegment.tsx`, single-click selection is delayed (200ms timeout) to allow double-click to take precedence. **CRITICAL**: The double-click handler MUST clear the pending single-click timeout BEFORE any other processing (especially before `preventDefault()`) to prevent unintended scrolling or selection. If the timeout is cleared after preventDefault(), the delayed `onSelect()` may still execute and trigger scrolling/centering behavior.
+**Player-Transcript Synchronization (CRITICAL):**
+See detailed documentation: [Player-Transcript Sync Architecture](docs/features/architecture/player-transcript-sync.md)
+
+- **`seekToTime` MUST use both `setCurrentTime` AND `requestSeek`**: Navigation operations (arrow keys, segment clicks) must update the store's `currentTime` synchronously via `seekToTime`. If you only call `requestSeek` without `setCurrentTime`, the selection sync effect will "correct" the selection back to the old segment because `activeSegment` (derived from `currentTime`) hasn't updated yet.
+
+- **Don't add `isPlaying` checks to the selection sync effect**: The effect in `useScrollAndSelection.ts` must run for ALL time changes, not just during playback. It doesn't conflict with navigation because `seekToTime` updates time AND selection atomically.
+
+- **Test verification requires clean branches**: When tests fail, ALWAYS stash local changes and test on a clean branch before concluding tests are "outdated". The mistake of testing with local changes applied can lead to incorrectly deleting valid tests.
