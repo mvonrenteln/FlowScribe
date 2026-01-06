@@ -160,7 +160,31 @@ const selectNextSegment = useCallback(() => {
 
 The effect doesn't cause problems for navigation because `seekToTime` updates the time to match the selection BEFORE the effect runs.
 
-### Pitfall 3: Removing Tests Without Understanding Root Cause
+### Pitfall 3: Forgetting onMouseDown Handler When Refactoring
+
+When splitting `TranscriptSegment.tsx` into smaller components, the `onMouseDown` handler on the word container can be forgotten:
+
+**On main (correct):**
+```tsx
+<div
+  onMouseDown={(event) => {
+    // Only prevent default for single clicks, not double clicks
+    if (event.detail === 1) {
+      event.preventDefault();
+    }
+  }}
+  className="text-base leading-relaxed outline-none"
+>
+  {/* words */}
+</div>
+```
+
+**Why it matters:**
+- Without this handler, clicking on words causes text selection
+- This interferes with the intended click behavior (seek, split)
+- The check for `event.detail === 1` allows double-click to work for text selection in edit mode
+
+### Pitfall 4: Removing Tests Without Understanding Root Cause
 
 During debugging, it may seem like tests are "outdated" when they fail. Always verify on a clean branch before removing tests.
 
@@ -177,6 +201,30 @@ During debugging, it may seem like tests are "outdated" when they fail. Always v
 2. Checkout clean main branch
 3. Run tests on clean main
 4. If they pass on clean main, the local changes broke them
+
+## Component Refactoring Considerations
+
+When refactoring `TranscriptSegment.tsx` into smaller components:
+
+### Hooks to Extract
+
+- `useSegmentEditing`: Click/double-click handling, edit mode, keyboard navigation
+  - Must include `clickTimeoutRef` for single/double-click differentiation
+  - Must export `handleSegmentClick`, `handleSegmentDoubleClick`, `handleSelectKeyDown`
+
+### Components to Extract
+
+- `WordList`: Word rendering and interaction
+  - Must include `onMouseDown` handler to prevent text selection
+- `SegmentHeader`: Timestamp, speaker, actions
+- `SegmentStatusBar`: Confirmation status, bookmarks
+
+### Critical Implementation Details
+
+1. **Double-click timeout**: The `clickTimeoutRef` pattern must be preserved
+2. **Event ordering**: Double-click must cancel pending single-click BEFORE preventDefault
+3. **Text selection prevention**: `onMouseDown` with `event.detail === 1` check
+4. **Edit mode body marker**: `document.body.dataset.transcriptEditing` for hotkey blocking
 
 ## Performance Considerations
 

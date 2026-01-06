@@ -114,7 +114,14 @@ export function WordList({
 
   let currentPos = 0;
   return (
-    <div
+    // biome-ignore lint/a11y/noStaticElementInteractions: Prevent default on mouse down to avoid text selection
+    <div // NOSONAR
+      onMouseDown={(event) => {
+        // Only prevent default for single clicks, not double clicks
+        if (event.detail === 1) {
+          event.preventDefault();
+        }
+      }}
       className="text-base leading-relaxed outline-none"
       data-testid={`text-segment-${segment.id}`}
     >
