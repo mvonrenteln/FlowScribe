@@ -200,12 +200,12 @@ act(() => {
 - **Document patterns**: When introducing new patterns, add examples to the architecture guide
 
 ### Developer Documentation
+
 - All developer documentation is referenced in `docs/features/architecture/README.md`. Consult it for an overview of available docs.
 - For detailed developer documentation on AI features, see [AI Features Documentation](docs/features/architecture/ai-features-unified.md).
 - Always orient on the documented architecture patterns and best practices when implementing new features.
 
 ## Warning
-
 
 **File Synchronization:**
 When using AI agents (like Copilot), always ensure that in-memory file changes are saved to disk BEFORE running terminal commands (like `npm run check` or `npm run test`). Otherwise, the terminal sees a stale version of the file, causing confusion where the agent thinks there's a cache issue when it's actually a sync issue. Rule: **Save first, then run commands.**
@@ -217,11 +217,13 @@ Changes around audio loading in `client/src/components/WaveformPlayer.tsx` have 
 Zoom handling in `client/src/components/WaveformPlayer.tsx` can cause repeated WaveSurfer re-initialization and flicker if it triggers the main init effect. Avoid wiring zoom state into the initialization dependency chain.
 
 **Performance & Responsiveness:**
+
 - **Handler Stability**: In `useTranscriptEditor.ts`, segment event handlers are cached in a ref (`handlerCacheRef`). **NEVER** remove `segments` from the `useMemo` dependencies of `segmentHandlers` without ensuring that the cache is properly managed, otherwise adjacency logic (merge) will stale. However, always ensure that common handlers remains stable to prevent full transcript list re-renders on every edit.
 - **Scroll Logic**: The `useScrollAndSelection.ts` hook implements an interaction-aware auto-scroll. Avoid aggressive auto-scrolling that fights user input. In pause mode, follow the active segment ONLY if the user is not actively interacting with the transcript or if the selection just changed.
 - **Virtualization & Memoization**: The `TranscriptList` and `TranscriptSegment` are heavily memoized. Avoid passing unstable anonymous functions as props to `TranscriptSegment`, as this breaks memoization and degrades performance on long transcripts.
 
 **Keyboard Navigation & Event Handling:**
+
 - **Arrow Key Navigation**: In `useNavigationHotkeys.ts`, arrow key handling (Up/Down) uses `preventDefault()` to prevent default scroll behavior and implement segment navigation instead. **CRITICAL**: Always call `preventDefault()` for arrow keys (except in form elements) to ensure they navigate between segments rather than scrolling the container. Without `preventDefault()`, users cannot reliably navigate between segments with keyboard.
 - **Double-Click vs Single-Click**: In `TranscriptSegment.tsx`, single-click selection is delayed (200ms timeout) to allow double-click to take precedence. **CRITICAL**: The double-click handler MUST clear the pending single-click timeout BEFORE any other processing (especially before `preventDefault()`) to prevent unintended scrolling or selection. If the timeout is cleared after preventDefault(), the delayed `onSelect()` may still execute and trigger scrolling/centering behavior.
 **Player-Transcript Synchronization (CRITICAL):**
