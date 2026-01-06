@@ -1,0 +1,172 @@
+import {
+  Bookmark,
+  BookmarkCheck,
+  Check,
+  CheckCircle2,
+  Edit,
+  Merge,
+  MoreVertical,
+  Scissors,
+  Trash2,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { AIRevisionPopover } from "../transcript-editor/AIRevisionPopover";
+
+interface SegmentActionsProps {
+  readonly segmentId: string;
+  readonly isConfirmed: boolean;
+  readonly isBookmarked: boolean;
+  readonly canSplitAtCurrentWord: boolean;
+  readonly resolvedSplitWordIndex: number;
+  readonly selectedWordIndex: number | null;
+  readonly hasSelectionForSplit: boolean;
+  readonly showConfirmAction: boolean;
+  readonly isEditing: boolean;
+  readonly onConfirm: () => void;
+  readonly onToggleBookmark: () => void;
+  readonly onSplit?: (wordIndex: number) => void;
+  readonly onMergeWithPrevious?: () => void;
+  readonly onMergeWithNext?: () => void;
+  readonly onDelete: () => void;
+  readonly onStartEdit: () => void;
+  readonly onClearSelection: () => void;
+}
+
+export function SegmentActions({
+  segmentId,
+  isConfirmed,
+  isBookmarked,
+  canSplitAtCurrentWord,
+  resolvedSplitWordIndex,
+  selectedWordIndex,
+  hasSelectionForSplit,
+  showConfirmAction,
+  isEditing,
+  onConfirm,
+  onToggleBookmark,
+  onSplit,
+  onMergeWithPrevious,
+  onMergeWithNext,
+  onDelete,
+  onStartEdit,
+  onClearSelection,
+}: SegmentActionsProps) {
+  return (
+    <div className="flex items-center gap-1">
+      {showConfirmAction && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={(event) => {
+            event.stopPropagation();
+            if (!isConfirmed) {
+              onConfirm();
+            }
+          }}
+          data-testid={`button-confirm-${segmentId}`}
+          aria-label={isConfirmed ? "Segment confirmed" : "Confirm segment"}
+          disabled={isConfirmed}
+        >
+          {isConfirmed ? <CheckCircle2 className="h-4 w-4" /> : <Check className="h-4 w-4" />}
+        </Button>
+      )}
+      <Button
+        size="icon"
+        variant="ghost"
+        onClick={(event) => {
+          event.stopPropagation();
+          onToggleBookmark();
+        }}
+        data-testid={`button-bookmark-${segmentId}`}
+        aria-label={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+      >
+        {isBookmarked ? <BookmarkCheck className="h-4 w-4" /> : <Bookmark className="h-4 w-4" />}
+      </Button>
+      {onSplit && hasSelectionForSplit && selectedWordIndex !== null && (
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={(event) => {
+            event.stopPropagation();
+            onSplit(selectedWordIndex);
+            onClearSelection();
+          }}
+          data-testid={`button-split-${segmentId}`}
+          aria-label="Split segment at selected word"
+        >
+          <Scissors className="h-4 w-4" />
+        </Button>
+      )}
+
+      <AIRevisionPopover segmentId={segmentId} disabled={isEditing} />
+
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <Button
+            size="icon"
+            variant="ghost"
+            onClick={(event) => event.stopPropagation()}
+            data-testid={`button-segment-menu-${segmentId}`}
+            aria-label="Segment options"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </Button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={onStartEdit}>
+            <Edit className="h-4 w-4 mr-2" />
+            Edit text
+          </DropdownMenuItem>
+          {onSplit && (
+            <DropdownMenuItem
+              onClick={() => {
+                if (!canSplitAtCurrentWord) return;
+                onSplit(resolvedSplitWordIndex);
+                onClearSelection();
+              }}
+              disabled={!canSplitAtCurrentWord}
+            >
+              <Scissors className="h-4 w-4 mr-2" />
+              Split at current word
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuItem
+            onClick={() => {
+              if (isConfirmed) return;
+              onConfirm();
+            }}
+            disabled={isConfirmed}
+          >
+            <Check className="h-4 w-4 mr-2" />
+            {isConfirmed ? "Confirmed" : "Confirm block"}
+          </DropdownMenuItem>
+          <DropdownMenuSeparator />
+          {onMergeWithPrevious && (
+            <DropdownMenuItem onClick={onMergeWithPrevious}>
+              <Merge className="h-4 w-4 mr-2" />
+              Merge with previous
+            </DropdownMenuItem>
+          )}
+          {onMergeWithNext && (
+            <DropdownMenuItem onClick={onMergeWithNext}>
+              <Merge className="h-4 w-4 mr-2" />
+              Merge with next
+            </DropdownMenuItem>
+          )}
+          <DropdownMenuSeparator />
+          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete segment
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+}
