@@ -33,13 +33,38 @@ export function useScrollAndSelection({
 }: UseScrollAndSelectionOptions) {
   const transcriptListRef = useRef<HTMLDivElement>(null);
   const lastScrollRef = useRef<{ id: string; at: number } | null>(null);
+  const lastTargetElementRef = useRef<HTMLElement | null>(null);
+  const lastContainerRef = useRef<HTMLDivElement | null>(null);
 
-  const activeSegment = segments.find((s) => currentTime >= s.start && currentTime <= s.end);
+  const activeSegment = useMemo(() => {
+    if (!segments.length) return undefined;
+    let low = 0;
+    let high = segments.length - 1;
+
+    while (low <= high) {
+      const mid = (low + high) >> 1;
+      const seg = segments[mid];
+      if (currentTime < seg.start) {
+        high = mid - 1;
+      } else if (currentTime > seg.end) {
+        low = mid + 1;
+      } else {
+        return seg;
+      }
+    }
+
+    return undefined;
+  }, [currentTime, segments]);
+
+  const filteredSegmentIds = useMemo(
+    () => new Set(filteredSegments.map((segment) => segment.id)),
+    [filteredSegments],
+  );
+
   const isActiveSegmentVisible = useMemo(() => {
     if (!activeSegment) return false;
-    // Check if the segment is in the filtered list
-    return filteredSegments.some((segment) => segment.id === activeSegment.id);
-  }, [activeSegment, filteredSegments]);
+    return filteredSegmentIds.has(activeSegment.id);
+  }, [activeSegment, filteredSegmentIds]);
 
   // Sync selection during playback or when time changes manually
   useEffect(() => {
@@ -78,11 +103,18 @@ export function useScrollAndSelection({
   }, []);
 
   const scrollSegmentIntoView = useCallback(
-    (segmentId: string, options: { block: ScrollLogicalPosition; behavior: ScrollBehavior }) => {
+    (
+      segmentId: string,
+      target: HTMLElement | null,
+      options: { block: ScrollLogicalPosition; behavior: ScrollBehavior },
+    ) => {
       const container = transcriptListRef.current;
       if (!container) return;
-      const target = container.querySelector<HTMLElement>(`[data-segment-id="${segmentId}"]`);
-      if (!target) return;
+      const targetElement =
+        target && container.contains(target)
+          ? target
+          : container.querySelector<HTMLElement>(`[data-segment-id="${segmentId}"]`);
+      if (!targetElement) return;
 
       const now = globalThis.performance?.now?.() ?? Date.now();
       const last = lastScrollRef.current;
@@ -94,7 +126,7 @@ export function useScrollAndSelection({
 
       lastScrollRef.current = { id: segmentId, at: now };
       requestAnimationFrame(() => {
-        target.scrollIntoView({ block: options.block, behavior: options.behavior });
+        targetElement.scrollIntoView({ block: options.block, behavior: options.behavior });
       });
     },
     [],
@@ -127,6 +159,13 @@ export function useScrollAndSelection({
         ? selectedSegmentId
         : (targetSegment?.id ?? selectedSegmentId ?? null);
 
+    const container = transcriptListRef.current;
+
+    if (container !== lastContainerRef.current) {
+      lastContainerRef.current = container;
+      lastTargetElementRef.current = null;
+    }
+
     if (!scrollTargetId) {
       lastTargetIdRef.current = null;
       return;
@@ -141,6 +180,21 @@ export function useScrollAndSelection({
     // Decision: Should we actually execute the scroll?
     let shouldScroll = false;
 
+    const cachedTarget =
+      lastTargetElementRef.current &&
+      lastTargetElementRef.current.dataset.segmentId === scrollTargetId &&
+      container?.contains(lastTargetElementRef.current)
+        ? lastTargetElementRef.current
+        : null;
+
+    const resolvedTarget =
+      cachedTarget ||
+      container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
+
+    if (!cachedTarget) {
+      lastTargetElementRef.current = resolvedTarget ?? null;
+    }
+
     if (isSeeking) {
       // Always scroll on manual seek to re-center
       shouldScroll = true;
@@ -149,17 +203,13 @@ export function useScrollAndSelection({
       shouldScroll = true;
     } else if (isPlaying) {
       // During playback of the same segment, only scroll if it's no longer visible (snap back)
-      const container = transcriptListRef.current;
-      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
-      if (target && !isElementVisible(target, container)) {
+      if (resolvedTarget && !isElementVisible(resolvedTarget, container)) {
         shouldScroll = true;
       }
     } else if (!isInteracting && !isPlaying) {
       // If we are paused and not interacting, ensure the target is visible.
       // This handles initial load, "snap back" after pausing, or stale selections.
-      const container = transcriptListRef.current;
-      const target = container?.querySelector<HTMLElement>(`[data-segment-id="${scrollTargetId}"]`);
-      if (target && !isElementVisible(target, container)) {
+      if (resolvedTarget && !isElementVisible(resolvedTarget, container)) {
         shouldScroll = true;
       }
     }
@@ -174,7 +224,7 @@ export function useScrollAndSelection({
     lastSelectedIdRef.current = selectedSegmentId;
     lastActiveIdRef.current = activeSegment?.id ?? null;
 
-    scrollSegmentIntoView(scrollTargetId, {
+    scrollSegmentIntoView(scrollTargetId, resolvedTarget ?? null, {
       block: "center",
       behavior,
     });
