@@ -46,7 +46,25 @@ Technical architecture for text revision feature including:
 
 ---
 
+## Core Architecture
+
+### Player-Transcript Synchronization
+📄 [`player-transcript-sync.md`](./player-transcript-sync.md) ⚠️ **IMPORTANT**
+
+Critical documentation for understanding how the WaveformPlayer and TranscriptEditor synchronize:
+
+- State flow between components
+- Seek operation types and their implementations
+- Why `seekToTime` uses both `setCurrentTime` AND `requestSeek`
+- The selection sync effect and why it works
+- Common pitfalls that cause navigation bugs
+- Performance considerations
+- Testing strategy
+
+**Read this before making any changes to seek or selection logic!**
+
+---
+
 ## Other References
 
 - **PR Segment Merge Implementation**: [`PR_segment_merge.md`](./PR_segment_merge.md) - Details of the segment merge feature implementation and integration
-
