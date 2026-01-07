@@ -10,6 +10,7 @@
 ### Recent Refactoring (January 2026) ✨
 
 **Segment Merge Service Refactoring:**
+
 - ✅ Extracted Response Recovery (Strategy Pattern)
 - ✅ Extracted Validation Rules (Rule Pattern)  
 - ✅ Extracted Response Processing (separate module)
@@ -21,7 +22,7 @@
 
 ### File Structure (Implemented)
 
-```
+```text
 /src/lib/ai/
 ├── core/                         # Core infrastructure
 │   ├── types.ts                  # Unified types
@@ -108,7 +109,6 @@
     └── promptBuilder.test.ts     # 40+ tests (NEW)
 ```
 
-
 ---
 
 ## Overview
@@ -131,16 +131,15 @@ This is the most important design principle in FlowScribe:
 - Users learn the domain through manual work, then accelerate with AI
 
 **Implementation Pattern:**
-```
+
 1. Design & implement manual feature first
 2. Ensure manual feature is complete and usable
 3. Add AI as enhancement layer on top
 4. AI uses same data structures and operations as manual
-```
 
 **Current Examples:**
 | Domain | Manual Feature | AI Enhancement |
-|--------|---------------|----------------|
+| ------ | -------------- | -------------- |
 | Text Editing | Direct segment editing | Transcript Revision |
 | Quality Check | Confidence indicators, Spellcheck, Glossary | Revision suggestions |
 | Speaker Labels | Manual speaker assignment | Speaker Classification |
@@ -211,6 +210,7 @@ Every component designed for testability:
 **Decision:** Not all code requires 80% unit test coverage. We differentiate based on code category.
 
 **Rationale:**
+
 - Integration code (HTTP clients, AI orchestration) is difficult to unit test meaningfully
 - Mocking external dependencies often tests mocks, not real behavior
 - Pure functions provide high value per test; integration code does not
@@ -227,6 +227,7 @@ Every component designed for testability:
 | **HTTP Providers** (`providers/`) | 20-30% | External deps, prefer E2E tests |
 
 **Implementation Pattern:**
+
 ```typescript
 // BAD: Trying to unit test integration code
 async function reviseSegment(params) {
@@ -266,6 +267,7 @@ async function reviseSegment(params) {
 | `providers/` | 31.78% | ⚠️ HTTP clients |
 
 **Test File Organization:**
+
 ```
 /src/lib/ai/__tests__/
 ├── promptBuilder.test.ts     # Pure function tests (prompts/)
@@ -299,13 +301,84 @@ async function reviseSegment(params) {
 
 ---
 
+## AI Command Panel Architecture
+
+A **unified side panel** provides consistent access to all batch AI operations (Speaker Classification, Segment Merge, Batch Text Revision, and planned features). The panel follows a **standardized structure** across all features, reducing learning curve and enabling seamless scaling.
+
+### Key Design
+
+- **Three-column layout**: Filters (20%) | Transcript (50-55%) | AI Panel (25-30%)
+- **One entry point**: Single "AI Tools" button opens the unified panel
+- **Standardized workflow**: Tabs → Scope → Configuration → Settings → Start → Progress → Results
+- **Results in context**: Suggestions appear inline in the Transcript, not in the narrow panel
+- **Two navigation modes**: Sequential (keyboard) and selective (mouse-click jump navigation)
+
+### Quick Feature Mapping
+
+| Feature | Workflow Type | Location | Panel Tabs |
+| ------- | ------------ | -------- | --------- |
+| **Text Revision (inline)** | Element-level | Menu on text [✨] | None (inline only) |
+| **Text Revision (batch)** | Batch | AI Command Panel | ✅ Revision tab |
+| **Speaker Classification** | Batch | AI Command Panel | ✅ Speaker tab |
+| **Segment Merge** | Batch | AI Command Panel | ✅ Merge tab |
+| **Chapter Detection** | Batch (planned) | AI Command Panel | 📋 Chapters tab |
+
+### Quick Reference: Panel Structure
+
+Every batch feature tab in the AI Command Panel contains this standardized structure:
+
+```text
+[Tabs: Revision | Speaker | Merge]
+────────────────────────────────
+SCOPE: [number of segments] | ☐ Exclude Confirmed
+
+AI CONFIGURATION:
+  Provider: [Dropdown] | Model: [Dropdown] | Batch: [Size]
+
+[FEATURE] SETTINGS:
+  [Template/Configuration specific to feature]
+
+[▶ Start Batch]
+
+[When running: Progress bar, Pause/Stop, Results Summary grouped by confidence]
+```
+
+**For Developers:**
+
+- See [AI Command Panel Specification](./ai-command-panel.md) for complete UX design, mockups, design rationale, and implementation reference
+- See "Feature Module Structure" below for code organization
+
+### Key Concepts for Implementation
+
+**Element-Level vs. Batch:**
+
+- **Element-Level (Text Revision only)**: Inline menu with quick templates. Best for single-segment refinement (✨ button on segment).
+- **Batch-Level (Speaker, Merge, etc.)**: Command Panel with start/pause/resume. Best for processing 100+ segments consistently.
+
+**Scope Filtering:**
+
+- `Exclude Confirmed`: Prevents reprocessing of segments the user has manually reviewed and marked as correct
+- "Confirmed" is a user-set status distinct from "Accept" (accepting an AI suggestion)
+
+**Results Display:**
+
+- **Command Panel**: Configuration, progress, brief summary grouped by confidence level (High/Medium/Low)
+- **Transcript View**: All detailed suggestions inline with context (original/revised side-by-side, reasoning, accept/reject buttons per item)
+
+**Navigation:**
+
+- **Keyboard**: N (Next) | P (Previous) | A (Accept) | R (Reject) | ESC (Close panel) for sequential review
+- **Mouse**: Click on summary item (e.g., "#045 0:45.2") to jump directly to that segment in Transcript
+
+---
+
 ## Feature Module Structure
 
 ### Directory Layout
 
 Each feature is a self-contained module with clear boundaries:
 
-```
+```text
 /src/features/
 ├── chapters/                     # Chapter feature module
 │   ├── components/               # UI components
@@ -378,7 +451,7 @@ Each feature is a self-contained module with clear boundaries:
 
 For each feature, implementation follows this order:
 
-```
+```text
 Phase A: Manual Feature (Required First)
 ├── 1. Define types and data structures
 ├── 2. Implement core service (business logic)
@@ -444,7 +517,7 @@ const MultiTrackFeature = lazy(() => import('@/features/multi-track'));
 
 ### High-Level Flow
 
-```
+```text
 ┌─────────────────────────────────────────────────────────────┐
 │                          USER                               │
 │                    (via UI Components)                       │
