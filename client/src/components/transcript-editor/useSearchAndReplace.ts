@@ -23,26 +23,61 @@ export function useSearchAndReplace(
     [searchQuery, isRegexSearch],
   );
 
+  const literalQuery = useMemo(
+    () => (isRegexSearch ? "" : searchQuery.trim()),
+    [isRegexSearch, searchQuery],
+  );
+  const lowerLiteralQuery = useMemo(() => literalQuery.toLowerCase(), [literalQuery]);
+
+  const globalRegex = useMemo(() => {
+    if (!regex || !searchQuery || !isRegexSearch) return null;
+    const flags = regex.flags.includes("g") ? regex.flags : `${regex.flags}g`;
+    return new RegExp(regex.source, flags);
+  }, [isRegexSearch, regex, searchQuery]);
+
+  const searchableSegments = useMemo(
+    () =>
+      segments.map((segment) => ({
+        id: segment.id,
+        text: segment.text,
+        lowerText: segment.text.toLowerCase(),
+      })),
+    [segments],
+  );
+
   const allMatches = useMemo(() => {
-    if (!regex || !searchQuery) return [];
+    if (!searchQuery) return [];
 
     const matches: MatchLocation[] = [];
 
-    for (const segment of segments) {
-      const text = segment.text;
-      // Create a global version of the regex to find all matches
-      // If regex search, use original flags but ensure 'g' is present
-      // Simple searchUtils.ts createSearchRegex uses 'gi' by default for non-regex
+    if (!isRegexSearch) {
+      if (!lowerLiteralQuery) return matches;
+      for (const segment of searchableSegments) {
+        const { id, text, lowerText } = segment;
+        let fromIndex = 0;
+        while (fromIndex <= lowerText.length) {
+          const foundIndex = lowerText.indexOf(lowerLiteralQuery, fromIndex);
+          if (foundIndex === -1) break;
+          matches.push({
+            segmentId: id,
+            startIndex: foundIndex,
+            endIndex: foundIndex + lowerLiteralQuery.length,
+            text: text.slice(foundIndex, foundIndex + literalQuery.length),
+          });
+          fromIndex = foundIndex + Math.max(lowerLiteralQuery.length, 1);
+        }
+      }
+      return matches;
+    }
 
-      // We use matchAll or a loop with exec
-      const searchRegex = new RegExp(
-        regex.source,
-        regex.flags.includes("g") ? regex.flags : `${regex.flags}g`,
-      );
+    const searchRegex = globalRegex;
+    if (!searchRegex) return matches;
 
+    for (const segment of searchableSegments) {
+      searchRegex.lastIndex = 0;
       let match: RegExpExecArray | null;
       // biome-ignore lint/suspicious/noAssignInExpressions: standard regex loop
-      while ((match = searchRegex.exec(text)) !== null) {
+      while ((match = searchRegex.exec(segment.text)) !== null) {
         matches.push({
           segmentId: segment.id,
           startIndex: match.index,
@@ -50,10 +85,20 @@ export function useSearchAndReplace(
           text: match[0],
         });
         if (!searchRegex.global) break;
+        if (match.index === searchRegex.lastIndex) {
+          searchRegex.lastIndex += 1;
+        }
       }
     }
     return matches;
-  }, [segments, regex, searchQuery]);
+  }, [
+    globalRegex,
+    isRegexSearch,
+    literalQuery,
+    lowerLiteralQuery,
+    searchableSegments,
+    searchQuery,
+  ]);
 
   // Reset current match when allMatches change (e.g. search query change)
   useEffect(() => {
