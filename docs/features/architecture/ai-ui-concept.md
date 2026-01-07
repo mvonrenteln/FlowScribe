@@ -1,58 +1,63 @@
 
-# Einheitliches UI AI Konzept
+# Einheitliches AI-Bedienkonzept für FlowScribe
 
-## Analyse der Hauptprobleme
+## Problemanalyse
 
 ### Problem 1: Überladene Top-Navigation
 
-Die Top-Navigation enthält zu viele Elemente auf einer Ebene:
+Die Top-Navigation vereint zu viele unterschiedliche Funktionen und Aktionen:
 
-- Highlights, AI Speaker, AI Merge (Feature-Buttons)
-- Model-Selector (nur für Einzelbearbeitung)
-- Save revision, Export (Dokumentaktionen)
-- Theme Toggle, Settings (App-Funktionen)
+- Feature-spezifische Buttons (Highlights, AI Speaker, AI Merge)
+- AI-Model-Selector (nur für Einzelbearbeitung verwendet)
+- Dokumentaktionen (Save Revision, Export)
+- App-Steuerung (Theme Toggle, Settings)
 
-**Auswirkung:** Buttons brechen um, unklare Hierarchie, schlechte Skalierbarkeit
+Dies führt zu gebrochenen Zeilen, einer unkaren Prioritätsverteilung und mangelnder Skalierbarkeit für neue Features.
 
-### Problem 2: Inkonsistente AI-Feature-Patterns
+### Problem 2: Inkonsistente AI-Feature-Bedienung
 
-Aktuell gibt es **3 verschiedene Interaktionsmuster**:
+Derzeit existieren **drei unterschiedliche Bedienparadigmen** für AI-Features:
 
-| Feature | Location | Pattern | Model-Auswahl
+| Feature | Position | Bedienung | Model-Auswahl
 |-----|-----|-----|-----
-| AI Batch Revision | Linke Sidebar | Panel mit Start-Button | Im Panel
-| AI Speaker Classification | Popup-Modal | Vollbild-Dialog | Im Dialog
-| AI Segment Merge | Anderes Modal | Ähnlich aber anders | Im Dialog
+| Batch Text-Revision | Linke Sidebar | Panel mit Start-Button | Im Panel
+| Speaker-Klassifikation | Popup-Modal | Vollbild-Dialog | Im Dialog
+| Segment-Merge | Anderes Modal | Abweichende Struktur | Im Dialog
 
-**Auswirkung:** Nutzer müssen verschiedene Mental Models lernen, keine einheitliche UX
+Benutzer müssen unterschiedliche mentale Modelle erlernen und navigieren zwischen inkonsistenten Schnittstellen.
 
-## Lösungskonzept: "AI Command Panel"
+## Lösungsansatz: „AI Command Panel"
 
-Ich schlage ein **einheitliches Side-Panel-System** vor, das alle AI-Features konsistent behandelt.
+Implementierung eines **einheitlichen Seitenpanels** für alle AI-Features mit konsistenter Struktur, Bedienung und Rückmeldung.
 
-### Konzept-Übersicht (ASCII)
+### Kernprinzipien der Lösung
 
-### Kernprinzipien
+#### 1. Einheitlicher Einstiegspunkt
 
-#### 1. **Einheitlicher Entry Point**
+- Ein **„AI Tools"-Button** in der Top-Navigation öffnet das Panel im Batch-Modus
+- Die linke Sidebar konzentriert sich auf **Filter & Review** (AI-Tools ziehen aus)
 
-- Ein **"AI" Button** (⚡) in jedem Segment öffnet das AI Command Panel
-- Ein **"AI Tools" Button** in der Top-Nav öffnet das Panel im Batch-Modus
-- Linke Sidebar bleibt für **Filter & Review** (keine AI-Tools mehr dort)
+#### 2. Konsistentes Panel-Layout für alle Features
 
-#### 2. **Konsistentes Panel-Layout**
+Jedes AI-Feature folgt diesem standardisierten Aufbau:
 
-Jedes AI-Feature folgt der gleichen Struktur:
+1. **Tabs** zur Feature-Auswahl (Revision, Speaker, Merge, etc.)
+2. **Scope**: Anzahl betroffener Segmente, Filteroptionen
+3. **AI-Konfiguration**: Provider und Modell-Auswahl
+4. **Feature-Einstellungen**: Templates, Parameter (spezifisch pro Feature)
+5. **Start-Button** zum Starten der Batch-Verarbeitung
+6. **Fortschritt** und **Ergebnisse** während/nach Ausführung
+7. **Ergebnis-Zusammenfassung**: Gruppiert nach Konfidenz (Hoch/Mittel/Niedrig)
 
-#### 3. **Vereinfachte Top-Navigation**
+#### 3. Vereinfachte Top-Navigation
 
-Vorher (zu voll):
+**Vorher** (überbelastet):
 
 ```text
 [FlowScribe] [Files] [Highlights] [AI Speaker] [AI Merge] [qwen3:30b ▾] [Save] [Export] [☀] [⚙]
 ```
 
-Nachher (gruppiert):
+**Nachher** (strukturiert nach Funktionsbereichen):
 
 ```text
 [FlowScribe] [📄 Files] [⏱ History] [🤖 AI Tools] [💾 Save] [📤 Export] [☀] [⚙]
@@ -60,17 +65,24 @@ Nachher (gruppiert):
 
 ## Detailliertes Design-Konzept
 
-### Sliding Panel
+### Sliding Panel – Dreigeteiltes Layout
 
-**Charakteristik:** Panel gleitet von rechts über den Content, ähnlich wie ein Drawer
+Das AI Command Panel **öffnet sich neben dem Transcript** und teilt den Platz nach folgendem Schema:
 
-**Vorteile:**
+- **Linke Spalte (20%)**: Filter & Review (existierend)
+- **Mittlere Spalte (50-55%)**: Transcript View mit Waveform + Inline-Ergebnisse
+- **Rechte Spalte (25-30%)**: AI Command Panel
 
-- Maximaler Platz für Results
-- Klare Trennung zwischen Haupt-UI und AI-Workspace
-- Bekanntes Pattern (Gmail, Notion, etc.)
+Das Panel **überlagert nicht** den Transcript-Inhalt. Der Transcript bleibt der Haupt-Arbeitsbereich und behält seine volle Breite für detaillierte Vorschläge.
 
-**ASCII Mockup - Geschlossener Zustand:**
+**Designvorteile:**
+
+- **Maximaler Platz für Ergebnisse**: Transcript bei 50-55% ist ideal für Original/Überarbeitet nebeneinander
+- **Klare Funktionsbereiche**: Steuerung rechts, Ergebnisse in der Mitte, Filter links
+- **Nicht-intrusiv**: Der Transcript wird nicht verdeckt, nur die Seitenspalte reduziert sich
+- **Vertrautes Muster**: Ähnelt etablierten Designs in Gmail, Notion, Figma mit Sidebar+Main+Panel
+
+**Layout – Panel geschlossen:**
 
 ```text
 ┌─────────────────────────────────────────────────────────┐
@@ -90,16 +102,16 @@ Nachher (gruppiert):
                └─────────────────────────────────────┘   │
 ```
 
-ASCII Mockup - Aufteilung mit AI Panel Offen:
+**Layout – Panel offen:**
 
 ```text
-┌──────────────────────────────────────────────────────────────────────────┐
-│ FlowScribe  [Files] [History]  [Save] [Export]                  [☀] [⚙] │
+┌───────────────────────────────────────────────────────────────────────────┐
+│ FlowScribe  [Files] [History]  [Save] [Export]                  [☀] [⚙]   │
 ├────────────┬─────────────────────────────────────────┬────────────────────┤
-│  FILTERS   │      [Waveform & Playback]              │  AI COMMAND PANEL │
-│            │                                          │                    │
-│ □ Marc     │  ▶ ━━━━━━━●────────  31:25 / 52:42     │  [Tabs]            │
-│ □ Carsten  │                                          │  ─────             │
+│  FILTERS   │      [Waveform & Playback]              │  AI COMMAND PANEL  │
+│            │                                         │                    │
+│ □ Marc     │  ▶ ━━━━━━━●────────  31:25 / 52:42      │  [Tabs]            │
+│ □ Carsten  │                                         │  ─────             │
 │ □ Daniel   │  ┌──────────────────────────────────┐   │  Scope             │
 │            │  │ MARC  30:58 - 31:08              │   │  Config            │
 │────────────│  │ [Merge suggestion between ↑↓]    │   │  Settings          │
@@ -107,71 +119,68 @@ ASCII Mockup - Aufteilung mit AI Panel Offen:
 │ Low conf   │  └──────────────────────────────────┘   │  [Start Batch]     │
 │ Spelling   │  ┌──────────────────────────────────┐   │                    │
 │            │  │ MARC  31:08 - 31:18              │   │  Progress          │
-│            │  │ [Speaker: Marc→SL 95%]    [✓][✗] │   │  ▓▓▓▓▓░░ 65%      │
+│            │  │ [Speaker: Marc→SL 95%]    [✓][✗] │   │  ▓▓▓▓▓░░ 65%       │
 │            │  │ Solche Sachen sind das...        │   │  22/343            │
 │            │  └──────────────────────────────────┘   │                    │
-│            │                                          │  Summary           │
+│            │                                         │  Summary           │
 └────────────┴─────────────────────────────────────────┴────────────────────┘
 ```
 
-#### Aufgabenteilung
+### Aufgabenteilung: Steuerung vs. Ergebnisse
 
-**"Was ist besser - Vorschläge komplett in der Seitenleiste oder im Transcript View?"**
+**Kerndesign-Entscheidung**: Vorschläge und Ergebnisse gehören **ins Transcript**, nicht ins Command Panel.
 
-### Eindeutig: Im Transcript View
+**Begründung:**
 
-**Command Panel = Steuerung | Transcript View = Ergebnisse & Kontext**
+1. **Platzeffizienz**: Das Panel (~25-30% Breite) ist zu schmal für detaillierte Vorschläge. Der Transcript (~70-75%) bietet optimalen Platz
+2. **Kontextsicherheit**: Benutzer sehen umgebende Segmente, Gesprächsfluss und Timeline
+3. **Vergleichbarkeit**: Original/Überarbeitete Version nebeneinander funktioniert nur mit ausreichend Platz
+4. **Intuitiver Workflow**: Benutzer arbeiten primär im Transcript
+5. **Bewährtes Pattern**: Die aktuelle Batch-Revision beweist die Wirksamkeit dieser Aufteilung
 
-**Gründe:**
+**Command Panel konzentriert sich auf:**
 
-1. **Platz:** Command Panel bei 25-30% Breite = zu eng für Details. Transcript bei 70%+ = genug Raum
-2. **Kontext:** User sieht umgebende Segmente, Gesprächsfluss, Timeline
-3. **Vergleichbarkeit:** Original/Revised side-by-side funktioniert nur mit Platz
-4. **Fokus:** User arbeitet im Transcript, nicht in Sidebar
-5. **Bewährtes Pattern:** Deine aktuelle Batch Revision zeigt bereits, dass es perfekt funktioniert
+- Konfiguration (Provider, Modell, Templates)
+- Batch-Steuerung (Start, Pause, Stopp)
+- Fortschrittsüberwachung (Statistiken, Zeitangaben)
+- Kurzzusammenfassung (nach Konfidenz-Niveau gruppiert)
+- Bulk-Aktionen (Accept/Reject All für jede Kategorie)
 
-**Command Panel Rolle:**
+**Transcript View zeigt:**
 
-- Konfiguration
-- Batch starten/stoppen
-- Progress monitoring
-- Summary statistics
-- Bulk actions (Accept All High, Reject All)
+- Einzelne Vorschläge im vollständigen Kontext
+- Detaillierte Begründungen
+- Direktes Accept/Reject pro Element
+- Visuelle Hervorhebung von Änderungen
 
-**Transcript View Rolle:**
+**Panel-Anordnung:**
 
-- Einzelne Vorschläge im Detail
-- Kontext sehen
-- Individuelle Accept/Reject Entscheidungen
-- Änderungen visualisieren
-
-##### Die visuelle Aufteilung
-
-- **Command Panel (rechts, ~25-30%):** Nur Konfiguration, Kontrolle, Progress, Summary
-- **Transcript View (70-75%):** Alle Vorschläge inline im Kontext dargestellt
-- **Element-Level (nur Text Revision):** Bleibt am Element mit Template-Menü
+- **Command Panel (rechts, 25-30%)**: Nur Konfiguration, Kontrolle, Progress, Summary
+- **Transcript View (Mitte, 50-55%)**: Alle Vorschläge inline im vollständigen Kontext dargestellt
+- **Filter-Sidebar (links, 20%)**: Bestehende Filter und Review-Kategorien
+- **Wichtig**: Das Panel **verdeckt nichts**. Es ist eine Dreierspalten-Aufteilung, nicht ein Overlay
 
 ## Zusammenfassung der Verbesserungen
 
-### Konsistenz-Gewinne
+### Konsistenz-Gewinne durch einheitliches Design
 
-1. ✅ **Einheitlicher Entry Point** - Ein Ort für alle AI-Features
-2. ✅ **Gleiches Layout** - Scope → Config → Settings → Actions → Results
-3. ✅ **Einheitliche Model-Auswahl** - Immer im gleichen Bereich
-4. ✅ **Konsistente Results-Darstellung** - Confidence-basiert gruppiert
-5. ✅ **Gleiche Aktions-Buttons** - Accept/Reject pattern überall
+1. ✅ **Einheitlicher Einstiegspunkt** – Ein Ort für alle AI-Features
+2. ✅ **Standardisiertes Layout** – Scope → Konfiguration → Einstellungen → Aktionen → Ergebnisse
+3. ✅ **Einheitliche Model-Auswahl** – Immer an der gleichen Position
+4. ✅ **Konsistente Ergebnisdarstellung** – Nach Konfidenz-Niveau gruppiert
+5. ✅ **Standardisierte Bedienelemente** – Accept/Reject-Pattern überall
 
-### UX-Gewinne
+### UX-Gewinne für Benutzer
 
-1. ✅ **Reduzierte Top-Navigation** - Von 9+ auf 6 Hauptelemente
-2. ✅ **Klarere Hierarchie** - Dokumentaktionen vs. AI-Tools getrennt
-3. ✅ **Bessere Skalierbarkeit** - Neue AI-Features = neuer Tab
-4. ✅ **Kontextuelle Nutzung** - Von Segment oder global starten
-5. ✅ **Vorhersagbares Verhalten** - Einmal gelernt, überall anwendbar
+1. ✅ **Reduzierte Top-Navigation** – Von 9+ auf 6 Hauptelemente
+2. ✅ **Klarere Hierarchie** – Dokumentaktionen vs. AI-Tools räumlich getrennt
+3. ✅ **Bessere Skalierbarkeit** – Neue AI-Features = neuer Tab im Panel
+4. ✅ **Flexibler Kontext** – Von einzelnem Segment oder global starten
+5. ✅ **Vorhersagbares Verhalten** – Einmal gelernt, überall gleich anwendbar
 
-## Layout Side Panel
+## Standardisierte Panel-Struktur
 
-Alle Batch-Features verwenden **exakt** diese Struktur:
+Alle Batch-Processing-Features verwenden **diese exakte Struktur**:
 
 ```text
 ┌────────────────────────────────────┐
@@ -183,7 +192,7 @@ Alle Batch-Features verwenden **exakt** diese Struktur:
 │ SCOPE                              │
 │ Filtered: 343 segments             │
 │ ☐ Exclude confirmed                │
-│                                    │
+│   (Manuell bestätigte Segmente)    │
 │ AI CONFIGURATION                   │
 │ Provider  [Ollama Desktop ▾]       │
 │ Model     [qwen3:30b-inst ▾]       │
@@ -224,27 +233,40 @@ Alle Batch-Features verwenden **exakt** diese Struktur:
 └────────────────────────────────────┘
 ```
 
-Die Templates sind natürlich feature-Spezifisch.
+**Erklärungen zur Struktur:**
 
-Die Result Summery - Bereiche High/Medium/Low sind auf- und zuklappbar und beinhalten die entsprechenden Funde in Kurzform. Ein Klick führt zur entsprechender Section. Das Scrollen durch hunderte Sections wo vielleicht nur einige Änderungsvorschläge sind, wäre zu mühsam.
+**Scope & Filter:**
+- **Exclude Confirmed**: Verhindert, dass bereits vom Benutzer manuell bestätigte Segmente erneut bearbeitet werden. „Confirmed" ist ein Status, den der Benutzer auf einem Segment setzt, um zu markieren, dass es reviewed und korrekt ist
+- **Filtered vs. All**: Zeigt die aktuelle Anzahl zu verarbeitender Segmente an
 
-**Keyboard Navigation**
+**Results Summary:**
+- Templates sind feature-spezifisch (Text-Vorlagen, Speaker-Profile, Merge-Parameter)
+- Die Konfidenz-Kategorien (Hoch/Mittel/Niedrig) sind **auf- und zuklappbar**
+- Sie enthalten **kurze Zusammenfassungen** der Änderungen
+- **Ein Klick auf einen Summary-Eintrag (z.B. „#045  0:45.2") navigiert direkt zum betreffenden Segment im Transcript** – ermöglicht schnelle Navigation ohne sequentielle Durchlauf
+- Das verhindert mühsames Scrollen durch hunderte von Segmenten
 
-- `N` = Next suggestion
-- `P` = Previous suggestion
-- `A` = Accept current
-- `R` = Reject current
+**Tastaturnavigation:**
 
-**3. Toggle: "Show only suggestions"**
+- `N` = Nächster Vorschlag
+- `P` = Vorheriger Vorschlag
+- `A` = Aktuellen akzeptieren
+- `R` = Aktuellen ablehnen
+- `ESC` = Panel schließen
 
-- Filtert Transcript View auf nur Segmente mit Vorschlägen
-- Kontext-Segmente (±1) könnten ausgegraut bleiben für Übersicht
+**Filter-Toggle: „Nur Vorschläge zeigen"**
 
-## Feature-spezifische Details
+- Filtert Transcript-View auf Segmente mit Vorschlägen
+- Kontext-Segmente (±1) bleiben sichtbar
+- Ermöglicht fokussiertes Review ohne Ablenkung
 
-### 1. Text Revision (Element-Level)
+## Feature-spezifische Implementierungen
 
-**Bleibt am Element - KEIN Command Panel nötig**
+### 1. Inline Text-Revision (Element-Level)
+
+**Format**: Kein Command Panel – direkt am Segment
+
+Das Feature bleibt **direkt am Text-Element**. Ein Sternchen-Button (✨) öffnet ein Inline-Menü mit häufig genutzten Templates und Modell-Auswahl.
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -262,11 +284,26 @@ Die Result Summery - Bereiche High/Medium/Low sind auf- und zuklappbar und beinh
                                 └────────────────────────┘
 ````
 
-### 2. Text Revision (Batch) - In-Transcript Results
+**Vorteile:**
+- One-Click-Zugriff auf häufige Revisions-Vorlagen
+- Schnelle, fokussierte Bearbeitung einzelner Segmente
+- Model-Auswahl optional – nutzt Standard, wenn nicht geändert
 
-Side Panel wie default.
+### 2. Batch Text-Revision
 
-Transcript View zeigt (wie bisher):
+**Format**: Command Panel + Inline-Ergebnisse
+
+Command Panel (standard):
+
+- Scope, Konfiguration, Template-Auswahl
+- Start/Pause/Stopp-Steuerung
+- Konfidenz-Gruppierte Zusammenfassung
+
+Transcript View (inline):
+
+- Original und Überarbeitete Version nebeneinander
+- Änderungen visuell hervorgehoben
+- Accept/Reject-Buttons pro Segment
 
 ```text
 ┌──────────────────────────────────────────────────────────┐
@@ -283,9 +320,22 @@ Transcript View zeigt (wie bisher):
 └──────────────────────────────────────────────────────────┘
 ```
 
-### Speaker Classification
+### 3. Speaker-Klassifikation (Batch)
+
+**Format**: Command Panel + Inline-Vorschläge
+
+Command Panel:
+- Scope (ggf. auf bestimmte Speaker filtern)
+- Konfiguration
+- Prompt-Template
+- Batch-Steuerung
+- Konfidenz-Übersicht
 
 Transcript View:
+- Vorschlag als **Box oberhalb des Segments**
+- Zeigt: Zugeordneter Speaker + Konfidenz-Prozentzahl
+- Begründung aus der AI-Analyse
+- Direktes Accept/Reject
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
@@ -300,23 +350,26 @@ Transcript View:
 └─────────────────────────────────────────────────────────────┘
 ```
 
-### Segment Merge
+### 4. Segment-Zusammenführung (Merge)
 
-Side Panel (Ausschnitt):
+**Format**: Command Panel + Inline-Zusammenführungs-Widget
 
-```text
-│ AI CONFIGURATION                  │
-│ Provider  [AI Hub         ▾]      │
-│ Model     [qwen3-235b     ▾]      │
-│ Batch     [10 pairs       ▾]      │
-│                                    │
-│ MERGE SETTINGS                     │
-│ Max Gap       [2.0 sec]            │
-│ Min Confidence [Medium ▾]          │
-│ ☑ Same speaker only                │
-│ ☑ Enable text smoothing            │
-````
-Transcript View zeigt Merge-Vorschlag:
+Command Panel:
+- Scope (ggf. nach Speaker filtern)
+- Konfiguration (Provider, Modell)
+- Merge-Einstellungen:
+  - Max. Zeitlücke
+  - Min. Konfidenz
+  - Nur gleiche Speaker
+  - Text-Glättung aktivieren
+- Batch-Steuerung
+- Konfidenz-Übersicht mit Navigations-Links
+
+Transcript View:
+- Zusammenführungs-Vorschlag als **Inline-Widget zwischen Segmenten**
+- Zeigt: Lücke, Konfidenz, Begründung
+- Visualisiert den **zusammengeführten Text** (Änderungen hervorgehoben)
+- Accept/Reject-Buttons
 
 ```text
 ┌─────────────────────────────────────────────────┐
@@ -344,8 +397,14 @@ Transcript View zeigt Merge-Vorschlag:
 └─────────────────────────────────────────────────┘
 ````
 
+**Besonderheiten bei Merge:**
+- Visuelle Klammer oder Verbindungslinie zwischen den zwei Segmenten
+- Neue Zeitstempel nach Zusammenführung klar erkennbar
+- Option zum Anschauen des zusammengeführten Textes vor Bestätigung
 
-## Mockup aller Bestandteile
+## Implementierungs-Referenz: React-Komponenten-Mockup
+
+Die folgende React-Komponente demonstriert die vollständige Bedienoberfläche mit Command Panel und Inline-Ergebnissen:
 
 ```javascript
 import { useState } from 'react'
@@ -815,15 +874,58 @@ export default function AIBatchOperationsMockups() {
 }
 ```
 
-## Hintergründe / Gedanken
+## Design-Rationale
 
-Das Text revision Feature ist das Einzige, das wirklich auf Element-Ebene Sinn macht. Hier möchte ich auch oft einen Textausschnitt verfeinern. Und das soll schnell gehen. Deswegen sind in dem Ai Menü mit dem Sternchen auch alle Templates, die man oft braucht (auswählbar in den Settings) direkt erreichbar und alle weiteren in einem kleinen Submenü versteck (siehe neues Bild). Ziel ist One-Click Navigation für die häufigsten Aktionen. Speaker, Segment Merge, Content Generierung, Kapitel-Überschriften arbeiten alle grundsätzlich als Batch. Auf einzelnen Elementen machen sie keinen Sinn oder bieten keinen Mehrwert gegenüber manueller Bearbeitung (ich habe schneller erkannt, dass eine Section gemerged werden sollte und "m" gedrückt, als mir die KI das zurückmeldet -> kein mehrwert).
+### Element-Level vs. Batch: Unterschiedliche Workflows für unterschiedliche Aufgaben
 
-Im Command Panel sollte vielleicht eher die Steuerung stattfinden. Die Vorschläge/ergebnisse finde ich besser im Transcript-View selbst. Die aktuellen AI-Fenster haben das Problem, dass alles viel zu klein ist, um etwas zu erkennen. Wenn ich einen Command Panel auf etwa 1/3 Breite habe, dann kann das wieder eng werden. Und auf jeden Fall wird es von der Höhe her schmal, denn ich habe die Einstellungen darüber und darunter dann vielleich 1/2 bis 1/3 des Panels für die Ergebnisse - und das ist das wichtigste.
+Das Konzept unterscheidet zwischen zwei fundamentalen AI-Workflows:
 
-Suggestions mit Progress, dann aufteilung in Confidence mit Acccept/reject all finde ich gut. Vielleicht sieht man hier aber nur eine kurzinfo zu jedem element und ein Klick bringt einen zu dem Segement im Transkript, wo dann weiteres steht? Segment Merge könnte dann als klammer zwischen den beiden Elementen dargestellt werden, mit Confidence, Begründung... Der Gemergte Text könnte sogar inline dargestellt werden, die Änderungen farblich hervorgehoben...
+**Element-Level (Text-Revision nur):**
+- **Einsatz**: Benutzer will einzelne Segmente schnell verfeinern
+- **Umsetzung**: Inline-Menü direkt am Segment (Sternchen-Button)
+- **Vorteil**: One-Click-Zugriff auf häufige Templates, kein Panel-Overhead
+- **Warum nicht Batch?** Command Panel würde unnötige Schritte erzeugen und Workflow verlangsamen
 
-Jedes feature sollte exakt gleich aufgebau sein und sich nicht wie in den ASCII Bildern unterscheiden. Scope: Filtered, all; Provider Configuration; spezial Settings (keine advanced Settungs, custom templates sind im Template Dropdown mit aufgeführt; Sart Batch, clear/pause/stop erst nach Batch start, Progress mit % und Anzahl, darunter die Ergebnisse wie besprochen. Es gibt keinen Grund warum sich die Menüs unterscheiden sollten. Außer in den Optionen unter "xy settings". Speaker werden über den allgemeinen Filter angewandt und allenfalls filtered / all ausgewählt (kann man eigentlich auch weglassen und einfach anzeigen wie viele ausgewählt sind.) Außer exclude confiremed - das braucht man, da muss entscheiden werden, ob in die Filter-Leiste oder hier. Es müssen optionen wie cancel, reject all etc. schnell zugreifbar sein, wenn ich die Aktion schnell verwerfen will. Vielleicht sollten die Vorschläge auch sofort ausgeblendet (aber nicht gelöscht) werden wenn ich den View schließe - dann kann ich dort später weitermachen.
+**Batch-Level (Speaker, Merge, Content-Generierung):**
+- **Einsatz**: Benutzer will konsistent über mehrere/viele Segmente arbeiten
+- **Umsetzung**: Command Panel mit Start/Pause/Ergebnisse
+- **Vorteil**: Konfigurieren einmal, 343 Segmente auf einmal verarbeiten
+- **Warum nicht Element?** Speaker-Vorschläge auf einzelnen Segmenten haben keinen Mehrwert gegenüber manueller Auswahl. Merge ist per Tastenkürzel (M) schneller erkannt als auf AI-Vorschläge zu warten
 
-Also: Einzel-Bearbeitung will ich weiter am Element und ohne Seitenleiste - da fehlt dann nur die Modell/Provider Auswahl (Optional) - kann da mit rein. Batches alle soweit irgend geht einheitlich. Filter-Seitenleiste aktiv nutzen. Transkript Bereich aktiv nutzen (siehe Vorher Nachher View bei Text Revision, das ist perfekt.)
+### Platz-Aufteilung: Transcript ist Haupt-Arbeitsbereich
+
+Die Dreierspalten-Aufteilung (Filter | Transcript | Panel) folgt dieser Logik:
+
+- **Command Panel (25-30%)**: Nur Konfiguration, Fortschritt, Kurz-Summary
+- **Transcript View (50-55%)**: Alle detaillierten Vorschläge im Kontext (Originale/Überarbeitete nebeneinander möglich)
+- **Filter-Sidebar (20%)**: Vor-Filterung und Review-Kategorien
+
+**Begründung**: Ein Panel mit 25-30% Breite ist zu schmal für detaillierte Ergebnisse. Vorschläge gehören dorthin, wo der Benutzer arbeitet: im Transcript mit vollständigem Kontext (umgebende Segmente, Timeline, Sprecher).
+
+### Navigation: Click + Keyboard für beide Use Cases
+
+Zwei parallele Navigationsansätze decken alle User-Szenarien ab:
+
+**Sequentielle Review** (Keyboard: N/P/A/R):
+- Schnell durch eine Serie von Vorschlägen navigieren
+- Ideal für „alle hohen Konfidenz akzeptieren" Workflows
+- Shortcuts ermöglichen Hände-auf-Tastatur-Arbeit
+
+**Selective Review** (Mouse: Click auf Summary):
+- Ein Klick auf „#045 0:45.2" in der Summary springt direkt zum Segment
+- Ideal für „nur bestimmte Vorschläge durchsehen" Workflows
+- Schneller als N/P durchnavigieren bei großen Abständen
+
+### Konsistenz durch Standardisierung
+
+Alle Batch-Features nutzen die **exakt gleiche Panel-Struktur** (Tabs → Scope → Config → Settings → Start → Progress → Summary). Nur die Feature-Einstellungen unterscheiden sich. Das macht das System nach einer Lernkurve vorhersagbar und skalierbar für neue Features.
+
+### Sidebar: Aktiver Filter, nicht Ergebnis-Viewer
+
+Die Filter-Sidebar arbeitet **vor** der Batch, nicht parallel dazu:
+- Speaker-Filter vor Start anwenden → reduziert Scope
+- „Exclude Confirmed" verhindert Wiederbearbeitung von bereits bestätigten Segmenten
+- Review-Kategorien helfen beim nachgelagerten Filtern (z.B. „nur Low-Confidence zeigen")
+
+Die Sidebar **unterstützt den Workflow**, ohne dass AI-Tools sie überladen.
 
