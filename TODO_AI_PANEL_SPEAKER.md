@@ -8,7 +8,7 @@
 
 ## Phase 1: Foundation & Panel Infrastructure
 
-- [ ] **Create SpeakerPanel wrapper component** (`src/components/AICommandPanel/SpeakerPanel.tsx`)
+- [x] **Create SpeakerPanel wrapper component** (`src/components/AICommandPanel/SpeakerPanel.tsx`)
   - Houses configuration form (scope, provider, model, template selector)
   - Connect to batch processing service
   - Display progress when running
@@ -19,7 +19,7 @@
   - Has ✓ Accept and ✗ Reject buttons
   - Connected to segment state
 
-- [ ] **Update AICommandPanel main component**
+- [x] **Update AICommandPanel main component**
   - Add "Speaker" tab alongside "Revision" and "Merge"
   - Tab switching logic
   - Store active results during session

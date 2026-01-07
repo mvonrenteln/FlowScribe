@@ -8,7 +8,7 @@
 
 ## Phase 1: Foundation & Panel Infrastructure
 
-- [ ] **Create RevisionPanel wrapper component** (`src/components/AICommandPanel/RevisionPanel.tsx`)
+- [x] **Create RevisionPanel wrapper component** (`src/components/AICommandPanel/RevisionPanel.tsx`)
   - Configuration form:
     - Scope display (filtered segments count)
     - Provider selector
@@ -28,7 +28,7 @@
   - ✗ Reject and ✓ Accept buttons below
   - Optional reasoning text
 
-- [ ] **Update AICommandPanel main component**
+- [x] **Update AICommandPanel main component**
   - "Revision" tab (first tab)
   - Tab switching with state preservation
   - Store batch revision results during session

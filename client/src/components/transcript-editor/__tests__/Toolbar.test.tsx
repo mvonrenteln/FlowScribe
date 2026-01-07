@@ -58,8 +58,8 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   spellcheckHighlightActive: false,
   glossaryHighlightActive: false,
   onShowGlossary: vi.fn(),
-  onShowAISpeaker: vi.fn(),
-  onShowAISegmentMerge: vi.fn(),
+  aiCommandPanelOpen: false,
+  onToggleAICommandPanel: vi.fn(),
 };
 
 describe("Toolbar", () => {

@@ -1,3 +1,4 @@
+import { AICommandPanel } from "./AICommandPanel/AICommandPanel";
 import { EditorDialogs } from "./transcript-editor/EditorDialogs";
 import { FilterPanel } from "./transcript-editor/FilterPanel";
 import { PlaybackPane } from "./transcript-editor/PlaybackPane";
@@ -13,6 +14,7 @@ export function TranscriptEditor() {
     playbackPaneProps,
     transcriptListProps,
     dialogProps,
+    aiCommandPanelProps,
   } = useTranscriptEditor();
 
   return (
@@ -24,6 +26,7 @@ export function TranscriptEditor() {
           <PlaybackPane {...playbackPaneProps} />
           <TranscriptList {...transcriptListProps} />
         </main>
+        <AICommandPanel {...aiCommandPanelProps} />
       </div>
       <EditorDialogs {...dialogProps} />
     </div>

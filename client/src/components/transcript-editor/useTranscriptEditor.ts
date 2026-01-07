@@ -102,10 +102,10 @@ export const useTranscriptEditor = () => {
     setShowSpellcheckDialog,
     showRevisionDialog,
     setShowRevisionDialog,
-    showAISpeaker,
-    setShowAISpeaker,
     showAISegmentMerge,
     setShowAISegmentMerge,
+    showAICommandPanel,
+    setShowAICommandPanel,
     showSettings,
     setShowSettings,
     confidencePopoverOpen,
@@ -488,6 +488,8 @@ export const useTranscriptEditor = () => {
       canRedo: canRedoChecked,
       onShowShortcuts: () => setShowShortcuts(true),
       onShowExport: () => setShowExport(true),
+      aiCommandPanelOpen: showAICommandPanel,
+      onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
       highlightLowConfidence,
       onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
       confidencePopoverOpen,
@@ -516,8 +518,6 @@ export const useTranscriptEditor = () => {
       spellcheckHighlightActive: showSpellcheckMatches,
       glossaryHighlightActive: showLexiconMatches,
       onShowGlossary: () => setShowLexicon(true),
-      onShowAISpeaker: () => setShowAISpeaker(true),
-      onShowAISegmentMerge: () => setShowAISegmentMerge(true),
     }),
     [
       sidebarOpen,
@@ -557,8 +557,8 @@ export const useTranscriptEditor = () => {
       setShowSettings,
       setShowSpellcheckDialog,
       setShowLexicon,
-      setShowAISpeaker,
-      setShowAISegmentMerge,
+      showAICommandPanel,
+      setShowAICommandPanel,
       showLexiconMatches,
       showSpellcheckMatches,
       sessionKey,
@@ -615,7 +615,6 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       onReplaceCurrent: replaceCurrent,
       onReplaceAll: replaceAll,
-      filteredSegmentIds: filteredSegments.map((s) => s.id),
     }),
     [
       addSpeaker,
@@ -656,7 +655,6 @@ export const useTranscriptEditor = () => {
       goToPrevMatch,
       replaceCurrent,
       replaceAll,
-      filteredSegments,
     ],
   );
 
@@ -761,8 +759,6 @@ export const useTranscriptEditor = () => {
           : (recentSessions
               .filter((s) => s.kind === "revision" && s.baseSessionKey === sessionKey)
               .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0))[0]?.label ?? undefined),
-      showAISpeaker,
-      onAISpeakerChange: setShowAISpeaker,
       showAISegmentMerge,
       onAISegmentMergeChange: setShowAISegmentMerge,
       showSettings,
@@ -784,7 +780,6 @@ export const useTranscriptEditor = () => {
       showLexicon,
       showSpellcheckDialog,
       showRevisionDialog,
-      showAISpeaker,
       showAISegmentMerge,
       showSettings,
       setShowShortcuts,
@@ -792,9 +787,25 @@ export const useTranscriptEditor = () => {
       setShowLexicon,
       setShowSpellcheckDialog,
       setShowRevisionDialog,
-      setShowAISpeaker,
       setShowAISegmentMerge,
       setShowSettings,
+    ],
+  );
+
+  const aiCommandPanelProps = useMemo(
+    () => ({
+      open: showAICommandPanel,
+      onOpenChange: setShowAICommandPanel,
+      filteredSegmentIds: filteredSegments.map((segment) => segment.id),
+      onOpenSettings: () => setShowSettings(true),
+      onOpenMergeDialog: () => setShowAISegmentMerge(true),
+    }),
+    [
+      filteredSegments,
+      setShowAICommandPanel,
+      setShowAISegmentMerge,
+      setShowSettings,
+      showAICommandPanel,
     ],
   );
 
@@ -808,6 +819,7 @@ export const useTranscriptEditor = () => {
     },
     transcriptListProps,
     dialogProps,
+    aiCommandPanelProps,
   };
 };
 
