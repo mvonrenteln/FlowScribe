@@ -87,6 +87,7 @@ export function useScrollAndSelection({
   const lastActiveIdRef = useRef<string | null>(null);
   const lastTargetIdRef = useRef<string | null>(null);
   const lastTimeRef = useRef(currentTime);
+  const lastIsPlayingRef = useRef(isPlaying);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -143,6 +144,10 @@ export function useScrollAndSelection({
     const isSeeking = timeDiff > 1.5; // Threshold for considering it a manual jump/seek
     lastTimeRef.current = currentTime;
 
+    // Detect play state change (pause → play)
+    const justResumed = isPlaying && !lastIsPlayingRef.current;
+    lastIsPlayingRef.current = isPlaying;
+
     // Determine the ideal segment to show.
     // If we have an active segment, use it.
     // If we are in a gap (silence), find the next upcoming visible segment.
@@ -197,6 +202,10 @@ export function useScrollAndSelection({
 
     if (isSeeking) {
       // Always scroll on manual seek to re-center
+      shouldScroll = true;
+    } else if (justResumed) {
+      // Always scroll when resuming playback (pause → play transition)
+      // This ensures we snap back to the active segment after user scrolled away
       shouldScroll = true;
     } else if (targetIdChanged) {
       // Always scroll when the target segment changes (boundary hit)
