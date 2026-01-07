@@ -347,6 +347,7 @@ export interface AISpeakerSlice {
   cancelAnalysis: () => void;
   addSuggestions: (suggestions: AISpeakerSuggestion[]) => void;
   acceptSuggestion: (segmentId: string) => void;
+  acceptManySuggestions: (segmentIds: string[]) => void;
   rejectSuggestion: (segmentId: string) => void;
   clearSuggestions: () => void;
   updateConfig: (config: Partial<AISpeakerConfig>) => void;

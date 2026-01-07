@@ -1,7 +1,19 @@
-import { AlertCircle, Check, Pause, Settings2, Sparkles, Trash2 } from "lucide-react";
+import {
+  AlertCircle,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  Settings2,
+  Sparkles,
+  StopCircle,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useEffect, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Drawer,
   DrawerContent,
@@ -12,6 +24,7 @@ import {
 
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Select,
   SelectContent,
@@ -51,11 +64,13 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
 
   const startAnalysis = useTranscriptStore((s) => s.startAnalysis);
   const cancelAnalysis = useTranscriptStore((s) => s.cancelAnalysis);
-  const acceptSuggestion = useTranscriptStore((s) => s.acceptSuggestion);
+  const acceptManySuggestions = useTranscriptStore((s) => s.acceptManySuggestions);
   const rejectSuggestion = useTranscriptStore((s) => s.rejectSuggestion);
   const clearSuggestions = useTranscriptStore((s) => s.clearSuggestions);
   const updateConfig = useTranscriptStore((s) => s.updateConfig);
   const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
+
+  const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
 
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
@@ -65,6 +80,9 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
     config.selectedProviderId ?? "",
   );
   const [selectedModel, setSelectedModel] = useState<string>(config.selectedModel ?? "");
+  const [highConfExpanded, setHighConfExpanded] = useState(true);
+  const [medConfExpanded, setMedConfExpanded] = useState(false);
+  const [lowConfExpanded, setLowConfExpanded] = useState(false);
 
   useEffect(() => {
     const loadedSettings = initializeSettings();
@@ -103,13 +121,40 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
     totalToProcess > 0 ? Math.round((processedCount / totalToProcess) * 100) : 0;
 
   const handleStartAnalysis = () => {
+    const parsed = Number.parseInt(batchSize, 10);
+    if (Number.isNaN(parsed) || parsed < 1 || parsed > 50) {
+      return; // Invalid batch size
+    }
     updateConfig({
-      batchSize: Number.parseInt(batchSize, 10) || 10,
+      batchSize: parsed,
       selectedProviderId: selectedProviderId || undefined,
       selectedModel: selectedModel || undefined,
     });
     startAnalysis([], excludeConfirmed);
   };
+
+  const handleScrollToSegment = (segmentId: string) => {
+    setSelectedSegmentId(segmentId);
+    // Scroll to segment
+    requestAnimationFrame(() => {
+      const element = document.querySelector(`[data-segment-id="${segmentId}"]`);
+      if (element) {
+        element.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
+    });
+  };
+
+  const truncateText = (text: string, maxLength: number) => {
+    if (text.length <= maxLength) return text;
+    return `${text.slice(0, maxLength)}...`;
+  };
+
+  // Calculate scoped segments for display
+  const scopedSegmentIds = segments
+    .filter((segment) => !excludeConfirmed || !segment.confirmed)
+    .map((s) => s.id);
+  // Check if we're working with filtered subset (less than total segments)
+  const isFiltered = scopedSegmentIds.length < segments.length;
 
   return (
     <div className="space-y-5">
@@ -118,10 +163,8 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
           Scope
         </h3>
         <div className="text-sm text-foreground">
-          All segments
-          <p className="text-xs text-muted-foreground mt-1">
-            Use the Transcript Filter to select specific speakers
-          </p>
+          {isFiltered ? "Filtered" : "All"}: {scopedSegmentIds.length} segment
+          {scopedSegmentIds.length === 1 ? "" : "s"}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Checkbox
@@ -200,53 +243,15 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
         )}
 
         <div className="space-y-2">
-          <Label htmlFor="speaker-batch-size" className="text-xs text-muted-foreground">
-            Batch Size
+          <Label htmlFor="speaker-template" className="text-xs text-muted-foreground">
+            Prompt Template
           </Label>
-          <Select value={batchSize} onValueChange={setBatchSize} disabled={isProcessing}>
-            <SelectTrigger id="speaker-batch-size" className="h-8 text-sm">
-              <SelectValue placeholder="Batch size" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="10">10 segments</SelectItem>
-              <SelectItem value="20">20 segments</SelectItem>
-              <SelectItem value="50">50 segments</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" className="ml-auto" onClick={onOpenSettings}>
-                  <Settings2 className="h-4 w-4 mr-1" />
-                  Settings
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Configure AI providers and prompts in Settings</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {!selectedProviderId && settings?.aiProviders.length === 0 && (
-          <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>No AI provider configured. Add one in Settings → AI → Server & Models.</span>
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Speaker Settings
-        </h3>
-        <div className="space-y-2">
-          <Label className="text-xs text-muted-foreground">Prompt Template</Label>
-          <Select value={config.activePromptId} onValueChange={(value) => setActivePrompt(value)}>
-            <SelectTrigger className="h-8 text-sm">
+          <Select
+            value={config.activePromptId}
+            onValueChange={(value) => setActivePrompt(value)}
+            disabled={isProcessing}
+          >
+            <SelectTrigger id="speaker-template" className="h-8 text-sm">
               <SelectValue placeholder="Select prompt" />
             </SelectTrigger>
             <SelectContent>
@@ -259,6 +264,48 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
             </SelectContent>
           </Select>
         </div>
+
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <Label htmlFor="speaker-batch-size" className="text-xs text-muted-foreground">
+              Batch Size
+            </Label>
+            <input
+              id="speaker-batch-size"
+              type="number"
+              min="1"
+              max="50"
+              value={batchSize}
+              onChange={(e) => {
+                const val = e.target.value;
+                if (val === "" || (Number(val) >= 1 && Number(val) <= 50)) {
+                  setBatchSize(val);
+                }
+              }}
+              disabled={isProcessing}
+              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+            />
+          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="sm" onClick={onOpenSettings}>
+                  <Settings2 className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Configure AI providers and prompts</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        </div>
+
+        {!selectedProviderId && settings?.aiProviders.length === 0 && (
+          <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>No AI provider configured. Add one in Settings → AI → Server & Models.</span>
+          </div>
+        )}
       </section>
 
       <section className="space-y-3">
@@ -299,7 +346,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
         <div className="flex items-center gap-2">
           {isProcessing ? (
             <Button onClick={cancelAnalysis} variant="destructive" className="flex-1">
-              <Pause className="h-4 w-4 mr-2" />
+              <StopCircle className="h-4 w-4 mr-2" />
               Stop Analysis
             </Button>
           ) : (
@@ -425,112 +472,116 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
               );
               const lowConfidence = pendingSuggestions.filter((s) => (s.confidence ?? 0) < 0.5);
 
+              const renderSuggestionItem = (suggestion: (typeof pendingSuggestions)[0]) => {
+                const segment = segments.find((s) => s.id === suggestion.segmentId);
+                const textSnippet = segment ? truncateText(segment.text, 40) : "";
+
+                return (
+                  <div
+                    key={suggestion.segmentId}
+                    className="flex items-center gap-2 text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                    onClick={() => handleScrollToSegment(suggestion.segmentId)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        handleScrollToSegment(suggestion.segmentId);
+                      }
+                    }}
+                    role="button"
+                    tabIndex={0}
+                    title={segment?.text}
+                  >
+                    <span className="flex-1 truncate text-muted-foreground min-w-0">{textSnippet}</span>
+                    <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]" title={`${suggestion.currentSpeaker} → ${suggestion.suggestedSpeaker}`}>
+                      {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
+                    </Badge>
+                    <span className="text-muted-foreground ml-1 shrink-0">
+                      {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
+                    </span>
+                  </div>
+                );
+              };
+
               return (
                 <>
                   {highConfidence.length > 0 && (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <span className="text-xs font-semibold text-green-600 dark:text-green-400">
-                          High Confidence ({highConfidence.length})
-                        </span>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => {
-                            for (const s of highConfidence) {
-                              acceptSuggestion(s.segmentId);
-                            }
-                          }}
-                          className="h-7 text-xs"
-                        >
-                          <Check className="h-3 w-3 mr-1" />
-                          Accept All
-                        </Button>
-                      </div>
-                      <div className="space-y-1">
-                        {highConfidence.slice(0, 5).map((suggestion) => (
-                          <div
-                            key={suggestion.segmentId}
-                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                    <Collapsible open={highConfExpanded} onOpenChange={setHighConfExpanded}>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <CollapsibleTrigger className="flex items-center gap-1 text-xs font-semibold text-green-600 dark:text-green-400 hover:underline">
+                            {highConfExpanded ? (
+                              <ChevronDown className="h-3 w-3" />
+                            ) : (
+                              <ChevronRight className="h-3 w-3" />
+                            )}
+                            High Confidence ({highConfidence.length})
+                          </CollapsibleTrigger>
+                          <Button
+                            variant="outline"
+                            size="sm"
                             onClick={() => {
-                              const seg = segments.find((s) => s.id === suggestion.segmentId);
-                              if (seg) {
-                                // TODO: Scroll to segment
-                              }
+                              // Batch update all high confidence suggestions
+                              acceptManySuggestions(highConfidence.map((s) => s.segmentId));
                             }}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                const seg = segments.find((s) => s.id === suggestion.segmentId);
-                                if (seg) {
-                                  // TODO: Scroll to segment
-                                }
-                              }
-                            }}
-                            role="button"
-                            tabIndex={0}
+                            className="h-7 text-xs"
                           >
-                            <span className="truncate flex-1">
-                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
-                            </span>
-                            <span className="text-muted-foreground ml-2">
-                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        ))}
-                        {highConfidence.length > 5 && (
-                          <div className="text-xs text-muted-foreground text-center">
-                            +{highConfidence.length - 5} more
-                          </div>
-                        )}
+                            <Check className="h-3 w-3 mr-1" />
+                            Accept All
+                          </Button>
+                        </div>
+                        <CollapsibleContent>
+                          <ScrollArea className="h-[200px]">
+                            <div className="space-y-1 pr-3">
+                              {highConfidence.map(renderSuggestionItem)}
+                            </div>
+                          </ScrollArea>
+                        </CollapsibleContent>
                       </div>
-                    </div>
+                    </Collapsible>
                   )}
 
                   {mediumConfidence.length > 0 && (
-                    <details className="space-y-2">
-                      <summary className="text-xs font-semibold text-amber-600 dark:text-amber-400 cursor-pointer">
-                        Medium Confidence ({mediumConfidence.length})
-                      </summary>
-                      <div className="space-y-1 mt-2">
-                        {mediumConfidence.map((suggestion) => (
-                          <div
-                            key={suggestion.segmentId}
-                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                          >
-                            <span className="truncate flex-1">
-                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
-                            </span>
-                            <span className="text-muted-foreground ml-2">
-                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        ))}
+                    <Collapsible open={medConfExpanded} onOpenChange={setMedConfExpanded}>
+                      <div className="space-y-2">
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs font-semibold text-amber-600 dark:text-amber-400 hover:underline">
+                          {medConfExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                          Medium Confidence ({mediumConfidence.length})
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <ScrollArea className="h-[200px]">
+                            <div className="space-y-1 pr-3">
+                              {mediumConfidence.map(renderSuggestionItem)}
+                            </div>
+                          </ScrollArea>
+                        </CollapsibleContent>
                       </div>
-                    </details>
+                    </Collapsible>
                   )}
 
                   {lowConfidence.length > 0 && (
-                    <details className="space-y-2">
-                      <summary className="text-xs font-semibold text-red-600 dark:text-red-400 cursor-pointer">
-                        Low Confidence ({lowConfidence.length})
-                      </summary>
-                      <div className="space-y-1 mt-2">
-                        {lowConfidence.map((suggestion) => (
-                          <div
-                            key={suggestion.segmentId}
-                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                          >
-                            <span className="truncate flex-1">
-                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
-                            </span>
-                            <span className="text-muted-foreground ml-2">
-                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
-                            </span>
-                          </div>
-                        ))}
+                    <Collapsible open={lowConfExpanded} onOpenChange={setLowConfExpanded}>
+                      <div className="space-y-2">
+                        <CollapsibleTrigger className="flex items-center gap-1 text-xs font-semibold text-red-600 dark:text-red-400 hover:underline">
+                          {lowConfExpanded ? (
+                            <ChevronDown className="h-3 w-3" />
+                          ) : (
+                            <ChevronRight className="h-3 w-3" />
+                          )}
+                          Low Confidence ({lowConfidence.length})
+                        </CollapsibleTrigger>
+                        <CollapsibleContent>
+                          <ScrollArea className="h-[200px]">
+                            <div className="space-y-1 pr-3">
+                              {lowConfidence.map(renderSuggestionItem)}
+                            </div>
+                          </ScrollArea>
+                        </CollapsibleContent>
                       </div>
-                    </details>
+                    </Collapsible>
                   )}
 
                   <div className="flex gap-2">
@@ -544,6 +595,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
                       }}
                       className="flex-1"
                     >
+                      <X className="h-3 w-3 mr-1" />
                       Reject All
                     </Button>
                   </div>

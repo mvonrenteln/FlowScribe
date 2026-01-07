@@ -1,4 +1,4 @@
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, X } from "lucide-react";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -222,7 +222,7 @@ function TranscriptSegmentComponent({
                   }}
                   className="h-7 px-2"
                 >
-                  ✗
+                  <X className="h-3.5 w-3.5" />
                 </Button>
               </div>
             </div>

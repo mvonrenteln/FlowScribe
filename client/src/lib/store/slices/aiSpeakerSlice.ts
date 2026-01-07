@@ -178,6 +178,52 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     }
   },
 
+  acceptManySuggestions: (segmentIds) => {
+    const { aiSpeakerSuggestions, speakers, segments, addSpeaker } = get();
+
+    // Collect all suggestions to accept
+    const suggestionsToAccept = aiSpeakerSuggestions.filter(
+      (s) => segmentIds.includes(s.segmentId) && s.status === "pending",
+    );
+
+    if (suggestionsToAccept.length === 0) return;
+
+    // Collect unique new speakers that need to be created
+    const existingSpeakerIds = new Set(speakers.map((s) => s.id));
+    const newSpeakerIds = new Set<string>();
+
+    for (const suggestion of suggestionsToAccept) {
+      if (!existingSpeakerIds.has(suggestion.suggestedSpeaker) && !newSpeakerIds.has(suggestion.suggestedSpeaker)) {
+        newSpeakerIds.add(suggestion.suggestedSpeaker);
+      }
+    }
+
+    // Add all new speakers first
+    for (const speakerId of newSpeakerIds) {
+      addSpeaker(speakerId);
+    }
+
+    // Batch update all segments
+    const updatedSegments = segments.map((seg) => {
+      const suggestion = suggestionsToAccept.find((s) => s.segmentId === seg.id);
+      if (suggestion) {
+        return { ...seg, speaker: suggestion.suggestedSpeaker };
+      }
+      return seg;
+    });
+
+    // Remove accepted suggestions from store (not just mark as accepted)
+    const updatedSuggestions = aiSpeakerSuggestions.filter(
+      (s) => !segmentIds.includes(s.segmentId),
+    );
+
+    // Single state update
+    set({
+      segments: updatedSegments,
+      aiSpeakerSuggestions: updatedSuggestions,
+    });
+  },
+
   rejectSuggestion: (segmentId) => {
     const { aiSpeakerSuggestions } = get();
     set({

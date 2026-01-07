@@ -61,6 +61,11 @@ export function RevisionPanel({ filteredSegmentIds }: RevisionPanelProps) {
     [excludeConfirmed, filteredSegmentIds, segmentById],
   );
 
+  // Check if we're working with filtered subset (less than total segments)
+  const isFiltered =
+    filteredSegmentIds.length < segments.length ||
+    scopedSegmentIds.length < filteredSegmentIds.length;
+
   const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
   const availableModels = selectedProvider?.availableModels ?? [];
   const effectiveModel = selectedModel || selectedProvider?.model || "";
@@ -82,7 +87,7 @@ export function RevisionPanel({ filteredSegmentIds }: RevisionPanelProps) {
           Scope
         </h3>
         <div className="text-sm text-foreground">
-          Filtered: {scopedSegmentIds.length} segment
+          {isFiltered ? "Filtered" : "All"}: {scopedSegmentIds.length} segment
           {scopedSegmentIds.length === 1 ? "" : "s"}
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
