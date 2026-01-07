@@ -1,4 +1,4 @@
-import { AlertCircle, Check, Pause, Play, Settings2, Sparkles, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Pause, Settings2, Sparkles, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -9,7 +9,7 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { Input } from "@/components/ui/input";
+
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
 import {
@@ -30,14 +30,12 @@ import {
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { initializeSettings, type PersistedSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
 
 interface SpeakerPanelProps {
   onOpenSettings: () => void;
 }
 
 export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
-  const speakers = useTranscriptStore((s) => s.speakers);
   const segments = useTranscriptStore((s) => s.segments);
 
   const suggestions = useTranscriptStore((s) => s.aiSpeakerSuggestions);
@@ -60,7 +58,6 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
   const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
 
   const [isLogOpen, setIsLogOpen] = useState(false);
-  const [selectedSpeakers, setSelectedSpeakers] = useState<string[]>([]);
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState(config.batchSize.toString());
   const [settings, setSettings] = useState<PersistedSettings | null>(null);
@@ -111,54 +108,20 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
       selectedProviderId: selectedProviderId || undefined,
       selectedModel: selectedModel || undefined,
     });
-    startAnalysis(selectedSpeakers, excludeConfirmed);
-  };
-
-  const handleSpeakerToggle = (speakerName: string) => {
-    setSelectedSpeakers((prev) =>
-      prev.includes(speakerName) ? prev.filter((s) => s !== speakerName) : [...prev, speakerName],
-    );
-  };
-
-  const handleSelectAllSpeakers = () => {
-    if (selectedSpeakers.length === speakers.length) {
-      setSelectedSpeakers([]);
-    } else {
-      setSelectedSpeakers(speakers.map((s) => s.name));
-    }
+    startAnalysis([], excludeConfirmed);
   };
 
   return (
     <div className="space-y-5">
       <section className="space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            Scope
-          </h3>
-          <Button variant="ghost" size="sm" onClick={handleSelectAllSpeakers}>
-            {selectedSpeakers.length === speakers.length ? "Deselect All" : "Select All"}
-          </Button>
-        </div>
-        <div className="flex flex-wrap gap-2">
-          {speakers.map((speaker) => {
-            const isSelected = selectedSpeakers.includes(speaker.name);
-            return (
-              <button
-                key={speaker.id}
-                type="button"
-                className={cn(
-                  "flex items-center gap-2 px-2 py-1 text-xs rounded-md border",
-                  isSelected
-                    ? "border-primary bg-primary/10 text-primary"
-                    : "border-muted text-muted-foreground",
-                )}
-                onClick={() => handleSpeakerToggle(speaker.name)}
-              >
-                <span className="h-2 w-2 rounded-full" style={{ backgroundColor: speaker.color }} />
-                {speaker.name}
-              </button>
-            );
-          })}
+        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+          Scope
+        </h3>
+        <div className="text-sm text-foreground">
+          All segments
+          <p className="text-xs text-muted-foreground mt-1">
+            Use the Transcript Filter to select specific speakers
+          </p>
         </div>
         <div className="flex items-center gap-2 text-sm text-muted-foreground">
           <Checkbox
@@ -236,18 +199,23 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
           </div>
         )}
 
+        <div className="space-y-2">
+          <Label htmlFor="speaker-batch-size" className="text-xs text-muted-foreground">
+            Batch Size
+          </Label>
+          <Select value={batchSize} onValueChange={setBatchSize} disabled={isProcessing}>
+            <SelectTrigger id="speaker-batch-size" className="h-8 text-sm">
+              <SelectValue placeholder="Batch size" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="10">10 segments</SelectItem>
+              <SelectItem value="20">20 segments</SelectItem>
+              <SelectItem value="50">50 segments</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+
         <div className="flex items-center gap-2">
-          <Label className="text-xs text-muted-foreground">Batch Size</Label>
-          <Input
-            id="batch-size"
-            type="number"
-            min={1}
-            max={50}
-            value={batchSize}
-            onChange={(e) => setBatchSize(e.target.value)}
-            className="w-20 h-8"
-          />
-          <span className="text-xs text-muted-foreground">segments</span>
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
@@ -340,7 +308,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
               disabled={segments.length === 0}
               className="flex-1"
             >
-              <Play className="h-4 w-4 mr-2" />
+              <Sparkles className="h-4 w-4 mr-2" />
               Start Analysis
             </Button>
           )}
@@ -447,44 +415,141 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
             </Drawer>
           </div>
 
-          <div className="space-y-2">
-            {pendingSuggestions.map((suggestion) => (
-              <div
-                key={suggestion.segmentId}
-                className="flex items-start gap-2 rounded-md border border-muted bg-muted/30 px-3 py-2"
-              >
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 text-sm font-medium">
-                    <Sparkles className="h-3.5 w-3.5 text-yellow-500" />
-                    {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
-                    <span className="text-xs text-muted-foreground">
-                      {suggestion.confidence !== undefined
-                        ? `${(suggestion.confidence * 100).toFixed(0)}%`
-                        : "—"}
-                    </span>
-                  </div>
-                  {suggestion.reason && (
-                    <div className="mt-1 text-xs text-muted-foreground">{suggestion.reason}</div>
+          {/* Results Summary with Confidence Grouping */}
+          <div className="space-y-3">
+            <h3 className="text-sm font-medium">Results Summary</h3>
+            {(() => {
+              const highConfidence = pendingSuggestions.filter((s) => (s.confidence ?? 0) >= 0.8);
+              const mediumConfidence = pendingSuggestions.filter(
+                (s) => (s.confidence ?? 0) >= 0.5 && (s.confidence ?? 0) < 0.8,
+              );
+              const lowConfidence = pendingSuggestions.filter((s) => (s.confidence ?? 0) < 0.5);
+
+              return (
+                <>
+                  {highConfidence.length > 0 && (
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-green-600 dark:text-green-400">
+                          High Confidence ({highConfidence.length})
+                        </span>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => {
+                            for (const s of highConfidence) {
+                              acceptSuggestion(s.segmentId);
+                            }
+                          }}
+                          className="h-7 text-xs"
+                        >
+                          <Check className="h-3 w-3 mr-1" />
+                          Accept All
+                        </Button>
+                      </div>
+                      <div className="space-y-1">
+                        {highConfidence.slice(0, 5).map((suggestion) => (
+                          <div
+                            key={suggestion.segmentId}
+                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                            onClick={() => {
+                              const seg = segments.find((s) => s.id === suggestion.segmentId);
+                              if (seg) {
+                                // TODO: Scroll to segment
+                              }
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                const seg = segments.find((s) => s.id === suggestion.segmentId);
+                                if (seg) {
+                                  // TODO: Scroll to segment
+                                }
+                              }
+                            }}
+                            role="button"
+                            tabIndex={0}
+                          >
+                            <span className="truncate flex-1">
+                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        ))}
+                        {highConfidence.length > 5 && (
+                          <div className="text-xs text-muted-foreground text-center">
+                            +{highConfidence.length - 5} more
+                          </div>
+                        )}
+                      </div>
+                    </div>
                   )}
-                </div>
-                <div className="flex flex-col gap-1">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => acceptSuggestion(suggestion.segmentId)}
-                  >
-                    <Check className="h-3.5 w-3.5" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => rejectSuggestion(suggestion.segmentId)}
-                  >
-                    ✗
-                  </Button>
-                </div>
-              </div>
-            ))}
+
+                  {mediumConfidence.length > 0 && (
+                    <details className="space-y-2">
+                      <summary className="text-xs font-semibold text-amber-600 dark:text-amber-400 cursor-pointer">
+                        Medium Confidence ({mediumConfidence.length})
+                      </summary>
+                      <div className="space-y-1 mt-2">
+                        {mediumConfidence.map((suggestion) => (
+                          <div
+                            key={suggestion.segmentId}
+                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                          >
+                            <span className="truncate flex-1">
+                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  {lowConfidence.length > 0 && (
+                    <details className="space-y-2">
+                      <summary className="text-xs font-semibold text-red-600 dark:text-red-400 cursor-pointer">
+                        Low Confidence ({lowConfidence.length})
+                      </summary>
+                      <div className="space-y-1 mt-2">
+                        {lowConfidence.map((suggestion) => (
+                          <div
+                            key={suggestion.segmentId}
+                            className="flex items-center justify-between text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+                          >
+                            <span className="truncate flex-1">
+                              {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
+                            </span>
+                            <span className="text-muted-foreground ml-2">
+                              {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </details>
+                  )}
+
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        for (const s of pendingSuggestions) {
+                          rejectSuggestion(s.segmentId);
+                        }
+                      }}
+                      className="flex-1"
+                    >
+                      Reject All
+                    </Button>
+                  </div>
+                </>
+              );
+            })()}
           </div>
         </section>
       )}

@@ -1,3 +1,4 @@
+import { Check, Sparkles } from "lucide-react";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -61,6 +62,14 @@ interface TranscriptSegmentProps {
     message?: string;
     timestamp: number;
   } | null;
+  /** Pending AI speaker suggestion for this segment */
+  readonly pendingSpeakerSuggestion?: {
+    suggestedSpeaker: string;
+    confidence?: number;
+    reason?: string;
+  };
+  readonly onAcceptSpeakerSuggestion?: () => void;
+  readonly onRejectSpeakerSuggestion?: () => void;
 }
 
 function TranscriptSegmentComponent({
@@ -105,6 +114,9 @@ function TranscriptSegmentComponent({
   onAcceptRevision,
   onRejectRevision,
   lastRevisionResult,
+  pendingSpeakerSuggestion,
+  onAcceptSpeakerSuggestion,
+  onRejectSpeakerSuggestion,
 }: TranscriptSegmentProps) {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const [spellcheckExpandedIndex, setSpellcheckExpandedIndex] = useState<number | null>(null);
@@ -167,6 +179,54 @@ function TranscriptSegmentComponent({
             speakerColor={speakerColor}
             onSpeakerChange={onSpeakerChange}
           />
+
+          {/* Speaker Suggestion (if present, shown ABOVE segment content) */}
+          {pendingSpeakerSuggestion && onAcceptSpeakerSuggestion && onRejectSpeakerSuggestion && (
+            <div className="mb-2 flex items-start gap-2 rounded-md border border-amber-200 bg-amber-50 px-3 py-2 dark:border-amber-900/50 dark:bg-amber-900/20">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 text-sm font-medium text-amber-900 dark:text-amber-200">
+                  <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+                  <span>
+                    {segment.speaker} → {pendingSpeakerSuggestion.suggestedSpeaker}
+                  </span>
+                  {pendingSpeakerSuggestion.confidence !== undefined && (
+                    <span className="text-xs text-muted-foreground">
+                      {(pendingSpeakerSuggestion.confidence * 100).toFixed(0)}%
+                    </span>
+                  )}
+                </div>
+                {pendingSpeakerSuggestion.reason && (
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {pendingSpeakerSuggestion.reason}
+                  </div>
+                )}
+              </div>
+              <div className="flex flex-col gap-1">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onAcceptSpeakerSuggestion();
+                  }}
+                  className="h-7 px-2"
+                >
+                  <Check className="h-3.5 w-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onRejectSpeakerSuggestion();
+                  }}
+                  className="h-7 px-2"
+                >
+                  ✗
+                </Button>
+              </div>
+            </div>
+          )}
 
           {isEditing ? (
             <div className="space-y-2">
@@ -320,6 +380,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.replaceQuery === next.replaceQuery &&
     prev.currentMatch === next.currentMatch &&
     prev.pendingRevision === next.pendingRevision &&
+    prev.pendingSpeakerSuggestion === next.pendingSpeakerSuggestion &&
     prev.lastRevisionResult?.timestamp === next.lastRevisionResult?.timestamp
   );
 };
