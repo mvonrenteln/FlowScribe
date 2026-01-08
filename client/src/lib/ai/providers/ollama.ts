@@ -46,23 +46,22 @@ export class OllamaProvider implements AIProviderService {
    * Send a chat completion request to Ollama.
    */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
-    const apiUrl = `${this.config.baseUrl.replace(/\/$/, "")}/api/generate`;
-
-    // Extract system prompt and user messages
-    const systemMessage = messages.find((m) => m.role === "system");
-    const userMessages = messages.filter((m) => m.role !== "system");
-    const prompt = userMessages.map((m) => m.content).join("\n\n");
+    const baseUrl = this.config.baseUrl.replace(/\/$/, "");
+    const chatUrl = `${baseUrl}/api/chat`;
+    const generateUrl = `${baseUrl}/api/generate`;
 
     try {
-      const response = await fetch(apiUrl, {
+      const response = await fetch(chatUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
           model: this.config.model,
-          prompt,
-          system: systemMessage?.content ?? "",
+          messages: messages.map((m) => ({
+            role: m.role,
+            content: m.content,
+          })),
           stream: false,
           options: {
             temperature: options?.temperature ?? 0.7,
@@ -74,6 +73,9 @@ export class OllamaProvider implements AIProviderService {
 
       if (!response.ok) {
         const errorText = await response.text().catch(() => "Unknown error");
+        if (response.status === 404 || response.status === 405) {
+          return await this.chatViaGenerate(generateUrl, messages, options);
+        }
         throw new AIProviderConnectionError(
           `Ollama API error (${response.status}): ${errorText}`,
           "ollama",
@@ -84,7 +86,7 @@ export class OllamaProvider implements AIProviderService {
 
       const data = await response.json();
       return {
-        content: data.response ?? "",
+        content: data.message?.content ?? data.response ?? "",
         usage:
           data.prompt_eval_count || data.eval_count
             ? {
@@ -108,6 +110,57 @@ export class OllamaProvider implements AIProviderService {
         { causeMessage: error instanceof Error ? error.message : String(error) },
       );
     }
+  }
+
+  private async chatViaGenerate(
+    apiUrl: string,
+    messages: ChatMessage[],
+    options?: ChatOptions,
+  ): Promise<ChatResponse> {
+    const systemMessage = messages.find((m) => m.role === "system");
+    const userMessages = messages.filter((m) => m.role !== "system");
+    const prompt = userMessages.map((m) => m.content).join("\n\n");
+
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: this.config.model,
+        prompt,
+        system: systemMessage?.content ?? "",
+        stream: false,
+        options: {
+          temperature: options?.temperature ?? 0.7,
+          num_predict: options?.maxTokens ?? 2048,
+        },
+      }),
+      signal: options?.signal,
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => "Unknown error");
+      throw new AIProviderConnectionError(
+        `Ollama API error (${response.status}): ${errorText}`,
+        "ollama",
+        response.status,
+        { body: errorText },
+      );
+    }
+
+    const data = await response.json();
+    return {
+      content: data.response ?? "",
+      usage:
+        data.prompt_eval_count || data.eval_count
+          ? {
+              promptTokens: data.prompt_eval_count,
+              completionTokens: data.eval_count,
+              totalTokens: (data.prompt_eval_count ?? 0) + (data.eval_count ?? 0),
+            }
+          : undefined,
+    };
   }
 
   /**

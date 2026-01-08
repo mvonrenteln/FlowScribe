@@ -51,6 +51,7 @@ export interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
   selectedSegmentId: string | null;
+  currentTime: number;
 }
 
 export interface PersistedSession {
@@ -155,6 +156,7 @@ export interface InitialStoreState {
   aiRevisionConfig: AIRevisionConfig;
   aiRevisionError: string | null;
   aiRevisionAbortController: AbortController | null;
+  aiRevisionBatchLog: AIRevisionBatchLogEntry[];
   aiRevisionLastResult: {
     segmentId: string;
     status: "success" | "no-changes" | "error";
@@ -387,10 +389,22 @@ export interface AIRevisionSuggestion {
   reasoning?: string;
 }
 
+export interface AIRevisionBatchLogEntry {
+  segmentId: string;
+  status: "revised" | "unchanged" | "failed";
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
+}
+
 export interface AIRevisionConfig {
   prompts: AIPrompt[];
   defaultPromptId: string | null;
   quickAccessPromptIds: string[];
+  /** Selected AI provider ID */
+  selectedProviderId?: string;
+  /** Selected model */
+  selectedModel?: string;
 }
 
 export interface AIRevisionSlice {
@@ -404,6 +418,7 @@ export interface AIRevisionSlice {
   acceptAllRevisions: () => void;
   rejectAllRevisions: () => void;
   clearRevisions: () => void;
+  updateRevisionConfig: (config: Partial<AIRevisionConfig>) => void;
   // Prompt management
   addRevisionPrompt: (prompt: Omit<AIPrompt, "id">) => void;
   updateRevisionPrompt: (id: string, updates: Partial<AIPrompt>) => void;

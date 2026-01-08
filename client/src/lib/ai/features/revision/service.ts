@@ -15,6 +15,7 @@ import { compileTemplate } from "../../prompts";
 import type {
   BatchRevisionParams,
   BatchRevisionResult,
+  RevisionBatchLogEntry,
   RevisionIssue,
   RevisionPrompt,
   RevisionResult,
@@ -38,7 +39,7 @@ import type {
  * ```
  */
 export async function reviseSegment(params: SingleRevisionParams): Promise<RevisionResult> {
-  const { segment, prompt, previousSegment, nextSegment, signal } = params;
+  const { segment, prompt, previousSegment, nextSegment, signal, providerId, model } = params;
 
   // Build prompt variables
   const variables = {
@@ -55,6 +56,8 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
       userPromptTemplate: prompt.userPromptTemplate,
     },
     signal,
+    providerId,
+    model,
   });
 
   if (!result.success || !result.data) {
@@ -101,7 +104,17 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
 export async function reviseSegmentsBatch(
   params: BatchRevisionParams,
 ): Promise<BatchRevisionResult> {
-  const { segments, allSegments, prompt, signal, onProgress, onResult } = params;
+  const {
+    segments,
+    allSegments,
+    prompt,
+    signal,
+    providerId,
+    model,
+    onProgress,
+    onResult,
+    onItemComplete,
+  } = params;
 
   const results: RevisionResult[] = [];
   const issues: RevisionIssue[] = [];
@@ -131,6 +144,7 @@ export async function reviseSegmentsBatch(
     const nextSegment =
       globalIndex < allSegments.length - 1 ? allSegments[globalIndex + 1] : undefined;
 
+    const itemStart = Date.now();
     try {
       const result = await reviseSegment({
         segment,
@@ -138,21 +152,44 @@ export async function reviseSegmentsBatch(
         previousSegment,
         nextSegment,
         signal,
+        providerId,
+        model,
       });
 
       if (result.changes.length === 0) {
         unchanged++;
+        onItemComplete?.({
+          segmentId: segment.id,
+          status: "unchanged",
+          loggedAt: Date.now(),
+          durationMs: Date.now() - itemStart,
+        });
       } else {
         results.push(result);
         onResult?.(result);
+        onItemComplete?.({
+          segmentId: segment.id,
+          status: "revised",
+          loggedAt: Date.now(),
+          durationMs: Date.now() - itemStart,
+        });
       }
     } catch (error) {
       failed++;
+      const message = error instanceof Error ? error.message : String(error);
       issues.push({
         level: "error",
-        message: `Failed to revise segment: ${error instanceof Error ? error.message : String(error)}`,
+        message: `Failed to revise segment: ${message}`,
         segmentId: segment.id,
       });
+      const entry: RevisionBatchLogEntry = {
+        segmentId: segment.id,
+        status: "failed",
+        loggedAt: Date.now(),
+        durationMs: Date.now() - itemStart,
+        error: message,
+      };
+      onItemComplete?.(entry);
     }
 
     onProgress?.(i + 1, segments.length);

@@ -12,6 +12,7 @@ import type { StoreApi } from "zustand";
 import type { RevisionResult } from "@/lib/ai/features/revision";
 import type {
   AIPrompt,
+  AIRevisionBatchLogEntry,
   AIRevisionConfig,
   AIRevisionSlice,
   AIRevisionSuggestion,
@@ -107,9 +108,12 @@ export const initialAIRevisionState = {
     prompts: [...DEFAULT_TEXT_PROMPTS],
     defaultPromptId: "builtin-text-cleanup",
     quickAccessPromptIds: ["builtin-text-cleanup", "builtin-text-clarity"],
+    selectedProviderId: undefined,
+    selectedModel: undefined,
   } as AIRevisionConfig,
   aiRevisionError: null as string | null,
   aiRevisionAbortController: null as AbortController | null,
+  aiRevisionBatchLog: [] as AIRevisionBatchLogEntry[],
   // Track last result per segment for UI feedback
   aiRevisionLastResult: null as {
     segmentId: string;
@@ -196,6 +200,8 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
       validQuickAccessIds.length > 0
         ? validQuickAccessIds
         : ["builtin-text-cleanup", "builtin-text-clarity"],
+    selectedProviderId: saved.selectedProviderId,
+    selectedModel: saved.selectedModel,
   };
 }
 
@@ -258,6 +264,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           previousSegment,
           nextSegment,
           signal: abortController.signal,
+          providerId: state.aiRevisionConfig.selectedProviderId,
+          model: state.aiRevisionConfig.selectedModel,
         });
       })
       .then((result: RevisionResult) => {
@@ -355,6 +363,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       aiRevisionTotalToProcess: segments.length,
       aiRevisionError: null,
       aiRevisionAbortController: abortController,
+      aiRevisionBatchLog: [],
     });
 
     // Run batch revision asynchronously - dynamic import to avoid circular dependencies
@@ -364,10 +373,18 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         allSegments: state.segments,
         prompt: selectedPrompt,
         signal: abortController.signal,
+        providerId: state.aiRevisionConfig.selectedProviderId,
+        model: state.aiRevisionConfig.selectedModel,
         onProgress: (processed: number, total: number) => {
           set({
             aiRevisionProcessedCount: processed,
             aiRevisionTotalToProcess: total,
+          });
+        },
+        onItemComplete: (entry) => {
+          const currentState = get();
+          set({
+            aiRevisionBatchLog: [...currentState.aiRevisionBatchLog, entry],
           });
         },
         onResult: (result: RevisionResult) => {
@@ -490,6 +507,16 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     set({
       aiRevisionSuggestions: [],
       aiRevisionError: null,
+    });
+  },
+
+  updateRevisionConfig: (config) => {
+    const state = get();
+    set({
+      aiRevisionConfig: {
+        ...state.aiRevisionConfig,
+        ...config,
+      },
     });
   },
 

@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, Speaker } from "@/lib/store/types";
 
@@ -10,13 +10,13 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
       segments: [],
       aiSpeakerSuggestions: [],
     });
-    
+
     // Setup initial state with segments and speakers
     const speakers: Speaker[] = [
       { id: "SPEAKER_00", name: "SPEAKER_00", color: "#000000" },
       { id: "SPEAKER_01", name: "SPEAKER_01", color: "#111111" },
     ];
-    
+
     const segments: Segment[] = [
       {
         id: "seg1",
@@ -46,20 +46,32 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
         words: [],
       },
     ];
-    
+
     useTranscriptStore.setState({ speakers, segments });
   });
 
   it("should create new speakers for unique speaker IDs", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_02", confidence: 0.9, status: "pending" },
-        { segmentId: "seg2", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_03", confidence: 0.85, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_02",
+          confidence: 0.9,
+          status: "pending",
+        },
+        {
+          segmentId: "seg2",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_03",
+          confidence: 0.85,
+          status: "pending",
+        },
       ],
     });
 
     const initialSpeakerCount = useTranscriptStore.getState().speakers.length;
-    
+
     useTranscriptStore.getState().acceptManySuggestions(["seg1", "seg2"]);
 
     const finalSpeakers = useTranscriptStore.getState().speakers;
@@ -71,13 +83,25 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
   it("should not duplicate speakers that already exist", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_01", confidence: 0.9, status: "pending" },
-        { segmentId: "seg2", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_01", confidence: 0.85, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_01",
+          confidence: 0.9,
+          status: "pending",
+        },
+        {
+          segmentId: "seg2",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_01",
+          confidence: 0.85,
+          status: "pending",
+        },
       ],
     });
 
     const initialSpeakerCount = useTranscriptStore.getState().speakers.length;
-    
+
     useTranscriptStore.getState().acceptManySuggestions(["seg1", "seg2"]);
 
     const finalSpeakers = useTranscriptStore.getState().speakers;
@@ -87,8 +111,20 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
   it("should update segment speakers correctly", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_02", confidence: 0.9, status: "pending" },
-        { segmentId: "seg2", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_03", confidence: 0.85, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_02",
+          confidence: 0.9,
+          status: "pending",
+        },
+        {
+          segmentId: "seg2",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_03",
+          confidence: 0.85,
+          status: "pending",
+        },
       ],
     });
 
@@ -103,9 +139,27 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
   it("should remove accepted suggestions from store", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_02", confidence: 0.9, status: "pending" },
-        { segmentId: "seg2", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_03", confidence: 0.85, status: "pending" },
-        { segmentId: "seg3", currentSpeaker: "SPEAKER_01", suggestedSpeaker: "SPEAKER_04", confidence: 0.8, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_02",
+          confidence: 0.9,
+          status: "pending",
+        },
+        {
+          segmentId: "seg2",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_03",
+          confidence: 0.85,
+          status: "pending",
+        },
+        {
+          segmentId: "seg3",
+          currentSpeaker: "SPEAKER_01",
+          suggestedSpeaker: "SPEAKER_04",
+          confidence: 0.8,
+          status: "pending",
+        },
       ],
     });
 
@@ -119,7 +173,13 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
   it("should handle empty segment IDs array", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_02", confidence: 0.9, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_02",
+          confidence: 0.9,
+          status: "pending",
+        },
       ],
     });
 
@@ -138,8 +198,20 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
   it("should handle suggestions with non-existent segment IDs gracefully", () => {
     useTranscriptStore.setState({
       aiSpeakerSuggestions: [
-        { segmentId: "seg1", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_02", confidence: 0.9, status: "pending" },
-        { segmentId: "seg2", currentSpeaker: "SPEAKER_00", suggestedSpeaker: "SPEAKER_03", confidence: 0.85, status: "pending" },
+        {
+          segmentId: "seg1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_02",
+          confidence: 0.9,
+          status: "pending",
+        },
+        {
+          segmentId: "seg2",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_03",
+          confidence: 0.85,
+          status: "pending",
+        },
       ],
     });
 
@@ -152,7 +224,7 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
     const segments = useTranscriptStore.getState().segments;
     expect(segments.find((s) => s.id === "seg1")?.speaker).toBe("SPEAKER_02");
     expect(segments.find((s) => s.id === "seg2")?.speaker).toBe("SPEAKER_00"); // Not accepted
-    
+
     // Only seg1 suggestion should be removed
     const remainingSuggestions = useTranscriptStore.getState().aiSpeakerSuggestions;
     expect(remainingSuggestions.length).toBe(1);

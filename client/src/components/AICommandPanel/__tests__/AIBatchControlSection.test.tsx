@@ -1,0 +1,55 @@
+import { render, screen } from "@testing-library/react";
+import { userEvent } from "@testing-library/user-event";
+import { describe, expect, it, vi } from "vitest";
+import { AIBatchControlSection } from "../AIBatchControlSection";
+
+describe("AIBatchControlSection", () => {
+  it("renders start action when idle", async () => {
+    const user = userEvent.setup();
+    const handleStart = vi.fn();
+
+    render(
+      <AIBatchControlSection
+        isProcessing={false}
+        processedCount={0}
+        totalToProcess={0}
+        startAction={{
+          label: "Start Analysis",
+          icon: <span data-testid="start-icon" />,
+          onClick: handleStart,
+        }}
+        stopAction={{
+          label: "Stop Analysis",
+          icon: <span data-testid="stop-icon" />,
+          onClick: vi.fn(),
+        }}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: /start analysis/i }));
+    expect(handleStart).toHaveBeenCalled();
+  });
+
+  it("renders stop action and progress when processing", () => {
+    render(
+      <AIBatchControlSection
+        isProcessing={true}
+        processedCount={3}
+        totalToProcess={10}
+        startAction={{
+          label: "Start Analysis",
+          icon: <span data-testid="start-icon" />,
+          onClick: vi.fn(),
+        }}
+        stopAction={{
+          label: "Stop Analysis",
+          icon: <span data-testid="stop-icon" />,
+          onClick: vi.fn(),
+        }}
+      />,
+    );
+
+    expect(screen.getByText(/3 \/ 10 segments/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /stop analysis/i })).toBeInTheDocument();
+  });
+});

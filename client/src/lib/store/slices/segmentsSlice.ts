@@ -50,6 +50,7 @@ export const createSegmentsSlice = (
             segments: session.segments,
             speakers: session.speakers,
             selectedSegmentId: selectedFromSession,
+            currentTime: session.currentTime ?? 0,
           },
         ],
         historyIndex: 0,
@@ -66,7 +67,7 @@ export const createSegmentsSlice = (
       speakers,
       selectedSegmentId,
       isWhisperXFormat: data.isWhisperXFormat || false,
-      history: [{ segments, speakers, selectedSegmentId }],
+      history: [{ segments, speakers, selectedSegmentId, currentTime: 0 }],
       historyIndex: 0,
       transcriptRef: data.reference ?? get().transcriptRef,
       sessionKey,
@@ -86,7 +87,11 @@ export const createSegmentsSlice = (
       if (!current) {
         return { selectedSegmentId: id };
       }
-      history[state.historyIndex] = { ...current, selectedSegmentId: id };
+      history[state.historyIndex] = {
+        ...current,
+        selectedSegmentId: id,
+        currentTime: state.currentTime,
+      };
       return { selectedSegmentId: id, history };
     }),
 
@@ -96,7 +101,7 @@ export const createSegmentsSlice = (
   },
 
   updateSegmentsTexts: (updates) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const currentSegments = [...segments];
     let changed = false;
 
@@ -238,6 +243,7 @@ export const createSegmentsSlice = (
       segments: currentSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: currentSegments,
@@ -247,7 +253,7 @@ export const createSegmentsSlice = (
   },
 
   updateSegmentSpeaker: (id, speaker) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment || segment.speaker === speaker) return;
     const newSegments = segments.map((s) => (s.id === id ? { ...s, speaker } : s));
@@ -255,6 +261,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -264,7 +271,7 @@ export const createSegmentsSlice = (
   },
 
   confirmSegment: (id) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment) return;
     const updatedWords = segment.words.map((word) => ({ ...word, score: 1 }));
@@ -275,6 +282,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -284,7 +292,7 @@ export const createSegmentsSlice = (
   },
 
   toggleSegmentBookmark: (id) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment) return;
     const newSegments = segments.map((s) =>
@@ -294,6 +302,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -342,6 +351,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId: secondSegment.id,
+      currentTime: secondSegment.start,
     });
     set({
       segments: newSegments,
@@ -354,7 +364,7 @@ export const createSegmentsSlice = (
   },
 
   mergeSegments: (id1, id2) => {
-    const { segments, speakers, history, historyIndex } = get();
+    const { segments, speakers, history, historyIndex, currentTime } = get();
     const index1 = segments.findIndex((s) => s.id === id1);
     const index2 = segments.findIndex((s) => s.id === id2);
 
@@ -384,6 +394,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId: merged.id,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -395,7 +406,7 @@ export const createSegmentsSlice = (
   },
 
   updateSegmentTiming: (id, start, end) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment || (segment.start === start && segment.end === end)) return;
     const newSegments = segments.map((s) => (s.id === id ? { ...s, start, end } : s));
@@ -403,6 +414,7 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -412,13 +424,14 @@ export const createSegmentsSlice = (
   },
 
   deleteSegment: (id) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     const newSegments = segments.filter((s) => s.id !== id);
     if (newSegments.length === segments.length) return;
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
