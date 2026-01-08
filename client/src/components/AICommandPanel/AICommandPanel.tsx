@@ -71,7 +71,9 @@ export function AICommandPanel({
       </div>
 
       <div className="flex-1 overflow-auto p-4">
-        {activeTab === "revision" && <RevisionPanel filteredSegmentIds={filteredSegmentIds} />}
+        {activeTab === "revision" && (
+          <RevisionPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
+        )}
         {activeTab === "speaker" && <SpeakerPanel onOpenSettings={onOpenSettings} />}
         {activeTab === "merge" && <MergePanel onOpenMergeDialog={onOpenMergeDialog} />}
       </div>

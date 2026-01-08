@@ -11,11 +11,17 @@
 - `client/src/lib/store/types.ts` - Interface erweitert
 - `client/src/components/AICommandPanel/SpeakerPanel.tsx` - verwendet jetzt Batch-Funktion
 
+### 1b. Provider Settings refreshen nach Konfig-Änderung
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Provider-Liste bleibt im Panel stale, wenn Settings im selben Panel geöffnet werden.  
+**Lösung:** Settings-Update-Event eingeführt und Panels aktualisieren Settings State bei Änderungen.  
+**Dateien:** `client/src/lib/settings/settingsStorage.ts`, `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/RevisionPanel.tsx`
+
 ### 2. Batch Size als Number Input (Speaker Tab)
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Batch Size sollte validiertes Number Input sein (1-50), ist aber Select Dropdown  
-**Problem:** Code zeigt Select Dropdown, nicht Number Input wie geplant  
-**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
+**Lösung:** Number Input (1-50) wie im Speaker-Template beibehalten  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 2b. Scope-Display Filter-Bug (Speaker Tab)
 **Status:** ✅ BEHOBEN  
@@ -52,32 +58,29 @@
 **Beschreibung:** Start-Button hatte verschiedene Icons, Stop vs Pause nicht klar getrennt  
 **Lösung:** 
 - Start: Sparkles Icon (beide Panels)
-- Stop: StopCircle Icon (Speaker Panel)
-- Pause: Pause Icon (Revision Panel) - **Unklar: Soll überall StopCircle sein?**
+- Stop: StopCircle Icon (beide Panels)
 
 ### 8. Batch Size & Settings (Revision Tab)
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Batch Size ist Dropdown UND Settings Button fehlt komplett  
-**Problem:** Muss Number Input sein + Settings Button rechts wie im Speaker Tab  
-**Lösung:** Durch gemeinsame Komponente beheben  
-**Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`
+**Lösung:** Gemeinsame AI-Configuration-Komponente mit Number Input + Settings Button integriert  
+**Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 9. Settings Button Position
-**Status:** ⚠️ TEILWEISE  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Settings Button Position inkonsistent  
-**Lösung:** Im Speaker Tab rechts neben Batch Size, in Revision fehlt er  
+**Lösung:** Beide Tabs nutzen denselben Configuration-Block inkl. Settings Button rechts neben Batch Size  
 
 ### 10. Prompt Selector Position (Revision Tab)
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Prompt (= Template) gehört in "AI Configuration" Sektion  
-**Problem:** Ist außerhalb der AI Configuration Section  
-**Lösung:** Durch gemeinsame Komponente beheben  
-**Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`
+**Lösung:** Prompt Selector in gemeinsame AI-Configuration-Sektion verschoben  
+**Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 11. UI-Unterschiede zwischen Revision/Speaker
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Viele UI-Elemente sind ähnlich aber separat implementiert → sollten gemeinsame Komponente nutzen  
-**Vorschlag:** Gemeinsame `AIBatchPanelControls` Komponente extrahieren mit Props für Tab-spezifische Unterschiede
+**Lösung:** Gemeinsame Komponenten für Scope, Configuration, Batch Control und Results eingeführt und in beiden Tabs genutzt
 
 ## Results Summary Probleme
 
@@ -87,27 +90,26 @@
 **Lösung:** Collapsible Sections mit ScrollArea (200px Höhe) implementiert
 
 ### 13. Results nicht klickbar
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Keine Navigation zu Segmenten möglich  
-**Problem:** `handleScrollToSegment` implementiert aber Elemente nicht klickbar (kein onClick/cursor)  
+**Lösung:** Suggestions sind klickbar (Button-Role + Cursor + Scroll-to-Segment)  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
 
-**Status:** ⚠️ TEILWEISE  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** 40-Zeichen Text-Snippet + Badge implementiert, ABER Speaker Badges ragen aus Container raus  
-**Problem:** CSS Layout - Badges brauchen truncate/wrap  
+**Lösung:** Badge mit `truncate` und Max-Width, damit Layout stabil bleibt  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
-**Lösung:** 40-Zeichen Text-Snippet + Badge für "Speaker1 → Speaker2" hinzugefügt
 
 ### 15. Collapse Icons falsch
 **Status:** ✅ BEHOBEN  
 **Beschreibung:** +/- Text sollten Chevron Icons sein  
 **Lösung:** ChevronDown/ChevronRight Icons aus Lucide verwendet
 
-### 16. Reje⚠️ TEILWEISE  
+### 16. Reject Icon inkonsistent
+**Status:** ⚠️ TEILWEISE  
 **Beschreibung:** "✗" ASCII sollte X Icon sein  
 **Lösung:** Im SpeakerPanel Results X Icon verwendet, ABER in TranscriptSegment inline suggestions noch kursives X  
-**Dateien:** `client/src/components/TranscriptSegment.tsx`on sein  
-**Lösung:** X Icon aus Lucide verwendet
+**Dateien:** `client/src/components/TranscriptSegment.tsx`
 
 ## Batch-Verarbeitung Probleme
 
@@ -149,19 +151,13 @@
 **Offen:** 14/23  
 
 **Kritisch (müssen behoben werden):**
-- Gemeinsame Komponenten extrahieren (Scope, AI Config, Processing, Action Buttons, Suggestion Liste)
-- Batch Size Number Input in beiden Tabs
-- Settings Button in Revision Tab
-- Results klickbar machen
-- Accept All State aufräumen
-- Tests schreiben für alle Änderungen
+- Revision Tab empfängt keine Suggestions (muss debugged werden)
+- Progress Counter "X/Y segments"
+- Batch Log sofort nach Start anzeigen
+- Tooltips für alle UI-Elemente
 
 **Wichtig:**
-- Revision Tab empfängt keine Suggestions (muss debugged werden)
-- Speaker Badges ragen raus (CSS)
 - X Icon in TranscriptSegment inline suggestions
-- Progress Counter "40/151 segments"
-- Batch Log sofort nach Start anzeigen
 
 ### 23. Tests fehlen für neue Features
 **Status:** ⚠️ TEILWEISE  
@@ -169,34 +165,35 @@
 **Fortschritt:**
 - ✅ `acceptManySuggestions` - 6 Unit Tests
 - ✅ `ScopeSection` - 7 Component Tests
+- ✅ `AIConfigurationSection` - 2 Component Tests
+- ✅ `AIBatchControlSection` - 2 Component Tests
 - ❌ Scope-Display Logic in Panels
 - ❌ Results Navigation
-- ❌ Badge CSS fixes  
 **Dateien:** 
 - `client/src/lib/__tests__/store.aiSpeakerSlice.acceptMany.test.ts` (NEU)
 - `client/src/components/AICommandPanel/__tests__/ScopeSection.test.tsx` (NEU)
+- `client/src/components/AICommandPanel/__tests__/AIConfigurationSection.test.tsx` (NEU)
+- `client/src/components/AICommandPanel/__tests__/AIBatchControlSection.test.tsx` (NEU)
 
 
 ---
 
 ## Zusammenfassung
 
-**Vollständig behoben:** 10/23  
-**Teilweise behoben:** 3/23  
-**Offen:** 10/23  
+**Vollständig behoben:** 16/23  
+**Teilweise behoben:** 2/23  
+**Offen:** 5/23  
 
-**Test Coverage:** 13 neue Tests (+16% Coverage für neue Features)
+**Test Coverage:** 17 neue Tests (+16% Coverage für neue Features)
 
 **Kritisch (müssen behoben werden):**
-- ScopeSection in beide Panels integrieren
-- Batch Size Number Input + Settings in Revision Tab
+- Revision Tab empfängt keine Suggestions (muss debugged werden)
 - Progress Counter "X/Y segments"
 - Batch Log sofort nach Start anzeigen
+- Tooltips für alle UI-Elemente
 
 **Wichtig:**
-- Prompt Selector Position in Revision Tab
-- Revision Tab empfängt keine Suggestions (muss debugged werden)
-- Tooltips für alle UI-Elemente
+- X Icon in TranscriptSegment inline suggestions
 
 **Low (kann später):**
 - Provider Connection Debug

@@ -193,7 +193,10 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     const newSpeakerIds = new Set<string>();
 
     for (const suggestion of suggestionsToAccept) {
-      if (!existingSpeakerIds.has(suggestion.suggestedSpeaker) && !newSpeakerIds.has(suggestion.suggestedSpeaker)) {
+      if (
+        !existingSpeakerIds.has(suggestion.suggestedSpeaker) &&
+        !newSpeakerIds.has(suggestion.suggestedSpeaker)
+      ) {
         newSpeakerIds.add(suggestion.suggestedSpeaker);
       }
     }

@@ -9,6 +9,7 @@ import type { AIProviderConfig } from "@/lib/ai/providers/types";
 
 const SETTINGS_STORAGE_KEY = "flowscribe:settings";
 const SETTINGS_VERSION = 1;
+export const SETTINGS_UPDATED_EVENT = "flowscribe:settings-updated";
 
 // ==================== Persisted Settings Types ====================
 
@@ -95,6 +96,9 @@ export function writeSettings(settings: PersistedSettings): boolean {
 
   try {
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(SETTINGS_UPDATED_EVENT, { detail: settings }));
+    }
     return true;
   } catch (error) {
     console.error("[Settings] Failed to write settings", error);
@@ -110,6 +114,9 @@ export function clearSettings(): boolean {
 
   try {
     window.localStorage.removeItem(SETTINGS_STORAGE_KEY);
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent(SETTINGS_UPDATED_EVENT, { detail: null }));
+    }
     return true;
   } catch {
     return false;

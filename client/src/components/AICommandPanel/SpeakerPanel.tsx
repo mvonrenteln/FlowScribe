@@ -3,16 +3,14 @@ import {
   Check,
   ChevronDown,
   ChevronRight,
-  Settings2,
   Sparkles,
   StopCircle,
   Trash2,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Drawer,
@@ -22,16 +20,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer";
 
-import { Label } from "@/components/ui/label";
-import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -40,9 +29,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { initializeSettings, type PersistedSettings } from "@/lib/settings/settingsStorage";
+import {
+  initializeSettings,
+  type PersistedSettings,
+  SETTINGS_UPDATED_EVENT,
+} from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
+import { AIBatchControlSection } from "./AIBatchControlSection";
+import { AIConfigurationSection } from "./AIConfigurationSection";
+import { AIResultsSection } from "./AIResultsSection";
+import { ScopeSection } from "./ScopeSection";
 
 interface SpeakerPanelProps {
   onOpenSettings: () => void;
@@ -84,7 +80,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
   const [medConfExpanded, setMedConfExpanded] = useState(false);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
 
-  useEffect(() => {
+  const refreshSettings = useCallback(() => {
     const loadedSettings = initializeSettings();
     setSettings(loadedSettings);
 
@@ -93,13 +89,29 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
 
     if (!providerExists) {
       providerId = loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "";
-      setSelectedProviderId(providerId);
     }
 
     if (!providerId && loadedSettings.defaultAIProviderId) {
-      setSelectedProviderId(loadedSettings.defaultAIProviderId);
+      providerId = loadedSettings.defaultAIProviderId;
+    }
+
+    if (providerId !== selectedProviderId) {
+      setSelectedProviderId(providerId);
     }
   }, [selectedProviderId]);
+
+  useEffect(() => {
+    refreshSettings();
+
+    const handleSettingsUpdate = () => {
+      refreshSettings();
+    };
+
+    window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+    return () => {
+      window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
+    };
+  }, [refreshSettings]);
 
   useEffect(() => {
     if (selectedProviderId && settings) {
@@ -113,12 +125,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
     }
   }, [selectedProviderId, settings, selectedModel]);
 
-  const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
-  const availableModels = selectedProvider?.availableModels ?? [];
-
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
-  const progressPercent =
-    totalToProcess > 0 ? Math.round((processedCount / totalToProcess) * 100) : 0;
 
   const handleStartAnalysis = () => {
     const parsed = Number.parseInt(batchSize, 10);
@@ -158,176 +165,62 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
 
   return (
     <div className="space-y-5">
-      <section className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Scope
-        </h3>
-        <div className="text-sm text-foreground">
-          {isFiltered ? "Filtered" : "All"}: {scopedSegmentIds.length} segment
-          {scopedSegmentIds.length === 1 ? "" : "s"}
-        </div>
-        <div className="flex items-center gap-2 text-sm text-muted-foreground">
-          <Checkbox
-            id="speaker-exclude-confirmed"
-            checked={excludeConfirmed}
-            onCheckedChange={(value) => setExcludeConfirmed(Boolean(value))}
-          />
-          <Label htmlFor="speaker-exclude-confirmed" className="text-sm text-muted-foreground">
-            Exclude confirmed
-          </Label>
-        </div>
-      </section>
+      <ScopeSection
+        scopedSegmentCount={scopedSegmentIds.length}
+        isFiltered={isFiltered}
+        excludeConfirmed={excludeConfirmed}
+        onExcludeConfirmedChange={setExcludeConfirmed}
+        id="speaker"
+      />
 
-      <section className="space-y-3">
-        <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          AI Configuration
-        </h3>
-        {settings && settings.aiProviders.length > 0 ? (
-          <div className="space-y-2">
-            <Label htmlFor="speaker-provider" className="text-xs text-muted-foreground">
-              Provider
-            </Label>
-            <Select
-              value={selectedProviderId}
-              onValueChange={(id) => {
-                setSelectedProviderId(id);
-                setSelectedModel("");
-              }}
-              disabled={isProcessing}
-            >
-              <SelectTrigger id="speaker-provider" className="h-8 text-sm">
-                <SelectValue placeholder="Select provider..." />
-              </SelectTrigger>
-              <SelectContent>
-                {settings.aiProviders.map((provider) => (
-                  <SelectItem key={provider.id} value={provider.id}>
-                    {provider.name}
-                    {provider.isDefault && (
-                      <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
-                    )}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        ) : null}
+      <AIConfigurationSection
+        id="speaker"
+        settings={settings}
+        selectedProviderId={selectedProviderId}
+        selectedModel={selectedModel}
+        isProcessing={isProcessing}
+        promptLabel="Prompt Template"
+        promptValue={config.activePromptId}
+        promptOptions={config.prompts}
+        batchSize={batchSize}
+        onProviderChange={(id) => {
+          setSelectedProviderId(id);
+          setSelectedModel("");
+        }}
+        onModelChange={setSelectedModel}
+        onPromptChange={setActivePrompt}
+        onBatchSizeChange={setBatchSize}
+        onOpenSettings={onOpenSettings}
+      />
 
-        {selectedProvider && (
-          <div className="space-y-2">
-            <Label htmlFor="speaker-model" className="text-xs text-muted-foreground">
-              Model
-            </Label>
-            {availableModels.length > 0 ? (
-              <Select
-                value={selectedModel || selectedProvider.model || ""}
-                onValueChange={setSelectedModel}
-                disabled={isProcessing}
-              >
-                <SelectTrigger id="speaker-model" className="h-8 text-sm">
-                  <SelectValue placeholder="Select model..." />
-                </SelectTrigger>
-                <SelectContent>
-                  {availableModels.map((model) => (
-                    <SelectItem key={model} value={model}>
-                      {model}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            ) : (
-              <div className="text-xs text-muted-foreground bg-muted rounded px-2 py-1.5">
-                {selectedProvider.model || "No model configured"}
-              </div>
-            )}
-          </div>
-        )}
-
-        <div className="space-y-2">
-          <Label htmlFor="speaker-template" className="text-xs text-muted-foreground">
-            Prompt Template
-          </Label>
-          <Select
-            value={config.activePromptId}
-            onValueChange={(value) => setActivePrompt(value)}
-            disabled={isProcessing}
-          >
-            <SelectTrigger id="speaker-template" className="h-8 text-sm">
-              <SelectValue placeholder="Select prompt" />
-            </SelectTrigger>
-            <SelectContent>
-              {config.prompts.map((prompt) => (
-                <SelectItem key={prompt.id} value={prompt.id}>
-                  {prompt.name}
-                  {prompt.isDefault && " (Default)"}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <Label htmlFor="speaker-batch-size" className="text-xs text-muted-foreground">
-              Batch Size
-            </Label>
-            <input
-              id="speaker-batch-size"
-              type="number"
-              min="1"
-              max="50"
-              value={batchSize}
-              onChange={(e) => {
-                const val = e.target.value;
-                if (val === "" || (Number(val) >= 1 && Number(val) <= 50)) {
-                  setBatchSize(val);
-                }
-              }}
-              disabled={isProcessing}
-              className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-            />
-          </div>
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={onOpenSettings}>
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Configure AI providers and prompts</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        </div>
-
-        {!selectedProviderId && settings?.aiProviders.length === 0 && (
-          <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>No AI provider configured. Add one in Settings → AI → Server & Models.</span>
-          </div>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        {isProcessing && (
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-sm">
-              <span>Processing...</span>
-              <span>
-                {processedCount} / {totalToProcess} segments
-              </span>
-            </div>
-            <Progress value={progressPercent} className="h-2" />
-          </div>
-        )}
-
-        {error && (
-          <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
-            <AlertCircle className="h-4 w-4" />
-            {error}
-          </div>
-        )}
-
+      <AIBatchControlSection
+        isProcessing={isProcessing}
+        processedCount={processedCount}
+        totalToProcess={totalToProcess}
+        error={error}
+        startAction={{
+          label: "Start Analysis",
+          icon: <Sparkles className="h-4 w-4 mr-2" />,
+          onClick: handleStartAnalysis,
+          disabled: segments.length === 0,
+        }}
+        stopAction={{
+          label: "Stop Analysis",
+          icon: <StopCircle className="h-4 w-4 mr-2" />,
+          onClick: cancelAnalysis,
+          variant: "destructive",
+        }}
+        secondaryAction={
+          pendingSuggestions.length > 0
+            ? {
+                label: "Clear",
+                icon: <Trash2 className="h-4 w-4 mr-2" />,
+                onClick: clearSuggestions,
+                variant: "outline",
+              }
+            : undefined
+        }
+      >
         {discrepancyNotice && processedCount === totalToProcess && (
           <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm">
             <AlertCircle className="h-4 w-4" />
@@ -342,46 +235,20 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
             </Button>
           </div>
         )}
-
-        <div className="flex items-center gap-2">
-          {isProcessing ? (
-            <Button onClick={cancelAnalysis} variant="destructive" className="flex-1">
-              <StopCircle className="h-4 w-4 mr-2" />
-              Stop Analysis
-            </Button>
-          ) : (
-            <Button
-              onClick={handleStartAnalysis}
-              disabled={segments.length === 0}
-              className="flex-1"
-            >
-              <Sparkles className="h-4 w-4 mr-2" />
-              Start Analysis
-            </Button>
-          )}
-          {pendingSuggestions.length > 0 && (
-            <Button variant="outline" onClick={clearSuggestions} className="flex-1">
-              <Trash2 className="h-4 w-4 mr-2" />
-              Clear
-            </Button>
-          )}
-        </div>
-      </section>
+      </AIBatchControlSection>
 
       {pendingSuggestions.length > 0 && (
-        <section className="space-y-2">
-          <div className="flex items-center justify-between">
-            <Label className="text-sm font-medium">
-              Suggestions ({pendingSuggestions.length} pending)
-            </Label>
-            {batchInsights.length > 0 && (
+        <AIResultsSection
+          title={`Suggestions (${pendingSuggestions.length} pending)`}
+          meta={
+            batchInsights.length > 0 ? (
               <div className="text-xs text-muted-foreground">
                 {batchInsights.length} runs, last update at{" "}
                 {new Date(batchInsights[batchInsights.length - 1].loggedAt).toLocaleTimeString()}
               </div>
-            )}
-          </div>
-
+            ) : null
+          }
+        >
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
               Total elapsed:{" "}
@@ -491,8 +358,14 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
                     tabIndex={0}
                     title={segment?.text}
                   >
-                    <span className="flex-1 truncate text-muted-foreground min-w-0">{textSnippet}</span>
-                    <Badge variant="secondary" className="shrink-0 text-[10px] px-1.5 py-0 whitespace-nowrap overflow-hidden text-ellipsis max-w-[120px]" title={`${suggestion.currentSpeaker} → ${suggestion.suggestedSpeaker}`}>
+                    <span className="flex-1 truncate text-muted-foreground min-w-0">
+                      {textSnippet}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="shrink-0 text-[10px] px-1.5 py-0 truncate max-w-[120px]"
+                      title={`${suggestion.currentSpeaker} → ${suggestion.suggestedSpeaker}`}
+                    >
                       {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
                     </Badge>
                     <span className="text-muted-foreground ml-1 shrink-0">
@@ -603,7 +476,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
               );
             })()}
           </div>
-        </section>
+        </AIResultsSection>
       )}
     </div>
   );

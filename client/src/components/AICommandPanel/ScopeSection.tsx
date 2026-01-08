@@ -20,9 +20,7 @@ export function ScopeSection({
 
   return (
     <section className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        Scope
-      </h3>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Scope</h3>
       <div className="text-sm text-foreground">
         {isFiltered ? "Filtered" : "All"}: {scopedSegmentCount} segment
         {scopedSegmentCount === 1 ? "" : "s"}
