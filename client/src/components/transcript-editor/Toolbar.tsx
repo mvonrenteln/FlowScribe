@@ -7,7 +7,6 @@ import {
   Clock,
   Download,
   FilePenLine,
-  GitMerge,
   Highlighter,
   Keyboard,
   PanelLeft,
@@ -64,7 +63,8 @@ export function Toolbar({
   canRedo,
   onShowShortcuts,
   onShowExport,
-  onShowAISegmentMerge,
+  aiCommandPanelOpen,
+  onToggleAICommandPanel,
   highlightLowConfidence,
   onToggleHighlightLowConfidence,
   spellcheckEnabled,
@@ -73,7 +73,6 @@ export function Toolbar({
   spellcheckHighlightActive,
   glossaryHighlightActive,
   onShowGlossary,
-  onShowAISpeaker,
 }: ToolbarProps) {
   const revisionName = sessionKind === "revision" ? (sessionLabel ?? "Revision") : null;
 
@@ -415,34 +414,17 @@ export function Toolbar({
                 <Button
                   size="sm"
                   variant="ghost"
-                  onClick={onShowAISpeaker}
-                  aria-label="AI Speaker Classification"
-                  data-testid="button-ai-speaker"
+                  onClick={onToggleAICommandPanel}
+                  aria-label="AI Tools"
+                  aria-pressed={aiCommandPanelOpen}
+                  data-testid="button-ai-tools"
                   className="px-2 gap-2"
                 >
                   <Sparkles className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">AI Speaker</span>
+                  <span className="hidden sm:inline">AI Tools</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>AI Speaker Classification</TooltipContent>
-            </Tooltip>
-
-            {/* AI Merge Button */}
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={onShowAISegmentMerge}
-                  aria-label="AI Segment Merge"
-                  data-testid="button-ai-merge"
-                  className="px-2 gap-2"
-                >
-                  <GitMerge className="h-4 w-4" aria-hidden="true" />
-                  <span className="hidden sm:inline">AI Merge</span>
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>AI Segment Merge Analysis (Alt+Shift+M)</TooltipContent>
+              <TooltipContent>AI Command Panel</TooltipContent>
             </Tooltip>
 
             {/* AI Provider/Model Selector */}

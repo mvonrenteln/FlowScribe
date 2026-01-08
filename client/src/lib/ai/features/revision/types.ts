@@ -60,6 +60,12 @@ export interface SingleRevisionParams {
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+
+  /** Selected AI provider ID */
+  providerId?: string;
+
+  /** Selected model */
+  model?: string;
 }
 
 /**
@@ -86,11 +92,28 @@ export interface BatchRevisionParams {
   /** Abort signal for cancellation */
   signal?: AbortSignal;
 
+  /** Selected AI provider ID */
+  providerId?: string;
+
+  /** Selected model */
+  model?: string;
+
   /** Progress callback */
   onProgress?: (processed: number, total: number) => void;
 
   /** Called when a single result is ready */
   onResult?: (result: RevisionResult) => void;
+
+  /** Called when a segment is processed */
+  onItemComplete?: (entry: RevisionBatchLogEntry) => void;
+}
+
+export interface RevisionBatchLogEntry {
+  segmentId: string;
+  status: "revised" | "unchanged" | "failed";
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
 }
 
 /**

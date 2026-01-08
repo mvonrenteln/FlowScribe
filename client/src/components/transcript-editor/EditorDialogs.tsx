@@ -1,5 +1,4 @@
 import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
-import { AISpeakerDialog } from "../AISpeakerDialog";
 import { ExportDialog } from "../ExportDialog";
 import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
@@ -29,8 +28,6 @@ export function EditorDialogs({
   activeSessionKind,
   existingRevisionNames,
   defaultRevisionName,
-  showAISpeaker,
-  onAISpeakerChange,
   showAISegmentMerge,
   onAISegmentMergeChange,
   showSettings,
@@ -57,11 +54,6 @@ export function EditorDialogs({
         activeSessionKind={activeSessionKind}
         existingRevisionNames={existingRevisionNames}
         defaultRevisionName={defaultRevisionName}
-      />
-      <AISpeakerDialog
-        open={showAISpeaker}
-        onOpenChange={onAISpeakerChange}
-        onOpenSettings={onOpenSettings}
       />
       <AISegmentMergeDialog
         open={showAISegmentMerge}

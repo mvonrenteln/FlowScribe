@@ -7,8 +7,8 @@ export const useTranscriptUIState = () => {
   const [showLexicon, setShowLexicon] = useState(false);
   const [showSpellcheckDialog, setShowSpellcheckDialog] = useState(false);
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
-  const [showAISpeaker, setShowAISpeaker] = useState(false);
   const [showAISegmentMerge, setShowAISegmentMerge] = useState(false);
+  const [showAICommandPanel, setShowAICommandPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
@@ -33,10 +33,10 @@ export const useTranscriptUIState = () => {
     setShowSpellcheckDialog,
     showRevisionDialog,
     setShowRevisionDialog,
-    showAISpeaker,
-    setShowAISpeaker,
     showAISegmentMerge,
     setShowAISegmentMerge,
+    showAICommandPanel,
+    setShowAICommandPanel,
     showSettings,
     setShowSettings,
     confidencePopoverOpen,

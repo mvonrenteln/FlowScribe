@@ -9,7 +9,7 @@ import type { StoreApi } from "zustand";
 import { summarizeAIError } from "@/lib/ai/core/errors";
 import { summarizeMessages } from "@/lib/ai/core/formatting";
 import { runAnalysis } from "@/lib/ai/features/speaker";
-
+import { SPEAKER_COLORS } from "../constants";
 import type {
   AIPrompt,
   AISpeakerBatchInsight,
@@ -18,6 +18,7 @@ import type {
   TranscriptStore,
 } from "../types";
 import { normalizeAISpeakerConfig } from "../utils/aiSpeakerConfig";
+import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -152,38 +153,139 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
   },
 
   acceptSuggestion: (segmentId) => {
-    const { aiSpeakerSuggestions, speakers, updateSegmentSpeaker, addSpeaker } = get();
+    const {
+      aiSpeakerSuggestions,
+      speakers,
+      segments,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+    } = get();
     const suggestion = aiSpeakerSuggestions.find((s) => s.segmentId === segmentId);
 
-    if (suggestion) {
-      // Check if the suggested speaker exists, if not create it
-      const speakerExists = speakers.some(
-        (s) => s.name.toLowerCase() === suggestion.suggestedSpeaker.toLowerCase(),
-      );
+    if (!suggestion) return;
 
-      if (!speakerExists) {
-        // Create new speaker with a random color
-        addSpeaker(suggestion.suggestedSpeaker);
-      }
+    // Check if the suggested speaker exists, if not create it
+    const speakerExists = speakers.some(
+      (s) => s.name.toLowerCase() === suggestion.suggestedSpeaker.toLowerCase(),
+    );
 
-      // Update the segment speaker
-      updateSegmentSpeaker(segmentId, suggestion.suggestedSpeaker);
-
-      // Update suggestion status
-      set({
-        aiSpeakerSuggestions: aiSpeakerSuggestions.map((s) =>
-          s.segmentId === segmentId ? { ...s, status: "accepted" as const } : s,
-        ),
-      });
+    let updatedSpeakers = speakers;
+    if (!speakerExists) {
+      // Create new speaker with a random color
+      const newSpeaker = {
+        id: crypto.randomUUID(),
+        name: suggestion.suggestedSpeaker,
+        color: SPEAKER_COLORS[speakers.length % SPEAKER_COLORS.length],
+      };
+      updatedSpeakers = [...speakers, newSpeaker];
     }
+
+    // Update the segment speaker
+    const updatedSegments = segments.map((seg) =>
+      seg.id === segmentId ? { ...seg, speaker: suggestion.suggestedSpeaker } : seg,
+    );
+
+    // Remove the suggestion from the list
+    const updatedSuggestions = aiSpeakerSuggestions.filter((s) => s.segmentId !== segmentId);
+
+    // Create single history entry for all changes (speakers + segments)
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments: updatedSegments,
+      speakers: updatedSpeakers,
+      selectedSegmentId,
+      currentTime,
+    });
+
+    // Single state update with history
+    set({
+      segments: updatedSegments,
+      speakers: updatedSpeakers,
+      aiSpeakerSuggestions: updatedSuggestions,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  acceptManySuggestions: (segmentIds) => {
+    const {
+      aiSpeakerSuggestions,
+      speakers,
+      segments,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+    } = get();
+
+    // Collect all suggestions to accept
+    const suggestionsToAccept = aiSpeakerSuggestions.filter(
+      (s) => segmentIds.includes(s.segmentId) && s.status === "pending",
+    );
+
+    if (suggestionsToAccept.length === 0) return;
+
+    // Collect unique new speakers that need to be created
+    const existingSpeakerIds = new Set(speakers.map((s) => s.id));
+    const newSpeakerIds = new Set<string>();
+
+    for (const suggestion of suggestionsToAccept) {
+      if (
+        !existingSpeakerIds.has(suggestion.suggestedSpeaker) &&
+        !newSpeakerIds.has(suggestion.suggestedSpeaker)
+      ) {
+        newSpeakerIds.add(suggestion.suggestedSpeaker);
+      }
+    }
+
+    // Create new speaker objects
+    const newSpeakers = Array.from(newSpeakerIds).map((speakerId, idx) => ({
+      id: crypto.randomUUID(),
+      name: speakerId,
+      color: SPEAKER_COLORS[(speakers.length + idx) % SPEAKER_COLORS.length],
+    }));
+
+    // Combine existing and new speakers
+    const updatedSpeakers = [...speakers, ...newSpeakers];
+
+    // Batch update all segments
+    const updatedSegments = segments.map((seg) => {
+      const suggestion = suggestionsToAccept.find((s) => s.segmentId === seg.id);
+      if (suggestion) {
+        return { ...seg, speaker: suggestion.suggestedSpeaker };
+      }
+      return seg;
+    });
+
+    // Remove accepted suggestions from store
+    const updatedSuggestions = aiSpeakerSuggestions.filter(
+      (s) => !segmentIds.includes(s.segmentId),
+    );
+
+    // Create single history entry for all changes (speakers + segments)
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments: updatedSegments,
+      speakers: updatedSpeakers,
+      selectedSegmentId,
+      currentTime,
+    });
+
+    // Single state update with history
+    set({
+      segments: updatedSegments,
+      speakers: updatedSpeakers,
+      aiSpeakerSuggestions: updatedSuggestions,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
   },
 
   rejectSuggestion: (segmentId) => {
     const { aiSpeakerSuggestions } = get();
+    // Remove the suggestion from the list (consistent with revision slice)
     set({
-      aiSpeakerSuggestions: aiSpeakerSuggestions.map((s) =>
-        s.segmentId === segmentId ? { ...s, status: "rejected" as const } : s,
-      ),
+      aiSpeakerSuggestions: aiSpeakerSuggestions.filter((s) => s.segmentId !== segmentId),
     });
   },
 

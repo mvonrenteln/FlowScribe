@@ -8,7 +8,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): SpeakersSlice => ({
   renameSpeaker: (oldName, newName) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     if (oldName === newName) return;
     if (!speakers.some((s) => s.name === oldName)) return;
     const newSpeakers = speakers.map((s) => (s.name === oldName ? { ...s, name: newName } : s));
@@ -32,6 +32,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments: newSegments,
       speakers: newSpeakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,
@@ -42,7 +43,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
   },
 
   addSpeaker: (name) => {
-    const { speakers, segments, history, historyIndex, selectedSegmentId } = get();
+    const { speakers, segments, history, historyIndex, selectedSegmentId, currentTime } = get();
     if (speakers.find((s) => s.name === name)) return;
 
     const newSpeaker = {
@@ -55,6 +56,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments,
       speakers: newSpeakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       speakers: newSpeakers,
@@ -64,7 +66,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
   },
 
   mergeSpeakers: (fromName, toName) => {
-    const { segments, speakers, history, historyIndex, selectedSegmentId } = get();
+    const { segments, speakers, history, historyIndex, selectedSegmentId, currentTime } = get();
     if (fromName === toName) return;
     if (!speakers.some((s) => s.name === fromName)) return;
     if (!speakers.some((s) => s.name === toName)) return;
@@ -90,6 +92,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments: newSegments,
       speakers: newSpeakers,
       selectedSegmentId,
+      currentTime,
     });
     set({
       segments: newSegments,

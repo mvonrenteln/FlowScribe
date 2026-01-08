@@ -42,9 +42,19 @@ function TranscriptListComponent({
   const acceptRevision = useTranscriptStore((s) => s.acceptRevision);
   const rejectRevision = useTranscriptStore((s) => s.rejectRevision);
 
+  // Get pending speaker suggestions from store
+  const pendingSpeakerSuggestions = useTranscriptStore((s) => s.aiSpeakerSuggestions);
+  const acceptSpeakerSuggestion = useTranscriptStore((s) => s.acceptSuggestion);
+  const rejectSpeakerSuggestion = useTranscriptStore((s) => s.rejectSuggestion);
+
   // Create a map for fast lookup
   const pendingRevisionBySegmentId = new Map(
     pendingRevisions.filter((r) => r.status === "pending").map((r) => [r.segmentId, r]),
+  );
+
+  // Create a map for speaker suggestions
+  const pendingSpeakerSuggestionBySegmentId = new Map(
+    pendingSpeakerSuggestions.filter((s) => s.status === "pending").map((s) => [s.segmentId, s]),
   );
 
   // Simple "virtualization": If there are many segments, we could limit rendering.
@@ -65,6 +75,7 @@ function TranscriptListComponent({
 
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
+            const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
 
             return (
               <TranscriptSegment
@@ -118,6 +129,22 @@ function TranscriptListComponent({
                 onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
                 lastRevisionResult={
                   lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
+                }
+                // AI Speaker props
+                pendingSpeakerSuggestion={
+                  pendingSpeakerSugg
+                    ? {
+                        suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
+                        confidence: pendingSpeakerSugg.confidence,
+                        reason: pendingSpeakerSugg.reason,
+                      }
+                    : undefined
+                }
+                onAcceptSpeakerSuggestion={
+                  pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
+                }
+                onRejectSpeakerSuggestion={
+                  pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
                 }
               />
             );

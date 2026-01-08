@@ -98,6 +98,7 @@ export const createSessionSlice = (
                 segments: session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
                 selectedSegmentId,
+                currentTime: session?.currentTime ?? state.currentTime,
               },
             ]
           : [],
@@ -153,6 +154,7 @@ export const createSessionSlice = (
                 segments: session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
                 selectedSegmentId,
+                currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
               },
             ]
           : [],
@@ -186,6 +188,7 @@ export const createSessionSlice = (
           segments: session.segments,
           speakers: session.speakers,
           selectedSegmentId,
+          currentTime: session.currentTime ?? 0,
         },
       ],
       historyIndex: 0,
@@ -274,6 +277,7 @@ export const buildInitialHistory = (
     segments: Segment[];
     speakers: TranscriptStore["speakers"];
     selectedSegmentId: string | null;
+    currentTime: number;
   } | null,
 ) => {
   if (session?.segments.length && session.speakers.length) {
@@ -283,6 +287,7 @@ export const buildInitialHistory = (
           segments: session.segments,
           speakers: session.speakers,
           selectedSegmentId: session.selectedSegmentId,
+          currentTime: session.currentTime,
         },
       ],
       historyIndex: 0,
