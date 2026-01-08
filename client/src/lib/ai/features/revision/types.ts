@@ -60,6 +60,12 @@ export interface SingleRevisionParams {
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+
+  /** Selected AI provider ID */
+  providerId?: string;
+
+  /** Selected model */
+  model?: string;
 }
 
 /**
@@ -85,6 +91,12 @@ export interface BatchRevisionParams {
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+
+  /** Selected AI provider ID */
+  providerId?: string;
+
+  /** Selected model */
+  model?: string;
 
   /** Progress callback */
   onProgress?: (processed: number, total: number) => void;

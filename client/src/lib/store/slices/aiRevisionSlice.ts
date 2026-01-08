@@ -108,6 +108,8 @@ export const initialAIRevisionState = {
     prompts: [...DEFAULT_TEXT_PROMPTS],
     defaultPromptId: "builtin-text-cleanup",
     quickAccessPromptIds: ["builtin-text-cleanup", "builtin-text-clarity"],
+    selectedProviderId: undefined,
+    selectedModel: undefined,
   } as AIRevisionConfig,
   aiRevisionError: null as string | null,
   aiRevisionAbortController: null as AbortController | null,
@@ -198,6 +200,8 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
       validQuickAccessIds.length > 0
         ? validQuickAccessIds
         : ["builtin-text-cleanup", "builtin-text-clarity"],
+    selectedProviderId: saved.selectedProviderId,
+    selectedModel: saved.selectedModel,
   };
 }
 
@@ -260,6 +264,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           previousSegment,
           nextSegment,
           signal: abortController.signal,
+          providerId: state.aiRevisionConfig.selectedProviderId,
+          model: state.aiRevisionConfig.selectedModel,
         });
       })
       .then((result: RevisionResult) => {
@@ -367,6 +373,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         allSegments: state.segments,
         prompt: selectedPrompt,
         signal: abortController.signal,
+        providerId: state.aiRevisionConfig.selectedProviderId,
+        model: state.aiRevisionConfig.selectedModel,
         onProgress: (processed: number, total: number) => {
           set({
             aiRevisionProcessedCount: processed,
@@ -499,6 +507,16 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     set({
       aiRevisionSuggestions: [],
       aiRevisionError: null,
+    });
+  },
+
+  updateRevisionConfig: (config) => {
+    const state = get();
+    set({
+      aiRevisionConfig: {
+        ...state.aiRevisionConfig,
+        ...config,
+      },
     });
   },
 

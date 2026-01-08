@@ -39,7 +39,7 @@ import type {
  * ```
  */
 export async function reviseSegment(params: SingleRevisionParams): Promise<RevisionResult> {
-  const { segment, prompt, previousSegment, nextSegment, signal } = params;
+  const { segment, prompt, previousSegment, nextSegment, signal, providerId, model } = params;
 
   // Build prompt variables
   const variables = {
@@ -56,6 +56,8 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
       userPromptTemplate: prompt.userPromptTemplate,
     },
     signal,
+    providerId,
+    model,
   });
 
   if (!result.success || !result.data) {
@@ -102,7 +104,17 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
 export async function reviseSegmentsBatch(
   params: BatchRevisionParams,
 ): Promise<BatchRevisionResult> {
-  const { segments, allSegments, prompt, signal, onProgress, onResult, onItemComplete } = params;
+  const {
+    segments,
+    allSegments,
+    prompt,
+    signal,
+    providerId,
+    model,
+    onProgress,
+    onResult,
+    onItemComplete,
+  } = params;
 
   const results: RevisionResult[] = [];
   const issues: RevisionIssue[] = [];
@@ -140,6 +152,8 @@ export async function reviseSegmentsBatch(
         previousSegment,
         nextSegment,
         signal,
+        providerId,
+        model,
       });
 
       if (result.changes.length === 0) {

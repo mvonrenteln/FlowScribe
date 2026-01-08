@@ -39,8 +39,12 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const [batchSize, setBatchSize] = useState("10");
 
   const segments = useTranscriptStore((s) => s.segments);
-  const prompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
-  const defaultPromptId = useTranscriptStore((s) => s.aiRevisionConfig.defaultPromptId);
+  const {
+    prompts,
+    defaultPromptId,
+    selectedProviderId: storedProviderId,
+    selectedModel: storedModel,
+  } = useTranscriptStore((s) => s.aiRevisionConfig);
   const isProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const processedCount = useTranscriptStore((s) => s.aiRevisionProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiRevisionTotalToProcess);
@@ -52,12 +56,16 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const acceptAllRevisions = useTranscriptStore((s) => s.acceptAllRevisions);
   const rejectAllRevisions = useTranscriptStore((s) => s.rejectAllRevisions);
   const clearRevisions = useTranscriptStore((s) => s.clearRevisions);
+  const updateRevisionConfig = useTranscriptStore((s) => s.updateRevisionConfig);
   const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
   const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
   const requestSeek = useTranscriptStore((s) => s.requestSeek);
 
   const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
-    useAiSettingsSelection();
+    useAiSettingsSelection({
+      initialProviderId: storedProviderId ?? "",
+      initialModel: storedModel ?? "",
+    });
 
   const { segmentById, scopedSegmentIds, isFiltered } = useScopedSegments({
     segments,
@@ -89,6 +97,10 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
 
   const handleStart = () => {
     if (!effectivePromptId || scopedSegmentIds.length === 0) return;
+    updateRevisionConfig({
+      selectedProviderId: selectedProviderId || undefined,
+      selectedModel: selectedModel || undefined,
+    });
     startBatchRevision(scopedSegmentIds, effectivePromptId);
   };
 
@@ -111,8 +123,17 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         promptValue={effectivePromptId}
         promptOptions={prompts}
         batchSize={batchSize}
-        onProviderChange={selectProvider}
-        onModelChange={setSelectedModel}
+        onProviderChange={(value) => {
+          selectProvider(value);
+          updateRevisionConfig({
+            selectedProviderId: value || undefined,
+            selectedModel: undefined,
+          });
+        }}
+        onModelChange={(value) => {
+          setSelectedModel(value);
+          updateRevisionConfig({ selectedModel: value || undefined });
+        }}
         onPromptChange={setSelectedPromptId}
         onBatchSizeChange={setBatchSize}
         onOpenSettings={onOpenSettings}

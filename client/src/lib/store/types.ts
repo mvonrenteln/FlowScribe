@@ -401,6 +401,10 @@ export interface AIRevisionConfig {
   prompts: AIPrompt[];
   defaultPromptId: string | null;
   quickAccessPromptIds: string[];
+  /** Selected AI provider ID */
+  selectedProviderId?: string;
+  /** Selected model */
+  selectedModel?: string;
 }
 
 export interface AIRevisionSlice {
@@ -414,6 +418,7 @@ export interface AIRevisionSlice {
   acceptAllRevisions: () => void;
   rejectAllRevisions: () => void;
   clearRevisions: () => void;
+  updateRevisionConfig: (config: Partial<AIRevisionConfig>) => void;
   // Prompt management
   addRevisionPrompt: (prompt: Omit<AIPrompt, "id">) => void;
   updateRevisionPrompt: (id: string, updates: Partial<AIPrompt>) => void;

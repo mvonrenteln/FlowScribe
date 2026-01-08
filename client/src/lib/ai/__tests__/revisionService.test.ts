@@ -4,11 +4,97 @@
  * Tests for the text revision service helper functions.
  */
 
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import * as core from "../core";
 import { getDefaultPrompt } from "../features/revision/config";
-import { buildRevisionPrompt, getChangePreview, hasChanges } from "../features/revision/service";
+import {
+  buildRevisionPrompt,
+  getChangePreview,
+  hasChanges,
+  reviseSegment,
+  reviseSegmentsBatch,
+} from "../features/revision/service";
 
 describe("Revision Service", () => {
+  const executeFeatureSpy = vi.spyOn(core, "executeFeature");
+
+  beforeEach(() => {
+    executeFeatureSpy.mockReset();
+  });
+
+  afterAll(() => {
+    executeFeatureSpy.mockRestore();
+  });
+
+  describe("reviseSegment", () => {
+    it("passes provider options to executeFeature", async () => {
+      executeFeatureSpy.mockResolvedValueOnce({
+        success: true,
+        data: "Updated text",
+        metadata: {
+          featureId: "text-revision",
+          providerId: "test-provider",
+          model: "test-model",
+          durationMs: 5,
+        },
+      });
+
+      await reviseSegment({
+        segment: { id: "1", text: "Hello" },
+        prompt: getDefaultPrompt(),
+        providerId: "test-provider",
+        model: "test-model",
+      });
+
+      expect(executeFeatureSpy).toHaveBeenCalledWith(
+        "text-revision",
+        expect.any(Object),
+        expect.objectContaining({
+          providerId: "test-provider",
+          model: "test-model",
+        }),
+      );
+    });
+  });
+
+  describe("reviseSegmentsBatch", () => {
+    it("forwards provider options to each revision call", async () => {
+      executeFeatureSpy.mockResolvedValue({
+        success: true,
+        data: "Updated text",
+        metadata: {
+          featureId: "text-revision",
+          providerId: "batch-provider",
+          model: "batch-model",
+          durationMs: 5,
+        },
+      });
+
+      await reviseSegmentsBatch({
+        segments: [
+          { id: "1", text: "Hello" },
+          { id: "2", text: "World" },
+        ],
+        allSegments: [
+          { id: "1", text: "Hello" },
+          { id: "2", text: "World" },
+        ],
+        prompt: getDefaultPrompt(),
+        providerId: "batch-provider",
+        model: "batch-model",
+      });
+
+      expect(executeFeatureSpy).toHaveBeenCalledTimes(2);
+      for (const call of executeFeatureSpy.mock.calls) {
+        const options = call[2] as Record<string, unknown>;
+        expect(options).toMatchObject({
+          providerId: "batch-provider",
+          model: "batch-model",
+        });
+      }
+    });
+  });
+
   describe("hasChanges", () => {
     it("should return false for identical text", () => {
       expect(hasChanges("Hello world", "Hello world")).toBe(false);

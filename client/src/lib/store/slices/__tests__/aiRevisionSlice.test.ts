@@ -401,6 +401,19 @@ describe("aiRevisionSlice", () => {
         expect(state.aiRevisionTotalToProcess).toBe(1);
       });
     });
+
+    describe("config updates", () => {
+      it("updateRevisionConfig stores provider selection", () => {
+        slice.updateRevisionConfig({
+          selectedProviderId: "provider-1",
+          selectedModel: "model-a",
+        });
+
+        const state = mockStore.getState();
+        expect(state.aiRevisionConfig?.selectedProviderId).toBe("provider-1");
+        expect(state.aiRevisionConfig?.selectedModel).toBe("model-a");
+      });
+    });
   });
 
   describe("normalizeAIRevisionConfig", () => {
@@ -419,6 +432,21 @@ describe("aiRevisionSlice", () => {
         expect(result.prompts).toHaveLength(3);
         expect(result.defaultPromptId).toBe("builtin-text-cleanup");
       });
+    });
+
+    it("preserves provider selection from saved config", () => {
+      const savedConfig: AIRevisionConfig = {
+        prompts: [...DEFAULT_TEXT_PROMPTS],
+        defaultPromptId: "builtin-text-cleanup",
+        quickAccessPromptIds: ["builtin-text-cleanup"],
+        selectedProviderId: "provider-1",
+        selectedModel: "model-a",
+      };
+
+      const result = normalizeAIRevisionConfig(savedConfig);
+
+      expect(result.selectedProviderId).toBe("provider-1");
+      expect(result.selectedModel).toBe("model-a");
     });
 
     describe("ID migration from old format", () => {
