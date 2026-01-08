@@ -109,7 +109,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
       selectedProviderId: selectedProviderId || undefined,
       selectedModel: selectedModel || undefined,
     });
-    startAnalysis([], excludeConfirmed);
+    startAnalysis([], excludeConfirmed, scopedSegmentIds);
   };
 
   return (

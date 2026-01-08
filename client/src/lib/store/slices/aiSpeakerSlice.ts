@@ -42,7 +42,7 @@ export const initialAISpeakerState = {
 
 export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpeakerSlice => ({
   // Actions only - state is in InitialStoreState with aiSpeaker* prefix
-  startAnalysis: (selectedSpeakers, excludeConfirmed) => {
+  startAnalysis: (selectedSpeakers, excludeConfirmed, segmentIds) => {
     const state = get();
 
     // Cancel any existing analysis
@@ -51,9 +51,11 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     }
 
     const abortController = new AbortController();
+    const scopedSegmentIds = segmentIds && segmentIds.length > 0 ? new Set(segmentIds) : null;
 
     // Filter segments to get count
     const segmentsToAnalyze = state.segments.filter((segment) => {
+      if (scopedSegmentIds && !scopedSegmentIds.has(segment.id)) return false;
       if (excludeConfirmed && segment.confirmed) return false;
       if (selectedSpeakers.length > 0) {
         return selectedSpeakers.some((s) => s.toLowerCase() === segment.speaker.toLowerCase());
@@ -79,6 +81,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       config: state.aiSpeakerConfig,
       selectedSpeakers,
       excludeConfirmed,
+      segmentIds,
       signal: abortController.signal,
       onProgress: (processed, total) => {
         set({

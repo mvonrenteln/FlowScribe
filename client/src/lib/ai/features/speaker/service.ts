@@ -451,6 +451,7 @@ export interface AnalysisOptions {
   };
   selectedSpeakers: string[];
   excludeConfirmed: boolean;
+  segmentIds?: string[];
   signal: AbortSignal;
   onProgress?: (processed: number, total: number) => void;
   onBatchComplete?: (suggestions: LegacySpeakerSuggestion[]) => void;
@@ -486,6 +487,7 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
     config,
     selectedSpeakers,
     excludeConfirmed,
+    segmentIds,
     signal,
     onProgress,
     onBatchComplete,
@@ -494,6 +496,7 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
   } = options;
 
   const overallStart = Date.now();
+  const scopedSegmentIds = segmentIds && segmentIds.length > 0 ? new Set(segmentIds) : null;
 
   // Get active prompt from config
   const activePrompt =
@@ -502,6 +505,7 @@ export async function runAnalysis(options: AnalysisOptions): Promise<void> {
   try {
     // Filter segments based on selection criteria
     const filteredSegments = segments.filter((segment) => {
+      if (scopedSegmentIds && !scopedSegmentIds.has(segment.id)) return false;
       if (excludeConfirmed && segment.confirmed) return false;
       if (selectedSpeakers.length > 0) {
         return selectedSpeakers.some((s) => s.toLowerCase() === segment.speaker.toLowerCase());

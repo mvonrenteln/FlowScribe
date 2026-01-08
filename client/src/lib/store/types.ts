@@ -345,7 +345,11 @@ export interface AISpeakerConfig {
 // Note: AI Speaker state is stored in InitialStoreState with aiSpeaker* prefix
 // This slice only provides actions that work with that state
 export interface AISpeakerSlice {
-  startAnalysis: (selectedSpeakers: string[], excludeConfirmed: boolean) => void;
+  startAnalysis: (
+    selectedSpeakers: string[],
+    excludeConfirmed: boolean,
+    segmentIds?: string[],
+  ) => void;
   cancelAnalysis: () => void;
   addSuggestions: (suggestions: AISpeakerSuggestion[]) => void;
   acceptSuggestion: (segmentId: string) => void;

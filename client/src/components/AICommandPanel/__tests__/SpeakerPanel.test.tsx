@@ -119,4 +119,23 @@ describe("SpeakerPanel", () => {
 
     expect(screen.getByText("Suggestions (0 pending)")).toBeInTheDocument();
   });
+
+  it("starts analysis with the scoped segment ids from the filter list", async () => {
+    const user = userEvent.setup();
+    const startAnalysis = vi.fn();
+
+    setStoreState({
+      segments: baseSegments,
+      startAnalysis,
+    });
+
+    render(<SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+
+    const startButton = screen.getByRole("button", { name: /start analysis/i });
+    await act(async () => {
+      await user.click(startButton);
+    });
+
+    expect(startAnalysis).toHaveBeenCalledWith([], true, ["seg-1"]);
+  });
 });
