@@ -74,7 +74,9 @@ export function AICommandPanel({
         {activeTab === "revision" && (
           <RevisionPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
         )}
-        {activeTab === "speaker" && <SpeakerPanel onOpenSettings={onOpenSettings} />}
+        {activeTab === "speaker" && (
+          <SpeakerPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
+        )}
         {activeTab === "merge" && <MergePanel onOpenMergeDialog={onOpenMergeDialog} />}
       </div>
     </aside>

@@ -8,7 +8,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,7 +19,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
@@ -41,10 +40,11 @@ import { AIResultsSection } from "./AIResultsSection";
 import { ScopeSection } from "./ScopeSection";
 
 interface SpeakerPanelProps {
+  filteredSegmentIds: string[];
   onOpenSettings: () => void;
 }
 
-export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
+export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPanelProps) {
   const segments = useTranscriptStore((s) => s.segments);
 
   const suggestions = useTranscriptStore((s) => s.aiSpeakerSuggestions);
@@ -155,13 +155,23 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
     return `${text.slice(0, maxLength)}...`;
   };
 
-  // Calculate scoped segments for display
-  const scopedSegmentIds = segments
-    .filter((segment) => !excludeConfirmed || !segment.confirmed)
-    .map((s) => s.id);
-  // isFiltered should only be true when there are actual user filters applied (not just excludeConfirmed)
-  // Since SpeakerPanel doesn't have user filters, isFiltered is always false
-  const isFiltered = false;
+  // Create a map for fast segment lookup
+  const segmentById = useMemo(() => new Map(segments.map((s) => [s.id, s])), [segments]);
+
+  // Calculate scoped segments: first apply user filters, then exclude confirmed if needed
+  const scopedSegmentIds = useMemo(
+    () =>
+      filteredSegmentIds.filter((id) => {
+        const segment = segmentById.get(id);
+        if (!segment) return false;
+        return !excludeConfirmed || !segment.confirmed;
+      }),
+    [excludeConfirmed, filteredSegmentIds, segmentById],
+  );
+
+  // isFiltered should only be true when there are actual user filters applied (from FilterPanel)
+  // excludeConfirmed is a scope restriction, not a filter
+  const isFiltered = filteredSegmentIds.length < segments.length;
 
   return (
     <div className="space-y-5">
@@ -236,7 +246,7 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
         )}
       </AIBatchControlSection>
 
-      {pendingSuggestions.length > 0 && (
+      {(pendingSuggestions.length > 0 || batchLog.length > 0 || isProcessing) && (
         <AIResultsSection
           title={`Suggestions (${pendingSuggestions.length} pending)`}
           meta={

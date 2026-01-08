@@ -117,10 +117,9 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
     [excludeConfirmed, filteredSegmentIds, segmentById],
   );
 
-  // Check if we're working with filtered subset (less than total segments)
-  const isFiltered =
-    filteredSegmentIds.length < segments.length ||
-    scopedSegmentIds.length < filteredSegmentIds.length;
+  // isFiltered should only be true when there are actual user filters applied (from FilterPanel)
+  // excludeConfirmed is a scope restriction, not a filter
+  const isFiltered = filteredSegmentIds.length < segments.length;
 
   const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
   const effectiveModel = selectedModel || selectedProvider?.model || "";

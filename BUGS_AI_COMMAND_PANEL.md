@@ -204,11 +204,10 @@
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx` - `isFiltered` auf `false` gesetzt
 
 ### 26. Anzeige springt auf "filtered", sobald ein confirmed segment existiert und der haken gesetzt ist. Das ist mit filtered aber nicht gemeint, sondern eine Warnung, das Filter aktiv sind
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** "Exclude confirmed" sollte nicht als "Filter" angezeigt werden, da es keine Benutzer-Filter sind  
-**Lösung:** Im SpeakerPanel wird `isFiltered` auf `false` gesetzt, da es keine benutzerdefinierten Filter gibt. "Exclude confirmed" ist eine Scope-Einschränkung, kein Filter.  
-**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
-**Review:**: Das galt für beide Tabs, in Revision ist es immer noch falsch.
+**Lösung:** Sowohl im SpeakerPanel als auch im RevisionPanel wird `isFiltered` nur auf `true` gesetzt, wenn tatsächliche Benutzer-Filter (aus dem FilterPanel) aktiv sind: `isFiltered = filteredSegmentIds.length < segments.length`. "Exclude confirmed" ist eine Scope-Einschränkung, kein Filter.  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/RevisionPanel.tsx`
 
 ### zu 10: Es muss durchgehend Prompt heißen, nicht Prompt Template, nicht template. Das muss einheitlich sein (selbe komponente, keine Ausnahmen)
 **Status:** ✅ BEHOBEN  
@@ -221,12 +220,21 @@
 - `client/src/components/AICommandPanel/__tests__/AIConfigurationSection.test.tsx`
 
 ### 27. In Revision erscheint Batch log sofort (korrekt) in Speaker erst nach dem ersten Batch-Slice-Lauf
-**Status:** ❌ NICHT BEHOBEN  
-**Beschreibung:** Es soll direkt nach klick auf "Start" der Link zum Batch log angezeigt werden, nicht erst nachdem der erste Batch ( die ersten 10 Elemente) als Response vorliegen.
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Es soll direkt nach klick auf "Start" der Link zum Batch log angezeigt werden, nicht erst nachdem der erste Batch ( die ersten 10 Elemente) als Response vorliegen.  
+**Lösung:** Bedingung für AIResultsSection von `pendingSuggestions.length > 0` erweitert auf `(pendingSuggestions.length > 0 || batchLog.length > 0 || isProcessing)`, so dass die Section auch während Processing ohne Suggestions angezeigt wird.  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
 
-### 38: Analog zu #21 muss auch bei "Accept" auf dem einzelnen Element der neue Speaker aus dem Store gelöscht werden
+### 38. Analog zu #21 muss auch bei "Accept" auf dem einzelnen Element der neue Speaker aus dem Store gelöscht werden
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Wie bei Bug #21 müssen bei Accept einzelner Suggestions neue Speaker bei Undo wieder entfernt werden  
+**Lösung:** `acceptSuggestion` erstellt jetzt einen einzigen History-Eintrag für alle Änderungen (Speakers + Segments), analog zu `acceptManySuggestions`. Bei Undo werden jetzt sowohl Speakers als auch Segments korrekt zurückgesetzt.  
+**Dateien:** `client/src/lib/store/slices/aiSpeakerSlice.ts`
 
 ## 28. SpeakerPanel hat keine benutzerdefinierten Filter (wie filteredSegmentIds im RevisionPanel)
-**Status:** ❌ NICHT BEHOBEN  
-**Beschreibung:** Bei Review von #25 ist aufgefallen, dass der Speaker Dialog nicht nach den Filtern in der Filter-Leiste einschränkt, sondern immer alle Elemente nimmt. Das ist falsch! Es muss ebenso wie Revision die Filter anwenden. Vereinheitliche diesen ganzen Bereich und das verhalten zwischen den Tabs. Es muss sich exakt gleich wie bei Revision verhalten!
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Bei Review von #25 ist aufgefallen, dass der Speaker Dialog nicht nach den Filtern in der Filter-Leiste einschränkt, sondern immer alle Elemente nimmt. Das ist falsch! Es muss ebenso wie Revision die Filter anwenden. Vereinheitliche diesen ganzen Bereich und das verhalten zwischen den Tabs. Es muss sich exakt gleich wie bei Revision verhalten!  
+**Lösung:** `SpeakerPanel` erhält jetzt `filteredSegmentIds` als Prop (wie `RevisionPanel`) und berechnet `scopedSegmentIds` identisch: erst Benutzer-Filter anwenden (`filteredSegmentIds`), dann optional confirmed segments ausschließen. `isFiltered` wird auf `filteredSegmentIds.length < segments.length` gesetzt. Das Verhalten ist jetzt exakt gleich zwischen beiden Panels.  
+**Dateien:** 
+- `client/src/components/AICommandPanel/SpeakerPanel.tsx` - verwendet jetzt filteredSegmentIds
+- `client/src/components/AICommandPanel/AICommandPanel.tsx` - übergibt filteredSegmentIds an SpeakerPanel
