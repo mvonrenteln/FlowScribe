@@ -112,8 +112,9 @@ export async function classifySpeakers(
   );
 
   if (!result.success || !result.data) {
-    console.error("[Speaker Service] Classification failed:", result.error);
-    return [];
+    const message = result.error ?? "Speaker classification failed";
+    console.error("[Speaker Service] Classification failed:", message);
+    throw new Error(message);
   }
 
   // Map suggestions to results

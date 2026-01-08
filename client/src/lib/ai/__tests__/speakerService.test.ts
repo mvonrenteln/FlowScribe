@@ -4,11 +4,41 @@
  * Tests for the speaker classification service.
  */
 
-import { describe, expect, it } from "vitest";
-import { parseRawResponse } from "../features/speaker/service";
+import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import * as core from "../core";
+import { classifySpeakers, parseRawResponse } from "../features/speaker/service";
 import type { BatchSegment } from "../features/speaker/types";
 
 describe("Speaker Service", () => {
+  const executeFeatureMock = vi.spyOn(core, "executeFeature");
+
+  beforeEach(() => {
+    executeFeatureMock.mockReset();
+  });
+
+  afterAll(() => {
+    executeFeatureMock.mockRestore();
+  });
+
+  describe("classifySpeakers", () => {
+    it("should throw when executeFeature fails", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: false,
+        error: "Timeout",
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      await expect(
+        classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
+      ).rejects.toThrow("Timeout");
+    });
+  });
+
   describe("parseRawResponse", () => {
     const defaultSegments: BatchSegment[] = [
       { segmentId: "1", speaker: "[Unknown]", text: "Hello there!" },
