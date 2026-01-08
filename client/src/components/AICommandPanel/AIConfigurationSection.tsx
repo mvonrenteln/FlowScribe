@@ -23,7 +23,6 @@ interface AIConfigurationSectionProps {
   selectedProviderId: string;
   selectedModel: string;
   isProcessing: boolean;
-  promptLabel: string;
   promptValue: string;
   promptOptions: PromptOption[];
   batchSize: string;
@@ -40,7 +39,6 @@ export function AIConfigurationSection({
   selectedProviderId,
   selectedModel,
   isProcessing,
-  promptLabel,
   promptValue,
   promptOptions,
   batchSize,
@@ -116,12 +114,12 @@ export function AIConfigurationSection({
       )}
 
       <div className="space-y-2">
-        <Label htmlFor={`${id}-template`} className="text-xs text-muted-foreground">
-          {promptLabel}
+        <Label htmlFor={`${id}-prompt`} className="text-xs text-muted-foreground">
+          Prompt
         </Label>
         <Select value={promptValue} onValueChange={onPromptChange} disabled={isProcessing}>
-          <SelectTrigger id={`${id}-template`} className="h-8 text-sm">
-            <SelectValue placeholder={`Select ${promptLabel.toLowerCase()}`} />
+          <SelectTrigger id={`${id}-prompt`} className="h-8 text-sm">
+            <SelectValue placeholder="Select prompt" />
           </SelectTrigger>
           <SelectContent>
             {promptOptions.map((prompt) => (
@@ -138,24 +136,38 @@ export function AIConfigurationSection({
 
       <div className="flex items-center gap-2">
         <div className="flex-1">
-          <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground">
-            Batch Size
-          </Label>
-          <input
-            id={`${id}-batch-size`}
-            type="number"
-            min="1"
-            max="50"
-            value={batchSize}
-            onChange={(e) => {
-              const value = e.target.value;
-              if (value === "" || (Number(value) >= 1 && Number(value) <= 50)) {
-                onBatchSizeChange(value);
-              }
-            }}
-            disabled={isProcessing}
-            className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-          />
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div>
+                  <Label
+                    htmlFor={`${id}-batch-size`}
+                    className="text-xs text-muted-foreground cursor-help"
+                  >
+                    Batch Size
+                  </Label>
+                  <input
+                    id={`${id}-batch-size`}
+                    type="number"
+                    min="1"
+                    max="50"
+                    value={batchSize}
+                    onChange={(e) => {
+                      const value = e.target.value;
+                      if (value === "" || (Number(value) >= 1 && Number(value) <= 50)) {
+                        onBatchSizeChange(value);
+                      }
+                    }}
+                    disabled={isProcessing}
+                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Number of segments to process in each batch (1-50)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
         {onOpenSettings ? (
           <TooltipProvider>

@@ -1,5 +1,6 @@
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ScopeSectionProps {
   scopedSegmentCount: number;
@@ -26,14 +27,28 @@ export function ScopeSection({
         {scopedSegmentCount === 1 ? "" : "s"}
       </div>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
-        <Checkbox
-          id={checkboxId}
-          checked={excludeConfirmed}
-          onCheckedChange={(value) => onExcludeConfirmedChange(Boolean(value))}
-        />
-        <Label htmlFor={checkboxId} className="text-sm text-muted-foreground">
-          Exclude confirmed
-        </Label>
+        <TooltipProvider>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id={checkboxId}
+                  checked={excludeConfirmed}
+                  onCheckedChange={(value) => onExcludeConfirmedChange(Boolean(value))}
+                />
+                <Label
+                  htmlFor={checkboxId}
+                  className="text-sm text-muted-foreground cursor-pointer"
+                >
+                  Exclude confirmed
+                </Label>
+              </div>
+            </TooltipTrigger>
+            <TooltipContent>
+              <p>Skip segments that are already marked as confirmed</p>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     </section>
   );

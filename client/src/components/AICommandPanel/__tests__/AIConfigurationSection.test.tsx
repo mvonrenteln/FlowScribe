@@ -29,7 +29,6 @@ describe("AIConfigurationSection", () => {
         selectedProviderId="provider-1"
         selectedModel=""
         isProcessing={false}
-        promptLabel="Prompt Template"
         promptValue="prompt-1"
         promptOptions={[{ id: "prompt-1", name: "Default Prompt", isDefault: true }]}
         batchSize="10"
@@ -42,7 +41,7 @@ describe("AIConfigurationSection", () => {
 
     expect(screen.getByText("Provider")).toBeInTheDocument();
     expect(screen.getByText("Model")).toBeInTheDocument();
-    expect(screen.getByText("Prompt Template")).toBeInTheDocument();
+    expect(screen.getByText("Prompt")).toBeInTheDocument();
     expect(screen.getByLabelText(/batch size/i)).toBeInTheDocument();
   });
 
@@ -56,7 +55,6 @@ describe("AIConfigurationSection", () => {
         selectedProviderId="provider-1"
         selectedModel=""
         isProcessing={false}
-        promptLabel="Template"
         promptValue="prompt-1"
         promptOptions={[{ id: "prompt-1", name: "Default Prompt" }]}
         batchSize="10"

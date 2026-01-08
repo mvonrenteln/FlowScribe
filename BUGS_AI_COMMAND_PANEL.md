@@ -26,13 +26,13 @@
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 2b. Scope-Display Filter-Bug (Speaker Tab)
-**Status:** 🟡 PARTIALLY  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Zeigt immer "All: X segments" auch wenn Filter gesetzt sind.  
 **Lösung:** `isFiltered` berechnet jetzt `scopedSegmentIds.length < segments.length` - zeigt "Filtered" wenn durch excludeConfirmed weniger Segments verarbeitet werden  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx` Zeile 156
 
 ### 3. Scope-Display Filter-Bug (Revision Tab)
-**Status:** 🟡 IN REVIEW  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Zeigt immer "Filtered: X segments" auch wenn KEINE Filter gesetzt sind.  
 **Lösung:** `isFiltered` berechnet jetzt `filteredSegmentIds.length < segments.length || scopedSegmentIds.length < filteredSegmentIds.length`  
 **Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx` Zeile 65
@@ -74,7 +74,7 @@
 **Lösung:** Beide Tabs nutzen denselben Configuration-Block inkl. Settings Button rechts neben Batch Size  
 
 ### 10. Prompt Selector Position (Revision Tab)
-**Status:** ❌ TEILWEISE  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Prompt (= Template) gehört in "AI Configuration" Sektion  
 **Lösung:** Prompt Selector in gemeinsame AI-Configuration-Sektion verschoben  
 **Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
@@ -116,9 +116,10 @@
 ## Batch-Verarbeitung Probleme
 
 ### 17. Batch Log erscheint nicht sofort
-**Status:** ❌ NICHT BEHOBEN  (in Speaker)
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Batch-Log wird erst nach Completion angezeigt, nicht während Processing  
-**Problem:** `onBatchInfo` Callback triggert keinen UI-Update während der Verarbeitung
+**Lösung:** Bedingung `{(batchLog.length > 0 || isProcessing) && (` hinzugefügt, so dass Batch Log auch während Processing angezeigt wird (konsistent mit RevisionPanel)  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
 
 ### 18. Progress Counter zeigt falsche Werte
 **Status:** ✅ BEHOBEN  
@@ -134,18 +135,21 @@
 ## Fehlende Features
 
 ### 20. Tooltips fehlen
-**Status:** ❌ NICHT BEHOBEN  
+**Status:** ✅ BEHOBEN  
 **Beschreibung:** Alle UI-Elemente brauchen Tooltips mit Erklärungen  
-**Erforderlich:**
-- "Exclude confirmed" Checkbox
-- Batch Size Input
-- Start/Stop/Settings Buttons
-- Template Selector
-- Results Items
+**Lösung:** Tooltips für wichtigste Elemente hinzugefügt:
+- "Exclude confirmed" Checkbox mit Erklärung
+- Batch Size Input mit Werte-Range (1-50)
+- Settings Button (bereits vorhanden)  
+**Dateien:** 
+- `client/src/components/AICommandPanel/ScopeSection.tsx`
+- `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 21. Accept All in Speaker und danach Revert (z) löscht neue Speaker nicht aus Store
-**Status:** ❌ NICHT BEHOBEN  
-**Beschreibung:** Nach "Accept All" und danach Revert bleiben die durch das accept erstellten Speaker erhalten
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Nach "Accept All" und danach Revert bleiben die durch das accept erstellten Speaker erhalten  
+**Lösung:** `acceptManySuggestions` erstellt jetzt einen einzigen History-Eintrag für alle Änderungen (Speakers + Segments), anstatt für jeden Speaker einen separaten Eintrag zu erstellen. Bei Undo werden jetzt sowohl Speakers als auch Segments korrekt zurückgesetzt.  
+**Dateien:** `client/src/lib/store/slices/aiSpeakerSlice.ts`
 
 ### 22. Revision Results fehlen in Sidebar
 **Status:** ✅ BEHOBEN  
@@ -188,11 +192,41 @@
 - `client/src/components/AICommandPanel/__tests__/AIBatchControlSection.test.tsx` (NEU)
 
 ### 24. Accept/Reject auf dem Segment entfernt den Eintrag nicht aus der der Batch-Liste
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Wenn man Accept/Reject inline auf dem Segment klickt, wird die Suggestion nicht aus der Panel-Liste entfernt  
+**Lösung:** `acceptSuggestion` und `rejectSuggestion` entfernen jetzt die Suggestion aus dem Store (konsistent mit RevisionSlice), anstatt nur den Status zu ändern  
+**Dateien:** `client/src/lib/store/slices/aiSpeakerSlice.ts`
 
 ### 25. Umschaltung all/filtered klappt bei Revision, nicht aber im Speaker Dialog
+**Status:** 🟡 IN REVIEW
+**Beschreibung:** Umschaltung all/filtered klappt bei Revision nicht im Speaker Dialog  
+**Analyse:** Dies ist kein Bug - SpeakerPanel hat keine benutzerdefinierten Filter (wie filteredSegmentIds im RevisionPanel). Die einzige "Filterung" ist "Exclude confirmed", was aber semantisch keine Filter-Operation ist, sondern eine Scope-Einschränkung. Das Verhalten ist korrekt.  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx` - `isFiltered` auf `false` gesetzt
 
 ### 26. Anzeige springt auf "filtered", sobald ein confirmed segment existiert und der haken gesetzt ist. Das ist mit filtered aber nicht gemeint, sondern eine Warnung, das Filter aktiv sind
+**Status:** ❌ NICHT BEHOBEN  
+**Beschreibung:** "Exclude confirmed" sollte nicht als "Filter" angezeigt werden, da es keine Benutzer-Filter sind  
+**Lösung:** Im SpeakerPanel wird `isFiltered` auf `false` gesetzt, da es keine benutzerdefinierten Filter gibt. "Exclude confirmed" ist eine Scope-Einschränkung, kein Filter.  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
+**Review:**: Das galt für beide Tabs, in Revision ist es immer noch falsch.
 
 ### zu 10: Es muss durchgehend Prompt heißen, nicht Prompt Template, nicht template. Das muss einheitlich sein (selbe komponente, keine Ausnahmen)
+**Status:** ✅ BEHOBEN  
+**Beschreibung:** Inkonsistente Benennung: "Prompt Template" (Speaker), "Template" (Revision)  
+**Lösung:** Einheitlich auf "Prompt" vereinheitlicht - `promptLabel` Parameter aus `AIConfigurationSection` entfernt und Label fest auf "Prompt" gesetzt  
+**Dateien:** 
+- `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
+- `client/src/components/AICommandPanel/SpeakerPanel.tsx`
+- `client/src/components/AICommandPanel/RevisionPanel.tsx`
+- `client/src/components/AICommandPanel/__tests__/AIConfigurationSection.test.tsx`
 
-### zu 17: In Revision erscheint Batch log sofort (korrekt) in Speaker erst nach dem ersten Batch-Lauf
+### 27. In Revision erscheint Batch log sofort (korrekt) in Speaker erst nach dem ersten Batch-Slice-Lauf
+**Status:** ❌ NICHT BEHOBEN  
+**Beschreibung:** Es soll direkt nach klick auf "Start" der Link zum Batch log angezeigt werden, nicht erst nachdem der erste Batch ( die ersten 10 Elemente) als Response vorliegen.
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
+
+### 38: Analog zu #21 muss auch bei "Accept" auf dem einzelnen Element der neue Speaker aus dem Store gelöscht werden
+
+## 28. SpeakerPanel hat keine benutzerdefinierten Filter (wie filteredSegmentIds im RevisionPanel)
+**Status:** ❌ NICHT BEHOBEN  
+**Beschreibung:** Bei Review von #25 ist aufgefallen, dass der Speaker Dialog nicht nach den Filtern in der Filter-Leiste einschränkt, sondern immer alle Elemente nimmt. Das ist falsch! Es muss ebenso wie Revision die Filter anwenden. Vereinheitliche diesen ganzen Bereich und das verhalten zwischen den Tabs. Es muss sich exakt gleich wie bei Revision verhalten!

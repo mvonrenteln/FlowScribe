@@ -166,7 +166,6 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         selectedProviderId={selectedProviderId}
         selectedModel={effectiveModel}
         isProcessing={isProcessing}
-        promptLabel="Template"
         promptValue={effectivePromptId}
         promptOptions={prompts}
         batchSize={batchSize}
