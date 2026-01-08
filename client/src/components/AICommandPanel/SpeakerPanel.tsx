@@ -8,7 +8,7 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -19,7 +19,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -28,16 +27,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  initializeSettings,
-  type PersistedSettings,
-  SETTINGS_UPDATED_EVENT,
-} from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
 import { AIResultsSection } from "./AIResultsSection";
+import { useAiSettingsSelection } from "./hooks/useAiSettingsSelection";
+import { useScopedSegments } from "./hooks/useScopedSegments";
+import { ResultsList } from "./ResultsList";
 import { ScopeSection } from "./ScopeSection";
+import { createSegmentNavigator } from "./utils/segmentNavigator";
+import { truncateText } from "./utils/truncateText";
 
 interface SpeakerPanelProps {
   filteredSegmentIds: string[];
@@ -73,61 +72,32 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState(config.batchSize.toString());
-  const [settings, setSettings] = useState<PersistedSettings | null>(null);
-  const [selectedProviderId, setSelectedProviderId] = useState<string>(
-    config.selectedProviderId ?? "",
-  );
-  const [selectedModel, setSelectedModel] = useState<string>(config.selectedModel ?? "");
   const [highConfExpanded, setHighConfExpanded] = useState(true);
   const [medConfExpanded, setMedConfExpanded] = useState(false);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
 
-  const refreshSettings = useCallback(() => {
-    const loadedSettings = initializeSettings();
-    setSettings(loadedSettings);
+  const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
+    useAiSettingsSelection({
+      initialProviderId: config.selectedProviderId ?? "",
+      initialModel: config.selectedModel ?? "",
+    });
 
-    let providerId = selectedProviderId;
-    const providerExists = loadedSettings.aiProviders.some((p) => p.id === providerId);
-
-    if (!providerExists) {
-      providerId = loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "";
-    }
-
-    if (!providerId && loadedSettings.defaultAIProviderId) {
-      providerId = loadedSettings.defaultAIProviderId;
-    }
-
-    if (providerId !== selectedProviderId) {
-      setSelectedProviderId(providerId);
-    }
-  }, [selectedProviderId]);
-
-  useEffect(() => {
-    refreshSettings();
-
-    const handleSettingsUpdate = () => {
-      refreshSettings();
-    };
-
-    window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-    return () => {
-      window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-    };
-  }, [refreshSettings]);
-
-  useEffect(() => {
-    if (selectedProviderId && settings) {
-      const provider = settings.aiProviders.find((p) => p.id === selectedProviderId);
-      if (provider) {
-        const availableModels = provider.availableModels ?? [];
-        if (!selectedModel || !availableModels.includes(selectedModel)) {
-          setSelectedModel(provider.model || (availableModels[0] ?? ""));
-        }
-      }
-    }
-  }, [selectedProviderId, settings, selectedModel]);
+  const { segmentById, scopedSegmentIds, isFiltered } = useScopedSegments({
+    segments,
+    filteredSegmentIds,
+    excludeConfirmed,
+  });
 
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
+  const scrollToSegment = useMemo(
+    () =>
+      createSegmentNavigator(segmentById, {
+        setSelectedSegmentId,
+        setCurrentTime,
+        requestSeek,
+      }),
+    [segmentById, setSelectedSegmentId, setCurrentTime, requestSeek],
+  );
 
   const handleStartAnalysis = () => {
     const parsed = Number.parseInt(batchSize, 10);
@@ -141,37 +111,6 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
     });
     startAnalysis([], excludeConfirmed);
   };
-
-  const handleScrollToSegment = (segmentId: string) => {
-    const segment = segments.find((item) => item.id === segmentId);
-    if (!segment) return;
-    setSelectedSegmentId(segmentId);
-    setCurrentTime(segment.start);
-    requestSeek(segment.start);
-  };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength)}...`;
-  };
-
-  // Create a map for fast segment lookup
-  const segmentById = useMemo(() => new Map(segments.map((s) => [s.id, s])), [segments]);
-
-  // Calculate scoped segments: first apply user filters, then exclude confirmed if needed
-  const scopedSegmentIds = useMemo(
-    () =>
-      filteredSegmentIds.filter((id) => {
-        const segment = segmentById.get(id);
-        if (!segment) return false;
-        return !excludeConfirmed || !segment.confirmed;
-      }),
-    [excludeConfirmed, filteredSegmentIds, segmentById],
-  );
-
-  // isFiltered should only be true when there are actual user filters applied (from FilterPanel)
-  // excludeConfirmed is a scope restriction, not a filter
-  const isFiltered = filteredSegmentIds.length < segments.length;
 
   return (
     <div className="space-y-5">
@@ -192,10 +131,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
         promptValue={config.activePromptId}
         promptOptions={config.prompts}
         batchSize={batchSize}
-        onProviderChange={(id) => {
-          setSelectedProviderId(id);
-          setSelectedModel("");
-        }}
+        onProviderChange={selectProvider}
         onModelChange={setSelectedModel}
         onPromptChange={setActivePrompt}
         onBatchSizeChange={setBatchSize}
@@ -352,24 +288,11 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                 const lowConfidence = pendingSuggestions.filter((s) => (s.confidence ?? 0) < 0.5);
 
                 const renderSuggestionItem = (suggestion: (typeof pendingSuggestions)[0]) => {
-                  const segment = segments.find((s) => s.id === suggestion.segmentId);
+                  const segment = segmentById.get(suggestion.segmentId);
                   const textSnippet = segment ? truncateText(segment.text, 40) : "";
 
                   return (
-                    <div
-                      key={suggestion.segmentId}
-                      className="flex items-center gap-2 text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleScrollToSegment(suggestion.segmentId)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter" || e.key === " ") {
-                          e.preventDefault();
-                          handleScrollToSegment(suggestion.segmentId);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      title={segment?.text}
-                    >
+                    <>
                       <span className="flex-1 truncate text-muted-foreground min-w-0">
                         {textSnippet}
                       </span>
@@ -383,7 +306,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                       <span className="text-muted-foreground ml-1 shrink-0">
                         {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
                       </span>
-                    </div>
+                    </>
                   );
                 };
 
@@ -415,11 +338,15 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                             </Button>
                           </div>
                           <CollapsibleContent>
-                            <ScrollArea className="h-[200px]">
-                              <div className="space-y-1 pr-3">
-                                {highConfidence.map(renderSuggestionItem)}
-                              </div>
-                            </ScrollArea>
+                            <ResultsList
+                              items={highConfidence}
+                              getKey={(suggestion) => suggestion.segmentId}
+                              onActivate={(suggestion) => scrollToSegment(suggestion.segmentId)}
+                              getItemTitle={(suggestion) =>
+                                segmentById.get(suggestion.segmentId)?.text
+                              }
+                              renderItem={renderSuggestionItem}
+                            />
                           </CollapsibleContent>
                         </div>
                       </Collapsible>
@@ -437,11 +364,15 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                             Medium Confidence ({mediumConfidence.length})
                           </CollapsibleTrigger>
                           <CollapsibleContent>
-                            <ScrollArea className="h-[200px]">
-                              <div className="space-y-1 pr-3">
-                                {mediumConfidence.map(renderSuggestionItem)}
-                              </div>
-                            </ScrollArea>
+                            <ResultsList
+                              items={mediumConfidence}
+                              getKey={(suggestion) => suggestion.segmentId}
+                              onActivate={(suggestion) => scrollToSegment(suggestion.segmentId)}
+                              getItemTitle={(suggestion) =>
+                                segmentById.get(suggestion.segmentId)?.text
+                              }
+                              renderItem={renderSuggestionItem}
+                            />
                           </CollapsibleContent>
                         </div>
                       </Collapsible>
@@ -459,11 +390,15 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                             Low Confidence ({lowConfidence.length})
                           </CollapsibleTrigger>
                           <CollapsibleContent>
-                            <ScrollArea className="h-[200px]">
-                              <div className="space-y-1 pr-3">
-                                {lowConfidence.map(renderSuggestionItem)}
-                              </div>
-                            </ScrollArea>
+                            <ResultsList
+                              items={lowConfidence}
+                              getKey={(suggestion) => suggestion.segmentId}
+                              onActivate={(suggestion) => scrollToSegment(suggestion.segmentId)}
+                              getItemTitle={(suggestion) =>
+                                segmentById.get(suggestion.segmentId)?.text
+                              }
+                              renderItem={renderSuggestionItem}
+                            />
                           </CollapsibleContent>
                         </div>
                       </Collapsible>

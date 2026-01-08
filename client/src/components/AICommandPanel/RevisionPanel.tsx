@@ -1,5 +1,5 @@
 import { Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -8,7 +8,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -17,16 +16,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import {
-  initializeSettings,
-  type PersistedSettings,
-  SETTINGS_UPDATED_EVENT,
-} from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
 import { AIResultsSection } from "./AIResultsSection";
+import { useAiSettingsSelection } from "./hooks/useAiSettingsSelection";
+import { useScopedSegments } from "./hooks/useScopedSegments";
+import { ResultsList } from "./ResultsList";
 import { ScopeSection } from "./ScopeSection";
+import { createSegmentNavigator } from "./utils/segmentNavigator";
+import { truncateText } from "./utils/truncateText";
 
 interface RevisionPanelProps {
   filteredSegmentIds: string[];
@@ -35,56 +34,9 @@ interface RevisionPanelProps {
 
 export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPanelProps) {
   const [isLogOpen, setIsLogOpen] = useState(false);
-  const [settings, setSettings] = useState<PersistedSettings | null>(null);
-  const [selectedProviderId, setSelectedProviderId] = useState("");
-  const [selectedModel, setSelectedModel] = useState("");
   const [selectedPromptId, setSelectedPromptId] = useState("");
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState("10");
-
-  const refreshSettings = useCallback(() => {
-    const loadedSettings = initializeSettings();
-    setSettings(loadedSettings);
-    let providerId = selectedProviderId;
-    const providerExists = loadedSettings.aiProviders.some((p) => p.id === providerId);
-
-    if (!providerExists) {
-      providerId = loadedSettings.defaultAIProviderId ?? loadedSettings.aiProviders[0]?.id ?? "";
-    }
-
-    if (!providerId && loadedSettings.defaultAIProviderId) {
-      providerId = loadedSettings.defaultAIProviderId;
-    }
-
-    if (providerId !== selectedProviderId) {
-      setSelectedProviderId(providerId);
-    }
-  }, [selectedProviderId]);
-
-  useEffect(() => {
-    refreshSettings();
-
-    const handleSettingsUpdate = () => {
-      refreshSettings();
-    };
-
-    window.addEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-    return () => {
-      window.removeEventListener(SETTINGS_UPDATED_EVENT, handleSettingsUpdate);
-    };
-  }, [refreshSettings]);
-
-  useEffect(() => {
-    if (selectedProviderId && settings) {
-      const provider = settings.aiProviders.find((p) => p.id === selectedProviderId);
-      if (provider) {
-        const availableModels = provider.availableModels ?? [];
-        if (!selectedModel || !availableModels.includes(selectedModel)) {
-          setSelectedModel(provider.model || (availableModels[0] ?? ""));
-        }
-      }
-    }
-  }, [selectedProviderId, settings, selectedModel]);
 
   const segments = useTranscriptStore((s) => s.segments);
   const prompts = useTranscriptStore((s) => s.aiRevisionConfig.prompts);
@@ -104,22 +56,16 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
   const requestSeek = useTranscriptStore((s) => s.requestSeek);
 
-  const segmentById = useMemo(() => new Map(segments.map((s) => [s.id, s])), [segments]);
+  const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
+    useAiSettingsSelection();
+
+  const { segmentById, scopedSegmentIds, isFiltered } = useScopedSegments({
+    segments,
+    filteredSegmentIds,
+    excludeConfirmed,
+  });
+
   const effectivePromptId = selectedPromptId || defaultPromptId || prompts[0]?.id;
-
-  const scopedSegmentIds = useMemo(
-    () =>
-      filteredSegmentIds.filter((id) => {
-        const segment = segmentById.get(id);
-        if (!segment) return false;
-        return !excludeConfirmed || !segment.confirmed;
-      }),
-    [excludeConfirmed, filteredSegmentIds, segmentById],
-  );
-
-  // isFiltered should only be true when there are actual user filters applied (from FilterPanel)
-  // excludeConfirmed is a scope restriction, not a filter
-  const isFiltered = filteredSegmentIds.length < segments.length;
 
   const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
   const effectiveModel = selectedModel || selectedProvider?.model || "";
@@ -131,22 +77,19 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const unchangedCount = batchLog.filter((entry) => entry.status === "unchanged").length;
   const failedCount = batchLog.filter((entry) => entry.status === "failed").length;
 
+  const scrollToSegment = useMemo(
+    () =>
+      createSegmentNavigator(segmentById, {
+        setSelectedSegmentId,
+        setCurrentTime,
+        requestSeek,
+      }),
+    [segmentById, setSelectedSegmentId, setCurrentTime, requestSeek],
+  );
+
   const handleStart = () => {
     if (!effectivePromptId || scopedSegmentIds.length === 0) return;
     startBatchRevision(scopedSegmentIds, effectivePromptId);
-  };
-
-  const handleScrollToSegment = (segmentId: string) => {
-    const segment = segmentById.get(segmentId);
-    if (!segment) return;
-    setSelectedSegmentId(segmentId);
-    setCurrentTime(segment.start);
-    requestSeek(segment.start);
-  };
-
-  const truncateText = (text: string, maxLength: number) => {
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength)}...`;
   };
 
   return (
@@ -168,10 +111,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         promptValue={effectivePromptId}
         promptOptions={prompts}
         batchSize={batchSize}
-        onProviderChange={(id) => {
-          setSelectedProviderId(id);
-          setSelectedModel("");
-        }}
+        onProviderChange={selectProvider}
         onModelChange={setSelectedModel}
         onPromptChange={setSelectedPromptId}
         onBatchSizeChange={setBatchSize}
@@ -261,39 +201,26 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
           <div className="text-sm text-muted-foreground">
             Pending: {pendingCount} • Accepted: {acceptedCount} • Rejected: {rejectedCount}
           </div>
-          {pendingSuggestions.length > 0 && (
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-1 pr-3">
-                {pendingSuggestions.map((suggestion) => {
-                  const segment = segmentById.get(suggestion.segmentId);
-                  return (
-                    <div
-                      key={suggestion.segmentId}
-                      className="flex items-center gap-2 text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
-                      onClick={() => handleScrollToSegment(suggestion.segmentId)}
-                      onKeyDown={(event) => {
-                        if (event.key === "Enter" || event.key === " ") {
-                          event.preventDefault();
-                          handleScrollToSegment(suggestion.segmentId);
-                        }
-                      }}
-                      role="button"
-                      tabIndex={0}
-                      title={segment?.text}
-                    >
-                      <span className="flex-1 truncate text-muted-foreground min-w-0">
-                        {segment ? truncateText(segment.text, 40) : suggestion.segmentId}
-                      </span>
-                      <span className="text-muted-foreground shrink-0">→</span>
-                      <span className="flex-1 truncate text-muted-foreground min-w-0">
-                        {truncateText(suggestion.revisedText, 40)}
-                      </span>
-                    </div>
-                  );
-                })}
-              </div>
-            </ScrollArea>
-          )}
+          <ResultsList
+            items={pendingSuggestions}
+            getKey={(suggestion) => suggestion.segmentId}
+            onActivate={(suggestion) => scrollToSegment(suggestion.segmentId)}
+            getItemTitle={(suggestion) => segmentById.get(suggestion.segmentId)?.text}
+            renderItem={(suggestion) => {
+              const segment = segmentById.get(suggestion.segmentId);
+              return (
+                <>
+                  <span className="flex-1 truncate text-muted-foreground min-w-0">
+                    {segment ? truncateText(segment.text, 40) : suggestion.segmentId}
+                  </span>
+                  <span className="text-muted-foreground shrink-0">→</span>
+                  <span className="flex-1 truncate text-muted-foreground min-w-0">
+                    {truncateText(suggestion.revisedText, 40)}
+                  </span>
+                </>
+              );
+            }}
+          />
           {pendingCount > 0 ? (
             <div className="flex gap-2">
               <Button
