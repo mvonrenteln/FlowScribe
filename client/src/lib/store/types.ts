@@ -51,6 +51,7 @@ export interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
   selectedSegmentId: string | null;
+  currentTime: number;
 }
 
 export interface PersistedSession {
@@ -155,6 +156,7 @@ export interface InitialStoreState {
   aiRevisionConfig: AIRevisionConfig;
   aiRevisionError: string | null;
   aiRevisionAbortController: AbortController | null;
+  aiRevisionBatchLog: AIRevisionBatchLogEntry[];
   aiRevisionLastResult: {
     segmentId: string;
     status: "success" | "no-changes" | "error";
@@ -385,6 +387,14 @@ export interface AIRevisionSuggestion {
   changes: TextChange[];
   changeSummary?: string;
   reasoning?: string;
+}
+
+export interface AIRevisionBatchLogEntry {
+  segmentId: string;
+  status: "revised" | "unchanged" | "failed";
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
 }
 
 export interface AIRevisionConfig {

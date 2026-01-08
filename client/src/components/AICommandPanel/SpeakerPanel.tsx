@@ -67,6 +67,8 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
   const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
 
   const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
+  const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
+  const requestSeek = useTranscriptStore((s) => s.requestSeek);
 
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
@@ -141,14 +143,11 @@ export function SpeakerPanel({ onOpenSettings }: SpeakerPanelProps) {
   };
 
   const handleScrollToSegment = (segmentId: string) => {
+    const segment = segments.find((item) => item.id === segmentId);
+    if (!segment) return;
     setSelectedSegmentId(segmentId);
-    // Scroll to segment
-    requestAnimationFrame(() => {
-      const element = document.querySelector(`[data-segment-id="${segmentId}"]`);
-      if (element) {
-        element.scrollIntoView({ behavior: "smooth", block: "center" });
-      }
-    });
+    setCurrentTime(segment.start);
+    requestSeek(segment.start);
   };
 
   const truncateText = (text: string, maxLength: number) => {

@@ -91,6 +91,17 @@ export interface BatchRevisionParams {
 
   /** Called when a single result is ready */
   onResult?: (result: RevisionResult) => void;
+
+  /** Called when a segment is processed */
+  onItemComplete?: (entry: RevisionBatchLogEntry) => void;
+}
+
+export interface RevisionBatchLogEntry {
+  segmentId: string;
+  status: "revised" | "unchanged" | "failed";
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
 }
 
 /**

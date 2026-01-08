@@ -12,6 +12,7 @@ import type { StoreApi } from "zustand";
 import type { RevisionResult } from "@/lib/ai/features/revision";
 import type {
   AIPrompt,
+  AIRevisionBatchLogEntry,
   AIRevisionConfig,
   AIRevisionSlice,
   AIRevisionSuggestion,
@@ -110,6 +111,7 @@ export const initialAIRevisionState = {
   } as AIRevisionConfig,
   aiRevisionError: null as string | null,
   aiRevisionAbortController: null as AbortController | null,
+  aiRevisionBatchLog: [] as AIRevisionBatchLogEntry[],
   // Track last result per segment for UI feedback
   aiRevisionLastResult: null as {
     segmentId: string;
@@ -355,6 +357,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       aiRevisionTotalToProcess: segments.length,
       aiRevisionError: null,
       aiRevisionAbortController: abortController,
+      aiRevisionBatchLog: [],
     });
 
     // Run batch revision asynchronously - dynamic import to avoid circular dependencies
@@ -368,6 +371,12 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           set({
             aiRevisionProcessedCount: processed,
             aiRevisionTotalToProcess: total,
+          });
+        },
+        onItemComplete: (entry) => {
+          const currentState = get();
+          set({
+            aiRevisionBatchLog: [...currentState.aiRevisionBatchLog, entry],
           });
         },
         onResult: (result: RevisionResult) => {

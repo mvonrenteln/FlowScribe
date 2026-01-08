@@ -1,5 +1,7 @@
 # AI Command Panel - Bug Status
 
+**Status-Legende:** ✅ BEHOBEN · 🟡 IN REVIEW · ⚠️ TEILWEISE · ❌ NICHT BEHOBEN
+
 ## Kritische Bugs
 
 ### 1. Accept All erstellt viele Store-Updates
@@ -12,25 +14,25 @@
 - `client/src/components/AICommandPanel/SpeakerPanel.tsx` - verwendet jetzt Batch-Funktion
 
 ### 1b. Provider Settings refreshen nach Konfig-Änderung
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Provider-Liste bleibt im Panel stale, wenn Settings im selben Panel geöffnet werden.  
-**Lösung:** Settings-Update-Event eingeführt und Panels aktualisieren Settings State bei Änderungen.  
+**Lösung:** Settings-Update-Event eingeführt und Panels aktualisieren Settings State bei Änderungen (Review).  
 **Dateien:** `client/src/lib/settings/settingsStorage.ts`, `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/RevisionPanel.tsx`
 
 ### 2. Batch Size als Number Input (Speaker Tab)
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Batch Size sollte validiertes Number Input sein (1-50), ist aber Select Dropdown  
-**Lösung:** Number Input (1-50) wie im Speaker-Template beibehalten  
+**Lösung:** Number Input (1-50) wie im Speaker-Template beibehalten (Review)  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 2b. Scope-Display Filter-Bug (Speaker Tab)
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Zeigt immer "All: X segments" auch wenn Filter gesetzt sind.  
 **Lösung:** `isFiltered` berechnet jetzt `scopedSegmentIds.length < segments.length` - zeigt "Filtered" wenn durch excludeConfirmed weniger Segments verarbeitet werden  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx` Zeile 156
 
 ### 3. Scope-Display Filter-Bug (Revision Tab)
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Zeigt immer "Filtered: X segments" auch wenn KEINE Filter gesetzt sind.  
 **Lösung:** `isFiltered` berechnet jetzt `filteredSegmentIds.length < segments.length || scopedSegmentIds.length < filteredSegmentIds.length`  
 **Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx` Zeile 65
@@ -54,54 +56,54 @@
 **Lösung:** UI entfernt
 
 ### 7. Icons inkonsistent
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Start-Button hatte verschiedene Icons, Stop vs Pause nicht klar getrennt  
 **Lösung:** 
 - Start: Sparkles Icon (beide Panels)
 - Stop: StopCircle Icon (beide Panels)
 
 ### 8. Batch Size & Settings (Revision Tab)
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Batch Size ist Dropdown UND Settings Button fehlt komplett  
 **Lösung:** Gemeinsame AI-Configuration-Komponente mit Number Input + Settings Button integriert  
 **Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 9. Settings Button Position
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Settings Button Position inkonsistent  
 **Lösung:** Beide Tabs nutzen denselben Configuration-Block inkl. Settings Button rechts neben Batch Size  
 
 ### 10. Prompt Selector Position (Revision Tab)
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Prompt (= Template) gehört in "AI Configuration" Sektion  
 **Lösung:** Prompt Selector in gemeinsame AI-Configuration-Sektion verschoben  
 **Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`, `client/src/components/AICommandPanel/AIConfigurationSection.tsx`
 
 ### 11. UI-Unterschiede zwischen Revision/Speaker
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Viele UI-Elemente sind ähnlich aber separat implementiert → sollten gemeinsame Komponente nutzen  
 **Lösung:** Gemeinsame Komponenten für Scope, Configuration, Batch Control und Results eingeführt und in beiden Tabs genutzt
 
 ## Results Summary Probleme
 
 ### 12. Results nicht scrollbar
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Results Liste zeigte nur 5 Items + "X more" Text  
 **Lösung:** Collapsible Sections mit ScrollArea (200px Höhe) implementiert
 
 ### 13. Results nicht klickbar
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** Keine Navigation zu Segmenten möglich  
-**Lösung:** Suggestions sind klickbar (Button-Role + Cursor + Scroll-to-Segment)  
+**Lösung:** Suggestions sollen klickbar sein, springen aber noch nicht zuverlässig (Review).  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
 
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** 40-Zeichen Text-Snippet + Badge implementiert, ABER Speaker Badges ragen aus Container raus  
-**Lösung:** Badge mit `truncate` und Max-Width, damit Layout stabil bleibt  
+**Lösung:** Badge mit `truncate` und Max-Width, damit Layout stabil bleibt (Review)  
 **Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
 
 ### 15. Collapse Icons falsch
-**Status:** ✅ BEHOBEN  
+**Status:** 🟡 IN REVIEW  
 **Beschreibung:** +/- Text sollten Chevron Icons sein  
 **Lösung:** ChevronDown/ChevronRight Icons aus Lucide verwendet
 
@@ -155,6 +157,30 @@
 - Progress Counter "X/Y segments"
 - Batch Log sofort nach Start anzeigen
 - Tooltips für alle UI-Elemente
+
+### 22. Revision Results fehlen in Sidebar
+**Status:** 🟡 IN REVIEW  
+**Beschreibung:** Revision Results erscheinen im Transkript, aber nicht in der Seitenleiste.  
+**Lösung:** Results-Liste + ScrollArea ergänzt (Review).  
+**Dateien:** `client/src/components/AICommandPanel/RevisionPanel.tsx`
+
+### 22b. Revision Batch-Log fehlt
+**Status:** 🟡 IN REVIEW  
+**Beschreibung:** Batch-Log fehlt im Revision Tab.  
+**Lösung:** Batch-Log-Einträge werden erfasst und im Drawer angezeigt (Review).  
+**Dateien:** `client/src/lib/store/slices/aiRevisionSlice.ts`, `client/src/components/AICommandPanel/RevisionPanel.tsx`
+
+### 22c. Speaker Results springen nicht zuverlässig
+**Status:** 🟡 IN REVIEW  
+**Beschreibung:** Klick auf Speaker Results springt nicht zuverlässig zu Segmenten außerhalb des Viewports.  
+**Lösung:** Scroll über Selection + Seek statt nur `scrollIntoView` (Review).  
+**Dateien:** `client/src/components/AICommandPanel/SpeakerPanel.tsx`
+
+### 22d. Undo verliert Fokus im Transkript
+**Status:** 🟡 IN REVIEW  
+**Beschreibung:** Undo verschiebt Fokus/Selektion unerwartet.  
+**Lösung:** History speichert `currentTime` und stellt es bei Undo/Redo wieder her (Review).  
+**Dateien:** `client/src/lib/store/slices/historySlice.ts`, `client/src/lib/store/slices/segmentsSlice.ts`, `client/src/lib/store/slices/speakersSlice.ts`
 
 **Wichtig:**
 - X Icon in TranscriptSegment inline suggestions

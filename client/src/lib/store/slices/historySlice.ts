@@ -16,6 +16,8 @@ export const createHistorySlice = (set: StoreSetter, get: StoreGetter): HistoryS
       segments: state.segments,
       speakers: state.speakers,
       selectedSegmentId: state.selectedSegmentId ?? selectedSegmentId,
+      currentTime: state.currentTime,
+      seekRequestTime: state.currentTime,
       historyIndex: newIndex,
     });
   },
@@ -28,6 +30,8 @@ export const createHistorySlice = (set: StoreSetter, get: StoreGetter): HistoryS
       segments: state.segments,
       speakers: state.speakers,
       selectedSegmentId: state.selectedSegmentId ?? selectedSegmentId,
+      currentTime: state.currentTime,
+      seekRequestTime: state.currentTime,
       historyIndex: newIndex,
     });
   },

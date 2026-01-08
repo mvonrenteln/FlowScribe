@@ -78,6 +78,7 @@ const initialHistoryState = buildInitialHistory(
         segments: activeSession.segments,
         speakers: activeSession.speakers,
         selectedSegmentId: activeSession.selectedSegmentId,
+        currentTime: activeSession.currentTime ?? 0,
       }
     : null,
 );
