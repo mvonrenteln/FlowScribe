@@ -84,16 +84,17 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const batchLogRows = useMemo(
     () =>
       batchLog.map((entry, idx) => {
-        const ignored = Math.max(0, entry.rawItemCount - entry.normalizedCount);
+        const skipped = Math.max(0, entry.pairCount - entry.normalizedCount);
         const issueSummary = entry.issues.length > 0 ? entry.issues[0]?.message : "—";
         return {
           id: `${entry.batchIndex}-${entry.loggedAt ?? 0}-${idx}`,
           batchLabel: `${entry.batchIndex}`,
           expected: entry.pairCount,
-          returned: entry.rawItemCount,
+          returned: entry.normalizedCount,
+          skipped,
           durationMs: entry.batchDurationMs,
           used: entry.normalizedCount,
-          ignored,
+          ignored: 0,
           suggestions: entry.suggestionCount,
           processed: `${entry.processedTotal}/${entry.totalExpected}`,
           issues: entry.fatal ? "FATAL" : issueSummary,
@@ -356,6 +357,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
               rows={batchLogRows}
               open={isLogOpen}
               onOpenChange={setIsLogOpen}
+              total={totalToProcess}
               title="Batch Log"
               description="Batch merge status updates and issues."
             />

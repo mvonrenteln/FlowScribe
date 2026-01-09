@@ -18,6 +18,7 @@ export interface BatchLogRow {
   ignored?: number;
   suggestions?: number;
   unchanged?: number;
+  skipped?: number;
   processed?: string;
   issues?: string;
   loggedAt: number;
@@ -29,6 +30,7 @@ interface BatchLogProps {
   rows: BatchLogRow[];
   sortBy?: BatchLogSortKey;
   compact?: boolean;
+  total?: number; // optional fixed total to use for Processed calculation
 }
 
 const formatDuration = (durationMs?: number) =>
@@ -36,7 +38,7 @@ const formatDuration = (durationMs?: number) =>
 
 const formatNumber = (value?: number) => (typeof value === "number" ? value : "—");
 
-export function BatchLog({ rows, sortBy = "batch", compact = false }: BatchLogProps) {
+export function BatchLog({ rows, sortBy = "batch", compact = false, total }: BatchLogProps) {
   const sorted = React.useMemo(() => {
     const copy = [...rows];
     switch (sortBy) {
@@ -59,6 +61,7 @@ export function BatchLog({ rows, sortBy = "batch", compact = false }: BatchLogPr
               <TableRow>
                 <TableHead>Batch</TableHead>
                 <TableHead>Expected</TableHead>
+                <TableHead>Skipped</TableHead>
                 <TableHead>Returned</TableHead>
                 <TableHead>Duration</TableHead>
                 <TableHead>Used</TableHead>
@@ -71,28 +74,37 @@ export function BatchLog({ rows, sortBy = "batch", compact = false }: BatchLogPr
               </TableRow>
             </TableHeader>
             <TableBody>
-              {sorted.map((row) => (
-                <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
-                  <TableCell>{row.batchLabel}</TableCell>
-                  <TableCell>{formatNumber(row.expected)}</TableCell>
-                  <TableCell>
-                    <span>
-                      {formatNumber(row.returned)}
-                      {row.ignored > 0 && (
-                        <span className="ml-2 text-[11px] text-muted-foreground">(+{row.ignored})</span>
-                      )}
-                    </span>
-                  </TableCell>
-                  <TableCell>{formatDuration(row.durationMs)}</TableCell>
-                  <TableCell>{formatNumber(row.used)}</TableCell>
-                  <TableCell>{formatNumber(row.ignored)}</TableCell>
-                  <TableCell>{formatNumber(row.suggestions)}</TableCell>
-                  <TableCell>{formatNumber(row.unchanged)}</TableCell>
-                  <TableCell>{row.processed ?? "—"}</TableCell>
-                  <TableCell>{row.issues ?? "—"}</TableCell>
-                  <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
-                </TableRow>
-              ))}
+              {(() => {
+                const fallbackTotal = sorted.reduce(
+                  (sum, row) => sum + (row.expected ?? 0) + (row.skipped ?? 0),
+                  0,
+                );
+                const effectiveTotal = typeof total === "number" ? total : fallbackTotal;
+                let processedSoFar = 0;
+
+                return sorted.map((row, idx) => {
+                  const skipped = row.skipped ?? 0;
+                  const returned = row.returned ?? 0;
+                  const expected = row.expected ?? 0;
+                  processedSoFar += expected + skipped;
+                  return (
+                    <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
+                      <TableCell>{idx + 1}</TableCell>
+                      <TableCell>{formatNumber(row.expected)}</TableCell>
+                      <TableCell>{formatNumber(skipped)}</TableCell>
+                      <TableCell>{formatNumber(returned)}</TableCell>
+                      <TableCell>{formatDuration(row.durationMs)}</TableCell>
+                      <TableCell>{formatNumber(row.used)}</TableCell>
+                      <TableCell>{formatNumber(row.ignored)}</TableCell>
+                      <TableCell>{formatNumber(row.suggestions)}</TableCell>
+                      <TableCell>{formatNumber(row.unchanged)}</TableCell>
+                      <TableCell>{`${processedSoFar} / ${effectiveTotal}`}</TableCell>
+                      <TableCell>{row.issues ?? "—"}</TableCell>
+                      <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
+                    </TableRow>
+                  );
+                });
+              })()}
             </TableBody>
           </Table>
         </div>

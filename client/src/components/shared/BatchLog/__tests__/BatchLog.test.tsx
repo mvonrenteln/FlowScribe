@@ -16,7 +16,7 @@ const rows = [
     ignored: 0,
     suggestions: 5,
     unchanged: 0,
-    processed: "10/10",
+    skipped: 0,
     issues: undefined,
     loggedAt: now - 1000, // 2024-01-01T12:00:00Z
   },
@@ -30,7 +30,7 @@ const rows = [
     ignored: 2,
     suggestions: 8,
     unchanged: 1,
-    processed: "18/20",
+    skipped: 2,
     issues: "Minor",
     loggedAt: now, // 2024-01-01T12:00:01Z
   },
@@ -47,7 +47,7 @@ describe("BatchLog", () => {
     };
 
     try {
-      const { container } = render(<BatchLog rows={rows} />);
+      const { container } = render(<BatchLog rows={rows} total={33} />);
       expect(container).toMatchSnapshot();
     } finally {
       // restore original

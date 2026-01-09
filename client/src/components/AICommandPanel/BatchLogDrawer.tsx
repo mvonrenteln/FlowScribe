@@ -27,6 +27,7 @@ export interface BatchLogRow {
 
 interface BatchLogDrawerProps {
   rows: BatchLogRow[];
+  total?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title?: string;
@@ -34,13 +35,9 @@ interface BatchLogDrawerProps {
   triggerLabel?: string;
 }
 
-const formatDuration = (durationMs?: number) =>
-  durationMs ? `${(durationMs / 1000).toFixed(2)}s` : "—";
-
-const formatNumber = (value?: number) => (typeof value === "number" ? value : "—");
-
 export function BatchLogDrawer({
   rows,
+  total,
   open,
   onOpenChange,
   title = "Batch Log",
@@ -72,7 +69,7 @@ export function BatchLogDrawer({
         </DrawerHeader>
         <div className="px-6 pb-6 flex-1 overflow-hidden">
           <div className="h-full overflow-auto">
-            <BatchLog rows={rows} />
+            <BatchLog rows={rows} total={total} />
           </div>
         </div>
       </DrawerContent>
