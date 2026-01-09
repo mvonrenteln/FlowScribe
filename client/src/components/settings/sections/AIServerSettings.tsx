@@ -653,32 +653,6 @@ export function AIServerSettings() {
           Add Provider
         </Button>
       )}
-
-      {/* Batch Size Setting */}
-      <Separator />
-
-      <div className="space-y-2">
-        <Label htmlFor="batch-size">Batch Size</Label>
-        <Input
-          id="batch-size"
-          type="number"
-          min={1}
-          max={50}
-          value={settings.aiBatchSize}
-          onChange={(e) =>
-            setSettings((prev) => ({
-              ...prev,
-              aiBatchSize: Math.max(1, Math.min(50, Number.parseInt(e.target.value, 10) || 10)),
-            }))
-          }
-          className="w-24"
-          data-testid="input-batch-size"
-        />
-        <p className="text-xs text-muted-foreground">
-          Number of segments to process per API request (1-50). Lower values may be more reliable
-          but slower.
-        </p>
-      </div>
     </div>
   );
 }

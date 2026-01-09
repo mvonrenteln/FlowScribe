@@ -8,13 +8,14 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -75,6 +76,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
   const [highConfExpanded, setHighConfExpanded] = useState(true);
   const [medConfExpanded, setMedConfExpanded] = useState(false);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
+  const logDrawerRef = useRef<HTMLDivElement>(null);
 
   const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
     useAiSettingsSelection({
@@ -208,9 +210,20 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                     Batch Log ({batchLog.length})
                   </Button>
                 </DrawerTrigger>
-                <DrawerContent className="max-h-[70vh]">
+                <DrawerContent
+                  ref={logDrawerRef}
+                  className="max-h-[70vh]"
+                  tabIndex={-1}
+                  onOpenAutoFocus={(event) => {
+                    event.preventDefault();
+                    logDrawerRef.current?.focus();
+                  }}
+                >
                   <DrawerHeader>
                     <DrawerTitle>Batch Log</DrawerTitle>
+                    <DrawerDescription className="sr-only">
+                      Batch processing summary and issues.
+                    </DrawerDescription>
                   </DrawerHeader>
                   <div className="px-6 pb-6 overflow-auto">
                     <Table>

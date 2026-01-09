@@ -26,7 +26,6 @@ vi.mock("@/components/KeyboardShortcuts", () => ({ KeyboardShortcuts: () => null
 vi.mock("@/components/GlossaryDialog", () => ({ GlossaryDialog: () => null }));
 vi.mock("@/components/SpellcheckDialog", () => ({ SpellcheckDialog: () => null }));
 vi.mock("@/components/CustomDictionariesDialog", () => ({ CustomDictionariesDialog: () => null }));
-vi.mock("@/components/AISpeakerDialog", () => ({ AISpeakerDialog: () => null }));
 
 describe("Performance and Scrolling Logic", () => {
   beforeEach(() => {

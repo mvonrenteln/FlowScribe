@@ -1,9 +1,10 @@
 import { Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -37,6 +38,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const [selectedPromptId, setSelectedPromptId] = useState("");
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState("10");
+  const logDrawerRef = useRef<HTMLDivElement>(null);
 
   const segments = useTranscriptStore((s) => s.segments);
   const {
@@ -172,9 +174,20 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                   Batch Log
                 </Button>
               </DrawerTrigger>
-              <DrawerContent className="max-h-[70vh]">
+              <DrawerContent
+                ref={logDrawerRef}
+                className="max-h-[70vh]"
+                tabIndex={-1}
+                onOpenAutoFocus={(event) => {
+                  event.preventDefault();
+                  logDrawerRef.current?.focus();
+                }}
+              >
                 <DrawerHeader>
                   <DrawerTitle>Batch Log</DrawerTitle>
+                  <DrawerDescription className="sr-only">
+                    Batch revision status updates and errors.
+                  </DrawerDescription>
                 </DrawerHeader>
                 <div className="px-6 pb-6 overflow-auto">
                   <Table>

@@ -19,7 +19,6 @@ export interface PersistedSettings {
   // AI Providers
   aiProviders: AIProviderConfig[];
   defaultAIProviderId?: string;
-  aiBatchSize: number;
 
   // Legacy migration marker
   migratedFromLegacy?: boolean;
@@ -40,7 +39,6 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
     },
   ],
   defaultAIProviderId: "default-ollama",
-  aiBatchSize: 10,
 };
 
 // ==================== Storage Functions ====================
@@ -128,7 +126,6 @@ export function clearSettings(): boolean {
 interface LegacyAISpeakerConfig {
   ollamaUrl?: string;
   model?: string;
-  batchSize?: number;
 }
 
 interface LegacyGlobalState {
@@ -167,7 +164,6 @@ export function migrateFromLegacyGlobalState(): PersistedSettings | null {
         },
       ],
       defaultAIProviderId: "migrated-ollama",
-      aiBatchSize: legacyConfig.batchSize ?? 10,
       migratedFromLegacy: true,
     };
 

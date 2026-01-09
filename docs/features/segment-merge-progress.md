@@ -91,7 +91,7 @@ Implementation of the AI Segment Merge Suggestion feature that helps users ident
 
 ### 4.1 Main Dialog ✅
 - [x] Create `/src/components/AISegmentMergeDialog.tsx`
-  - [x] Provider/Model selection (wie AI Speaker Dialog)
+- [x] Provider/Model selection (wie AI Command Panel)
   - [x] Options (max time gap, min confidence, same speaker only, enable smoothing)
   - [x] Start/Cancel buttons
   - [x] Progress indicator
@@ -239,4 +239,3 @@ Implementation of the AI Segment Merge Suggestion feature that helps users ident
 - Die manuelle Merge-Funktion existiert bereits (`mergeSegments` im Store)
 - AI fügt nur Vorschläge hinzu, die dann die bestehende Merge-Funktion nutzen
 - Smoothing ist optional und wird im Prompt konfiguriert
-

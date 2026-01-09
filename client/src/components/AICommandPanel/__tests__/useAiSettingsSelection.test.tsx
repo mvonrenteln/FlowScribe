@@ -32,7 +32,6 @@ const baseSettings: PersistedSettings = {
   version: 1,
   aiProviders: [providerA, providerB],
   defaultAIProviderId: "provider-a",
-  aiBatchSize: 10,
 };
 
 describe("useAiSettingsSelection", () => {

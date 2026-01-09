@@ -58,10 +58,6 @@ vi.mock("@/components/CustomDictionariesDialog", () => ({
   CustomDictionariesDialog: () => null,
 }));
 
-vi.mock("@/components/AISpeakerDialog", () => ({
-  AISpeakerDialog: () => null,
-}));
-
 vi.mock("@/lib/spellcheck", async () => {
   const actual = await vi.importActual<typeof import("@/lib/spellcheck")>("@/lib/spellcheck");
   return {

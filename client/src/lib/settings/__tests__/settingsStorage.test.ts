@@ -51,43 +51,34 @@ describe("settingsStorage", () => {
     });
 
     it("returns parsed settings for valid data", () => {
-      const settings: PersistedSettings = {
-        ...DEFAULT_SETTINGS,
-        aiBatchSize: 20,
-      };
+      const settings: PersistedSettings = { ...DEFAULT_SETTINGS };
       localStorageMock["flowscribe:settings"] = JSON.stringify(settings);
 
       const result = readSettings();
       expect(result).not.toBeNull();
-      expect(result?.aiBatchSize).toBe(20);
+      expect(result?.aiProviders.length).toBeGreaterThan(0);
     });
   });
 
   describe("writeSettings", () => {
     it("writes settings to localStorage", () => {
-      const settings: PersistedSettings = {
-        ...DEFAULT_SETTINGS,
-        aiBatchSize: 15,
-      };
+      const settings: PersistedSettings = { ...DEFAULT_SETTINGS };
 
       const result = writeSettings(settings);
       expect(result).toBe(true);
 
       const stored = JSON.parse(localStorageMock["flowscribe:settings"]);
-      expect(stored.aiBatchSize).toBe(15);
+      expect(stored.version).toBe(DEFAULT_SETTINGS.version);
     });
   });
 
   describe("initializeSettings", () => {
     it("returns existing settings if present", () => {
-      const existing: PersistedSettings = {
-        ...DEFAULT_SETTINGS,
-        aiBatchSize: 25,
-      };
+      const existing: PersistedSettings = { ...DEFAULT_SETTINGS };
       localStorageMock["flowscribe:settings"] = JSON.stringify(existing);
 
       const result = initializeSettings();
-      expect(result.aiBatchSize).toBe(25);
+      expect(result.aiProviders.length).toBeGreaterThan(0);
     });
 
     it("returns defaults when no settings exist", () => {
@@ -101,14 +92,12 @@ describe("settingsStorage", () => {
         aiSpeakerConfig: {
           ollamaUrl: "http://custom:11434",
           model: "mistral",
-          batchSize: 5,
         },
       });
 
       const result = initializeSettings();
       expect(result.aiProviders[0].baseUrl).toBe("http://custom:11434");
       expect(result.aiProviders[0].model).toBe("mistral");
-      expect(result.aiBatchSize).toBe(5);
       expect(result.migratedFromLegacy).toBe(true);
     });
   });
