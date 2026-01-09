@@ -9,7 +9,7 @@
  */
 
 import { AlertCircle, Check, Pause, Play, Settings2, Sparkles, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -23,6 +23,7 @@ import {
 import {
   Drawer,
   DrawerContent,
+  DrawerDescription,
   DrawerHeader,
   DrawerTitle,
   DrawerTrigger,
@@ -74,6 +75,7 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
   const batchLog = useTranscriptStore((s) => s.aiSpeakerBatchLog);
   const setDiscrepancyNotice = useTranscriptStore((s) => s.setDiscrepancyNotice);
   const [isLogOpen, setIsLogOpen] = useState(false);
+  const logDrawerRef = useRef<HTMLDivElement>(null);
 
   // AI Speaker actions
   const startAnalysis = useTranscriptStore((s) => s.startAnalysis);
@@ -446,9 +448,20 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
                             Batch Log ({batchLog.length})
                           </Button>
                         </DrawerTrigger>
-                        <DrawerContent className="max-h-[70vh]">
+                        <DrawerContent
+                          ref={logDrawerRef}
+                          className="max-h-[70vh]"
+                          tabIndex={-1}
+                          onOpenAutoFocus={(event) => {
+                            event.preventDefault();
+                            logDrawerRef.current?.focus();
+                          }}
+                        >
                           <DrawerHeader>
                             <DrawerTitle>Batch Log</DrawerTitle>
+                            <DrawerDescription className="sr-only">
+                              Batch processing history and issues.
+                            </DrawerDescription>
                           </DrawerHeader>
                           <div className="px-6 pb-6 overflow-auto">
                             <Table>
