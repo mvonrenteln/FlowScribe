@@ -21,6 +21,7 @@ import { useScopedSegments } from "./hooks/useScopedSegments";
 import { ResultsList } from "./ResultsList";
 import { ScopeSection } from "./ScopeSection";
 import { createSegmentNavigator } from "./utils/segmentNavigator";
+import { getConsecutiveSegmentIds } from "./utils/segmentScope";
 import { truncateText } from "./utils/truncateText";
 
 interface MergePanelProps {
@@ -72,6 +73,11 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
     excludeConfirmed,
   });
 
+  const analysisSegmentIds = useMemo(
+    () => getConsecutiveSegmentIds(segments, scopedSegmentIds),
+    [segments, scopedSegmentIds],
+  );
+
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
   const highConfidence = pendingSuggestions.filter((s) => s.confidence === "high");
   const mediumConfidence = pendingSuggestions.filter((s) => s.confidence === "medium");
@@ -96,6 +102,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
     if (Number.isNaN(parsedGap) || parsedGap <= 0) {
       return;
     }
+    if (analysisSegmentIds.length < 2) {
+      return;
+    }
 
     updateMergeConfig({
       selectedProviderId: selectedProviderId || undefined,
@@ -108,7 +117,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
     });
 
     startMergeAnalysis({
-      segmentIds: scopedSegmentIds,
+      segmentIds: analysisSegmentIds,
       maxTimeGap: parsedGap,
       minConfidence,
       sameSpeakerOnly,
@@ -245,7 +254,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
           label: "Start Batch",
           icon: <Sparkles className="mr-2 h-4 w-4" />,
           onClick: handleStart,
-          disabled: scopedSegmentIds.length < 2 || !selectedProviderId,
+          disabled: analysisSegmentIds.length < 2 || !selectedProviderId,
         }}
         stopAction={{
           label: "Stop",
