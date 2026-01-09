@@ -52,47 +52,51 @@ export function BatchLog({ rows, sortBy = "batch", compact = false }: BatchLogPr
 
   return (
     <div className={compact ? "text-sm" : ""}>
-      <Table>
-        <TableHeader>
-          <TableRow>
-            <TableHead>Batch</TableHead>
-            <TableHead>Expected</TableHead>
-            <TableHead>Returned</TableHead>
-            <TableHead>Duration</TableHead>
-            <TableHead>Used</TableHead>
-            <TableHead>Ignored</TableHead>
-            <TableHead>Suggestions</TableHead>
-            <TableHead>Unchanged</TableHead>
-            <TableHead>Processed</TableHead>
-            <TableHead>Issues</TableHead>
-            <TableHead>Time</TableHead>
-          </TableRow>
-        </TableHeader>
-        <TableBody>
-          {sorted.map((row) => (
-            <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
-              <TableCell>{row.batchLabel}</TableCell>
-              <TableCell>{formatNumber(row.expected)}</TableCell>
-              <TableCell>
-                <span>
-                  {formatNumber(row.returned)}
-                  {row.ignored && row.ignored > 0 && (
-                    <span className="ml-2 text-[11px] text-muted-foreground">(+{row.ignored})</span>
-                  )}
-                </span>
-              </TableCell>
-              <TableCell>{formatDuration(row.durationMs)}</TableCell>
-              <TableCell>{formatNumber(row.used)}</TableCell>
-              <TableCell>{formatNumber(row.ignored)}</TableCell>
-              <TableCell>{formatNumber(row.suggestions)}</TableCell>
-              <TableCell>{formatNumber(row.unchanged)}</TableCell>
-              <TableCell>{row.processed ?? "—"}</TableCell>
-              <TableCell>{row.issues ?? "—"}</TableCell>
-              <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
+      <div className="w-full">
+        <div className="h-full overflow-auto">
+          <Table>
+            <TableHeader className="sticky top-0 z-10 bg-background">
+              <TableRow>
+                <TableHead>Batch</TableHead>
+                <TableHead>Expected</TableHead>
+                <TableHead>Returned</TableHead>
+                <TableHead>Duration</TableHead>
+                <TableHead>Used</TableHead>
+                <TableHead>Ignored</TableHead>
+                <TableHead>Suggestions</TableHead>
+                <TableHead>Unchanged</TableHead>
+                <TableHead>Processed</TableHead>
+                <TableHead>Issues</TableHead>
+                <TableHead>Time</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.map((row) => (
+                <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
+                  <TableCell>{row.batchLabel}</TableCell>
+                  <TableCell>{formatNumber(row.expected)}</TableCell>
+                  <TableCell>
+                    <span>
+                      {formatNumber(row.returned)}
+                      {row.ignored && row.ignored > 0 && (
+                        <span className="ml-2 text-[11px] text-muted-foreground">(+{row.ignored})</span>
+                      )}
+                    </span>
+                  </TableCell>
+                  <TableCell>{formatDuration(row.durationMs)}</TableCell>
+                  <TableCell>{formatNumber(row.used)}</TableCell>
+                  <TableCell>{formatNumber(row.ignored)}</TableCell>
+                  <TableCell>{formatNumber(row.suggestions)}</TableCell>
+                  <TableCell>{formatNumber(row.unchanged)}</TableCell>
+                  <TableCell>{row.processed ?? "—"}</TableCell>
+                  <TableCell>{row.issues ?? "—"}</TableCell>
+                  <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        </div>
+      </div>
     </div>
   );
 }

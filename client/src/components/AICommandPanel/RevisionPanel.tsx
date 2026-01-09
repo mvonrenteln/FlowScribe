@@ -176,7 +176,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
               </DrawerTrigger>
               <DrawerContent
                 ref={logDrawerRef}
-                className="max-h-[70vh]"
+                className="h-[80vh] sm:h-[40vh] lg:h-[40vh] max-h-[80vh] sm:max-h-[40vh] lg:max-h-[40vh]"
                 tabIndex={-1}
                 onOpenAutoFocus={(event) => {
                   event.preventDefault();
@@ -189,8 +189,9 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                     Batch revision status updates and errors.
                   </DrawerDescription>
                 </DrawerHeader>
-                <div className="px-6 pb-6 overflow-auto">
-                  <Table>
+                <div className="px-6 pb-6 flex-1 overflow-hidden">
+                  <div className="h-full overflow-auto">
+                    <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Segment</TableHead>
@@ -213,7 +214,8 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                         </TableRow>
                       ))}
                     </TableBody>
-                  </Table>
+                    </Table>
+                  </div>
                 </div>
               </DrawerContent>
             </Drawer>

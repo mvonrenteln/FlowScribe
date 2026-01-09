@@ -6,211 +6,219 @@ exports[`BatchLog > matches snapshot 1`] = `
     class=""
   >
     <div
-      class="relative w-full overflow-auto"
+      class="w-full"
     >
-      <table
-        class="w-full caption-bottom text-sm"
+      <div
+        class="h-full overflow-auto"
       >
-        <thead
-          class="[&_tr]:border-b"
+        <div
+          class="relative w-full"
         >
-          <tr
-            class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+          <table
+            class="w-full caption-bottom text-sm"
           >
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+            <thead
+              class="[&_tr]:border-b sticky top-0 z-10 bg-background"
             >
-              Batch
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Expected
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Returned
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Duration
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Used
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Ignored
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Suggestions
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Unchanged
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Processed
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Issues
-            </th>
-            <th
-              class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-            >
-              Time
-            </th>
-          </tr>
-        </thead>
-        <tbody
-          class="[&_tr:last-child]:border-0"
-        >
-          <tr
-            class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-            data-testid="batchrow-a"
-          >
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              1
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              10
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              <span>
-                10
-                0
-              </span>
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              1.20s
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              10
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              0
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              5
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              0
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              10/10
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              —
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              2024-01-01T12:00:00.000Z
-            </td>
-          </tr>
-          <tr
-            class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
-            data-testid="batchrow-b"
-          >
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              2
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              20
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              <span>
-                18
-                <span
-                  class="ml-2 text-[11px] text-muted-foreground"
+              <tr
+                class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+              >
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
                 >
-                  (+
+                  Batch
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Expected
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Returned
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Duration
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Used
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Ignored
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Suggestions
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Unchanged
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Processed
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Issues
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Time
+                </th>
+              </tr>
+            </thead>
+            <tbody
+              class="[&_tr:last-child]:border-0"
+            >
+              <tr
+                class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                data-testid="batchrow-a"
+              >
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  1
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  10
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  <span>
+                    10
+                    0
+                  </span>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  1.20s
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  10
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  0
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  5
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  0
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  10/10
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  —
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  2024-01-01T12:00:00.000Z
+                </td>
+              </tr>
+              <tr
+                class="border-b transition-colors hover:bg-muted/50 data-[state=selected]:bg-muted"
+                data-testid="batchrow-b"
+              >
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
                   2
-                  )
-                </span>
-              </span>
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              2.20s
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              18
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              2
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              8
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              1
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              18/20
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              Minor
-            </td>
-            <td
-              class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-            >
-              2024-01-01T12:00:01.000Z
-            </td>
-          </tr>
-        </tbody>
-      </table>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  20
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  <span>
+                    18
+                    <span
+                      class="ml-2 text-[11px] text-muted-foreground"
+                    >
+                      (+
+                      2
+                      )
+                    </span>
+                  </span>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  2.20s
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  18
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  2
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  8
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  1
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  18/20
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  Minor
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  2024-01-01T12:00:01.000Z
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   </div>
 </div>

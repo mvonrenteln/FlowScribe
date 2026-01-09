@@ -59,7 +59,7 @@ export function BatchLogDrawer({
       </DrawerTrigger>
       <DrawerContent
         ref={logDrawerRef}
-        className="max-h-[70vh]"
+        className="h-[80vh] sm:h-[40vh] lg:h-[40vh] max-h-[80vh] sm:max-h-[40vh] lg:max-h-[40vh]"
         tabIndex={-1}
         onOpenAutoFocus={(event) => {
           event.preventDefault();
@@ -70,8 +70,10 @@ export function BatchLogDrawer({
           <DrawerTitle>{title}</DrawerTitle>
           <DrawerDescription className="sr-only">{description}</DrawerDescription>
         </DrawerHeader>
-        <div className="px-6 pb-6 overflow-auto">
-          <BatchLog rows={rows} />
+        <div className="px-6 pb-6 flex-1 overflow-hidden">
+          <div className="h-full overflow-auto">
+            <BatchLog rows={rows} />
+          </div>
         </div>
       </DrawerContent>
     </Drawer>
