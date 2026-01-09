@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import BatchLog, { BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -8,14 +9,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 
 export interface BatchLogRow {
   id: string;
@@ -78,49 +71,7 @@ export function BatchLogDrawer({
           <DrawerDescription className="sr-only">{description}</DrawerDescription>
         </DrawerHeader>
         <div className="px-6 pb-6 overflow-auto">
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Batch</TableHead>
-                <TableHead>Expected</TableHead>
-                <TableHead>Returned</TableHead>
-                <TableHead>Duration</TableHead>
-                <TableHead>Used</TableHead>
-                <TableHead>Ignored</TableHead>
-                <TableHead>Suggestions</TableHead>
-                <TableHead>Unchanged</TableHead>
-                <TableHead>Processed</TableHead>
-                <TableHead>Issues</TableHead>
-                <TableHead>Time</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {rows.map((row) => (
-                <TableRow key={row.id}>
-                  <TableCell>{row.batchLabel}</TableCell>
-                  <TableCell>{formatNumber(row.expected)}</TableCell>
-                  <TableCell>
-                    <span>
-                      {formatNumber(row.returned)}
-                      {row.ignored && row.ignored > 0 && (
-                        <span className="ml-2 text-[11px] text-muted-foreground">
-                          (+{row.ignored})
-                        </span>
-                      )}
-                    </span>
-                  </TableCell>
-                  <TableCell>{formatDuration(row.durationMs)}</TableCell>
-                  <TableCell>{formatNumber(row.used)}</TableCell>
-                  <TableCell>{formatNumber(row.ignored)}</TableCell>
-                  <TableCell>{formatNumber(row.suggestions)}</TableCell>
-                  <TableCell>{formatNumber(row.unchanged)}</TableCell>
-                  <TableCell>{row.processed ?? "—"}</TableCell>
-                  <TableCell>{row.issues ?? "—"}</TableCell>
-                  <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <BatchLog rows={rows} />
         </div>
       </DrawerContent>
     </Drawer>

@@ -121,28 +121,10 @@ export async function analyzeMergeCandidates(
       logger.debug(`Batch ${batchIndex + 1}: No eligible pairs`);
       totalAnalyzed += batch.length - 1;
 
-      const batchLogEntry: MergeBatchLogEntry = {
-        batchIndex: batchIndex + 1,
-        pairCount: prompt.pairCount,
-        rawItemCount: 0,
-        normalizedCount: 0,
-        suggestionCount: 0,
-        processedTotal: totalAnalyzed,
-        totalExpected: segments.length - 1,
-        issues: [],
-        batchDurationMs: Date.now() - batchStart,
-      };
-
-      // Notify progress even if no pairs
-      if (onProgress) {
-        onProgress({
-          batchIndex: batchIndex + 1,
-          totalBatches: batches.length,
-          batchSuggestions: [],
-          processedCount: totalAnalyzed,
-          batchLogEntry,
-        });
-      }
+      // Do not emit noisy batch log entries when there are zero pairs
+      // and no issues to report. This prevents cluttering the UI with
+      // many "Expected 0 / Returned 0" rows for batches that cannot
+      // produce any pair analysis (e.g. single-segment batches).
       continue;
     }
 
