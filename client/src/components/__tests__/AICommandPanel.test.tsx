@@ -24,7 +24,6 @@ describe("AICommandPanel", () => {
         onOpenChange={vi.fn()}
         filteredSegmentIds={[]}
         onOpenSettings={vi.fn()}
-        onOpenMergeDialog={vi.fn()}
       />,
     );
 
@@ -46,7 +45,6 @@ describe("AICommandPanel", () => {
         onOpenChange={onOpenChange}
         filteredSegmentIds={[]}
         onOpenSettings={vi.fn()}
-        onOpenMergeDialog={vi.fn()}
       />,
     );
 

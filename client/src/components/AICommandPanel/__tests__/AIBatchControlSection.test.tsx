@@ -14,19 +14,19 @@ describe("AIBatchControlSection", () => {
         processedCount={0}
         totalToProcess={0}
         startAction={{
-          label: "Start Analysis",
+          label: "Start Batch",
           icon: <span data-testid="start-icon" />,
           onClick: handleStart,
         }}
         stopAction={{
-          label: "Stop Analysis",
+          label: "Stop",
           icon: <span data-testid="stop-icon" />,
           onClick: vi.fn(),
         }}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /start analysis/i }));
+    await user.click(screen.getByRole("button", { name: /start batch/i }));
     expect(handleStart).toHaveBeenCalled();
   });
 
@@ -37,12 +37,12 @@ describe("AIBatchControlSection", () => {
         processedCount={3}
         totalToProcess={10}
         startAction={{
-          label: "Start Analysis",
+          label: "Start Batch",
           icon: <span data-testid="start-icon" />,
           onClick: vi.fn(),
         }}
         stopAction={{
-          label: "Stop Analysis",
+          label: "Stop",
           icon: <span data-testid="stop-icon" />,
           onClick: vi.fn(),
         }}
@@ -50,6 +50,6 @@ describe("AIBatchControlSection", () => {
     );
 
     expect(screen.getByText(/3 \/ 10 segments/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /stop analysis/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /stop/i })).toBeInTheDocument();
   });
 });

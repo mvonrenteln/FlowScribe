@@ -144,13 +144,13 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
         totalToProcess={totalToProcess}
         error={error}
         startAction={{
-          label: "Start Analysis",
+          label: "Start Batch",
           icon: <Sparkles className="h-4 w-4 mr-2" />,
           onClick: handleStartAnalysis,
           disabled: segments.length === 0,
         }}
         stopAction={{
-          label: "Stop Analysis",
+          label: "Stop",
           icon: <StopCircle className="h-4 w-4 mr-2" />,
           onClick: cancelAnalysis,
           variant: "destructive",

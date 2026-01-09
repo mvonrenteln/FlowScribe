@@ -352,7 +352,7 @@ export function AISegmentMergeDialog({
               {isProcessing ? (
                 <Button onClick={cancelMergeAnalysis} variant="destructive">
                   <Pause className="h-4 w-4 mr-2" />
-                  Stop Analysis
+                  Stop
                 </Button>
               ) : (
                 <Button
@@ -360,7 +360,7 @@ export function AISegmentMergeDialog({
                   disabled={segments.length < 2 || !selectedProviderId}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Start Analysis
+                  Start Batch
                 </Button>
               )}
               {pendingSuggestions.length > 0 && (

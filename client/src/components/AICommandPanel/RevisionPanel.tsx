@@ -151,7 +151,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
           disabled: scopedSegmentIds.length === 0 || !effectivePromptId,
         }}
         stopAction={{
-          label: "Stop Revision",
+          label: "Stop",
           icon: <StopCircle className="mr-2 h-4 w-4" />,
           onClick: cancelRevision,
         }}

@@ -400,12 +400,12 @@ export function AISpeakerDialog({ open, onOpenChange, onOpenSettings }: AISpeake
               {isProcessing ? (
                 <Button onClick={cancelAnalysis} variant="destructive">
                   <Pause className="h-4 w-4 mr-2" />
-                  Stop Analysis
+                  Stop
                 </Button>
               ) : (
                 <Button onClick={handleStartAnalysis} disabled={segments.length === 0}>
                   <Play className="h-4 w-4 mr-2" />
-                  Start Analysis
+                  Start Batch
                 </Button>
               )}
               {pendingSuggestions.length > 0 && (

@@ -13,7 +13,6 @@ interface AICommandPanelProps {
   onOpenChange: (open: boolean) => void;
   filteredSegmentIds: string[];
   onOpenSettings: () => void;
-  onOpenMergeDialog: () => void;
 }
 
 export function AICommandPanel({
@@ -21,7 +20,6 @@ export function AICommandPanel({
   onOpenChange,
   filteredSegmentIds,
   onOpenSettings,
-  onOpenMergeDialog,
 }: AICommandPanelProps) {
   const [activeTab, setActiveTab] = useState<AICommandPanelTab>("revision");
 
@@ -77,7 +75,9 @@ export function AICommandPanel({
         {activeTab === "speaker" && (
           <SpeakerPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
         )}
-        {activeTab === "merge" && <MergePanel onOpenMergeDialog={onOpenMergeDialog} />}
+        {activeTab === "merge" && (
+          <MergePanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
+        )}
       </div>
     </aside>
   );
