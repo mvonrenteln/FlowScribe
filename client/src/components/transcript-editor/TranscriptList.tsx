@@ -50,7 +50,6 @@ function TranscriptListComponent({
   const rejectSpeakerSuggestion = useTranscriptStore((s) => s.rejectSuggestion);
 
   const pendingMergeSuggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
-  const showInlineMergeHints = useTranscriptStore((s) => s.aiSegmentMergeConfig.showInlineHints);
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
@@ -95,10 +94,9 @@ function TranscriptListComponent({
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
             const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
             const nextSegment = filteredSegments[index + 1];
-            const mergeSuggestion =
-              showInlineMergeHints && nextSegment
-                ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
-                : undefined;
+            const mergeSuggestion = nextSegment
+              ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
+              : undefined;
 
             return (
               <Fragment key={segment.id}>
@@ -178,6 +176,9 @@ function TranscriptListComponent({
                     firstSegment={segment}
                     secondSegment={nextSegment}
                     onAccept={() => acceptMergeSuggestion(mergeSuggestion.id)}
+                    onAcceptWithoutSmoothing={() =>
+                      acceptMergeSuggestion(mergeSuggestion.id, { applySmoothing: false })
+                    }
                     onReject={() => rejectMergeSuggestion(mergeSuggestion.id)}
                   />
                 )}

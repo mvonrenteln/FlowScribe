@@ -499,7 +499,12 @@ export interface AISegmentMergeSlice {
     batchSize?: number;
   }) => void;
   cancelMergeAnalysis: () => void;
-  acceptMergeSuggestion: (suggestionId: string) => void;
+  acceptMergeSuggestion: (
+    suggestionId: string,
+    options?: {
+      applySmoothing?: boolean;
+    },
+  ) => void;
   rejectMergeSuggestion: (suggestionId: string) => void;
   acceptAllHighConfidence: () => void;
   rejectAllSuggestions: () => void;

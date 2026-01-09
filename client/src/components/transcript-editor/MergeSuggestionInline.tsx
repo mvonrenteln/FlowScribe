@@ -1,4 +1,5 @@
 import { Check, GitMerge, Sparkles, X } from "lucide-react";
+import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Button } from "@/components/ui/button";
 import type { Segment } from "@/lib/store";
 import type { AISegmentMergeSuggestion } from "@/lib/store/types";
@@ -8,6 +9,7 @@ interface MergeSuggestionInlineProps {
   firstSegment: Segment;
   secondSegment: Segment;
   onAccept: () => void;
+  onAcceptWithoutSmoothing: () => void;
   onReject: () => void;
 }
 
@@ -16,11 +18,13 @@ export function MergeSuggestionInline({
   firstSegment,
   secondSegment,
   onAccept,
+  onAcceptWithoutSmoothing,
   onReject,
 }: MergeSuggestionInlineProps) {
   const mergedText = suggestion.smoothedText ?? suggestion.mergedText;
   const hasSmoothing =
     Boolean(suggestion.smoothedText) && suggestion.smoothedText !== suggestion.mergedText;
+  const combinedText = `${firstSegment.text} ${secondSegment.text}`.trim();
 
   return (
     <div
@@ -47,6 +51,20 @@ export function MergeSuggestionInline({
           >
             <Check className="h-3.5 w-3.5" />
           </Button>
+          {hasSmoothing && (
+            <Button
+              variant="ghost"
+              size="sm"
+              className="h-7 px-2 text-xs text-muted-foreground"
+              onClick={(event) => {
+                event.stopPropagation();
+                onAcceptWithoutSmoothing();
+              }}
+              title="Accept without smoothing"
+            >
+              Raw
+            </Button>
+          )}
           <Button
             variant="ghost"
             size="sm"
@@ -67,12 +85,12 @@ export function MergeSuggestionInline({
       </div>
 
       <div className="mt-2 space-y-2">
-        <div className="text-xs text-muted-foreground">
-          Before: “{firstSegment.text}” + “{secondSegment.text}”
-        </div>
-        <div className="font-medium text-amber-900 dark:text-amber-100">
-          {hasSmoothing ? "Smoothed merge" : "Merged text"}: “{mergedText}”
-        </div>
+        <MergeSuggestionDiff
+          originalText={combinedText}
+          suggestedText={mergedText}
+          originalLabel="Original"
+          suggestedLabel={hasSmoothing ? "Smoothed" : "Merged"}
+        />
         {hasSmoothing && suggestion.smoothingChanges && (
           <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">
             <Sparkles className="h-3 w-3" />

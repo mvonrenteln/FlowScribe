@@ -20,6 +20,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -528,31 +529,26 @@ function MergeSuggestionCard({
 
   if (relevantSegments.length < 2) return null;
 
-  const hasSmoothing = suggestion.smoothedText && suggestion.smoothedText !== suggestion.mergedText;
+  const hasSmoothing =
+    Boolean(suggestion.smoothedText) && suggestion.smoothedText !== suggestion.mergedText;
+  const combinedText = relevantSegments
+    .map((seg) => seg?.text ?? "")
+    .join(" ")
+    .trim();
+  const proposedText = hasSmoothing
+    ? (suggestion.smoothedText ?? suggestion.mergedText)
+    : suggestion.mergedText;
 
   return (
     <div className="rounded-md border p-3 space-y-2 bg-background">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-2">
-          {/* Before */}
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">BEFORE:</span>
-            {relevantSegments.map((seg, idx) => (
-              <div key={seg?.id} className="text-sm">
-                <span className="text-muted-foreground">{idx > 0 ? "+ " : ""}</span>"{seg?.text}"
-              </div>
-            ))}
-          </div>
-
-          {/* After */}
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              AFTER{hasSmoothing ? " (with smoothing)" : ""}:
-            </span>
-            <div className="text-sm font-medium">
-              "{hasSmoothing ? suggestion.smoothedText : suggestion.mergedText}"
-            </div>
-          </div>
+          <MergeSuggestionDiff
+            originalText={combinedText}
+            suggestedText={proposedText}
+            originalLabel="Original"
+            suggestedLabel={hasSmoothing ? "Smoothed" : "Merged"}
+          />
 
           {/* Smoothing info */}
           {hasSmoothing && suggestion.smoothingChanges && (

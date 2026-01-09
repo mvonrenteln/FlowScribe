@@ -56,7 +56,6 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const [minConfidence, setMinConfidence] = useState(config.defaultMinConfidence);
   const [sameSpeakerOnly, setSameSpeakerOnly] = useState(true);
   const [enableSmoothing, setEnableSmoothing] = useState(config.defaultEnableSmoothing);
-  const [showInlineHints, setShowInlineHints] = useState(config.showInlineHints);
   const [highExpanded, setHighExpanded] = useState(true);
   const [mediumExpanded, setMediumExpanded] = useState(false);
   const [lowExpanded, setLowExpanded] = useState(false);
@@ -112,7 +111,6 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
       defaultMaxTimeGap: parsedGap,
       defaultMinConfidence: minConfidence,
       defaultEnableSmoothing: enableSmoothing,
-      showInlineHints,
       batchSize: parsedBatch,
     });
 
@@ -126,13 +124,41 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
     });
   };
 
-  const handleInlineHintToggle = (value: boolean) => {
-    setShowInlineHints(value);
-    updateMergeConfig({ showInlineHints: value });
-  };
-
   return (
     <div className="space-y-6">
+      <ScopeSection
+        scopedSegmentCount={scopedSegmentIds.length}
+        isFiltered={isFiltered}
+        excludeConfirmed={excludeConfirmed}
+        onExcludeConfirmedChange={setExcludeConfirmed}
+        id="merge"
+      />
+
+      <AIConfigurationSection
+        id="merge"
+        settings={settings}
+        selectedProviderId={selectedProviderId}
+        selectedModel={selectedModel}
+        isProcessing={isProcessing}
+        promptValue={config.activePromptId}
+        promptOptions={config.prompts}
+        batchSize={batchSize}
+        onProviderChange={(value) => {
+          selectProvider(value);
+          updateMergeConfig({
+            selectedProviderId: value || undefined,
+            selectedModel: undefined,
+          });
+        }}
+        onModelChange={(value) => {
+          setSelectedModel(value);
+          updateMergeConfig({ selectedModel: value || undefined });
+        }}
+        onPromptChange={setActiveSegmentMergePrompt}
+        onBatchSizeChange={setBatchSize}
+        onOpenSettings={onOpenSettings}
+      />
+
       <section className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Merge Settings
@@ -196,53 +222,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
                 Enable text smoothing
               </Label>
             </div>
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="merge-inline-hints"
-                checked={showInlineHints}
-                onCheckedChange={(checked) => handleInlineHintToggle(Boolean(checked))}
-                disabled={isProcessing}
-              />
-              <Label htmlFor="merge-inline-hints" className="text-xs text-muted-foreground">
-                Show inline hints in transcript
-              </Label>
-            </div>
           </div>
         </div>
       </section>
-
-      <ScopeSection
-        scopedSegmentCount={scopedSegmentIds.length}
-        isFiltered={isFiltered}
-        excludeConfirmed={excludeConfirmed}
-        onExcludeConfirmedChange={setExcludeConfirmed}
-        id="merge"
-      />
-
-      <AIConfigurationSection
-        id="merge"
-        settings={settings}
-        selectedProviderId={selectedProviderId}
-        selectedModel={selectedModel}
-        isProcessing={isProcessing}
-        promptValue={config.activePromptId}
-        promptOptions={config.prompts}
-        batchSize={batchSize}
-        onProviderChange={(value) => {
-          selectProvider(value);
-          updateMergeConfig({
-            selectedProviderId: value || undefined,
-            selectedModel: undefined,
-          });
-        }}
-        onModelChange={(value) => {
-          setSelectedModel(value);
-          updateMergeConfig({ selectedModel: value || undefined });
-        }}
-        onPromptChange={setActiveSegmentMergePrompt}
-        onBatchSizeChange={setBatchSize}
-        onOpenSettings={onOpenSettings}
-      />
 
       <AIBatchControlSection
         isProcessing={isProcessing}

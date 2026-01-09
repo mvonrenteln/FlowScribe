@@ -22,11 +22,11 @@ export function ResultsList<T>({
 
   return (
     <ScrollArea className={heightClassName}>
-      <div className="space-y-1 pr-3">
+      <div className="space-y-1 pr-6">
         {items.map((item) => (
           <div
             key={getKey(item)}
-            className="flex items-center gap-2 text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer"
+            className="flex items-center gap-2 text-xs p-2 rounded bg-muted/30 hover:bg-muted/50 cursor-pointer min-w-0"
             onClick={() => onActivate(item)}
             onKeyDown={(event) => {
               if (event.key === "Enter" || event.key === " ") {
