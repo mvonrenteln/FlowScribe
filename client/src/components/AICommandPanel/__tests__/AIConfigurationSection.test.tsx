@@ -18,7 +18,6 @@ describe("AIConfigurationSection", () => {
       },
     ],
     defaultAIProviderId: "provider-1",
-    aiBatchSize: 10,
   };
 
   it("renders provider, model, prompt, and batch size inputs", () => {
