@@ -6,6 +6,7 @@ import {
   getRevisedDiffSegments,
 } from "@/lib/diffUtils";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 interface MergeSuggestionDiffProps {
   originalText: string;
@@ -26,6 +27,7 @@ export function MergeSuggestionDiff({
   allowSideBySide = true,
   className,
 }: MergeSuggestionDiffProps) {
+  const { t } = useTranslation();
   const [showSideBySide, setShowSideBySide] = useState(true);
   const originalSegments = getOriginalDiffSegments(originalText, suggestedText);
   const revisedSegments = getRevisedDiffSegments(originalText, suggestedText);
@@ -36,13 +38,13 @@ export function MergeSuggestionDiff({
   return (
     <div className={cn("border rounded-lg overflow-hidden bg-muted/30", className)}>
       {canToggle && (
-        <div className="flex items-center justify-end px-3 py-2 border-b bg-muted/40">
+        <div className="flex items-center justify-start px-3 py-2 border-b bg-muted/40">
           <button
             type="button"
             className="text-xs text-muted-foreground hover:text-foreground"
             onClick={() => setShowSideBySide((prev) => !prev)}
           >
-            {useSideBySide ? "Compact view" : "Side-by-side view"}
+            {useSideBySide ? t("diffView.showCompact") : t("diffView.showDiff")}
           </button>
         </div>
       )}
