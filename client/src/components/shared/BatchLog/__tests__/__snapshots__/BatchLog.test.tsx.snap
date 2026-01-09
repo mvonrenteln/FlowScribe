@@ -31,12 +31,12 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <th
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
                 >
-                  Expected
+                  Skipped
                 </th>
                 <th
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
                 >
-                  Skipped
+                  Expected
                 </th>
                 <th
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
@@ -47,16 +47,6 @@ exports[`BatchLog > matches snapshot 1`] = `
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
                 >
                   Duration
-                </th>
-                <th
-                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-                >
-                  Used
-                </th>
-                <th
-                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
-                >
-                  Ignored
                 </th>
                 <th
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
@@ -100,12 +90,12 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  10
+                  0
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  0
+                  10
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
@@ -116,16 +106,6 @@ exports[`BatchLog > matches snapshot 1`] = `
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
                   1.20s
-                </td>
-                <td
-                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-                >
-                  10
-                </td>
-                <td
-                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-                >
-                  0
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
@@ -165,12 +145,12 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  20
+                  2
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  2
+                  20
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
@@ -181,16 +161,6 @@ exports[`BatchLog > matches snapshot 1`] = `
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
                   2.20s
-                </td>
-                <td
-                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-                >
-                  18
-                </td>
-                <td
-                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
-                >
-                  2
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"

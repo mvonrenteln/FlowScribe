@@ -60,12 +60,10 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
             <TableHeader className="sticky top-0 z-10 bg-background">
               <TableRow>
                 <TableHead>Batch</TableHead>
-                <TableHead>Expected</TableHead>
                 <TableHead>Skipped</TableHead>
+                <TableHead>Expected</TableHead>
                 <TableHead>Returned</TableHead>
                 <TableHead>Duration</TableHead>
-                <TableHead>Used</TableHead>
-                <TableHead>Ignored</TableHead>
                 <TableHead>Suggestions</TableHead>
                 <TableHead>Unchanged</TableHead>
                 <TableHead>Processed</TableHead>
@@ -90,12 +88,10 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
                   return (
                     <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
                       <TableCell>{idx + 1}</TableCell>
-                      <TableCell>{formatNumber(row.expected)}</TableCell>
                       <TableCell>{formatNumber(skipped)}</TableCell>
+                      <TableCell>{formatNumber(row.expected)}</TableCell>
                       <TableCell>{formatNumber(returned)}</TableCell>
                       <TableCell>{formatDuration(row.durationMs)}</TableCell>
-                      <TableCell>{formatNumber(row.used)}</TableCell>
-                      <TableCell>{formatNumber(row.ignored)}</TableCell>
                       <TableCell>{formatNumber(row.suggestions)}</TableCell>
                       <TableCell>{formatNumber(row.unchanged)}</TableCell>
                       <TableCell>{`${processedSoFar} / ${effectiveTotal}`}</TableCell>
