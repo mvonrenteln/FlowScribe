@@ -78,7 +78,7 @@ export function BatchLog({ rows, sortBy = "batch", compact = false }: BatchLogPr
                   <TableCell>
                     <span>
                       {formatNumber(row.returned)}
-                      {row.ignored && row.ignored > 0 && (
+                      {row.ignored > 0 && (
                         <span className="ml-2 text-[11px] text-muted-foreground">(+{row.ignored})</span>
                       )}
                     </span>
