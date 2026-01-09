@@ -41,7 +41,6 @@ describe("BatchLog", () => {
     // Make time formatting deterministic across environments by
     // temporarily mocking toLocaleTimeString to return ISO strings.
     const original = Date.prototype.toLocaleTimeString;
-    // @ts-ignore - test helper override
     Date.prototype.toLocaleTimeString = function () {
       return new Date(this.valueOf()).toISOString();
     };
@@ -51,7 +50,6 @@ describe("BatchLog", () => {
       expect(container).toMatchSnapshot();
     } finally {
       // restore original
-      // @ts-ignore
       Date.prototype.toLocaleTimeString = original;
     }
   });

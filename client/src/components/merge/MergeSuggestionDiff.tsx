@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   computeDiff,
   type DiffSegment,
@@ -6,7 +7,6 @@ import {
   getRevisedDiffSegments,
 } from "@/lib/diffUtils";
 import { cn } from "@/lib/utils";
-import { useTranslation } from "react-i18next";
 
 interface MergeSuggestionDiffProps {
   originalText: string;

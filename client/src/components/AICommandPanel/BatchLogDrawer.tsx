@@ -1,5 +1,5 @@
 import { useRef } from "react";
-import BatchLog, { BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
+import BatchLog, { type BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -9,21 +9,6 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
-
-export interface BatchLogRow {
-  id: string;
-  batchLabel: string;
-  expected?: number;
-  returned?: number;
-  durationMs?: number;
-  used?: number;
-  ignored?: number;
-  suggestions?: number;
-  unchanged?: number;
-  processed?: string;
-  issues?: string;
-  loggedAt: number;
-}
 
 interface BatchLogDrawerProps {
   rows: BatchLogRow[];

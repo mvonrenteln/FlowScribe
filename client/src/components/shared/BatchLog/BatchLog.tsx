@@ -46,7 +46,6 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
         return copy.sort((a, b) => (b.loggedAt ?? 0) - (a.loggedAt ?? 0));
       case "expected":
         return copy.sort((a, b) => (b.expected ?? 0) - (a.expected ?? 0));
-      case "batch":
       default:
         return copy.sort((a, b) => (Number(a.batchLabel) || 0) - (Number(b.batchLabel) || 0));
     }

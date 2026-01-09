@@ -192,28 +192,28 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                 <div className="px-6 pb-6 flex-1 overflow-hidden">
                   <div className="h-full overflow-auto">
                     <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Segment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Error</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {batchLog.map((entry) => (
-                        <TableRow key={`${entry.segmentId}-${entry.loggedAt}`}>
-                          <TableCell>{entry.segmentId}</TableCell>
-                          <TableCell className="capitalize">{entry.status}</TableCell>
-                          <TableCell>
-                            {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(2)}s` : "-"}
-                          </TableCell>
-                          <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
-                          <TableCell>{entry.error ?? "—"}</TableCell>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Segment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead>Error</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
+                      </TableHeader>
+                      <TableBody>
+                        {batchLog.map((entry) => (
+                          <TableRow key={`${entry.segmentId}-${entry.loggedAt}`}>
+                            <TableCell>{entry.segmentId}</TableCell>
+                            <TableCell className="capitalize">{entry.status}</TableCell>
+                            <TableCell>
+                              {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(2)}s` : "-"}
+                            </TableCell>
+                            <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
+                            <TableCell>{entry.error ?? "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
                     </Table>
                   </div>
                 </div>
