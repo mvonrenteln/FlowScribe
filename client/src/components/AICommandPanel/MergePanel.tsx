@@ -1,4 +1,4 @@
-import { Check, ChevronDown, ChevronRight, Sparkles, StopCircle, Trash2 } from "lucide-react";
+import { Check, ChevronDown, ChevronRight, Info, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -12,10 +12,12 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
 import { AIResultsSection } from "./AIResultsSection";
+import { BatchLogDrawer } from "./BatchLogDrawer";
 import { useAiSettingsSelection } from "./hooks/useAiSettingsSelection";
 import { useScopedSegments } from "./hooks/useScopedSegments";
 import { ResultsList } from "./ResultsList";
@@ -37,6 +39,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const totalToProcess = useTranscriptStore((s) => s.aiSegmentMergeTotalToProcess);
   const config = useTranscriptStore((s) => s.aiSegmentMergeConfig);
   const error = useTranscriptStore((s) => s.aiSegmentMergeError);
+  const batchLog = useTranscriptStore((s) => s.aiSegmentMergeBatchLog);
 
   const startMergeAnalysis = useTranscriptStore((s) => s.startMergeAnalysis);
   const cancelMergeAnalysis = useTranscriptStore((s) => s.cancelMergeAnalysis);
@@ -56,6 +59,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const [minConfidence, setMinConfidence] = useState(config.defaultMinConfidence);
   const [sameSpeakerOnly, setSameSpeakerOnly] = useState(true);
   const [enableSmoothing, setEnableSmoothing] = useState(config.defaultEnableSmoothing);
+  const [isLogOpen, setIsLogOpen] = useState(false);
   const [highExpanded, setHighExpanded] = useState(true);
   const [mediumExpanded, setMediumExpanded] = useState(false);
   const [lowExpanded, setLowExpanded] = useState(false);
@@ -75,6 +79,28 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const analysisSegmentIds = useMemo(
     () => getConsecutiveSegmentIds(segments, scopedSegmentIds),
     [segments, scopedSegmentIds],
+  );
+
+  const batchLogRows = useMemo(
+    () =>
+      batchLog.map((entry, idx) => {
+        const ignored = Math.max(0, entry.rawItemCount - entry.normalizedCount);
+        const issueSummary = entry.issues.length > 0 ? entry.issues[0]?.message : "—";
+        return {
+          id: `${entry.batchIndex}-${entry.loggedAt ?? 0}-${idx}`,
+          batchLabel: `${entry.batchIndex}`,
+          expected: entry.pairCount,
+          returned: entry.rawItemCount,
+          durationMs: entry.batchDurationMs,
+          used: entry.normalizedCount,
+          ignored,
+          suggestions: entry.suggestionCount,
+          processed: `${entry.processedTotal}/${entry.totalExpected}`,
+          issues: entry.fatal ? "FATAL" : issueSummary,
+          loggedAt: entry.loggedAt ?? Date.now(),
+        };
+      }),
+    [batchLog],
   );
 
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
@@ -165,9 +191,27 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
         </h3>
         <div className="grid gap-3">
           <div className="space-y-2">
-            <Label htmlFor="merge-max-gap" className="text-xs text-muted-foreground">
-              Max Time Gap (seconds)
-            </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="merge-max-gap" className="text-xs text-muted-foreground">
+                Max Time Gap (seconds)
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Max time gap help"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Only consider adjacent segments separated by less than this gap.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Input
               id="merge-max-gap"
               type="number"
@@ -181,9 +225,27 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
             />
           </div>
           <div className="space-y-2">
-            <Label htmlFor="merge-confidence" className="text-xs text-muted-foreground">
-              Min Confidence
-            </Label>
+            <div className="flex items-center gap-2">
+              <Label htmlFor="merge-confidence" className="text-xs text-muted-foreground">
+                Min Confidence
+              </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Minimum confidence help"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Filter suggestions by AI confidence threshold.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
             <Select
               value={minConfidence}
               onValueChange={(value) => setMinConfidence(value as typeof minConfidence)}
@@ -210,6 +272,22 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
               <Label htmlFor="merge-same-speaker" className="text-xs text-muted-foreground">
                 Same speaker only
               </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Same speaker only help"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Skip merges across speaker changes.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
             <div className="flex items-center gap-2">
               <Checkbox
@@ -221,6 +299,22 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
               <Label htmlFor="merge-smoothing" className="text-xs text-muted-foreground">
                 Enable text smoothing
               </Label>
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <button
+                      type="button"
+                      className="text-muted-foreground hover:text-foreground"
+                      aria-label="Enable text smoothing help"
+                    >
+                      <Info className="h-3.5 w-3.5" />
+                    </button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Allow the AI to fix punctuation and casing across the merge.</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
             </div>
           </div>
         </div>
@@ -254,7 +348,20 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
               }
             : undefined
         }
-      />
+      >
+        {(batchLog.length > 0 || isProcessing) && (
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>Batch log entries: {batchLog.length}</span>
+            <BatchLogDrawer
+              rows={batchLogRows}
+              open={isLogOpen}
+              onOpenChange={setIsLogOpen}
+              title="Batch Log"
+              description="Batch merge status updates and issues."
+            />
+          </div>
+        )}
+      </AIBatchControlSection>
 
       {(pendingSuggestions.length > 0 || isProcessing) && (
         <AIResultsSection title={`Suggestions (${pendingSuggestions.length} pending)`}>

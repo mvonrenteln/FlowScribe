@@ -9,6 +9,7 @@
 
 import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
 import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
+import { createLogger } from "@/lib/ai/logging/loggingService";
 import type {
   MergeAnalysisSegment,
   MergeConfidenceLevel,
@@ -16,6 +17,8 @@ import type {
   RawMergeSuggestion,
   TextSmoothingInfo,
 } from "./types";
+
+const logger = createLogger({ feature: "SegmentMerge" });
 
 export interface SegmentPairInfo {
   pairIndex: number;
@@ -440,6 +443,18 @@ export function processSuggestion(
   const timeGap =
     relevantSegments.length >= 2 ? calculateTimeGap(relevantSegments[0], relevantSegments[1]) : 0;
 
+  const returnedText =
+    raw.smoothedText ?? (raw as RawMergeSuggestion & { mergedText?: string }).mergedText;
+
+  if (returnedText && !isReturnedTextCompatible(mergedText, returnedText)) {
+    logger.warn("Discarding merge suggestion due to mismatched returned text", {
+      segmentIds: raw.segmentIds,
+      expectedPreview: buildPreview(mergedText),
+      returnedPreview: buildPreview(returnedText),
+    });
+    return null;
+  }
+
   // Create smoothing info if provided
   const smoothing = createSmoothingInfo(mergedText, raw.smoothedText, raw.smoothingChanges);
 
@@ -456,6 +471,23 @@ export function processSuggestion(
     speaker: relevantSegments[0].speaker,
     timeGap,
   };
+}
+
+function normalizeTextForComparison(text: string): string {
+  return text
+    .toLowerCase()
+    .replace(/[\p{P}\p{S}]+/gu, "")
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function isReturnedTextCompatible(expected: string, returned: string): boolean {
+  return normalizeTextForComparison(expected) === normalizeTextForComparison(returned);
+}
+
+function buildPreview(text: string): string {
+  if (text.length <= 140) return text;
+  return `${text.slice(0, 137)}...`;
 }
 
 /**

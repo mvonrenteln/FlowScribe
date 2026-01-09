@@ -8,30 +8,15 @@ import {
   Trash2,
   X,
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import {
-  Drawer,
-  DrawerContent,
-  DrawerDescription,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
 import { AIResultsSection } from "./AIResultsSection";
+import { BatchLogDrawer } from "./BatchLogDrawer";
 import { useAiSettingsSelection } from "./hooks/useAiSettingsSelection";
 import { useScopedSegments } from "./hooks/useScopedSegments";
 import { ResultsList } from "./ResultsList";
@@ -76,7 +61,6 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
   const [highConfExpanded, setHighConfExpanded] = useState(true);
   const [medConfExpanded, setMedConfExpanded] = useState(false);
   const [lowConfExpanded, setLowConfExpanded] = useState(false);
-  const logDrawerRef = useRef<HTMLDivElement>(null);
 
   const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
     useAiSettingsSelection({
@@ -204,88 +188,34 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                   ? `${((batchLog[batchLog.length - 1].elapsedMs ?? 0) / 1000).toFixed(2)}s`
                   : "-"}
               </span>
-              <Drawer open={isLogOpen} onOpenChange={setIsLogOpen}>
-                <DrawerTrigger asChild>
-                  <Button variant="ghost" size="sm">
-                    Batch Log ({batchLog.length})
-                  </Button>
-                </DrawerTrigger>
-                <DrawerContent
-                  ref={logDrawerRef}
-                  className="max-h-[70vh]"
-                  tabIndex={-1}
-                  onOpenAutoFocus={(event) => {
-                    event.preventDefault();
-                    logDrawerRef.current?.focus();
-                  }}
-                >
-                  <DrawerHeader>
-                    <DrawerTitle>Batch Log</DrawerTitle>
-                    <DrawerDescription className="sr-only">
-                      Batch processing summary and issues.
-                    </DrawerDescription>
-                  </DrawerHeader>
-                  <div className="px-6 pb-6 overflow-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Batch</TableHead>
-                          <TableHead>Expected</TableHead>
-                          <TableHead>Returned</TableHead>
-                          <TableHead>Duration</TableHead>
-                          <TableHead>Used</TableHead>
-                          <TableHead>Ignored</TableHead>
-                          <TableHead>Suggestions</TableHead>
-                          <TableHead>Unchanged</TableHead>
-                          <TableHead>Processed</TableHead>
-                          <TableHead>Issues</TableHead>
-                          <TableHead>Time</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {batchLog.map((entry, idx) => {
-                          const returned = entry.rawItemCount;
-                          const expected = entry.batchSize;
-                          const ignored = entry.ignoredCount ?? Math.max(0, returned - expected);
-                          const used = Math.min(returned, expected);
-                          const issueSummary =
-                            entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
-                          return (
-                            <TableRow key={`${entry.batchIndex}-${entry.loggedAt}-${idx}`}>
-                              <TableCell>{entry.batchIndex + 1}</TableCell>
-                              <TableCell>{expected}</TableCell>
-                              <TableCell>
-                                <span className={returned !== expected ? "text-red-600" : ""}>
-                                  {returned}
-                                  {ignored > 0 && (
-                                    <span className="ml-2 text-[11px] text-muted-foreground">
-                                      (+{ignored})
-                                    </span>
-                                  )}
-                                </span>
-                              </TableCell>
-                              <TableCell>
-                                {entry.batchDurationMs
-                                  ? `${(entry.batchDurationMs / 1000).toFixed(2)}s`
-                                  : "-"}
-                              </TableCell>
-                              <TableCell>{used}</TableCell>
-                              <TableCell>{ignored}</TableCell>
-                              <TableCell>{entry.suggestionCount}</TableCell>
-                              <TableCell>{entry.unchangedAssignments}</TableCell>
-                              <TableCell>
-                                {entry.processedTotal}/{entry.totalExpected}
-                              </TableCell>
-                              <TableCell>{entry.fatal ? "FATAL" : issueSummary}</TableCell>
-                              <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
-                            </TableRow>
-                          );
-                        })}
-                      </TableBody>
-                    </Table>
-                  </div>
-                </DrawerContent>
-              </Drawer>
+              <BatchLogDrawer
+                rows={batchLog.map((entry, idx) => {
+                  const returned = entry.rawItemCount;
+                  const expected = entry.batchSize;
+                  const ignored = entry.ignoredCount ?? Math.max(0, returned - expected);
+                  const used = Math.min(returned, expected);
+                  const issueSummary =
+                    entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
+                  return {
+                    id: `${entry.batchIndex}-${entry.loggedAt}-${idx}`,
+                    batchLabel: `${entry.batchIndex + 1}`,
+                    expected,
+                    returned,
+                    durationMs: entry.batchDurationMs,
+                    used,
+                    ignored,
+                    suggestions: entry.suggestionCount,
+                    unchanged: entry.unchangedAssignments,
+                    processed: `${entry.processedTotal}/${entry.totalExpected}`,
+                    issues: entry.fatal ? "FATAL" : issueSummary,
+                    loggedAt: entry.loggedAt,
+                  };
+                })}
+                open={isLogOpen}
+                onOpenChange={setIsLogOpen}
+                title="Batch Log"
+                description="Batch processing summary and issues."
+              />
             </div>
           )}
 

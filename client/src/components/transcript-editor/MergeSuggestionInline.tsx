@@ -1,6 +1,7 @@
-import { Check, GitMerge, Sparkles, X } from "lucide-react";
+import { Check, CheckCheck, GitMerge, Sparkles, X } from "lucide-react";
 import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Button } from "@/components/ui/button";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment } from "@/lib/store";
 import type { AISegmentMergeSuggestion } from "@/lib/store/types";
 
@@ -25,6 +26,8 @@ export function MergeSuggestionInline({
   const hasSmoothing =
     Boolean(suggestion.smoothedText) && suggestion.smoothedText !== suggestion.mergedText;
   const combinedText = `${firstSegment.text} ${secondSegment.text}`.trim();
+  const boundaryIndex = firstSegment.text.length;
+  const AcceptIcon = hasSmoothing ? CheckCheck : Check;
 
   return (
     <div
@@ -40,42 +43,69 @@ export function MergeSuggestionInline({
           </span>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            variant="outline"
-            size="sm"
-            className="h-7 px-2"
-            onClick={(event) => {
-              event.stopPropagation();
-              onAccept();
-            }}
-          >
-            <Check className="h-3.5 w-3.5" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-7 px-2 text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onReject();
+                  }}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Reject
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reject this merge suggestion</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
           {hasSmoothing && (
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-7 px-2 text-xs text-muted-foreground"
-              onClick={(event) => {
-                event.stopPropagation();
-                onAcceptWithoutSmoothing();
-              }}
-              title="Accept without smoothing"
-            >
-              Raw
-            </Button>
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-muted-foreground"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      onAcceptWithoutSmoothing();
+                    }}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Accept the merge without smoothing</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
           )}
-          <Button
-            variant="ghost"
-            size="sm"
-            className="h-7 px-2"
-            onClick={(event) => {
-              event.stopPropagation();
-              onReject();
-            }}
-          >
-            <X className="h-3.5 w-3.5" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  className="h-7 px-2"
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    onAccept();
+                  }}
+                >
+                  <AcceptIcon className="mr-1 h-3.5 w-3.5" />
+                  Accept
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{hasSmoothing ? "Accept the smoothed merge text" : "Accept this merge"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -90,6 +120,8 @@ export function MergeSuggestionInline({
           suggestedText={mergedText}
           originalLabel="Original"
           suggestedLabel={hasSmoothing ? "Smoothed" : "Merged"}
+          boundaryIndex={boundaryIndex}
+          allowSideBySide={hasSmoothing}
         />
         {hasSmoothing && suggestion.smoothingChanges && (
           <div className="flex items-center gap-1 text-xs text-amber-700 dark:text-amber-300">

@@ -42,6 +42,11 @@ export interface ResponseProcessOptions {
   idMapping: BatchPairMapping;
 
   /**
+   * Whether smoothing output should be preserved
+   */
+  enableSmoothing?: boolean;
+
+  /**
    * Enable detailed debug logging
    */
   enableDebug?: boolean;
@@ -65,6 +70,16 @@ export interface ProcessedResponse {
    * Recovery strategy used (if any)
    */
   recoveryStrategy?: string;
+
+  /**
+   * Number of raw items parsed from the response
+   */
+  rawItemCount: number;
+
+  /**
+   * Number of items normalized successfully
+   */
+  normalizedCount: number;
 }
 
 /**
@@ -141,10 +156,11 @@ export function processAIResponse(
   result: AIFeatureResult<unknown>,
   options: ResponseProcessOptions,
 ): ProcessedResponse {
-  const { idMapping } = options;
+  const { idMapping, enableSmoothing = true } = options;
   const issues: MergeAnalysisIssue[] = [];
   let parsedData: unknown[] | undefined;
   let recoveryStrategy: string | undefined;
+  let rawItemCount = 0;
 
   logger.info("Processing AI response", {
     success: result.success,
@@ -176,7 +192,7 @@ export function processAIResponse(
         level: "error",
         message: "No raw response available for recovery",
       });
-      return { suggestions: [], issues };
+      return { suggestions: [], issues, rawItemCount, normalizedCount: 0 };
     }
 
     logger.warn("Attempting recovery strategies", {
@@ -214,23 +230,33 @@ export function processAIResponse(
         message: result.error || "Failed to parse AI response",
       });
 
-      return { suggestions: [], issues };
+      return { suggestions: [], issues, rawItemCount, normalizedCount: 0 };
     }
   }
+
+  rawItemCount = parsedData.length;
 
   // 3. Normalize using ID mapping
   const normalizedSuggestions: RawMergeSuggestion[] = [];
 
   if (!parsedData) {
     // This should never happen due to earlier check, but TypeScript needs assurance
-    return { suggestions: [], issues };
+    return { suggestions: [], issues, rawItemCount, normalizedCount: 0 };
   }
 
   for (const raw of parsedData) {
     const normalized = normalizeRawSuggestion(raw as RawAIItem, idMapping);
 
     if (normalized) {
-      normalizedSuggestions.push(normalized);
+      if (!enableSmoothing) {
+        normalizedSuggestions.push({
+          ...normalized,
+          smoothedText: undefined,
+          smoothingChanges: undefined,
+        });
+      } else {
+        normalizedSuggestions.push(normalized);
+      }
     } else {
       logger.debug("Failed to normalize suggestion", { raw });
       issues.push({
@@ -250,5 +276,7 @@ export function processAIResponse(
     suggestions: normalizedSuggestions,
     issues,
     recoveryStrategy,
+    rawItemCount,
+    normalizedCount: normalizedSuggestions.length,
   };
 }

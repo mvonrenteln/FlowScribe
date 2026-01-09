@@ -9,7 +9,11 @@
  */
 
 import type { StoreApi } from "zustand";
-import type { MergeAnalysisResult, MergeSuggestion } from "@/lib/ai/features/segmentMerge";
+import type {
+  MergeAnalysisResult,
+  MergeBatchLogEntry,
+  MergeSuggestion,
+} from "@/lib/ai/features/segmentMerge";
 import type {
   AIPrompt,
   AISegmentMergeSlice,
@@ -35,6 +39,7 @@ export const initialAISegmentMergeState = {
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(),
   aiSegmentMergeError: null as string | null,
   aiSegmentMergeAbortController: null as AbortController | null,
+  aiSegmentMergeBatchLog: [] as MergeBatchLogEntry[],
 };
 
 // ==================== Helper Functions ====================
@@ -160,6 +165,7 @@ export const createAISegmentMergeSlice = (
       aiSegmentMergeError: null,
       aiSegmentMergeAbortController: abortController,
       aiSegmentMergeSuggestions: [], // Clear previous suggestions
+      aiSegmentMergeBatchLog: [],
     });
 
     // Prepare analysis parameters
@@ -177,17 +183,26 @@ export const createAISegmentMergeSlice = (
       onProgress: (progress: {
         batchIndex: number;
         totalBatches: number;
-        batchSuggestions: AISegmentMergeSuggestion[];
+        batchSuggestions: MergeSuggestion[];
         processedCount: number;
+        batchLogEntry?: MergeBatchLogEntry;
       }) => {
         // Update UI after each batch
-        const currentSuggestions = get().aiSegmentMergeSuggestions;
+        const currentState = get();
+        const currentSuggestions = currentState.aiSegmentMergeSuggestions;
         const newSuggestions = progress.batchSuggestions.map(toStoreSuggestion);
+        const nextBatchLog = progress.batchLogEntry
+          ? [
+              ...currentState.aiSegmentMergeBatchLog,
+              { ...progress.batchLogEntry, loggedAt: Date.now() },
+            ]
+          : currentState.aiSegmentMergeBatchLog;
 
         set({
           aiSegmentMergeSuggestions: [...currentSuggestions, ...newSuggestions],
           aiSegmentMergeProcessedCount: progress.processedCount,
           aiSegmentMergeTotalToProcess: segmentsToAnalyze.length - 1,
+          aiSegmentMergeBatchLog: nextBatchLog,
         });
 
         console.log(

@@ -88,6 +88,25 @@ describe("segmentMerge utils", () => {
     expect(sug?.smoothing).toBeUndefined();
   });
 
+  it("drops suggestion when returned text is too different", () => {
+    const raw = {
+      segmentIds: ["seg-1", "seg-2"],
+      confidence: 0.9,
+      smoothedText: "Completely different output",
+    } as Record<string, unknown>;
+
+    const map = new Map([
+      ["seg-1", segA],
+      ["seg-2", segB],
+    ]);
+    const sug = processSuggestion(
+      raw as Record<string, unknown>,
+      map as Map<string, MergeAnalysisSegment>,
+    );
+
+    expect(sug).toBeNull();
+  });
+
   it("normalizeRawSuggestion wrapper handles RawAIItem shapes", () => {
     // create mapping using core helper
     const pairMap = createBatchPairMapping(

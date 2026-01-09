@@ -26,6 +26,7 @@ export type {
   MergeAnalysisParams,
   MergeAnalysisResult,
   MergeAnalysisSegment,
+  MergeBatchLogEntry,
   MergeConfidenceLevel,
   MergeSuggestion,
   MergeSuggestionStatus,
