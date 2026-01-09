@@ -173,8 +173,8 @@ export async function analyzeMergeCandidates(
         fatal: processed.issues.some((issue) => issue.level === "error"),
       };
 
-      // Notify progress after each batch
-      if (onProgress) {
+      // Notify progress after each batch — only for batches that actually had pairs
+      if (onProgress && prompt.pairCount > 0) {
         onProgress({
           batchIndex: batchIndex + 1,
           totalBatches: batches.length,
@@ -194,7 +194,8 @@ export async function analyzeMergeCandidates(
       allIssues.push(batchIssue);
       totalAnalyzed += batch.length - 1;
 
-      if (onProgress) {
+      // Only report failures for batches that were actually analyzed (had pairs)
+      if (onProgress && prompt.pairCount > 0) {
         onProgress({
           batchIndex: batchIndex + 1,
           totalBatches: batches.length,
