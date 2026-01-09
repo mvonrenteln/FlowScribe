@@ -15,7 +15,7 @@ This results in broken lines, unclear hierarchy, and poor scalability for new fe
 
 ### Problem 2: Inconsistent AI Feature Interaction Patterns
 
-Currently, **three different interaction paradigms** exist for AI features:
+Previously, **three different interaction paradigms** existed for AI features:
 
 | Feature | Location | Interaction Pattern | Model Selection
 |-----|-----|-----|-----
