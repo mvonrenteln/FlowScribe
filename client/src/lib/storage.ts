@@ -60,6 +60,16 @@ export const readGlobalState = (): PersistedGlobalState | null => {
   }
 };
 
+export const writeGlobalState = (state: PersistedGlobalState): boolean => {
+  if (!canUseLocalStorage()) return false;
+  try {
+    window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 export const buildRecentSessions = (sessions: Record<string, PersistedSession>) => {
   return Object.entries(sessions)
     .filter(([, session]) => session.segments.length > 0)

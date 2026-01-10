@@ -2,7 +2,7 @@
  * Settings Storage
  *
  * Dedicated storage layer for application settings.
- * Handles persistence, migration, and validation of settings.
+ * Handles persistence and validation of settings.
  */
 
 import type { AIProviderConfig } from "@/lib/ai/providers/types";
@@ -19,9 +19,6 @@ export interface PersistedSettings {
   // AI Providers
   aiProviders: AIProviderConfig[];
   defaultAIProviderId?: string;
-
-  // Legacy migration marker
-  migratedFromLegacy?: boolean;
 }
 
 // ==================== Default Settings ====================
@@ -71,7 +68,6 @@ export function readSettings(): PersistedSettings | null {
 
     // Version check
     if (parsed.version !== SETTINGS_VERSION) {
-      // Future: Add migration logic here
       console.info("[Settings] Version mismatch, using defaults", {
         stored: parsed.version,
         expected: SETTINGS_VERSION,
@@ -121,80 +117,15 @@ export function clearSettings(): boolean {
   }
 }
 
-// ==================== Legacy Migration ====================
-
-interface LegacyAISpeakerConfig {
-  ollamaUrl?: string;
-  model?: string;
-}
-
-interface LegacyGlobalState {
-  aiSpeakerConfig?: LegacyAISpeakerConfig;
-}
-
-const LEGACY_GLOBAL_STORAGE_KEY = "flowscribe:global";
-
 /**
- * Migrate settings from the legacy global state format.
- * This handles the transition from the old AISpeakerConfig to the new AIProviderConfig[].
- */
-export function migrateFromLegacyGlobalState(): PersistedSettings | null {
-  if (!canUseSettingsStorage()) return null;
-
-  try {
-    const raw = window.localStorage.getItem(LEGACY_GLOBAL_STORAGE_KEY);
-    if (!raw) return null;
-
-    const legacy = JSON.parse(raw) as LegacyGlobalState;
-    if (!legacy?.aiSpeakerConfig) return null;
-
-    const legacyConfig = legacy.aiSpeakerConfig;
-
-    // Create new settings with migrated provider
-    const migratedSettings: PersistedSettings = {
-      version: SETTINGS_VERSION,
-      aiProviders: [
-        {
-          id: "migrated-ollama",
-          type: "ollama",
-          name: "Ollama (migrated)",
-          baseUrl: legacyConfig.ollamaUrl ?? "http://localhost:11434",
-          model: legacyConfig.model ?? "llama3.2",
-          isDefault: true,
-        },
-      ],
-      defaultAIProviderId: "migrated-ollama",
-      migratedFromLegacy: true,
-    };
-
-    console.info("[Settings] Migrated from legacy global state", {
-      from: legacyConfig,
-      to: migratedSettings,
-    });
-
-    return migratedSettings;
-  } catch (error) {
-    console.warn("[Settings] Failed to migrate from legacy state", error);
-    return null;
-  }
-}
-
-/**
- * Initialize settings, with migration fallback.
- * Returns existing settings, migrated settings, or defaults.
+ * Initialize settings.
+ * Returns existing settings or defaults.
  */
 export function initializeSettings(): PersistedSettings {
   // Try to read existing settings
   const existing = readSettings();
   if (existing) {
     return existing;
-  }
-
-  // Try to migrate from legacy format
-  const migrated = migrateFromLegacyGlobalState();
-  if (migrated) {
-    writeSettings(migrated);
-    return migrated;
   }
 
   // Use defaults

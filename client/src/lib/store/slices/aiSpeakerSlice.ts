@@ -8,7 +8,7 @@
 import type { StoreApi } from "zustand";
 import { summarizeAIError } from "@/lib/ai/core/errors";
 import { summarizeMessages } from "@/lib/ai/core/formatting";
-import { runAnalysis } from "@/lib/ai/features/speaker";
+import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
 import { SPEAKER_COLORS } from "../constants";
 import type {
   AIPrompt,
@@ -74,68 +74,182 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       aiSpeakerBatchLog: [],
     });
 
-    // Run analysis asynchronously
-    runAnalysis({
-      segments: state.segments,
-      speakers: state.speakers.map((s) => s.name),
-      config: state.aiSpeakerConfig,
-      selectedSpeakers,
-      excludeConfirmed,
-      segmentIds,
-      signal: abortController.signal,
-      onProgress: (processed, total) => {
-        set({
-          aiSpeakerProcessedCount: processed,
-          aiSpeakerTotalToProcess: total,
-        });
-      },
-      onBatchComplete: (suggestions) => {
-        const stateSnapshot = get();
-        if (!stateSnapshot.aiSpeakerIsProcessing) {
-          return;
+    // Run analysis asynchronously with manual batching for per-batch logging
+    (async () => {
+      const overallStart = Date.now();
+      const batchSize = state.aiSpeakerConfig.batchSize;
+      const totalSegments = segmentsToAnalyze.length;
+      let batchIndex = 0;
+      let processed = 0;
+
+      // Get active prompt from config
+      const activePrompt =
+        state.aiSpeakerConfig.prompts.find((p) => p.id === state.aiSpeakerConfig.activePromptId) ??
+        state.aiSpeakerConfig.prompts[0];
+
+      try {
+        // Process in batches manually to get per-batch logging
+        for (let i = 0; i < totalSegments; i += batchSize) {
+          if (abortController.signal.aborted) {
+            const batchTotalExpected = totalSegments;
+            const insight = {
+              batchIndex,
+              batchSize: 0,
+              rawItemCount: 0,
+              unchangedAssignments: 0,
+              loggedAt: Date.now(),
+              suggestionCount: 0,
+              processedTotal: processed,
+              totalExpected: batchTotalExpected,
+              issues: [{ level: "warn" as const, message: "Classification cancelled by user" }],
+              fatal: false,
+              ignoredCount: 0,
+              batchDurationMs: Date.now() - overallStart,
+              elapsedMs: Date.now() - overallStart,
+            } as AISpeakerBatchInsight;
+            const stateSnapshot = get();
+            set({
+              aiSpeakerBatchInsights: [...stateSnapshot.aiSpeakerBatchInsights, insight],
+              aiSpeakerBatchLog: [...stateSnapshot.aiSpeakerBatchLog, insight],
+            });
+            break;
+          }
+
+          const batchStart = Date.now();
+          const batchSegments = segmentsToAnalyze.slice(i, Math.min(i + batchSize, totalSegments));
+
+          try {
+            const result = await classifySpeakersBatch(
+              batchSegments.map((s) => ({ id: s.id, speaker: s.speaker, text: s.text })),
+              state.speakers.map((s) => s.name),
+              {
+                batchSize: batchSegments.length,
+                signal: abortController.signal,
+                customPrompt: activePrompt
+                  ? {
+                      systemPrompt: activePrompt.systemPrompt,
+                      userPromptTemplate: activePrompt.userPromptTemplate,
+                    }
+                  : undefined,
+                providerId: state.aiSpeakerConfig.selectedProviderId,
+                model: state.aiSpeakerConfig.selectedModel,
+              },
+            );
+
+            processed = Math.min(i + batchSize, totalSegments);
+            const batchEnd = Date.now();
+
+            // Convert results to suggestions and add to store
+            const suggestions = result.results.map((r) => ({
+              segmentId: r.segmentId,
+              currentSpeaker: r.originalSpeaker ?? "",
+              suggestedSpeaker: r.suggestedSpeaker,
+              status: "pending" as const,
+              confidence: r.confidence,
+              reason: r.reason,
+              isNewSpeaker: r.isNew,
+            }));
+
+            const stateSnapshot = get();
+            if (!stateSnapshot.aiSpeakerIsProcessing) return;
+
+            if (suggestions.length > 0) {
+              set({
+                aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
+              });
+            }
+
+            // Update progress
+            set({ aiSpeakerProcessedCount: processed });
+
+            // Create batch log entry
+            const batchTotalExpected = totalSegments;
+            const insight = {
+              batchIndex,
+              batchSize: batchSegments.length,
+              rawItemCount: batchSegments.length,
+              unchangedAssignments: result.summary.unchanged,
+              loggedAt: Date.now(),
+              suggestionCount: suggestions.length,
+              processedTotal: processed,
+              totalExpected: batchTotalExpected,
+              issues: (result.issues || []).map((i) => ({
+                level: i.level,
+                message: i.message,
+                context: i.context,
+              })),
+              fatal: false,
+              ignoredCount: 0,
+              batchDurationMs: batchEnd - batchStart,
+              elapsedMs: batchEnd - overallStart,
+            } as AISpeakerBatchInsight;
+
+            const stateAfterSuggestions = get();
+            const updatedInsights = [...stateAfterSuggestions.aiSpeakerBatchInsights, insight];
+            const updatedLog = [...stateAfterSuggestions.aiSpeakerBatchLog, insight];
+
+            let discrepancyNotice = stateAfterSuggestions.aiSpeakerDiscrepancyNotice;
+            if (insight.fatal) {
+              const summary = summarizeMessages(insight.issues);
+              discrepancyNotice = `Batch ${insight.batchIndex + 1} failed: ${summary || "unknown"}. See batch log.`;
+            } else if (insight.ignoredCount && insight.ignoredCount > 0) {
+              const returned = insight.rawItemCount;
+              const expected = insight.batchSize;
+              const used = Math.min(returned, expected);
+              const ignored = insight.ignoredCount ?? 0;
+              const summary = summarizeMessages(insight.issues);
+              discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned ${returned} (expected ${expected}, used ${used}, ignored ${ignored}). ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
+            } else if (insight.rawItemCount < insight.batchSize) {
+              const summary = summarizeMessages(insight.issues);
+              discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
+            }
+
+            console.log(
+              `[DEBUG] Batch ${batchIndex + 1}: Adding insight with processedTotal=${processed}, totalExpected=${totalSegments}`,
+            );
+            set({
+              aiSpeakerBatchInsights: updatedInsights,
+              aiSpeakerBatchLog: updatedLog,
+              aiSpeakerDiscrepancyNotice: discrepancyNotice,
+            });
+          } catch (batchError) {
+            const batchTotalExpected = totalSegments;
+            const insight = {
+              batchIndex,
+              batchSize: batchSegments.length,
+              rawItemCount: 0,
+              unchangedAssignments: 0,
+              loggedAt: Date.now(),
+              suggestionCount: 0,
+              processedTotal: processed,
+              totalExpected: batchTotalExpected,
+              issues: [{ level: "error" as const, message: String(batchError) }],
+              fatal: true,
+              ignoredCount: 0,
+              batchDurationMs: Date.now() - batchStart,
+              elapsedMs: Date.now() - overallStart,
+            } as AISpeakerBatchInsight;
+
+            const stateSnapshot = get();
+            set({
+              aiSpeakerBatchInsights: [...stateSnapshot.aiSpeakerBatchInsights, insight],
+              aiSpeakerBatchLog: [...stateSnapshot.aiSpeakerBatchLog, insight],
+            });
+          }
+
+          batchIndex++;
         }
-        set({
-          aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
-        });
-      },
-      onBatchInfo: (insight) => {
-        const stateSnapshot = get();
-        const entry = { ...insight, loggedAt: Date.now() } as AISpeakerBatchInsight;
-        const updatedInsights = [...stateSnapshot.aiSpeakerBatchInsights, entry];
-        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, entry];
-        let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
-        if (insight.fatal) {
-          const summary = summarizeMessages(insight.issues);
-          discrepancyNotice = `Batch ${insight.batchIndex + 1} failed: ${summary || "unknown"}. See batch log.`;
-        } else if (insight.ignoredCount && insight.ignoredCount > 0) {
-          const returned = insight.rawItemCount;
-          const expected = insight.batchSize;
-          const used = Math.min(returned, expected);
-          const ignored = insight.ignoredCount ?? 0;
-          const summary = summarizeMessages(insight.issues);
-          discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned ${returned} (expected ${expected}, used ${used}, ignored ${ignored}). ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
-        } else if (insight.rawItemCount < insight.batchSize) {
-          const summary = summarizeMessages(insight.issues);
-          discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          set({ aiSpeakerError: summarizeAIError(err), aiSpeakerIsProcessing: false });
         }
-        set({
-          aiSpeakerBatchInsights: updatedInsights,
-          aiSpeakerBatchLog: updatedLog,
-          aiSpeakerDiscrepancyNotice: discrepancyNotice,
-        });
-      },
-      onError: (error) => {
-        set({
-          aiSpeakerError: summarizeAIError(error),
-          aiSpeakerIsProcessing: false,
-        });
-      },
-    }).finally(() => {
-      // Only update if not aborted
-      if (!abortController.signal.aborted) {
-        set({ aiSpeakerIsProcessing: false });
+      } finally {
+        if (!abortController.signal.aborted) {
+          set({ aiSpeakerIsProcessing: false });
+        }
       }
-    });
+    })();
   },
 
   cancelAnalysis: () => {

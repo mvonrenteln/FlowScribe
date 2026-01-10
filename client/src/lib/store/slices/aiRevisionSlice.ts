@@ -133,22 +133,12 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
     return { ...initialAIRevisionState.aiRevisionConfig };
   }
 
-  // Migration: Map old IDs to new IDs (from previous naming conventions)
-  const idMigration: Record<string, string> = {
-    "default-transcript-cleanup": "builtin-text-cleanup",
-    "default-improve-clarity": "builtin-text-clarity",
-    "default-formalize": "builtin-text-formalize",
-  };
-
-  // Migrate saved prompts to new IDs if needed
-  const migratedPrompts = (saved.prompts ?? []).map((p) => ({
-    ...p,
-    id: idMigration[p.id] ?? p.id,
-  }));
+  // Use saved prompts as-is
+  const savedPrompts = saved.prompts ?? [];
 
   // Merge prompts: ensure all built-in prompts exist, but PRESERVE user edits
   const builtInPromptIds = DEFAULT_TEXT_PROMPTS.map((p) => p.id);
-  const savedPromptsById = new Map(migratedPrompts.map((p) => [p.id, p]));
+  const savedPromptsById = new Map(savedPrompts.map((p) => [p.id, p]));
 
   const mergedPrompts: AIPrompt[] = [];
 
@@ -176,22 +166,17 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
     }
   }
 
-  // Migrate defaultPromptId to new ID format
-  const migratedDefaultId = idMigration[saved.defaultPromptId ?? ""] ?? saved.defaultPromptId;
-
   // Validate defaultPromptId - must exist
-  const validDefaultId = mergedPrompts.some((p) => p.id === migratedDefaultId)
-    ? migratedDefaultId
+  const savedDefaultId = saved.defaultPromptId ?? "builtin-text-cleanup";
+  const validDefaultId = mergedPrompts.some((p) => p.id === savedDefaultId)
+    ? savedDefaultId
     : "builtin-text-cleanup";
 
-  // Migrate quickAccessPromptIds to new ID format
-  const migratedQuickAccessIds = (saved.quickAccessPromptIds ?? []).map(
-    (id) => idMigration[id] ?? id,
-  );
+  const savedQuickAccessIds = saved.quickAccessPromptIds ?? [];
 
   // Validate quickAccessPromptIds - filter out non-existent prompts
   const promptIds = new Set(mergedPrompts.map((p) => p.id));
-  const validQuickAccessIds = migratedQuickAccessIds.filter((id) => promptIds.has(id));
+  const validQuickAccessIds = savedQuickAccessIds.filter((id) => promptIds.has(id));
 
   return {
     prompts: mergedPrompts,

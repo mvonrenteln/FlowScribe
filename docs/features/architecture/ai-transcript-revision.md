@@ -16,7 +16,6 @@ This document covers:
 - UI/UX structure
 - State management
 - API integration
-- Testing & migration
 - Open points & future work
 
 ---
@@ -114,7 +113,7 @@ interface AIProvider {
   - Prompts (AIPrompt[])
   - Providers/models
   - Revision state (processing, results, errors)
-- **Persistence**: Prompts and provider settings stored in localStorage (migrated from legacy template system).
+- **Persistence**: Prompts and provider settings stored in localStorage (from previous template system).
 - **Undo/Redo**: All revisions are undoable via history slice.
 
 ---
@@ -133,15 +132,6 @@ interface AIProvider {
 - **Integration tests**: For UI flows (single, batch, prompt management, provider selection).
 - **Regression tests**: For edge cases (punctuation, word-level diffs, batch errors).
 - **Test coverage**: All critical paths and edge cases are covered.
-
----
-
-## 11. Migration & Deprecation
-
-- Old template system fully migrated to prompt system.
-- All UI and code now use "Prompt" terminology.
-- Deprecated code and migration warnings removed.
-- Data migration handled on settings load (versioned JSON).
 
 ---
 
@@ -224,11 +214,6 @@ export interface RevisionTemplate /* alias */ {
   isDefault?: boolean;
 }
 ```
-
-## Migration Notes
-
-- The legacy "template" system was migrated to a unified "prompt" system. On settings load, the app migrates legacy data (versioned JSON). Built-in prompts are injected if missing.
-- Backwards compatibility is handled at settings load; if you change data structures, add a migration path and bump the settings version.
 
 ---
 

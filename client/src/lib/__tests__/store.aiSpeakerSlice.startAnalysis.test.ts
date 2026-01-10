@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createBaseState } from "@/lib/__tests__/storeTestUtils";
-import { runAnalysis } from "@/lib/ai/features/speaker";
+import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, Speaker } from "@/lib/store/types";
 
@@ -8,7 +8,11 @@ vi.mock("@/lib/ai/features/speaker", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/ai/features/speaker")>();
   return {
     ...actual,
-    runAnalysis: vi.fn().mockResolvedValue(undefined),
+    classifySpeakersBatch: vi.fn().mockResolvedValue({
+      results: [],
+      summary: { total: 0, classified: 0, unchanged: 0, failed: 0 },
+      issues: [],
+    }),
   };
 });
 
@@ -61,21 +65,19 @@ describe("aiSpeakerSlice - startAnalysis", () => {
     useTranscriptStore.getState().startAnalysis([], false, ["seg-1", "seg-3"]);
 
     expect(useTranscriptStore.getState().aiSpeakerTotalToProcess).toBe(2);
-    expect(runAnalysis).toHaveBeenCalledWith(
-      expect.objectContaining({ segmentIds: ["seg-1", "seg-3"] }),
-    );
+    expect(classifySpeakersBatch).toHaveBeenCalled();
+    const mocked = vi.mocked(classifySpeakersBatch);
+    const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
+    expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-1", "seg-3"]);
   });
 
   it("combines segment ids with speaker and confirmed filters", () => {
     useTranscriptStore.getState().startAnalysis(["SPEAKER_00"], true, ["seg-1", "seg-2", "seg-3"]);
 
     expect(useTranscriptStore.getState().aiSpeakerTotalToProcess).toBe(1);
-    expect(runAnalysis).toHaveBeenCalledWith(
-      expect.objectContaining({
-        selectedSpeakers: ["SPEAKER_00"],
-        excludeConfirmed: true,
-        segmentIds: ["seg-1", "seg-2", "seg-3"],
-      }),
-    );
+    expect(classifySpeakersBatch).toHaveBeenCalled();
+    const mocked = vi.mocked(classifySpeakersBatch);
+    const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
+    expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-1"]);
   });
 });
