@@ -68,5 +68,7 @@ export const uniqueEntries = (entries: LexiconEntry[]) => {
       falsePositives: mergedFalsePositives,
     });
   });
-  return Array.from(seen.values());
+  return Array.from(seen.values()).sort((a, b) =>
+    a.term.localeCompare(b.term, undefined, { sensitivity: "base" }),
+  );
 };

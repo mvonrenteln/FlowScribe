@@ -23,6 +23,9 @@ interface GlossaryDialogProps {
 
 export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
   const lexiconEntries = useTranscriptStore((state) => state.lexiconEntries);
+  const sortedEntries = [...lexiconEntries].sort((a, b) =>
+    a.term.localeCompare(b.term, undefined, { sensitivity: "base" }),
+  );
   const lexiconThreshold = useTranscriptStore((state) => state.lexiconThreshold);
   const lexiconHighlightUnderline = useTranscriptStore((state) => state.lexiconHighlightUnderline);
   const lexiconHighlightBackground = useTranscriptStore(
@@ -236,7 +239,7 @@ export function GlossaryDialog({ open, onOpenChange }: GlossaryDialogProps) {
               {lexiconEntries.length === 0 ? (
                 <div className="text-sm text-muted-foreground">No terms yet.</div>
               ) : (
-                lexiconEntries.map((entry) => (
+                sortedEntries.map((entry) => (
                   <div
                     key={entry.term}
                     className={cn(

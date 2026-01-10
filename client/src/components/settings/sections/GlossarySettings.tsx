@@ -41,6 +41,10 @@ export function GlossarySettings() {
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
 
+  const sortedEntries = [...lexiconEntries].sort((a, b) =>
+    a.term.localeCompare(b.term, undefined, { sensitivity: "base" }),
+  );
+
   // Helpers
   const parseList = (value: string) =>
     value
@@ -255,7 +259,7 @@ export function GlossarySettings() {
                   No glossary terms yet
                 </p>
               ) : (
-                lexiconEntries.map((entry) => (
+                sortedEntries.map((entry) => (
                   <div
                     key={entry.term}
                     role="button"
