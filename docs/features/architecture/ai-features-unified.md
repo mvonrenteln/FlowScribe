@@ -1145,8 +1145,8 @@ transcript editor. Fix spelling, grammar, remove fillers, improve clarity.`;
 **Tasks:**
 1. Create `src/lib/services/aiFeatureService.ts`
 2. Define feature registry
-3. Migrate Speaker Classification to use service
-4. Migrate Transcript Revision to use service
+3. Integrate Speaker Classification into service
+4. Integrate Transcript Revision into service
 5. Create feature configuration system
 
 **Deliverables:**

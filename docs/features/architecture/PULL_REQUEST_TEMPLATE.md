@@ -2,7 +2,7 @@
 
 ## Overview
 
-This PR completes the migration from scattered, feature-specific AI services to a unified, extensible architecture that all AI features will use.
+This PR completes the consolidation from scattered, feature-specific AI services to a unified, extensible architecture that all AI features will use.
 
 **Status:** ✅ **COMPLETE** - All deprecated code removed, new API in production
 **Tests:** 682+ tests, 80%+ coverage on core utilities
@@ -369,23 +369,23 @@ if (result.success) {
 
 ---
 
-## Migration Steps Completed
+## Implementation Steps Completed
 
 ### Step 1: Created New Service ✅
 
 ```
 /src/lib/ai/core/aiFeatureService.ts      (new)
 /src/lib/ai/features/                     (new)
-  ├── revision/                           (migrated)
-  ├── speaker/                            (migrated)
+  ├── revision/
+  ├── speaker/
   └── index.ts
 ```
 
-### Step 2: Migrated Features ✅
+### Step 2: Feature Integration ✅
 
 - Speaker Classification → uses `executeFeature()`
 - Text Revision → uses `executeBatch()`
-- Both fully tested with new service
+- Both fully tested with the new service
 
 ### Step 3: Removed Old Code ✅
 
@@ -403,7 +403,6 @@ Removed all deprecated names:
 - `BUILTIN_REVISION_TEMPLATES` → `BUILTIN_REVISION_PROMPTS`
 - `findTemplate()` → `findPrompt()`
 - `getDefaultTemplate()` → `getDefaultPrompt()`
-- Consistently use "Prompt" terminology everywhere
 
 ### Step 5: Updated Component Imports ✅
 
@@ -427,7 +426,6 @@ import { classifySpeakers } from "@/lib/ai/features/speaker";
 - Parsing: 87.10%
 - Utils: 80%+
 - Core service: 30-50% (integration code)
-
 ---
 
 ## Testing Strategy
@@ -497,27 +495,6 @@ import { reviseSegment } from "@/lib/ai/features/revision";
 import { classifySpeakers } from "@/lib/ai/features/speaker";
 ```
 
-### Migration Path for External Code
-
-If any code uses old services:
-
-```typescript
-// Old
-const revised = await reviseTranscript(text, options);
-
-// New
-const result = await reviseSegment({ 
-  segment: { text, speaker: "Unknown" },
-  prompt: getDefaultPrompt(),
-  ...options
-});
-
-if (result.success) {
-  const revised = result.revised;
-}
-```
-
----
 
 ## Performance Impact
 
@@ -545,7 +522,7 @@ if (result.success) {
 - [x] Documentation updated
 - [x] Deprecated code removed
 - [x] Example code verified
-- [x] Migration verified in production
+  - [x] Integration verified in production
 
 ### Test Results
 
@@ -572,7 +549,7 @@ Coverage: ✅ 80%+ on core utils
 
 ## Related Issues & PRs
 
-- Closes: Migration phase completion
+-- Closes: Phase completion
 - Related: AI Module Architecture (ADR-2026-01-03)
 - Depends on: Provider abstraction (completed)
 
