@@ -86,20 +86,6 @@ describe("settingsStorage", () => {
       expect(result.version).toBe(1);
       expect(result.aiProviders.length).toBeGreaterThan(0);
     });
-
-    it("migrates from legacy global state", () => {
-      localStorageMock["flowscribe:global"] = JSON.stringify({
-        aiSpeakerConfig: {
-          ollamaUrl: "http://custom:11434",
-          model: "mistral",
-        },
-      });
-
-      const result = initializeSettings();
-      expect(result.aiProviders[0].baseUrl).toBe("http://custom:11434");
-      expect(result.aiProviders[0].model).toBe("mistral");
-      expect(result.migratedFromLegacy).toBe(true);
-    });
   });
 
   describe("getDefaultProvider", () => {

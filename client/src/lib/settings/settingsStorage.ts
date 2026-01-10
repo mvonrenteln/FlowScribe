@@ -19,9 +19,6 @@ export interface PersistedSettings {
   // AI Providers
   aiProviders: AIProviderConfig[];
   defaultAIProviderId?: string;
-
-  // Legacy migration marker
-  migratedFromLegacy?: boolean;
 }
 
 // ==================== Default Settings ====================
@@ -123,61 +120,7 @@ export function clearSettings(): boolean {
 
 // ==================== Legacy Migration ====================
 
-interface LegacyAISpeakerConfig {
-  ollamaUrl?: string;
-  model?: string;
-}
-
-interface LegacyGlobalState {
-  aiSpeakerConfig?: LegacyAISpeakerConfig;
-}
-
-const LEGACY_GLOBAL_STORAGE_KEY = "flowscribe:global";
-
-/**
- * Migrate settings from the legacy global state format.
- * This handles the transition from the old AISpeakerConfig to the new AIProviderConfig[].
- */
-export function migrateFromLegacyGlobalState(): PersistedSettings | null {
-  if (!canUseSettingsStorage()) return null;
-
-  try {
-    const raw = window.localStorage.getItem(LEGACY_GLOBAL_STORAGE_KEY);
-    if (!raw) return null;
-
-    const legacy = JSON.parse(raw) as LegacyGlobalState;
-    if (!legacy?.aiSpeakerConfig) return null;
-
-    const legacyConfig = legacy.aiSpeakerConfig;
-
-    // Create new settings with migrated provider
-    const migratedSettings: PersistedSettings = {
-      version: SETTINGS_VERSION,
-      aiProviders: [
-        {
-          id: "migrated-ollama",
-          type: "ollama",
-          name: "Ollama (migrated)",
-          baseUrl: legacyConfig.ollamaUrl ?? "http://localhost:11434",
-          model: legacyConfig.model ?? "llama3.2",
-          isDefault: true,
-        },
-      ],
-      defaultAIProviderId: "migrated-ollama",
-      migratedFromLegacy: true,
-    };
-
-    console.info("[Settings] Migrated from legacy global state", {
-      from: legacyConfig,
-      to: migratedSettings,
-    });
-
-    return migratedSettings;
-  } catch (error) {
-    console.warn("[Settings] Failed to migrate from legacy state", error);
-    return null;
-  }
-}
+// Legacy migration removed: older global state handling deprecated.
 
 /**
  * Initialize settings, with migration fallback.
@@ -191,11 +134,7 @@ export function initializeSettings(): PersistedSettings {
   }
 
   // Try to migrate from legacy format
-  const migrated = migrateFromLegacyGlobalState();
-  if (migrated) {
-    writeSettings(migrated);
-    return migrated;
-  }
+  // Legacy migration removed — fall back directly to defaults when no stored settings exist.
 
   // Use defaults
   const defaults = { ...DEFAULT_SETTINGS };
