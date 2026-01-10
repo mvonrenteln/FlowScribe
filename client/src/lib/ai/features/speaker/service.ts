@@ -420,10 +420,3 @@ function extractWithRegex(raw: string): RawSpeakerResponseItem[] {
 
   return items;
 }
-
-// Legacy API adapter removed. New code should use `classifySpeakers` and
-// `classifySpeakersBatch` directly. The previous `runAnalysis` wrapper that
-// translated to a legacy callback-based interface has been intentionally
-// removed as part of the "remove-migrations" cleanup. If you need a
-// compatibility shim, please reintroduce a small wrapper in your caller
-// module that adapts the new Promise-based API to your callbacks.

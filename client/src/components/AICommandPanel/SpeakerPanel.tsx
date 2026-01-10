@@ -196,6 +196,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                   const used = Math.min(returned, expected);
                   const issueSummary =
                     entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
+                  console.log(`[DEBUG UI] Batch ${idx}: processedTotal=${entry.processedTotal}, totalExpected=${entry.totalExpected}`);
                   return {
                     id: `${entry.batchIndex}-${entry.loggedAt}-${idx}`,
                     batchLabel: `${entry.batchIndex + 1}`,
@@ -213,6 +214,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                 })}
                 open={isLogOpen}
                 onOpenChange={setIsLogOpen}
+                total={totalToProcess}
                 title="Batch Log"
                 description="Batch processing summary and issues."
               />
