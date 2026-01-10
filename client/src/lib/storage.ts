@@ -1,6 +1,11 @@
-import type { PersistedSession, PersistedSessionsState } from "@/lib/store/types";
+import type {
+  PersistedGlobalState,
+  PersistedSession,
+  PersistedSessionsState,
+} from "@/lib/store/types";
 
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
+const GLOBAL_STORAGE_KEY = "flowscribe:global";
 
 export const canUseLocalStorage = () => {
   if (typeof window === "undefined") return false;
@@ -44,9 +49,25 @@ export const readSessionsState = (): PersistedSessionsState => {
   return { sessions: {}, activeSessionKey: null };
 };
 
-// Global state persistence removed. Keep API stub for compatibility.
 export const readGlobalState = (): PersistedGlobalState | null => {
-  return null;
+  if (!canUseLocalStorage()) return null;
+  const raw = window.localStorage.getItem(GLOBAL_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    return JSON.parse(raw) as PersistedGlobalState;
+  } catch {
+    return null;
+  }
+};
+
+export const writeGlobalState = (state: PersistedGlobalState): boolean => {
+  if (!canUseLocalStorage()) return false;
+  try {
+    window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 export const buildRecentSessions = (sessions: Record<string, PersistedSession>) => {
@@ -67,20 +88,25 @@ export const buildRecentSessions = (sessions: Record<string, PersistedSession>) 
 export const createStorageScheduler = (throttleMs: number) => {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
+  let pendingGlobal: PersistedGlobalState | null = null;
 
-  return (sessionsState: PersistedSessionsState) => {
+  return (sessionsState: PersistedSessionsState, globalState: PersistedGlobalState) => {
     pendingSessions = sessionsState;
+    pendingGlobal = globalState;
     if (persistTimeout) return;
     persistTimeout = setTimeout(() => {
       try {
         if (pendingSessions) {
           window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(pendingSessions));
         }
-        // Global persistence removed — skip writing pendingGlobal.
+        if (pendingGlobal) {
+          window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(pendingGlobal));
+        }
       } catch {
         // Ignore persistence failures (quota, serialization).
       } finally {
         pendingSessions = null;
+        pendingGlobal = null;
         persistTimeout = null;
       }
     }, throttleMs);
@@ -89,4 +115,5 @@ export const createStorageScheduler = (throttleMs: number) => {
 
 export const storageKeys = {
   sessions: SESSIONS_STORAGE_KEY,
+  global: GLOBAL_STORAGE_KEY,
 } as const;
