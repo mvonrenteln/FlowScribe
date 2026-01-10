@@ -1,8 +1,4 @@
-import type {
-  PersistedGlobalState,
-  PersistedSession,
-  PersistedSessionsState,
-} from "@/lib/store/types";
+import type { PersistedSession, PersistedSessionsState } from "@/lib/store/types";
 
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 
@@ -72,7 +68,7 @@ export const createStorageScheduler = (throttleMs: number) => {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
 
-  return (sessionsState: PersistedSessionsState, _globalState: PersistedGlobalState) => {
+  return (sessionsState: PersistedSessionsState) => {
     pendingSessions = sessionsState;
     if (persistTimeout) return;
     persistTimeout = setTimeout(() => {
