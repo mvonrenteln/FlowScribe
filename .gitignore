@@ -8,3 +8,4 @@ vite.config.ts.*
 **/coverage/**/*
 .idea
 .tsbuildinfo
+.vscode/settings.json

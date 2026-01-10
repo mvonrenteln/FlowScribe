@@ -31,6 +31,7 @@ interface UseTranscriptPlaybackParams {
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
+  onShowGlossary: () => void;
   onRunDefaultAIRevision: () => void;
   onOpenAIRevisionMenu: () => void;
   onOpenAISegmentMerge: () => void;

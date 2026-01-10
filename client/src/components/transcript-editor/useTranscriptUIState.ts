@@ -1,4 +1,5 @@
 import { useCallback, useState } from "react";
+import type { SettingsSection } from "@/components/settings/SettingsNav";
 
 export const useTranscriptUIState = () => {
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -10,6 +11,9 @@ export const useTranscriptUIState = () => {
   const [showAISegmentMerge, setShowAISegmentMerge] = useState(false);
   const [showAICommandPanel, setShowAICommandPanel] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+  const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection | undefined>(
+    undefined,
+  );
   const [confidencePopoverOpen, setConfidencePopoverOpen] = useState(false);
   const [spellcheckPopoverOpen, setSpellcheckPopoverOpen] = useState(false);
   const [editRequestId, setEditRequestId] = useState<string | null>(null);
@@ -39,6 +43,8 @@ export const useTranscriptUIState = () => {
     setShowAICommandPanel,
     showSettings,
     setShowSettings,
+    settingsInitialSection,
+    setSettingsInitialSection,
     confidencePopoverOpen,
     setConfidencePopoverOpen,
     spellcheckPopoverOpen,

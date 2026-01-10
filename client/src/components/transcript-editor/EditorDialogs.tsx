@@ -1,6 +1,5 @@
 import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
 import { ExportDialog } from "../ExportDialog";
-import { GlossaryDialog } from "../GlossaryDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
 import { SpellcheckDialog } from "../SpellcheckDialog";
@@ -16,8 +15,8 @@ export function EditorDialogs({
   onExportChange,
   segments,
   audioFileName,
-  showLexicon,
-  onLexiconChange,
+  _showLexicon,
+  _onLexiconChange,
   showSpellcheckDialog,
   onSpellcheckDialogChange,
   showRevisionDialog,
@@ -33,6 +32,8 @@ export function EditorDialogs({
   showSettings,
   onSettingsChange,
   onOpenSettings,
+  settingsInitialSection,
+  _setSettingsInitialSection,
 }: DialogProps) {
   return (
     <>
@@ -43,7 +44,7 @@ export function EditorDialogs({
         segments={segments}
         fileName={audioFileName?.replace(/\.[^/.]+$/, "") || "transcript"}
       />
-      <GlossaryDialog open={showLexicon} onOpenChange={onLexiconChange} />
+      {/* GlossaryDialog removed — use Settings -> Glossary for management */}
       <SpellcheckDialog open={showSpellcheckDialog} onOpenChange={onSpellcheckDialogChange} />
       <RevisionDialog
         open={showRevisionDialog}
@@ -60,7 +61,12 @@ export function EditorDialogs({
         onOpenChange={onAISegmentMergeChange}
         onOpenSettings={onOpenSettings}
       />
-      <SettingsSheet open={showSettings} onOpenChange={onSettingsChange} showTrigger={false} />
+      <SettingsSheet
+        open={showSettings}
+        onOpenChange={onSettingsChange}
+        initialSection={settingsInitialSection}
+        showTrigger={false}
+      />
     </>
   );
 }

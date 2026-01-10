@@ -46,10 +46,6 @@ vi.mock("@/components/ThemeToggle", () => ({
   ThemeToggle: () => <div data-testid="mock-theme" />,
 }));
 
-vi.mock("@/components/GlossaryDialog", () => ({
-  GlossaryDialog: () => null,
-}));
-
 vi.mock("@/components/SpellcheckDialog", () => ({
   SpellcheckDialog: () => null,
 }));

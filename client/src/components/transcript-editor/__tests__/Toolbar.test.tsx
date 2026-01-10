@@ -151,4 +151,29 @@ describe("Toolbar", () => {
 
     expect(onDeleteSession).toHaveBeenCalledWith("base-1");
   });
+
+  it("toggles glossary highlighting when glossary item is clicked", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    const onShowGlossary = vi.fn();
+    render(<Toolbar {...baseProps} onShowGlossary={onShowGlossary} />);
+
+    await user.click(screen.getByTestId("button-highlights"));
+    const glossaryItem = await screen.findByText("Glossary");
+    await user.click(glossaryItem);
+
+    expect(onShowGlossary).toHaveBeenCalled();
+  });
+
+  it("shows check mark for glossary when glossaryHighlightActive=true", async () => {
+    const user = userEvent.setup({ pointerEventsCheck: 0 });
+    render(<Toolbar {...baseProps} glossaryHighlightActive={true} />);
+
+    await user.click(screen.getByTestId("button-highlights"));
+    const glossaryItem = await screen.findByText("Glossary");
+    // The Check icon renders as an SVG; ensure it's present within the item
+    const parent = glossaryItem.closest("button") || glossaryItem.parentElement;
+    expect(parent).toBeTruthy();
+    // look for an element with role img (lucide icons don't have role, so search for svg)
+    expect(parent?.querySelector("svg")).toBeTruthy();
+  });
 });

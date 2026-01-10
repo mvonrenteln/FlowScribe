@@ -72,6 +72,9 @@ export const useTranscriptEditor = () => {
   const lexiconHighlightBackground = useTranscriptStore(
     (state) => state.lexiconHighlightBackground,
   );
+  const setLexiconHighlightUnderline = useTranscriptStore(
+    (state) => state.setLexiconHighlightUnderline,
+  );
   const spellcheckEnabled = useTranscriptStore((state) => state.spellcheckEnabled);
   const spellcheckLanguages = useTranscriptStore((state) => state.spellcheckLanguages);
   const spellcheckIgnoreWords = useTranscriptStore((state) => state.spellcheckIgnoreWords);
@@ -108,6 +111,8 @@ export const useTranscriptEditor = () => {
     setShowAICommandPanel,
     showSettings,
     setShowSettings,
+    settingsInitialSection,
+    setSettingsInitialSection,
     confidencePopoverOpen,
     setConfidencePopoverOpen,
     spellcheckPopoverOpen,
@@ -395,6 +400,7 @@ export const useTranscriptEditor = () => {
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
     onShowSettings: () => setShowSettings(true),
+    onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
     onRunDefaultAIRevision: handleRunDefaultAIRevision,
     onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
     onOpenAISegmentMerge: () => setShowAISegmentMerge(true),
@@ -517,7 +523,7 @@ export const useTranscriptEditor = () => {
       spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
       spellcheckHighlightActive: showSpellcheckMatches,
       glossaryHighlightActive: showLexiconMatches,
-      onShowGlossary: () => setShowLexicon(true),
+      onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
     }),
     [
       sidebarOpen,
@@ -556,7 +562,6 @@ export const useTranscriptEditor = () => {
       setSpellcheckPopoverOpen,
       setShowSettings,
       setShowSpellcheckDialog,
-      setShowLexicon,
       showAICommandPanel,
       setShowAICommandPanel,
       showLexiconMatches,
@@ -567,6 +572,8 @@ export const useTranscriptEditor = () => {
       canCreateRevision,
       transcriptActions.deleteSession,
       toggleHighlightLowConfidence,
+      lexiconHighlightUnderline,
+      setLexiconHighlightUnderline,
     ],
   );
 
@@ -764,6 +771,8 @@ export const useTranscriptEditor = () => {
       showSettings,
       onSettingsChange: setShowSettings,
       onOpenSettings: () => setShowSettings(true),
+      settingsInitialSection,
+      setSettingsInitialSection,
     }),
     [
       audioFile?.name,
@@ -789,6 +798,8 @@ export const useTranscriptEditor = () => {
       setShowRevisionDialog,
       setShowAISegmentMerge,
       setShowSettings,
+      settingsInitialSection,
+      setSettingsInitialSection,
     ],
   );
 

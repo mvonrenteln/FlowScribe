@@ -23,7 +23,6 @@ vi.mock("@/components/PlaybackControls", () => ({ PlaybackControls: () => null }
 vi.mock("@/components/ThemeToggle", () => ({ ThemeToggle: () => null }));
 vi.mock("@/components/ExportDialog", () => ({ ExportDialog: () => null }));
 vi.mock("@/components/KeyboardShortcuts", () => ({ KeyboardShortcuts: () => null }));
-vi.mock("@/components/GlossaryDialog", () => ({ GlossaryDialog: () => null }));
 vi.mock("@/components/SpellcheckDialog", () => ({ SpellcheckDialog: () => null }));
 vi.mock("@/components/CustomDictionariesDialog", () => ({ CustomDictionariesDialog: () => null }));
 
