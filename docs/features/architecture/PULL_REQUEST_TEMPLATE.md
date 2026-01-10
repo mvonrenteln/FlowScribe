@@ -403,6 +403,7 @@ Removed all deprecated names:
 - `BUILTIN_REVISION_TEMPLATES` → `BUILTIN_REVISION_PROMPTS`
 - `findTemplate()` → `findPrompt()`
 - `getDefaultTemplate()` → `getDefaultPrompt()`
+- Consistently use "Prompt" terminology everywhere
 
 ### Step 5: Updated Component Imports ✅
 
@@ -426,6 +427,7 @@ import { classifySpeakers } from "@/lib/ai/features/speaker";
 - Parsing: 87.10%
 - Utils: 80%+
 - Core service: 30-50% (integration code)
+
 ---
 
 ## Testing Strategy
