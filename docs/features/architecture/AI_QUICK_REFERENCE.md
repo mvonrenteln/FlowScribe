@@ -386,7 +386,6 @@ import { parseResponse } from "@/lib/ai/parsing/responseParser";
 ## More Information
 
 - **Full API Docs:** `docs/features/architecture/ai-features-unified.md`
-- **Migration Details:** `AI_FEATURES_MIGRATION_PR.md`
 - **Implementation Examples:** See Speaker & Revision features
 - **Tests:** `src/lib/ai/__tests__/`
 

@@ -472,10 +472,6 @@ import { classifySpeakers } from "@/lib/ai/features/speaker";
    - Included Speaker and Revision examples
    - Updated Phase status and roadmap
 
-2. **`TODO-MIGRATION.md`** (Migration checklist)
-   - All Phase 1-2 tasks marked complete
-   - 907 lines removed documentation
-   - Deprecation cleanup documented
 
 ### Documentation Highlights
 

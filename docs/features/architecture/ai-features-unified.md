@@ -1709,25 +1709,6 @@ aiFeatureService.registerFeature(newFeatureConfig);
 
 ---
 
-## Migration Path
-
-### From Current Implementation
-
-**Phase 2 Migration Steps:**
-
-1. **Create service layer** (new code, no changes to existing)
-2. **Add feature configs** for existing features
-3. **Create adapter layer** between old and new
-4. **Migrate Speaker Classification** to new service
-5. **Migrate Transcript Revision** to new service
-6. **Remove old implementation** once verified
-7. **Build new features** on new service
-
-**Risk Mitigation:**
-- Feature flag for new service
-- A/B testing capability
-- Rollback plan (keep old code until stable)
-
 ---
 
 ## Open Questions & Decisions Needed
@@ -2076,8 +2057,8 @@ const result = await executeFeature("your-feature", prompt.variables, {...});
 - Text Revision feature (ready for production)
 - 750+ tests, 80%+ coverage on core utilities
 
-**Phase 2:** Service Layer Migration
-- All features migrated to unified API
+**Phase 2:** Service Layer
+- Unified API adoption across features
 - 900+ lines of old code removed
 - All deprecated aliases cleaned up
 - Documentation complete

@@ -2,7 +2,7 @@
  * Settings Storage
  *
  * Dedicated storage layer for application settings.
- * Handles persistence, migration, and validation of settings.
+ * Handles persistence and validation of settings.
  */
 
 import type { AIProviderConfig } from "@/lib/ai/providers/types";
@@ -68,7 +68,6 @@ export function readSettings(): PersistedSettings | null {
 
     // Version check
     if (parsed.version !== SETTINGS_VERSION) {
-      // Future: Add migration logic here
       console.info("[Settings] Version mismatch, using defaults", {
         stored: parsed.version,
         expected: SETTINGS_VERSION,
@@ -118,13 +117,10 @@ export function clearSettings(): boolean {
   }
 }
 
-// ==================== Legacy Migration ====================
-
-// Legacy migration removed: older global state handling deprecated.
 
 /**
- * Initialize settings, with migration fallback.
- * Returns existing settings, migrated settings, or defaults.
+ * Initialize settings.
+ * Returns existing settings or defaults.
  */
 export function initializeSettings(): PersistedSettings {
   // Try to read existing settings
@@ -133,8 +129,6 @@ export function initializeSettings(): PersistedSettings {
     return existing;
   }
 
-  // Try to migrate from legacy format
-  // Legacy migration removed — fall back directly to defaults when no stored settings exist.
 
   // Use defaults
   const defaults = { ...DEFAULT_SETTINGS };
