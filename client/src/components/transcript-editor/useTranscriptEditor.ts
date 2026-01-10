@@ -798,15 +798,8 @@ export const useTranscriptEditor = () => {
       onOpenChange: setShowAICommandPanel,
       filteredSegmentIds: filteredSegments.map((segment) => segment.id),
       onOpenSettings: () => setShowSettings(true),
-      onOpenMergeDialog: () => setShowAISegmentMerge(true),
     }),
-    [
-      filteredSegments,
-      setShowAICommandPanel,
-      setShowAISegmentMerge,
-      setShowSettings,
-      showAICommandPanel,
-    ],
+    [filteredSegments, setShowAICommandPanel, setShowSettings, showAICommandPanel],
   );
 
   return {

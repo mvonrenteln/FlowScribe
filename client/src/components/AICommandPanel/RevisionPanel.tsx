@@ -153,7 +153,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
           disabled: scopedSegmentIds.length === 0 || !effectivePromptId,
         }}
         stopAction={{
-          label: "Stop Revision",
+          label: "Stop",
           icon: <StopCircle className="mr-2 h-4 w-4" />,
           onClick: cancelRevision,
         }}
@@ -176,7 +176,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
               </DrawerTrigger>
               <DrawerContent
                 ref={logDrawerRef}
-                className="max-h-[70vh]"
+                className="h-[80vh] sm:h-[40vh] lg:h-[40vh] max-h-[80vh] sm:max-h-[40vh] lg:max-h-[40vh]"
                 tabIndex={-1}
                 onOpenAutoFocus={(event) => {
                   event.preventDefault();
@@ -189,31 +189,33 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                     Batch revision status updates and errors.
                   </DrawerDescription>
                 </DrawerHeader>
-                <div className="px-6 pb-6 overflow-auto">
-                  <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Segment</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Duration</TableHead>
-                        <TableHead>Time</TableHead>
-                        <TableHead>Error</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {batchLog.map((entry) => (
-                        <TableRow key={`${entry.segmentId}-${entry.loggedAt}`}>
-                          <TableCell>{entry.segmentId}</TableCell>
-                          <TableCell className="capitalize">{entry.status}</TableCell>
-                          <TableCell>
-                            {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(2)}s` : "-"}
-                          </TableCell>
-                          <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
-                          <TableCell>{entry.error ?? "—"}</TableCell>
+                <div className="px-6 pb-6 flex-1 overflow-hidden">
+                  <div className="h-full overflow-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Segment</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Duration</TableHead>
+                          <TableHead>Time</TableHead>
+                          <TableHead>Error</TableHead>
                         </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
+                      </TableHeader>
+                      <TableBody>
+                        {batchLog.map((entry) => (
+                          <TableRow key={`${entry.segmentId}-${entry.loggedAt}`}>
+                            <TableCell>{entry.segmentId}</TableCell>
+                            <TableCell className="capitalize">{entry.status}</TableCell>
+                            <TableCell>
+                              {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(2)}s` : "-"}
+                            </TableCell>
+                            <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
+                            <TableCell>{entry.error ?? "—"}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
                 </div>
               </DrawerContent>
             </Drawer>

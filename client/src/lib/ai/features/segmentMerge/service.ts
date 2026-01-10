@@ -15,6 +15,7 @@ import type {
   MergeAnalysisIssue,
   MergeAnalysisParams,
   MergeAnalysisResult,
+  MergeBatchLogEntry,
   RawMergeSuggestion,
 } from "./types";
 import {
@@ -97,6 +98,7 @@ export async function analyzeMergeCandidates(
 
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
+    const batchStart = Date.now();
 
     logger.debug(`Processing batch ${batchIndex + 1}/${batches.length}`);
 
@@ -119,15 +121,10 @@ export async function analyzeMergeCandidates(
       logger.debug(`Batch ${batchIndex + 1}: No eligible pairs`);
       totalAnalyzed += batch.length - 1;
 
-      // Notify progress even if no pairs
-      if (onProgress) {
-        onProgress({
-          batchIndex: batchIndex + 1,
-          totalBatches: batches.length,
-          batchSuggestions: [],
-          processedCount: totalAnalyzed,
-        });
-      }
+      // Do not emit noisy batch log entries when there are zero pairs
+      // and no issues to report. This prevents cluttering the UI with
+      // many "Expected 0 / Returned 0" rows for batches that cannot
+      // produce any pair analysis (e.g. single-segment batches).
       continue;
     }
 
@@ -149,6 +146,7 @@ export async function analyzeMergeCandidates(
       // Process response using new processor
       const processed = processAIResponse(result, {
         idMapping: idContext.mapping,
+        enableSmoothing,
       });
 
       allSuggestions.push(...processed.suggestions);
@@ -162,23 +160,61 @@ export async function analyzeMergeCandidates(
         minConfidence,
       );
 
-      // Notify progress after each batch
-      if (onProgress) {
+      const batchLogEntry: MergeBatchLogEntry = {
+        batchIndex: batchIndex + 1,
+        pairCount: prompt.pairCount,
+        rawItemCount: processed.rawItemCount,
+        normalizedCount: processed.normalizedCount,
+        suggestionCount: batchProcessedSuggestions.length,
+        processedTotal: totalAnalyzed,
+        totalExpected: segments.length - 1,
+        issues: processed.issues,
+        batchDurationMs: Date.now() - batchStart,
+        fatal: processed.issues.some((issue) => issue.level === "error"),
+      };
+
+      // Notify progress after each batch — only for batches that actually had pairs
+      if (onProgress && prompt.pairCount > 0) {
         onProgress({
           batchIndex: batchIndex + 1,
           totalBatches: batches.length,
           batchSuggestions: batchProcessedSuggestions,
           processedCount: totalAnalyzed,
+          batchLogEntry,
         });
       }
     } catch (error) {
-      logger.error(`Batch ${batchIndex + 1} failed`, {
-        error: error instanceof Error ? error.message : String(error),
-      });
-      allIssues.push({
+      const batchIssue: MergeAnalysisIssue = {
         level: "error",
         message: `Batch ${batchIndex + 1} failed: ${error instanceof Error ? error.message : String(error)}`,
+      };
+      logger.error(`Batch ${batchIndex + 1} failed`, {
+        error: batchIssue.message,
       });
+      allIssues.push(batchIssue);
+      totalAnalyzed += batch.length - 1;
+
+      // Only report failures for batches that were actually analyzed (had pairs)
+      if (onProgress && prompt.pairCount > 0) {
+        onProgress({
+          batchIndex: batchIndex + 1,
+          totalBatches: batches.length,
+          batchSuggestions: [],
+          processedCount: totalAnalyzed,
+          batchLogEntry: {
+            batchIndex: batchIndex + 1,
+            pairCount: prompt.pairCount,
+            rawItemCount: 0,
+            normalizedCount: 0,
+            suggestionCount: 0,
+            processedTotal: totalAnalyzed,
+            totalExpected: segments.length - 1,
+            issues: [batchIssue],
+            batchDurationMs: Date.now() - batchStart,
+            fatal: true,
+          },
+        });
+      }
     }
   }
 

@@ -9,7 +9,11 @@
  */
 
 import type { StoreApi } from "zustand";
-import type { MergeAnalysisResult, MergeSuggestion } from "@/lib/ai/features/segmentMerge";
+import type {
+  MergeAnalysisResult,
+  MergeBatchLogEntry,
+  MergeSuggestion,
+} from "@/lib/ai/features/segmentMerge";
 import type {
   AIPrompt,
   AISegmentMergeSlice,
@@ -18,6 +22,9 @@ import type {
   TranscriptStore,
 } from "../types";
 import { normalizeAISegmentMergeConfig } from "../utils/aiSegmentMergeConfig";
+import { generateId } from "../utils/id";
+import { applyTextUpdateToSegment } from "../utils/segmentText";
+import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -32,6 +39,7 @@ export const initialAISegmentMergeState = {
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(),
   aiSegmentMergeError: null as string | null,
   aiSegmentMergeAbortController: null as AbortController | null,
+  aiSegmentMergeBatchLog: [] as MergeBatchLogEntry[],
 };
 
 // ==================== Helper Functions ====================
@@ -69,6 +77,59 @@ function toStoreSuggestion(suggestion: MergeSuggestion): AISegmentMergeSuggestio
   };
 }
 
+interface MergeApplyResult {
+  segments: Segment[];
+  mergedId: string;
+  removedIds: [string, string];
+}
+
+const buildMergedSegment = (first: Segment, second: Segment) => ({
+  id: generateId(),
+  speaker: first.speaker,
+  start: first.start,
+  end: second.end,
+  text: `${first.text} ${second.text}`,
+  words: [...first.words, ...second.words],
+});
+
+const applyMergeToSegments = (
+  segments: Segment[],
+  suggestion: AISegmentMergeSuggestion,
+  applySmoothing: boolean,
+): MergeApplyResult | null => {
+  const [firstSegmentId, secondSegmentId] = suggestion.segmentIds;
+  if (!firstSegmentId || !secondSegmentId) return null;
+
+  const index1 = segments.findIndex((s) => s.id === firstSegmentId);
+  const index2 = segments.findIndex((s) => s.id === secondSegmentId);
+  if (index1 === -1 || index2 === -1) return null;
+  if (Math.abs(index1 - index2) !== 1) return null;
+
+  const [first, second] =
+    index1 < index2 ? [segments[index1], segments[index2]] : [segments[index2], segments[index1]];
+
+  const mergedBase = buildMergedSegment(first, second);
+  const mergedText =
+    applySmoothing && suggestion.smoothedText ? suggestion.smoothedText : suggestion.mergedText;
+  const mergedSegment = applyTextUpdateToSegment(mergedBase, mergedText) ?? mergedBase;
+
+  const minIndex = Math.min(index1, index2);
+  const nextSegments = [
+    ...segments.slice(0, minIndex),
+    mergedSegment,
+    ...segments.slice(Math.max(index1, index2) + 1),
+  ];
+
+  return {
+    segments: nextSegments,
+    mergedId: mergedSegment.id,
+    removedIds: [first.id, second.id],
+  };
+};
+
+const isSuggestionInvalid = (suggestion: AISegmentMergeSuggestion, invalidIds: Set<string>) =>
+  suggestion.segmentIds.some((id) => Boolean(id) && invalidIds.has(id));
+
 // ==================== Slice Implementation ====================
 
 export const createAISegmentMergeSlice = (
@@ -104,6 +165,7 @@ export const createAISegmentMergeSlice = (
       aiSegmentMergeError: null,
       aiSegmentMergeAbortController: abortController,
       aiSegmentMergeSuggestions: [], // Clear previous suggestions
+      aiSegmentMergeBatchLog: [],
     });
 
     // Prepare analysis parameters
@@ -121,17 +183,26 @@ export const createAISegmentMergeSlice = (
       onProgress: (progress: {
         batchIndex: number;
         totalBatches: number;
-        batchSuggestions: AISegmentMergeSuggestion[];
+        batchSuggestions: MergeSuggestion[];
         processedCount: number;
+        batchLogEntry?: MergeBatchLogEntry;
       }) => {
         // Update UI after each batch
-        const currentSuggestions = get().aiSegmentMergeSuggestions;
+        const currentState = get();
+        const currentSuggestions = currentState.aiSegmentMergeSuggestions;
         const newSuggestions = progress.batchSuggestions.map(toStoreSuggestion);
+        const nextBatchLog = progress.batchLogEntry
+          ? [
+              ...currentState.aiSegmentMergeBatchLog,
+              { ...progress.batchLogEntry, loggedAt: Date.now() },
+            ]
+          : currentState.aiSegmentMergeBatchLog;
 
         set({
           aiSegmentMergeSuggestions: [...currentSuggestions, ...newSuggestions],
           aiSegmentMergeProcessedCount: progress.processedCount,
           aiSegmentMergeTotalToProcess: segmentsToAnalyze.length - 1,
+          aiSegmentMergeBatchLog: nextBatchLog,
         });
 
         console.log(
@@ -196,7 +267,7 @@ export const createAISegmentMergeSlice = (
     });
   },
 
-  acceptMergeSuggestion: (suggestionId) => {
+  acceptMergeSuggestion: (suggestionId, options) => {
     const state = get();
     const suggestion = state.aiSegmentMergeSuggestions.find((s) => s.id === suggestionId);
 
@@ -204,27 +275,45 @@ export const createAISegmentMergeSlice = (
       return;
     }
 
-    // Perform the actual merge using the existing mergeSegments function
-    const [firstSegmentId, secondSegmentId] = suggestion.segmentIds;
-
-    if (firstSegmentId && secondSegmentId) {
-      // Use the store's merge function
-      const mergedId = state.mergeSegments(firstSegmentId, secondSegmentId);
-
-      if (mergedId) {
-        // If smoothing was applied, update the merged segment text
-        if (suggestion.smoothedText && suggestion.smoothedText !== suggestion.mergedText) {
-          state.updateSegmentText(mergedId, suggestion.smoothedText);
-        }
-
-        // Mark suggestion as accepted
-        set({
-          aiSegmentMergeSuggestions: state.aiSegmentMergeSuggestions.map((s) =>
-            s.id === suggestionId ? { ...s, status: "accepted" as const } : s,
-          ),
-        });
-      }
+    const applySmoothing = options?.applySmoothing ?? true;
+    const mergeResult = applyMergeToSegments(state.segments, suggestion, applySmoothing);
+    if (!mergeResult) {
+      set({
+        aiSegmentMergeSuggestions: state.aiSegmentMergeSuggestions.map((s) =>
+          s.id === suggestionId ? { ...s, status: "rejected" as const } : s,
+        ),
+      });
+      return;
     }
+
+    const invalidSegmentIds = new Set<string>(mergeResult.removedIds);
+    const nextSelectedSegmentId =
+      state.selectedSegmentId && !invalidSegmentIds.has(state.selectedSegmentId)
+        ? state.selectedSegmentId
+        : mergeResult.mergedId;
+
+    const nextHistory = addToHistory(state.history, state.historyIndex, {
+      segments: mergeResult.segments,
+      speakers: state.speakers,
+      selectedSegmentId: nextSelectedSegmentId,
+      currentTime: state.currentTime,
+    });
+
+    set({
+      segments: mergeResult.segments,
+      selectedSegmentId: nextSelectedSegmentId,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+      aiSegmentMergeSuggestions: state.aiSegmentMergeSuggestions.map((s) => {
+        if (s.id === suggestionId) {
+          return { ...s, status: "accepted" as const };
+        }
+        if (s.status === "pending" && isSuggestionInvalid(s, invalidSegmentIds)) {
+          return { ...s, status: "rejected" as const };
+        }
+        return s;
+      }),
+    });
   },
 
   rejectMergeSuggestion: (suggestionId) => {
@@ -242,25 +331,74 @@ export const createAISegmentMergeSlice = (
       (s) => s.status === "pending" && s.confidence === "high",
     );
 
-    // Process suggestions in order (important: after a merge, segment IDs may change)
-    for (const suggestion of highConfidenceSuggestions) {
-      // Re-check if the suggestion is still valid (segments exist)
-      const currentState = get();
-      const segmentsExist = suggestion.segmentIds.every((id) =>
-        currentState.segments.some((s) => s.id === id),
-      );
+    if (highConfidenceSuggestions.length === 0) return;
 
-      if (segmentsExist) {
-        currentState.acceptMergeSuggestion(suggestion.id);
-      } else {
-        // Mark as rejected if segments no longer exist
-        set({
-          aiSegmentMergeSuggestions: currentState.aiSegmentMergeSuggestions.map((s) =>
-            s.id === suggestion.id ? { ...s, status: "rejected" as const } : s,
-          ),
-        });
+    let workingSegments = state.segments;
+    let updatedSuggestions = state.aiSegmentMergeSuggestions.map((s) => ({ ...s }));
+    const invalidSegmentIds = new Set<string>();
+    let nextSelectedSegmentId = state.selectedSegmentId;
+    let mergedAny = false;
+
+    for (const suggestion of highConfidenceSuggestions) {
+      const suggestionIndex = updatedSuggestions.findIndex((s) => s.id === suggestion.id);
+      if (suggestionIndex === -1) continue;
+
+      if (updatedSuggestions[suggestionIndex]?.status !== "pending") continue;
+      if (isSuggestionInvalid(suggestion, invalidSegmentIds)) {
+        updatedSuggestions[suggestionIndex] = { ...suggestion, status: "rejected" as const };
+        continue;
       }
+
+      const mergeResult = applyMergeToSegments(workingSegments, suggestion, true);
+      if (!mergeResult) {
+        updatedSuggestions[suggestionIndex] = { ...suggestion, status: "rejected" as const };
+        continue;
+      }
+
+      mergedAny = true;
+      workingSegments = mergeResult.segments;
+      invalidSegmentIds.add(mergeResult.removedIds[0]);
+      invalidSegmentIds.add(mergeResult.removedIds[1]);
+
+      if (nextSelectedSegmentId && invalidSegmentIds.has(nextSelectedSegmentId)) {
+        nextSelectedSegmentId = mergeResult.mergedId;
+      }
+
+      updatedSuggestions = updatedSuggestions.map((current) => {
+        if (current.id === suggestion.id) {
+          return { ...current, status: "accepted" as const };
+        }
+        if (current.status === "pending" && isSuggestionInvalid(current, invalidSegmentIds)) {
+          return { ...current, status: "rejected" as const };
+        }
+        return current;
+      });
     }
+
+    const finalSelectedSegmentId =
+      nextSelectedSegmentId && workingSegments.some((s) => s.id === nextSelectedSegmentId)
+        ? nextSelectedSegmentId
+        : (workingSegments[0]?.id ?? null);
+
+    if (mergedAny) {
+      const nextHistory = addToHistory(state.history, state.historyIndex, {
+        segments: workingSegments,
+        speakers: state.speakers,
+        selectedSegmentId: finalSelectedSegmentId,
+        currentTime: state.currentTime,
+      });
+
+      set({
+        segments: workingSegments,
+        selectedSegmentId: finalSelectedSegmentId,
+        history: nextHistory.history,
+        historyIndex: nextHistory.historyIndex,
+        aiSegmentMergeSuggestions: updatedSuggestions,
+      });
+      return;
+    }
+
+    set({ aiSegmentMergeSuggestions: updatedSuggestions });
   },
 
   rejectAllSuggestions: () => {

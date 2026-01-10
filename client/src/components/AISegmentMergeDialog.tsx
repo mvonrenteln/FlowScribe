@@ -9,6 +9,7 @@
 import {
   AlertCircle,
   Check,
+  CheckCheck,
   ChevronDown,
   ChevronRight,
   GitMerge,
@@ -20,6 +21,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -352,7 +354,7 @@ export function AISegmentMergeDialog({
               {isProcessing ? (
                 <Button onClick={cancelMergeAnalysis} variant="destructive">
                   <Pause className="h-4 w-4 mr-2" />
-                  Stop Analysis
+                  Stop
                 </Button>
               ) : (
                 <Button
@@ -360,7 +362,7 @@ export function AISegmentMergeDialog({
                   disabled={segments.length < 2 || !selectedProviderId}
                 >
                   <Play className="h-4 w-4 mr-2" />
-                  Start Analysis
+                  Start Batch
                 </Button>
               )}
               {pendingSuggestions.length > 0 && (
@@ -401,6 +403,9 @@ export function AISegmentMergeDialog({
                     isOpen={highOpen}
                     onToggle={() => setHighOpen(!highOpen)}
                     onAccept={acceptMergeSuggestion}
+                    onAcceptWithoutSmoothing={(id) =>
+                      acceptMergeSuggestion(id, { applySmoothing: false })
+                    }
                     onReject={rejectMergeSuggestion}
                   />
                 )}
@@ -415,6 +420,9 @@ export function AISegmentMergeDialog({
                     isOpen={mediumOpen}
                     onToggle={() => setMediumOpen(!mediumOpen)}
                     onAccept={acceptMergeSuggestion}
+                    onAcceptWithoutSmoothing={(id) =>
+                      acceptMergeSuggestion(id, { applySmoothing: false })
+                    }
                     onReject={rejectMergeSuggestion}
                   />
                 )}
@@ -429,6 +437,9 @@ export function AISegmentMergeDialog({
                     isOpen={lowOpen}
                     onToggle={() => setLowOpen(!lowOpen)}
                     onAccept={acceptMergeSuggestion}
+                    onAcceptWithoutSmoothing={(id) =>
+                      acceptMergeSuggestion(id, { applySmoothing: false })
+                    }
                     onReject={rejectMergeSuggestion}
                   />
                 )}
@@ -464,6 +475,7 @@ interface ConfidenceGroupProps {
   isOpen: boolean;
   onToggle: () => void;
   onAccept: (id: string) => void;
+  onAcceptWithoutSmoothing: (id: string) => void;
   onReject: (id: string) => void;
 }
 
@@ -475,6 +487,7 @@ function ConfidenceGroup({
   isOpen,
   onToggle,
   onAccept,
+  onAcceptWithoutSmoothing,
   onReject,
 }: ConfidenceGroupProps) {
   const badgeVariant = level === "high" ? "default" : level === "medium" ? "secondary" : "outline";
@@ -499,6 +512,7 @@ function ConfidenceGroup({
             suggestion={suggestion}
             segments={segments}
             onAccept={() => onAccept(suggestion.id)}
+            onAcceptWithoutSmoothing={() => onAcceptWithoutSmoothing(suggestion.id)}
             onReject={() => onReject(suggestion.id)}
           />
         ))}
@@ -513,6 +527,7 @@ interface MergeSuggestionCardProps {
   suggestion: AISegmentMergeSuggestion;
   segments: Array<{ id: string; text: string; speaker: string }>;
   onAccept: () => void;
+  onAcceptWithoutSmoothing: () => void;
   onReject: () => void;
 }
 
@@ -520,6 +535,7 @@ function MergeSuggestionCard({
   suggestion,
   segments,
   onAccept,
+  onAcceptWithoutSmoothing,
   onReject,
 }: MergeSuggestionCardProps) {
   const relevantSegments = suggestion.segmentIds
@@ -528,31 +544,30 @@ function MergeSuggestionCard({
 
   if (relevantSegments.length < 2) return null;
 
-  const hasSmoothing = suggestion.smoothedText && suggestion.smoothedText !== suggestion.mergedText;
+  const hasSmoothing =
+    Boolean(suggestion.smoothedText) && suggestion.smoothedText !== suggestion.mergedText;
+  const combinedText = relevantSegments
+    .map((seg) => seg?.text ?? "")
+    .join(" ")
+    .trim();
+  const boundaryIndex = relevantSegments[0]?.text.length ?? 0;
+  const proposedText = hasSmoothing
+    ? (suggestion.smoothedText ?? suggestion.mergedText)
+    : suggestion.mergedText;
+  const AcceptIcon = hasSmoothing ? CheckCheck : Check;
 
   return (
     <div className="rounded-md border p-3 space-y-2 bg-background">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1 space-y-2">
-          {/* Before */}
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">BEFORE:</span>
-            {relevantSegments.map((seg, idx) => (
-              <div key={seg?.id} className="text-sm">
-                <span className="text-muted-foreground">{idx > 0 ? "+ " : ""}</span>"{seg?.text}"
-              </div>
-            ))}
-          </div>
-
-          {/* After */}
-          <div className="space-y-1">
-            <span className="text-xs font-medium text-muted-foreground">
-              AFTER{hasSmoothing ? " (with smoothing)" : ""}:
-            </span>
-            <div className="text-sm font-medium">
-              "{hasSmoothing ? suggestion.smoothedText : suggestion.mergedText}"
-            </div>
-          </div>
+          <MergeSuggestionDiff
+            originalText={combinedText}
+            suggestedText={proposedText}
+            originalLabel="Original"
+            suggestedLabel={hasSmoothing ? "Smoothed" : "Merged"}
+            boundaryIndex={boundaryIndex}
+            allowSideBySide={hasSmoothing}
+          />
 
           {/* Smoothing info */}
           {hasSmoothing && suggestion.smoothingChanges && (
@@ -580,12 +595,56 @@ function MergeSuggestionCard({
 
         {/* Actions */}
         <div className="flex items-center gap-1 shrink-0">
-          <Button size="sm" variant="outline" onClick={onAccept} title="Accept merge">
-            <Check className="h-4 w-4" />
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onReject} title="Reject merge">
-            <X className="h-4 w-4" />
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="text-destructive hover:text-destructive hover:bg-destructive/10"
+                  onClick={onReject}
+                >
+                  <X className="mr-1 h-3.5 w-3.5" />
+                  Reject
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>Reject this merge suggestion</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          {hasSmoothing && (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    className="text-muted-foreground"
+                    onClick={onAcceptWithoutSmoothing}
+                  >
+                    <Check className="h-3.5 w-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Accept the merge without smoothing</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          )}
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button size="sm" onClick={onAccept}>
+                  <AcceptIcon className="mr-1 h-3.5 w-3.5" />
+                  Accept
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                <p>{hasSmoothing ? "Accept the smoothed merge text" : "Accept this merge"}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
     </div>

@@ -177,6 +177,26 @@ export interface MergeAnalysisProgress {
 
   /** Total number of segments processed so far */
   processedCount: number;
+
+  /** Optional batch log entry */
+  batchLogEntry?: MergeBatchLogEntry;
+}
+
+/**
+ * Batch log entry for segment merge analysis.
+ */
+export interface MergeBatchLogEntry {
+  batchIndex: number;
+  pairCount: number;
+  rawItemCount: number;
+  normalizedCount: number;
+  suggestionCount: number;
+  processedTotal: number;
+  totalExpected: number;
+  issues: MergeAnalysisIssue[];
+  loggedAt?: number;
+  batchDurationMs?: number;
+  fatal?: boolean;
 }
 
 // ==================== Analysis Results ====================

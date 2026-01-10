@@ -1,3 +1,4 @@
+import type { MergeBatchLogEntry } from "@/lib/ai/features/segmentMerge/types";
 import type { FileReference } from "@/lib/fileReference";
 
 export interface SearchMatch {
@@ -171,6 +172,7 @@ export interface InitialStoreState {
   aiSegmentMergeConfig: AISegmentMergeConfig;
   aiSegmentMergeError: string | null;
   aiSegmentMergeAbortController: AbortController | null;
+  aiSegmentMergeBatchLog: MergeBatchLogEntry[];
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -499,7 +501,12 @@ export interface AISegmentMergeSlice {
     batchSize?: number;
   }) => void;
   cancelMergeAnalysis: () => void;
-  acceptMergeSuggestion: (suggestionId: string) => void;
+  acceptMergeSuggestion: (
+    suggestionId: string,
+    options?: {
+      applySmoothing?: boolean;
+    },
+  ) => void;
   rejectMergeSuggestion: (suggestionId: string) => void;
   acceptAllHighConfidence: () => void;
   rejectAllSuggestions: () => void;

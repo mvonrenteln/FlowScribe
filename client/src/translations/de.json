@@ -20,7 +20,7 @@
     "accept": "Übernehmen",
     "reject": "Abbrechen",
     "showCompact": "Kompakt anzeigen",
-    "showDiff": "Diff anzeigen",
+    "showDiff": "Nebeneinander anzeigen",
     "changeSuggested": "Änderung vorgeschlagen"
   }
 }

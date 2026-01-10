@@ -52,6 +52,7 @@ export const normalizeAISegmentMergeConfig = (
 
   return {
     ...base,
+    showInlineHints: true,
     prompts,
     activePromptId,
   };

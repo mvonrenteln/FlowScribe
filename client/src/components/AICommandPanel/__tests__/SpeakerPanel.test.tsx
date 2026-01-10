@@ -131,7 +131,7 @@ describe("SpeakerPanel", () => {
 
     render(<SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
 
-    const startButton = screen.getByRole("button", { name: /start analysis/i });
+    const startButton = screen.getByRole("button", { name: /start batch/i });
     await act(async () => {
       await user.click(startButton);
     });

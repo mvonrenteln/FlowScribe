@@ -20,7 +20,7 @@
     "accept": "Accept",
     "reject": "Reject",
     "showCompact": "Show compact",
-    "showDiff": "Show diff",
+    "showDiff": "Show Side-by-side",
     "changeSuggested": "Change suggested"
   },
   "provider": {

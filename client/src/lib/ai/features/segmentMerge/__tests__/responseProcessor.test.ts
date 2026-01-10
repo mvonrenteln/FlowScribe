@@ -275,5 +275,28 @@ describe("Response Processor", () => {
       expect(processed.suggestions.length).toBeGreaterThan(0);
       expect(processed.recoveryStrategy).toBe("lenient-parse");
     });
+
+    it("strips smoothing fields when smoothing is disabled", () => {
+      const result: AIFeatureResult<unknown[]> = {
+        success: true,
+        data: [
+          {
+            segmentIds: ["1", "2"],
+            confidence: 0.9,
+            reason: "Test",
+            smoothedText: "Smoothed output",
+            smoothingChanges: "Capitalize",
+          },
+        ],
+        metadata: {},
+      };
+
+      const processed = processAIResponse(result, { idMapping, enableSmoothing: false });
+
+      expect(processed.suggestions[0]?.smoothedText).toBeUndefined();
+      expect(processed.suggestions[0]?.smoothingChanges).toBeUndefined();
+      expect(processed.rawItemCount).toBe(1);
+      expect(processed.normalizedCount).toBe(1);
+    });
   });
 });

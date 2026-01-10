@@ -1,6 +1,8 @@
+import { Fragment, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranscriptStore } from "@/lib/store";
 import { TranscriptSegment } from "../TranscriptSegment";
+import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type TranscriptListProps = TranscriptEditorState["transcriptListProps"];
@@ -47,6 +49,10 @@ function TranscriptListComponent({
   const acceptSpeakerSuggestion = useTranscriptStore((s) => s.acceptSuggestion);
   const rejectSpeakerSuggestion = useTranscriptStore((s) => s.rejectSuggestion);
 
+  const pendingMergeSuggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
+  const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
+  const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
+
   // Create a map for fast lookup
   const pendingRevisionBySegmentId = new Map(
     pendingRevisions.filter((r) => r.status === "pending").map((r) => [r.segmentId, r]),
@@ -56,6 +62,17 @@ function TranscriptListComponent({
   const pendingSpeakerSuggestionBySegmentId = new Map(
     pendingSpeakerSuggestions.filter((s) => s.status === "pending").map((s) => [s.segmentId, s]),
   );
+
+  const pendingMergeSuggestionByPair = useMemo(() => {
+    const map = new Map<string, (typeof pendingMergeSuggestions)[number]>();
+    for (const suggestion of pendingMergeSuggestions) {
+      if (suggestion.status !== "pending") continue;
+      const [first, second] = suggestion.segmentIds;
+      if (!first || !second) continue;
+      map.set(`${first}::${second}`, suggestion);
+    }
+    return map;
+  }, [pendingMergeSuggestions]);
 
   // Simple "virtualization": If there are many segments, we could limit rendering.
   // But first, let's ensure memoization of the list itself and the segments works.
@@ -76,77 +93,96 @@ function TranscriptListComponent({
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
             const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
+            const nextSegment = filteredSegments[index + 1];
+            const mergeSuggestion = nextSegment
+              ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
+              : undefined;
 
             return (
-              <TranscriptSegment
-                key={segment.id}
-                segment={segment}
-                speakers={speakers}
-                isSelected={segment.id === selectedSegmentId}
-                isActive={activeSegmentId === segment.id}
-                currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
-                activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
-                splitWordIndex={resolvedSplitWordIndex ?? undefined}
-                highlightLowConfidence={highlightLowConfidence}
-                lowConfidenceThreshold={lowConfidenceThreshold}
-                lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
-                showLexiconMatches={showLexiconMatches}
-                lexiconHighlightUnderline={lexiconHighlightUnderline}
-                lexiconHighlightBackground={lexiconHighlightBackground}
-                spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
-                showSpellcheckMatches={showSpellcheckMatches}
-                editRequested={editRequestId === segment.id}
-                onEditRequestHandled={editRequestId === segment.id ? onClearEditRequest : undefined}
-                onSelect={handlers.onSelect}
-                onTextChange={handlers.onTextChange}
-                onSpeakerChange={handlers.onSpeakerChange}
-                onSplit={handlers.onSplit}
-                onConfirm={handlers.onConfirm}
-                onToggleBookmark={handlers.onToggleBookmark}
-                onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
-                onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
-                onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
-                onMergeWithPrevious={handlers.onMergeWithPrevious}
-                onMergeWithNext={handlers.onMergeWithNext}
-                onDelete={handlers.onDelete}
-                onSeek={onSeek}
-                searchQuery={searchQuery}
-                isRegexSearch={isRegexSearch}
-                replaceQuery={replaceQuery}
-                onReplaceCurrent={onReplaceCurrent}
-                onMatchClick={onMatchClick}
-                findMatchIndex={findMatchIndex}
-                // AI Revision props
-                pendingRevision={
-                  pendingRevision
-                    ? {
-                        revisedText: pendingRevision.revisedText,
-                        changeSummary: pendingRevision.changeSummary,
-                      }
-                    : undefined
-                }
-                onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
-                onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
-                lastRevisionResult={
-                  lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
-                }
-                // AI Speaker props
-                pendingSpeakerSuggestion={
-                  pendingSpeakerSugg
-                    ? {
-                        suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
-                        confidence: pendingSpeakerSugg.confidence,
-                        reason: pendingSpeakerSugg.reason,
-                      }
-                    : undefined
-                }
-                onAcceptSpeakerSuggestion={
-                  pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
-                }
-                onRejectSpeakerSuggestion={
-                  pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
-                }
-              />
+              <Fragment key={segment.id}>
+                <TranscriptSegment
+                  segment={segment}
+                  speakers={speakers}
+                  isSelected={segment.id === selectedSegmentId}
+                  isActive={activeSegmentId === segment.id}
+                  currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
+                  activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                  splitWordIndex={resolvedSplitWordIndex ?? undefined}
+                  highlightLowConfidence={highlightLowConfidence}
+                  lowConfidenceThreshold={lowConfidenceThreshold}
+                  lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
+                  showLexiconMatches={showLexiconMatches}
+                  lexiconHighlightUnderline={lexiconHighlightUnderline}
+                  lexiconHighlightBackground={lexiconHighlightBackground}
+                  spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
+                  showSpellcheckMatches={showSpellcheckMatches}
+                  editRequested={editRequestId === segment.id}
+                  onEditRequestHandled={
+                    editRequestId === segment.id ? onClearEditRequest : undefined
+                  }
+                  onSelect={handlers.onSelect}
+                  onTextChange={handlers.onTextChange}
+                  onSpeakerChange={handlers.onSpeakerChange}
+                  onSplit={handlers.onSplit}
+                  onConfirm={handlers.onConfirm}
+                  onToggleBookmark={handlers.onToggleBookmark}
+                  onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
+                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                  onMergeWithPrevious={handlers.onMergeWithPrevious}
+                  onMergeWithNext={handlers.onMergeWithNext}
+                  onDelete={handlers.onDelete}
+                  onSeek={onSeek}
+                  searchQuery={searchQuery}
+                  isRegexSearch={isRegexSearch}
+                  replaceQuery={replaceQuery}
+                  onReplaceCurrent={onReplaceCurrent}
+                  onMatchClick={onMatchClick}
+                  findMatchIndex={findMatchIndex}
+                  // AI Revision props
+                  pendingRevision={
+                    pendingRevision
+                      ? {
+                          revisedText: pendingRevision.revisedText,
+                          changeSummary: pendingRevision.changeSummary,
+                        }
+                      : undefined
+                  }
+                  onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
+                  onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
+                  lastRevisionResult={
+                    lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
+                  }
+                  // AI Speaker props
+                  pendingSpeakerSuggestion={
+                    pendingSpeakerSugg
+                      ? {
+                          suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
+                          confidence: pendingSpeakerSugg.confidence,
+                          reason: pendingSpeakerSugg.reason,
+                        }
+                      : undefined
+                  }
+                  onAcceptSpeakerSuggestion={
+                    pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
+                  }
+                  onRejectSpeakerSuggestion={
+                    pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
+                  }
+                />
+                {mergeSuggestion && nextSegment && (
+                  <MergeSuggestionInline
+                    suggestion={mergeSuggestion}
+                    firstSegment={segment}
+                    secondSegment={nextSegment}
+                    onAccept={() => acceptMergeSuggestion(mergeSuggestion.id)}
+                    onAcceptWithoutSmoothing={() =>
+                      acceptMergeSuggestion(mergeSuggestion.id, { applySmoothing: false })
+                    }
+                    onReject={() => rejectMergeSuggestion(mergeSuggestion.id)}
+                  />
+                )}
+              </Fragment>
             );
           })
         )}
