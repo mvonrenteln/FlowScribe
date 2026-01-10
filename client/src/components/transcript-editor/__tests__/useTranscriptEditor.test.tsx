@@ -51,8 +51,9 @@ describe("useTranscriptEditor", () => {
     resetStore();
   });
 
-  it("exposes merge handlers only for adjacent segments", () => {
-    useTranscriptStore.setState({
+  it("exposes merge handlers only for adjacent segments", async () => {
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -82,9 +83,13 @@ describe("useTranscriptEditor", () => {
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
       selectedSegmentId: "segment-2",
     });
+    });
 
-    const { result } = renderHook(() => useTranscriptEditor());
-    const handlers = result.current.transcriptListProps.segmentHandlers;
+    let result: ReturnType<typeof renderHook> | null = null;
+    await act(async () => {
+      result = renderHook(() => useTranscriptEditor());
+    });
+    const handlers = result!.current.transcriptListProps.segmentHandlers;
 
     expect(handlers[1]?.onMergeWithPrevious).toBeDefined();
     expect(handlers[1]?.onMergeWithNext).toBeDefined();
@@ -92,8 +97,9 @@ describe("useTranscriptEditor", () => {
     expect(handlers[2]?.onMergeWithNext).toBeUndefined();
   });
 
-  it("preserves playback position when splitting while playing", () => {
-    useTranscriptStore.setState({
+  it("preserves playback position when splitting while playing", async () => {
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -112,9 +118,13 @@ describe("useTranscriptEditor", () => {
       isPlaying: true,
       seekRequestTime: null,
     });
+    });
 
-    const { result } = renderHook(() => useTranscriptEditor());
-    const splitHandler = result.current.transcriptListProps.segmentHandlers[0]?.onSplit;
+    let result: ReturnType<typeof renderHook> | null = null;
+    await act(async () => {
+      result = renderHook(() => useTranscriptEditor());
+    });
+    const splitHandler = result!.current.transcriptListProps.segmentHandlers[0]?.onSplit;
 
     act(() => {
       splitHandler?.(1);
@@ -126,8 +136,9 @@ describe("useTranscriptEditor", () => {
     expect(state.segments).toHaveLength(2);
   });
 
-  it("selects the first search match segment", () => {
-    useTranscriptStore.setState({
+  it("selects the first search match segment", async () => {
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -148,11 +159,15 @@ describe("useTranscriptEditor", () => {
       ],
       selectedSegmentId: null,
     });
+    });
 
-    const { result } = renderHook(() => useTranscriptEditor());
+    let result: ReturnType<typeof renderHook> | null = null;
+    await act(async () => {
+      result = renderHook(() => useTranscriptEditor());
+    });
 
     act(() => {
-      result.current.filterPanelProps.onSearchQueryChange("Hallo");
+      result!.current.filterPanelProps.onSearchQueryChange("Hallo");
     });
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");

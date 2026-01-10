@@ -150,7 +150,9 @@ describe("FilterPanel", () => {
       ],
     };
 
-    render(<TranscriptEditor />);
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("mock-upload"));
 
@@ -192,7 +194,9 @@ describe("FilterPanel", () => {
       ],
     };
 
-    render(<TranscriptEditor />);
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("mock-upload"));
 
@@ -227,7 +231,8 @@ describe("FilterPanel", () => {
   });
 
   it("updates selection within the active speaker filter as time changes", async () => {
-    useTranscriptStore.setState({
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -262,8 +267,11 @@ describe("FilterPanel", () => {
       currentTime: 0.5,
       isPlaying: false,
     });
+    });
 
-    render(<TranscriptEditor />);
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     const speaker = useTranscriptStore
       .getState()
@@ -289,7 +297,8 @@ describe("FilterPanel", () => {
   });
 
   it("keeps selection on visible segments when active segment is filtered out", async () => {
-    useTranscriptStore.setState({
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -325,7 +334,11 @@ describe("FilterPanel", () => {
       isPlaying: false,
     });
 
-    render(<TranscriptEditor />);
+    });
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     const speaker = useTranscriptStore
       .getState()
@@ -350,7 +363,8 @@ describe("FilterPanel", () => {
   });
 
   it("filters segments using the lexicon filter", async () => {
-    useTranscriptStore.setState({
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -374,7 +388,11 @@ describe("FilterPanel", () => {
       lexiconThreshold: 0.8,
     });
 
-    render(<TranscriptEditor />);
+    });
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("button-filter-glossary"));
 
@@ -383,7 +401,8 @@ describe("FilterPanel", () => {
   });
 
   it("matches glossary variants in the filter", async () => {
-    useTranscriptStore.setState({
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -407,7 +426,11 @@ describe("FilterPanel", () => {
       lexiconThreshold: 0.8,
     });
 
-    render(<TranscriptEditor />);
+    });
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("button-filter-glossary"));
 
@@ -416,7 +439,8 @@ describe("FilterPanel", () => {
   });
 
   it("ignores glossary false positives in the filter", async () => {
-    useTranscriptStore.setState({
+    act(() => {
+      useTranscriptStore.setState({
       segments: [
         {
           id: "segment-1",
@@ -438,7 +462,11 @@ describe("FilterPanel", () => {
       lexiconThreshold: 0.8,
     });
 
-    render(<TranscriptEditor />);
+    });
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     const glossaryButton = screen.getByTestId("button-filter-glossary");
     expect(glossaryButton.textContent).toContain("0");
@@ -469,7 +497,9 @@ describe("FilterPanel", () => {
       lexiconThreshold: 0.8,
     });
 
-    render(<TranscriptEditor />);
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
 
@@ -502,7 +532,9 @@ describe("FilterPanel", () => {
       lexiconThreshold: 0.8,
     });
 
-    render(<TranscriptEditor />);
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
 
     await userEvent.click(screen.getByTestId("button-filter-glossary-low-score"));
 
