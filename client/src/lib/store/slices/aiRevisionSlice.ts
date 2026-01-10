@@ -133,18 +133,8 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
     return { ...initialAIRevisionState.aiRevisionConfig };
   }
 
-  // Migration: Map old IDs to new IDs (from previous naming conventions)
-  const idMigration: Record<string, string> = {
-    "default-transcript-cleanup": "builtin-text-cleanup",
-    "default-improve-clarity": "builtin-text-clarity",
-    "default-formalize": "builtin-text-formalize",
-  };
-
-  // Migrate saved prompts to new IDs if needed
-  const migratedPrompts = (saved.prompts ?? []).map((p) => ({
-    ...p,
-    id: idMigration[p.id] ?? p.id,
-  }));
+  // Use saved prompts as-is (no legacy ID migration)
+  const migratedPrompts = saved.prompts ?? [];
 
   // Merge prompts: ensure all built-in prompts exist, but PRESERVE user edits
   const builtInPromptIds = DEFAULT_TEXT_PROMPTS.map((p) => p.id);
@@ -176,18 +166,13 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
     }
   }
 
-  // Migrate defaultPromptId to new ID format
-  const migratedDefaultId = idMigration[saved.defaultPromptId ?? ""] ?? saved.defaultPromptId;
-
   // Validate defaultPromptId - must exist
+  const migratedDefaultId = saved.defaultPromptId ?? "builtin-text-cleanup";
   const validDefaultId = mergedPrompts.some((p) => p.id === migratedDefaultId)
     ? migratedDefaultId
     : "builtin-text-cleanup";
 
-  // Migrate quickAccessPromptIds to new ID format
-  const migratedQuickAccessIds = (saved.quickAccessPromptIds ?? []).map(
-    (id) => idMigration[id] ?? id,
-  );
+  const migratedQuickAccessIds = saved.quickAccessPromptIds ?? [];
 
   // Validate quickAccessPromptIds - filter out non-existent prompts
   const promptIds = new Set(mergedPrompts.map((p) => p.id));
