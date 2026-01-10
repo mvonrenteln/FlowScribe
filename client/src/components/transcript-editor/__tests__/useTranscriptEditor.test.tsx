@@ -1,4 +1,4 @@
-import { act, renderHook } from "@testing-library/react";
+import { act, renderHook, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
 import { useTranscriptEditor } from "../useTranscriptEditor";
@@ -86,6 +86,9 @@ describe("useTranscriptEditor", () => {
     });
 
     const { result } = renderHook(() => useTranscriptEditor());
+    await waitFor(() => {
+      expect(result.current.transcriptListProps).toBeTruthy();
+    });
     const handlers = result.current.transcriptListProps.segmentHandlers;
 
     expect(handlers[1]?.onMergeWithPrevious).toBeDefined();
@@ -118,6 +121,9 @@ describe("useTranscriptEditor", () => {
     });
 
     const { result } = renderHook(() => useTranscriptEditor());
+    await waitFor(() => {
+      expect(result.current.transcriptListProps).toBeTruthy();
+    });
     const splitHandler = result.current.transcriptListProps.segmentHandlers[0]?.onSplit;
 
     act(() => {
@@ -156,6 +162,9 @@ describe("useTranscriptEditor", () => {
     });
 
     const { result } = renderHook(() => useTranscriptEditor());
+    await waitFor(() => {
+      expect(result.current.filterPanelProps).toBeTruthy();
+    });
 
     act(() => {
       result.current.filterPanelProps.onSearchQueryChange("Hallo");
