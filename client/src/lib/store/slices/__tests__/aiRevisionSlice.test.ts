@@ -20,7 +20,9 @@ const createMockStore = () => {
     updateSegmentsTexts: vi.fn(),
   };
 
-  const set = (partial: Partial<TranscriptStore> | ((s: TranscriptStore) => Partial<TranscriptStore>)) => {
+  const set = (
+    partial: Partial<TranscriptStore> | ((s: TranscriptStore) => Partial<TranscriptStore>),
+  ) => {
     if (typeof partial === "function") {
       state = { ...state, ...partial(state as TranscriptStore) };
     } else {
@@ -39,8 +41,11 @@ describe("aiRevisionSlice", () => {
 
   beforeEach(() => {
     mockStore = createMockStore();
-    const { set, get } = mockStore as any;
-    slice = createAIRevisionSlice(set, get);
+    const { set, get } = mockStore;
+    slice = createAIRevisionSlice(
+      set,
+      get as () => ReturnType<typeof createMockStore> extends { getState: infer R } ? R : unknown,
+    );
   });
 
   describe("initialAIRevisionState", () => {
@@ -49,9 +54,7 @@ describe("aiRevisionSlice", () => {
     });
 
     it("has a default template ID set", () => {
-      expect(initialAIRevisionState.aiRevisionConfig.defaultPromptId).toBe(
-        "builtin-text-cleanup",
-      );
+      expect(initialAIRevisionState.aiRevisionConfig.defaultPromptId).toBe("builtin-text-cleanup");
     });
 
     it("is not processing by default", () => {
@@ -93,14 +96,36 @@ describe("aiRevisionSlice", () => {
 
   describe("basic actions (sanity)", () => {
     it("clearRevisions removes suggestions", () => {
-      mockStore.set({ aiRevisionSuggestions: [{ segmentId: "seg-1", promptId: "p", originalText: "a", revisedText: "b", status: "pending", changes: [] }] });
+      mockStore.set({
+        aiRevisionSuggestions: [
+          {
+            segmentId: "seg-1",
+            promptId: "p",
+            originalText: "a",
+            revisedText: "b",
+            status: "pending",
+            changes: [],
+          },
+        ],
+      });
       slice.clearRevisions();
       const s = mockStore.getState();
       expect(s.aiRevisionSuggestions?.length).toBe(0);
     });
 
     it("acceptRevision updates text and removes suggestion", () => {
-      mockStore.set({ aiRevisionSuggestions: [{ segmentId: "seg-1", promptId: "p", originalText: "Hello world", revisedText: "Hello universe", status: "pending", changes: [] }] });
+      mockStore.set({
+        aiRevisionSuggestions: [
+          {
+            segmentId: "seg-1",
+            promptId: "p",
+            originalText: "Hello world",
+            revisedText: "Hello universe",
+            status: "pending",
+            changes: [],
+          },
+        ],
+      });
       slice.acceptRevision("seg-1");
       const s = mockStore.getState();
       expect(s.updateSegmentText).toHaveBeenCalledWith("seg-1", "Hello universe");

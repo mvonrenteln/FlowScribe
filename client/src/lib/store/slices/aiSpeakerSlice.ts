@@ -154,7 +154,9 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
             if (!stateSnapshot.aiSpeakerIsProcessing) return;
 
             if (suggestions.length > 0) {
-              set({ aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions] });
+              set({
+                aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
+              });
             }
 
             // Update progress
@@ -171,7 +173,11 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               suggestionCount: suggestions.length,
               processedTotal: processed,
               totalExpected: batchTotalExpected,
-              issues: (result.issues || []).map((i) => ({ level: i.level, message: i.message, context: i.context })),
+              issues: (result.issues || []).map((i) => ({
+                level: i.level,
+                message: i.message,
+                context: i.context,
+              })),
               fatal: false,
               ignoredCount: 0,
               batchDurationMs: batchEnd - batchStart,
@@ -198,7 +204,9 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
             }
 
-            console.log(`[DEBUG] Batch ${batchIndex + 1}: Adding insight with processedTotal=${processed}, totalExpected=${totalSegments}`);
+            console.log(
+              `[DEBUG] Batch ${batchIndex + 1}: Adding insight with processedTotal=${processed}, totalExpected=${totalSegments}`,
+            );
             set({
               aiSpeakerBatchInsights: updatedInsights,
               aiSpeakerBatchLog: updatedLog,

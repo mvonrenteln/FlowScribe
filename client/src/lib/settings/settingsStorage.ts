@@ -117,7 +117,6 @@ export function clearSettings(): boolean {
   }
 }
 
-
 /**
  * Initialize settings.
  * Returns existing settings or defaults.
@@ -128,7 +127,6 @@ export function initializeSettings(): PersistedSettings {
   if (existing) {
     return existing;
   }
-
 
   // Use defaults
   const defaults = { ...DEFAULT_SETTINGS };

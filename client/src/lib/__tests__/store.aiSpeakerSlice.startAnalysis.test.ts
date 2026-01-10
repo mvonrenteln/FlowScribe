@@ -8,7 +8,11 @@ vi.mock("@/lib/ai/features/speaker", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/lib/ai/features/speaker")>();
   return {
     ...actual,
-    classifySpeakersBatch: vi.fn().mockResolvedValue({ results: [], summary: { total: 0, classified: 0, unchanged: 0, failed: 0 }, issues: [] }),
+    classifySpeakersBatch: vi.fn().mockResolvedValue({
+      results: [],
+      summary: { total: 0, classified: 0, unchanged: 0, failed: 0 },
+      issues: [],
+    }),
   };
 });
 
@@ -62,8 +66,9 @@ describe("aiSpeakerSlice - startAnalysis", () => {
 
     expect(useTranscriptStore.getState().aiSpeakerTotalToProcess).toBe(2);
     expect(classifySpeakersBatch).toHaveBeenCalled();
-    const callArgs = (classifySpeakersBatch as unknown as { mock: { calls: any[] } }).mock.calls[0];
-    expect(callArgs[0].map((s: any) => s.id)).toEqual(["seg-1", "seg-3"]);
+    const mocked = vi.mocked(classifySpeakersBatch);
+    const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
+    expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-1", "seg-3"]);
   });
 
   it("combines segment ids with speaker and confirmed filters", () => {
@@ -71,7 +76,8 @@ describe("aiSpeakerSlice - startAnalysis", () => {
 
     expect(useTranscriptStore.getState().aiSpeakerTotalToProcess).toBe(1);
     expect(classifySpeakersBatch).toHaveBeenCalled();
-    const callArgs = (classifySpeakersBatch as unknown as { mock: { calls: any[] } }).mock.calls[0];
-    expect(callArgs[0].map((s: any) => s.id)).toEqual(["seg-1"]);
+    const mocked = vi.mocked(classifySpeakersBatch);
+    const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
+    expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-1"]);
   });
 });
