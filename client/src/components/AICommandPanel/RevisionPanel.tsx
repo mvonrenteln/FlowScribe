@@ -17,6 +17,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDurationMs } from "@/lib/formatting";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
@@ -207,7 +208,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                             <TableCell>{entry.segmentId}</TableCell>
                             <TableCell className="capitalize">{entry.status}</TableCell>
                             <TableCell>
-                              {entry.durationMs ? `${(entry.durationMs / 1000).toFixed(2)}s` : "-"}
+                              {entry.durationMs ? formatDurationMs(entry.durationMs) : "-"}
                             </TableCell>
                             <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
                             <TableCell>{entry.error ?? "—"}</TableCell>

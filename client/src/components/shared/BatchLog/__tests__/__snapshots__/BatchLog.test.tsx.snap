@@ -105,7 +105,7 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  1.20s
+                  1s
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
@@ -160,7 +160,7 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
-                  2.20s
+                  2s
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"

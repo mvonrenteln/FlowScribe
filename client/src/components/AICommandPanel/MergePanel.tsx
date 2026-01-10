@@ -13,6 +13,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDurationMs } from "@/lib/formatting";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
@@ -413,7 +414,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
                                   : suggestion.segmentIds.join(" + ")}
                               </span>
                               <Badge variant="secondary" className="text-[10px] shrink-0">
-                                Gap {suggestion.timeGap.toFixed(2)}s
+                                Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
                               </Badge>
                             </>
                           );
@@ -469,7 +470,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
                                 : suggestion.segmentIds.join(" + ")}
                             </span>
                             <Badge variant="secondary" className="text-[10px] shrink-0">
-                              Gap {suggestion.timeGap.toFixed(2)}s
+                              Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
                             </Badge>
                           </>
                         );
@@ -515,7 +516,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
                                 : suggestion.segmentIds.join(" + ")}
                             </span>
                             <Badge variant="secondary" className="text-[10px] shrink-0">
-                              Gap {suggestion.timeGap.toFixed(2)}s
+                              Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
                             </Badge>
                           </>
                         );

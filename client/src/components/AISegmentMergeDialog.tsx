@@ -45,6 +45,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDurationMs } from "@/lib/formatting";
 import { initializeSettings, type PersistedSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import type { AISegmentMergeSuggestion } from "@/lib/store/types";
@@ -581,7 +582,7 @@ function MergeSuggestionCard({
           <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
             <span>Speaker: {suggestion.speaker}</span>
             <span>•</span>
-            <span>Gap: {suggestion.timeGap.toFixed(2)}s</span>
+            <span>Gap: {formatDurationMs(Math.round(suggestion.timeGap * 1000))}</span>
             <span>•</span>
             <span>{Math.round(suggestion.confidenceScore * 100)}% confidence</span>
             {suggestion.reason && (

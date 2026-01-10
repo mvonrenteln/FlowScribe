@@ -12,6 +12,7 @@ import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { formatDurationMs } from "@/lib/formatting";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
@@ -185,7 +186,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
               <span>
                 Total elapsed:{" "}
                 {batchLog.length > 0
-                  ? `${((batchLog[batchLog.length - 1].elapsedMs ?? 0) / 1000).toFixed(2)}s`
+                  ? formatDurationMs(batchLog[batchLog.length - 1].elapsedMs)
                   : "-"}
               </span>
               <BatchLogDrawer

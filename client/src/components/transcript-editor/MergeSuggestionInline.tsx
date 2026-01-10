@@ -2,6 +2,7 @@ import { Check, CheckCheck, GitMerge, Sparkles, X } from "lucide-react";
 import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { formatDurationMs } from "@/lib/formatting";
 import type { Segment } from "@/lib/store";
 import type { AISegmentMergeSuggestion } from "@/lib/store/types";
 
@@ -39,7 +40,8 @@ export function MergeSuggestionInline({
           <GitMerge className="h-3.5 w-3.5" />
           Merge suggestion
           <span className="text-muted-foreground">
-            Gap {suggestion.timeGap.toFixed(2)}s • {Math.round(suggestion.confidenceScore * 100)}%
+            Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))} •{" "}
+            {Math.round(suggestion.confidenceScore * 100)}%
           </span>
         </div>
         <div className="flex items-center gap-1">
@@ -110,8 +112,9 @@ export function MergeSuggestionInline({
       </div>
 
       <div className="mt-2 text-xs text-muted-foreground">
-        {firstSegment.speaker} → {secondSegment.speaker} • {firstSegment.start.toFixed(2)}s -{" "}
-        {secondSegment.end.toFixed(2)}s
+        {firstSegment.speaker} → {secondSegment.speaker} •{" "}
+        {formatDurationMs(Math.round(firstSegment.start * 1000))} -{" "}
+        {formatDurationMs(Math.round(secondSegment.end * 1000))}
       </div>
 
       <div className="mt-2 space-y-2">

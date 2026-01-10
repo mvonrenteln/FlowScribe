@@ -7,6 +7,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatDurationMs } from "@/lib/formatting";
 
 export interface BatchLogRow {
   id: string;
@@ -33,8 +34,7 @@ interface BatchLogProps {
   total?: number; // optional fixed total to use for Processed calculation
 }
 
-const formatDuration = (durationMs?: number) =>
-  durationMs ? `${(durationMs / 1000).toFixed(2)}s` : "—";
+const formatDuration = (durationMs?: number) => formatDurationMs(durationMs);
 
 const formatNumber = (value?: number) => (typeof value === "number" ? value : "—");
 
