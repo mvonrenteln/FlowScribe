@@ -1,5 +1,6 @@
 import { AlertCircle, Settings2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Select,
@@ -134,23 +135,20 @@ export function AIConfigurationSection({
         </Select>
       </div>
 
-      <div className="flex items-center gap-2">
-        <div className="flex-1">
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div>
-                  <Label
-                    htmlFor={`${id}-batch-size`}
-                    className="text-xs text-muted-foreground cursor-help"
-                  >
-                    Batch Size
-                  </Label>
-                  <input
+      <div className="flex flex-col gap-1">
+        <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground cursor-help">
+          Batch Size
+        </Label>
+        <div className="flex items-center gap-2">
+          <div className="flex-1">
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Input
                     id={`${id}-batch-size`}
                     type="number"
-                    min="1"
-                    max="50"
+                    min={1}
+                    max={50}
                     value={batchSize}
                     onChange={(e) => {
                       const value = e.target.value;
@@ -159,30 +157,31 @@ export function AIConfigurationSection({
                       }
                     }}
                     disabled={isProcessing}
-                    className="flex h-8 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                    className="text-sm"
                   />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Number of segments to process in each batch (1-50)</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Number of segments to process in each batch (1-50)</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          </div>
+
+          {onOpenSettings ? (
+            <TooltipProvider>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button variant="ghost" size="icon" onClick={onOpenSettings}>
+                    <Settings2 className="h-4 w-4" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>
+                  <p>Configure AI providers and prompts</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : null}
         </div>
-        {onOpenSettings ? (
-          <TooltipProvider>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="sm" onClick={onOpenSettings}>
-                  <Settings2 className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>
-                <p>Configure AI providers and prompts</p>
-              </TooltipContent>
-            </Tooltip>
-          </TooltipProvider>
-        ) : null}
       </div>
 
       {settings && settings.aiProviders.length === 0 && (
