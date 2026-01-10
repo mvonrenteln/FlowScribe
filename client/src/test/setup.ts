@@ -43,5 +43,5 @@ console.warn = (...args: unknown[]) => {
   ) {
     return;
   }
-  return originalWarn.apply(console, args as any);
+  return originalWarn.call(console, ...args);
 };

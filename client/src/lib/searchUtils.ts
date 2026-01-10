@@ -50,7 +50,7 @@ export function createSearchRegex(query: string, isRegex: boolean): RegExp | nul
       return rx;
     }
     return new RegExp(`(${escapeRegExp(trimmedQuery)})`, "gi");
-  } catch (e) {
+  } catch (_e) {
     // Invalid user regexes are expected input (typed by user) and
     // occur frequently during interactive editing. Don't spam the
     // test output — just return null to indicate an unusable regex.

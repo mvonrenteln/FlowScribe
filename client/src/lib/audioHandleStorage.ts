@@ -28,7 +28,7 @@ export const saveAudioHandle = async (handle: FileSystemFileHandle): Promise<voi
       tx.onerror = () => reject(tx.error);
     });
     db.close();
-  } catch (e) {
+  } catch (_e) {
     // Non-critical in test/node environment where indexedDB is unavailable.
     return;
   }
@@ -45,7 +45,7 @@ export const loadAudioHandle = async (): Promise<FileSystemFileHandle | null> =>
     });
     db.close();
     return handle;
-  } catch (e) {
+  } catch (_e) {
     return null;
   }
 };
@@ -60,7 +60,7 @@ export const clearAudioHandle = async (): Promise<void> => {
       tx.onerror = () => reject(tx.error);
     });
     db.close();
-  } catch (e) {
+  } catch (_e) {
     return;
   }
 };

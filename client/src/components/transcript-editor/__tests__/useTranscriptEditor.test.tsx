@@ -54,35 +54,35 @@ describe("useTranscriptEditor", () => {
   it("exposes merge handlers only for adjacent segments", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Hallo",
-          words: [{ word: "Hallo", start: 0, end: 1 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Welt",
-          words: [{ word: "Welt", start: 1, end: 2 }],
-        },
-        {
-          id: "segment-3",
-          speaker: "SPEAKER_00",
-          start: 3,
-          end: 4,
-          text: "Servus",
-          words: [{ word: "Servus", start: 3, end: 4 }],
-        },
-      ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      selectedSegmentId: "segment-2",
-    });
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Hallo",
+            words: [{ word: "Hallo", start: 0, end: 1 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Welt",
+            words: [{ word: "Welt", start: 1, end: 2 }],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 3,
+            end: 4,
+            text: "Servus",
+            words: [{ word: "Servus", start: 3, end: 4 }],
+          },
+        ],
+        speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+        selectedSegmentId: "segment-2",
+      });
     });
 
     const { result } = renderHook(() => useTranscriptEditor());
@@ -100,24 +100,24 @@ describe("useTranscriptEditor", () => {
   it("preserves playback position when splitting while playing", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 3,
-          text: "Hallo Welt Heute",
-          words: [
-            { word: "Hallo", start: 0, end: 1 },
-            { word: "Welt", start: 1, end: 2 },
-            { word: "Heute", start: 2, end: 3 },
-          ],
-        },
-      ],
-      currentTime: 1.2,
-      isPlaying: true,
-      seekRequestTime: null,
-    });
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 3,
+            text: "Hallo Welt Heute",
+            words: [
+              { word: "Hallo", start: 0, end: 1 },
+              { word: "Welt", start: 1, end: 2 },
+              { word: "Heute", start: 2, end: 3 },
+            ],
+          },
+        ],
+        currentTime: 1.2,
+        isPlaying: true,
+        seekRequestTime: null,
+      });
     });
 
     const { result } = renderHook(() => useTranscriptEditor());
@@ -139,26 +139,26 @@ describe("useTranscriptEditor", () => {
   it("selects the first search match segment", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Hallo Welt",
-          words: [{ word: "Hallo", start: 0, end: 0.5 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Servus",
-          words: [{ word: "Servus", start: 1, end: 2 }],
-        },
-      ],
-      selectedSegmentId: null,
-    });
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Hallo Welt",
+            words: [{ word: "Hallo", start: 0, end: 0.5 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Servus",
+            words: [{ word: "Servus", start: 1, end: 2 }],
+          },
+        ],
+        selectedSegmentId: null,
+      });
     });
 
     const { result } = renderHook(() => useTranscriptEditor());

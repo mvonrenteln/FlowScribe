@@ -233,40 +233,40 @@ describe("FilterPanel", () => {
   it("updates selection within the active speaker filter as time changes", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Hallo",
-          words: [{ word: "Hallo", start: 0, end: 1 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Welt",
-          words: [{ word: "Welt", start: 1, end: 2 }],
-        },
-        {
-          id: "segment-3",
-          speaker: "SPEAKER_01",
-          start: 2,
-          end: 3,
-          text: "Servus",
-          words: [{ word: "Servus", start: 2, end: 3 }],
-        },
-      ],
-      speakers: [
-        { id: "speaker-0", name: "SPEAKER_00", color: "red" },
-        { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
-      ],
-      selectedSegmentId: "segment-1",
-      currentTime: 0.5,
-      isPlaying: false,
-    });
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Hallo",
+            words: [{ word: "Hallo", start: 0, end: 1 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Welt",
+            words: [{ word: "Welt", start: 1, end: 2 }],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_01",
+            start: 2,
+            end: 3,
+            text: "Servus",
+            words: [{ word: "Servus", start: 2, end: 3 }],
+          },
+        ],
+        speakers: [
+          { id: "speaker-0", name: "SPEAKER_00", color: "red" },
+          { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
+        ],
+        selectedSegmentId: "segment-1",
+        currentTime: 0.5,
+        isPlaying: false,
+      });
     });
 
     await act(async () => {
@@ -299,41 +299,40 @@ describe("FilterPanel", () => {
   it("keeps selection on visible segments when active segment is filtered out", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Hallo",
-          words: [{ word: "Hallo", start: 0, end: 1 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Welt",
-          words: [{ word: "Welt", start: 1, end: 2 }],
-        },
-        {
-          id: "segment-3",
-          speaker: "SPEAKER_01",
-          start: 2,
-          end: 3,
-          text: "Servus",
-          words: [{ word: "Servus", start: 2, end: 3 }],
-        },
-      ],
-      speakers: [
-        { id: "speaker-0", name: "SPEAKER_00", color: "red" },
-        { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
-      ],
-      selectedSegmentId: "segment-1",
-      currentTime: 0.5,
-      isPlaying: false,
-    });
-
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Hallo",
+            words: [{ word: "Hallo", start: 0, end: 1 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Welt",
+            words: [{ word: "Welt", start: 1, end: 2 }],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_01",
+            start: 2,
+            end: 3,
+            text: "Servus",
+            words: [{ word: "Servus", start: 2, end: 3 }],
+          },
+        ],
+        speakers: [
+          { id: "speaker-0", name: "SPEAKER_00", color: "red" },
+          { id: "speaker-1", name: "SPEAKER_01", color: "blue" },
+        ],
+        selectedSegmentId: "segment-1",
+        currentTime: 0.5,
+        isPlaying: false,
+      });
     });
 
     await act(async () => {
@@ -365,29 +364,28 @@ describe("FilterPanel", () => {
   it("filters segments using the lexicon filter", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Zwergenbar",
-          words: [{ word: "Zwergenbar", start: 0, end: 1 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Ritter",
-          words: [{ word: "Ritter", start: 1, end: 2 }],
-        },
-      ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [{ term: "Zwergenbär", variants: [], falsePositives: [] }],
-      lexiconThreshold: 0.8,
-    });
-
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Zwergenbar",
+            words: [{ word: "Zwergenbar", start: 0, end: 1 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Ritter",
+            words: [{ word: "Ritter", start: 1, end: 2 }],
+          },
+        ],
+        speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+        lexiconEntries: [{ term: "Zwergenbär", variants: [], falsePositives: [] }],
+        lexiconThreshold: 0.8,
+      });
     });
 
     await act(async () => {
@@ -403,29 +401,28 @@ describe("FilterPanel", () => {
   it("matches glossary variants in the filter", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Glimmer",
-          words: [{ word: "Glimmer", start: 0, end: 1 }],
-        },
-        {
-          id: "segment-2",
-          speaker: "SPEAKER_00",
-          start: 1,
-          end: 2,
-          text: "Andere",
-          words: [{ word: "Andere", start: 1, end: 2 }],
-        },
-      ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klümper"], falsePositives: [] }],
-      lexiconThreshold: 0.8,
-    });
-
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Glimmer",
+            words: [{ word: "Glimmer", start: 0, end: 1 }],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_00",
+            start: 1,
+            end: 2,
+            text: "Andere",
+            words: [{ word: "Andere", start: 1, end: 2 }],
+          },
+        ],
+        speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+        lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klümper"], falsePositives: [] }],
+        lexiconThreshold: 0.8,
+      });
     });
 
     await act(async () => {
@@ -441,27 +438,26 @@ describe("FilterPanel", () => {
   it("ignores glossary false positives in the filter", async () => {
     act(() => {
       useTranscriptStore.setState({
-      segments: [
-        {
-          id: "segment-1",
-          speaker: "SPEAKER_00",
-          start: 0,
-          end: 1,
-          text: "Glimmer",
-          words: [{ word: "Glimmer", start: 0, end: 1 }],
-        },
-      ],
-      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
-      lexiconEntries: [
-        {
-          term: "Glymbar",
-          variants: ["Glimmer"],
-          falsePositives: ["Glimmer"],
-        },
-      ],
-      lexiconThreshold: 0.8,
-    });
-
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "Glimmer",
+            words: [{ word: "Glimmer", start: 0, end: 1 }],
+          },
+        ],
+        speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+        lexiconEntries: [
+          {
+            term: "Glymbar",
+            variants: ["Glimmer"],
+            falsePositives: ["Glimmer"],
+          },
+        ],
+        lexiconThreshold: 0.8,
+      });
     });
 
     await act(async () => {
