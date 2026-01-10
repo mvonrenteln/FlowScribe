@@ -4,6 +4,9 @@ const HANDLE_KEY = "latest";
 
 const openDb = (): Promise<IDBDatabase> =>
   new Promise((resolve, reject) => {
+    if (typeof indexedDB === "undefined") {
+      return reject(new ReferenceError("indexedDB is not available in this environment"));
+    }
     const request = indexedDB.open(DB_NAME, 1);
     request.onupgradeneeded = () => {
       const db = request.result;
