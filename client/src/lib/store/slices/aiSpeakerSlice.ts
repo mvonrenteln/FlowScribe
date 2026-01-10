@@ -8,7 +8,7 @@
 import type { StoreApi } from "zustand";
 import { summarizeAIError } from "@/lib/ai/core/errors";
 import { summarizeMessages } from "@/lib/ai/core/formatting";
-import { runAnalysis } from "@/lib/ai/features/speaker";
+import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
 import { SPEAKER_COLORS } from "../constants";
 import type {
   AIPrompt,
@@ -74,35 +74,54 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       aiSpeakerBatchLog: [],
     });
 
-    // Run analysis asynchronously
-    runAnalysis({
-      segments: state.segments,
-      speakers: state.speakers.map((s) => s.name),
-      config: state.aiSpeakerConfig,
-      selectedSpeakers,
-      excludeConfirmed,
-      segmentIds,
-      signal: abortController.signal,
-      onProgress: (processed, total) => {
-        set({
-          aiSpeakerProcessedCount: processed,
-          aiSpeakerTotalToProcess: total,
-        });
-      },
-      onBatchComplete: (suggestions) => {
+    // Run analysis asynchronously using the new batch API
+    (async () => {
+      try {
+        const result = await classifySpeakersBatch(
+          segmentsToAnalyze.map((s) => ({ id: s.id, speaker: s.speaker, text: s.text })),
+          state.speakers.map((s) => s.name),
+          {
+            batchSize: state.aiSpeakerConfig.batchSize,
+            signal: abortController.signal,
+            onProgress: (processed, total) => {
+              set({ aiSpeakerProcessedCount: processed, aiSpeakerTotalToProcess: total });
+            },
+            onBatchComplete: (batchResults) => {
+              const suggestions = batchResults.map((r) => ({
+                segmentId: r.segmentId,
+                currentSpeaker: r.originalSpeaker ?? "",
+                suggestedSpeaker: r.suggestedSpeaker,
+                status: "pending" as const,
+                confidence: r.confidence,
+                reason: r.reason,
+                isNewSpeaker: r.isNew,
+              }));
+              const stateSnapshot = get();
+              if (!stateSnapshot.aiSpeakerIsProcessing) return;
+              set({ aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions] });
+            },
+          },
+        );
+
+        // Build a summary insight from the batch run
+        const insight = {
+          batchIndex: 0,
+          batchSize: state.aiSpeakerConfig.batchSize,
+          rawItemCount: result.results.length,
+          unchangedAssignments: result.summary.unchanged,
+          loggedAt: Date.now(),
+          suggestionCount: result.results.length,
+          processedTotal: result.summary.total,
+          totalExpected: result.summary.total,
+          issues: (result.issues || []).map((i) => ({ level: i.level, message: i.message, context: i.context })),
+          fatal: false,
+          ignoredCount: 0,
+        } as AISpeakerBatchInsight;
+
         const stateSnapshot = get();
-        if (!stateSnapshot.aiSpeakerIsProcessing) {
-          return;
-        }
-        set({
-          aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
-        });
-      },
-      onBatchInfo: (insight) => {
-        const stateSnapshot = get();
-        const entry = { ...insight, loggedAt: Date.now() } as AISpeakerBatchInsight;
-        const updatedInsights = [...stateSnapshot.aiSpeakerBatchInsights, entry];
-        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, entry];
+        const updatedInsights = [...stateSnapshot.aiSpeakerBatchInsights, insight];
+        const updatedLog = [...stateSnapshot.aiSpeakerBatchLog, insight];
+
         let discrepancyNotice = stateSnapshot.aiSpeakerDiscrepancyNotice;
         if (insight.fatal) {
           const summary = summarizeMessages(insight.issues);
@@ -118,24 +137,23 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
           const summary = summarizeMessages(insight.issues);
           discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
         }
+
         set({
           aiSpeakerBatchInsights: updatedInsights,
           aiSpeakerBatchLog: updatedLog,
           aiSpeakerDiscrepancyNotice: discrepancyNotice,
         });
-      },
-      onError: (error) => {
-        set({
-          aiSpeakerError: summarizeAIError(error),
-          aiSpeakerIsProcessing: false,
-        });
-      },
-    }).finally(() => {
-      // Only update if not aborted
-      if (!abortController.signal.aborted) {
-        set({ aiSpeakerIsProcessing: false });
+      } catch (error) {
+        if (!abortController.signal.aborted) {
+          const err = error instanceof Error ? error : new Error(String(error));
+          set({ aiSpeakerError: summarizeAIError(err), aiSpeakerIsProcessing: false });
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          set({ aiSpeakerIsProcessing: false });
+        }
       }
-    });
+    })();
   },
 
   cancelAnalysis: () => {
