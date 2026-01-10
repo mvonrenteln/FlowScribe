@@ -85,11 +85,8 @@ describe("useTranscriptEditor", () => {
     });
     });
 
-    let result: ReturnType<typeof renderHook> | null = null;
-    await act(async () => {
-      result = renderHook(() => useTranscriptEditor());
-    });
-    const handlers = result!.current.transcriptListProps.segmentHandlers;
+    const { result } = renderHook(() => useTranscriptEditor());
+    const handlers = result.current.transcriptListProps.segmentHandlers;
 
     expect(handlers[1]?.onMergeWithPrevious).toBeDefined();
     expect(handlers[1]?.onMergeWithNext).toBeDefined();
@@ -120,11 +117,8 @@ describe("useTranscriptEditor", () => {
     });
     });
 
-    let result: ReturnType<typeof renderHook> | null = null;
-    await act(async () => {
-      result = renderHook(() => useTranscriptEditor());
-    });
-    const splitHandler = result!.current.transcriptListProps.segmentHandlers[0]?.onSplit;
+    const { result } = renderHook(() => useTranscriptEditor());
+    const splitHandler = result.current.transcriptListProps.segmentHandlers[0]?.onSplit;
 
     act(() => {
       splitHandler?.(1);
@@ -161,13 +155,10 @@ describe("useTranscriptEditor", () => {
     });
     });
 
-    let result: ReturnType<typeof renderHook> | null = null;
-    await act(async () => {
-      result = renderHook(() => useTranscriptEditor());
-    });
+    const { result } = renderHook(() => useTranscriptEditor());
 
     act(() => {
-      result!.current.filterPanelProps.onSearchQueryChange("Hallo");
+      result.current.filterPanelProps.onSearchQueryChange("Hallo");
     });
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
