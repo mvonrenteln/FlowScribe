@@ -15,8 +15,8 @@ export function EditorDialogs({
   onExportChange,
   segments,
   audioFileName,
-  _showLexicon,
-  _onLexiconChange,
+  showLexicon: _showLexicon,
+  onLexiconChange: _onLexiconChange,
   showSpellcheckDialog,
   onSpellcheckDialogChange,
   showRevisionDialog,
@@ -33,7 +33,7 @@ export function EditorDialogs({
   onSettingsChange,
   onOpenSettings,
   settingsInitialSection,
-  _setSettingsInitialSection,
+  setSettingsInitialSection: _setSettingsInitialSection,
 }: DialogProps) {
   return (
     <>

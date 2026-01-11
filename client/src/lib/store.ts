@@ -14,12 +14,12 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { createAiRevisionSelectionSlice } from "./store/slices/aiRevisionSelectionSlice";
 import {
   createAIRevisionSlice,
   initialAIRevisionState,
   normalizeAIRevisionConfig,
 } from "./store/slices/aiRevisionSlice";
-import { createAiRevisionSelectionSlice } from "./store/slices/aiRevisionSelectionSlice";
 import {
   createAISegmentMergeSlice,
   initialAISegmentMergeState,

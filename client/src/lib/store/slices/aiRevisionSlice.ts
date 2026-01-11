@@ -614,4 +614,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       },
     });
   },
+  // Persist last provider/model selection for UI convenience
+  setAiRevisionLastSelection: (s) => {
+    set({ aiRevisionLastSelection: s });
+  },
 });
