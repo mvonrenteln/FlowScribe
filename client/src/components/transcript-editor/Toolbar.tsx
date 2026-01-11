@@ -323,20 +323,6 @@ export function Toolbar({
               </TooltipTrigger>
               <TooltipContent>Redo (Ctrl+Shift+Z)</TooltipContent>
             </Tooltip>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  size="icon"
-                  variant="ghost"
-                  onClick={onShowShortcuts}
-                  data-testid="button-show-shortcuts"
-                  aria-label="Keyboard shortcuts"
-                >
-                  <Keyboard className="h-4 w-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Keyboard shortcuts</TooltipContent>
-            </Tooltip>
           </div>
 
           <Separator orientation="vertical" className="h-6" />
@@ -459,6 +445,20 @@ export function Toolbar({
               </Button>
             </TooltipTrigger>
             <TooltipContent>Export transcript</TooltipContent>
+          </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={onShowShortcuts}
+                data-testid="button-show-shortcuts"
+                aria-label="Keyboard shortcuts"
+              >
+                <Keyboard className="h-4 w-4" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Keyboard shortcuts</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
