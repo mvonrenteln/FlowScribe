@@ -1,5 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import type { Speaker } from "@/lib/store/types";
 import { normalizeSegments } from "@/lib/transcript/normalizeTranscript";
 import { useFiltersAndLexicon } from "../useFiltersAndLexicon";
 
@@ -18,7 +19,7 @@ const makeSegment = (id: string, tags?: string[]) => ({
 describe("useFiltersAndLexicon tag filtering", () => {
   it("filters correctly when segments lack tags field", () => {
     const segments = normalizeSegments([makeSegment("s1"), makeSegment("s2", ["t1"])]);
-    const speakers: unknown[] = [];
+    const speakers: Speaker[] = [];
 
     const { result } = renderHook(() =>
       useFiltersAndLexicon({

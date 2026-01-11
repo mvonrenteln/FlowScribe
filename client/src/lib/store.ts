@@ -59,6 +59,7 @@ import {
   normalizeSpellcheckLanguages,
   resolveSpellcheckSelection,
 } from "./store/utils/spellcheck";
+import { normalizeSegments } from "./transcript/normalizeTranscript";
 
 const sessionsState = readSessionsState();
 const globalState = readGlobalState();
@@ -67,10 +68,17 @@ const resolvedSpellcheckSelection = resolveSpellcheckSelection(
   Boolean(globalState?.spellcheckCustomEnabled),
 );
 
-const activeSession =
+const rawActiveSession =
   sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
     ? sessionsState.sessions[sessionsState.activeSessionKey]
     : null;
+const activeSession = rawActiveSession
+  ? {
+      ...rawActiveSession,
+      segments: normalizeSegments(rawActiveSession.segments),
+      tags: rawActiveSession.tags ?? [],
+    }
+  : null;
 const activeSessionKey =
   sessionsState.activeSessionKey ??
   (activeSession ? buildSessionKey(activeSession.audioRef, activeSession.transcriptRef) : null);
