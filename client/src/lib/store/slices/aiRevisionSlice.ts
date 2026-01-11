@@ -201,7 +201,7 @@ function generatePromptId(): string {
 export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRevisionSlice => ({
   // ==================== Revision Actions ====================
 
-  startSingleRevision: (segmentId, promptId) => {
+  startSingleRevision: (segmentId, promptId, providerId, model) => {
     const state = get();
 
     // Cancel any existing revision
@@ -249,8 +249,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           previousSegment,
           nextSegment,
           signal: abortController.signal,
-          providerId: state.aiRevisionConfig.selectedProviderId,
-          model: state.aiRevisionConfig.selectedModel,
+          providerId: providerId ?? state.aiRevisionConfig.selectedProviderId,
+          model: model ?? state.aiRevisionConfig.selectedModel,
         });
       })
       .then((result: RevisionResult) => {
@@ -320,7 +320,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       });
   },
 
-  startBatchRevision: (segmentIds, promptId) => {
+  startBatchRevision: (segmentIds, promptId, providerId, model) => {
     const state = get();
 
     // Cancel any existing revision
@@ -358,8 +358,8 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         allSegments: state.segments,
         prompt: selectedPrompt,
         signal: abortController.signal,
-        providerId: state.aiRevisionConfig.selectedProviderId,
-        model: state.aiRevisionConfig.selectedModel,
+        providerId: providerId ?? state.aiRevisionConfig.selectedProviderId,
+        model: model ?? state.aiRevisionConfig.selectedModel,
         onProgress: (processed: number, total: number) => {
           set({
             aiRevisionProcessedCount: processed,
@@ -613,5 +613,9 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         quickAccessPromptIds: newIds,
       },
     });
+  },
+  // Persist last provider/model selection for UI convenience
+  setAiRevisionLastSelection: (s) => {
+    set({ aiRevisionLastSelection: s });
   },
 });

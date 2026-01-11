@@ -35,7 +35,6 @@ import { cn } from "@/lib/utils";
 import { FileUpload } from "../FileUpload";
 import { SettingsButton } from "../settings";
 import { ThemeToggle } from "../ThemeToggle";
-import { AIProviderSelector } from "./AIProviderSelector";
 import { formatAudioName, formatTranscriptName, getFileExtension } from "./ToolbarUtils";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -426,9 +425,6 @@ export function Toolbar({
               </TooltipTrigger>
               <TooltipContent>AI Command Panel</TooltipContent>
             </Tooltip>
-
-            {/* AI Provider/Model Selector */}
-            <AIProviderSelector className="hidden md:flex" />
           </div>
         </div>
 

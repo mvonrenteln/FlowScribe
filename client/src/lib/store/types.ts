@@ -164,6 +164,8 @@ export interface InitialStoreState {
     message?: string;
     timestamp: number;
   } | null;
+  /** Last provider/model selection persisted for AI Revision UI */
+  aiRevisionLastSelection?: { providerId?: string; model?: string };
   // AI Segment Merge state
   aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
   aiSegmentMergeIsProcessing: boolean;
@@ -314,6 +316,8 @@ export interface AISpeakerBatchInsight {
 
 export type PromptType = "speaker" | "text" | "segment-merge";
 
+export type MergeConfidenceLevel = "high" | "medium" | "low";
+
 export interface AIPrompt {
   id: string;
   name: string;
@@ -416,8 +420,18 @@ export interface AIRevisionConfig {
 export interface AIRevisionSlice {
   // State is in InitialStoreState with aiRevision* prefix
   // Actions
-  startSingleRevision: (segmentId: string, promptId: string) => void;
-  startBatchRevision: (segmentIds: string[], promptId: string) => void;
+  startSingleRevision: (
+    segmentId: string,
+    promptId: string,
+    providerId?: string | undefined,
+    model?: string | undefined,
+  ) => void;
+  startBatchRevision: (
+    segmentIds: string[],
+    promptId: string,
+    providerId?: string | undefined,
+    model?: string | undefined,
+  ) => void;
   cancelRevision: () => void;
   acceptRevision: (segmentId: string) => void;
   rejectRevision: (segmentId: string) => void;
@@ -432,6 +446,8 @@ export interface AIRevisionSlice {
   setDefaultRevisionPrompt: (id: string | null) => void;
   setQuickAccessPrompts: (ids: string[]) => void;
   toggleQuickAccessPrompt: (id: string) => void;
+  // Persist last provider/model selection for AI Revision UI (optional persistence)
+  setAiRevisionLastSelection: (s?: { providerId?: string; model?: string }) => void;
 }
 
 // ==================== AI Segment Merge Types ====================
@@ -444,7 +460,7 @@ export interface AISegmentMergeSuggestion {
   /** IDs of segments to merge (in order) */
   segmentIds: string[];
   /** Confidence level */
-  confidence: "high" | "medium" | "low";
+  confidence: MergeConfidenceLevel;
   /** Confidence score (0-1) */
   confidenceScore: number;
   /** Reason for suggesting merge */
@@ -472,7 +488,7 @@ export interface AISegmentMergeConfig {
   /** Default maximum time gap (seconds) */
   defaultMaxTimeGap: number;
   /** Default minimum confidence level */
-  defaultMinConfidence: "high" | "medium" | "low";
+  defaultMinConfidence: MergeConfidenceLevel;
   /** Enable smoothing by default */
   defaultEnableSmoothing: boolean;
   /** Show inline hints after analysis */
@@ -495,7 +511,7 @@ export interface AISegmentMergeSlice {
   startMergeAnalysis: (options: {
     segmentIds?: string[];
     maxTimeGap?: number;
-    minConfidence?: "high" | "medium" | "low";
+    minConfidence?: MergeConfidenceLevel;
     sameSpeakerOnly?: boolean;
     enableSmoothing?: boolean;
     batchSize?: number;

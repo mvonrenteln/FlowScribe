@@ -14,6 +14,7 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { createAiRevisionSelectionSlice } from "./store/slices/aiRevisionSelectionSlice";
 import {
   createAIRevisionSlice,
   initialAIRevisionState,
@@ -155,6 +156,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAISpeakerSlice(set, get),
       ...createConfidenceSlice(set, get),
       ...createAIRevisionSlice(set, get),
+      ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
     };
   }),
