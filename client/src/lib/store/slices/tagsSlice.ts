@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import { SPEAKER_COLORS } from "../constants";
-import type { Tag, TagsSlice, TranscriptStore } from "../types";
+import type { Segment, Tag, TagsSlice, TranscriptStore } from "../types";
+import { getSegmentTags } from "../utils/segmentTags";
 import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
@@ -104,8 +105,10 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
       get();
 
-    const newSegments = segments.map((s) =>
-      s.id === segmentId && !s.tags.includes(tagId) ? { ...s, tags: [...s.tags, tagId] } : s,
+    const newSegments = segments.map((s: Segment) =>
+      s.id === segmentId && !getSegmentTags(s).includes(tagId)
+        ? { ...s, tags: [...getSegmentTags(s), tagId] }
+        : s,
     );
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
@@ -125,8 +128,8 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
       get();
 
-    const newSegments = segments.map((s) =>
-      s.id === segmentId ? { ...s, tags: s.tags.filter((id) => id !== tagId) } : s,
+    const newSegments = segments.map((s: Segment) =>
+      s.id === segmentId ? { ...s, tags: getSegmentTags(s).filter((id) => id !== tagId) } : s,
     );
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
@@ -146,8 +149,8 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     const { segments } = get();
     const segment = segments.find((s) => s.id === segmentId);
     if (!segment) return;
-
-    if (segment.tags.includes(tagId)) {
+    const segTags = getSegmentTags(segment);
+    if (segTags.includes(tagId)) {
       get().removeTagFromSegment(segmentId, tagId);
     } else {
       get().assignTagToSegment(segmentId, tagId);
@@ -162,18 +165,18 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
 
   selectSegmentsByTagId: (tagId) => {
     const { segments } = get();
-    return segments.filter((s) => s.tags.includes(tagId));
+    return segments.filter((s) => getSegmentTags(s).includes(tagId));
   },
 
   selectTagsForSegment: (segmentId) => {
     const { segments, tags } = get();
     const segment = segments.find((s) => s.id === segmentId);
     if (!segment) return [];
-    return tags.filter((t) => segment.tags.includes(t.id));
+    return tags.filter((t) => getSegmentTags(segment).includes(t.id));
   },
 
   selectUntaggedSegments: () => {
     const { segments } = get();
-    return segments.filter((s) => s.tags.length === 0);
+    return segments.filter((s) => (s.tags ?? []).length === 0);
   },
 });

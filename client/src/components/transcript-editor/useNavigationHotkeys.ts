@@ -321,6 +321,75 @@ export function useNavigationHotkeys({
     { enableOnFormTags: false },
   );
 
+  // Alt/Option+1..0 -> toggle tags 1..10 on the selected segment
+  useHotkeys(
+    "alt+1,alt+2,alt+3,alt+4,alt+5,alt+6,alt+7,alt+8,alt+9,alt+0",
+    (event) => {
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+
+      // Prefer physical key detection via `code` (Digit1..Digit0) because on macOS
+      // Option/Alt+digit can produce different `key` values (special chars).
+      const kbEvent = event as KeyboardEvent;
+      const code = kbEvent.code || "";
+      let tagIndex = -1;
+
+      if (code.startsWith("Digit")) {
+        const digit = code.replace("Digit", "");
+        if (digit === "0") {
+          tagIndex = 9;
+        } else {
+          const n = Number.parseInt(digit, 10);
+          if (!Number.isNaN(n)) tagIndex = n - 1;
+        }
+      } else {
+        // Fallback to `key` (numeric characters)
+        const key = kbEvent.key || "";
+        if (key >= "1" && key <= "9") {
+          tagIndex = Number.parseInt(key, 10) - 1;
+        } else if (key === "0") {
+          tagIndex = 9;
+        }
+      }
+
+      if (tagIndex < 0 || tagIndex >= tags.length) return;
+
+      toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+    },
+    { enableOnFormTags: false, preventDefault: true },
+  );
+
+  // Some elements (focused segment textarea/div) can swallow or transform the key event.
+  // Add a capture-phase listener that uses `event.code` (Digit1..Digit0) and `altKey`
+  // to reliably detect Option/Alt+digit on macOS even when a segment is focused.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      // Only react to Alt/Option + Digit keys
+      if (!e.altKey) return;
+      const code = e.code || "";
+      if (!code.startsWith("Digit")) return;
+      // Map Digit1..Digit9 -> 0..8, Digit0 -> 9
+      const digit = code.replace("Digit", "");
+      let tagIndex = -1;
+      if (digit === "0") {
+        tagIndex = 9;
+      } else {
+        const n = Number.parseInt(digit, 10);
+        if (!Number.isNaN(n)) tagIndex = n - 1;
+      }
+
+      if (tagIndex < 0 || tagIndex >= tags.length) return;
+      if (!selectedSegmentId) return;
+
+      // Prevent default browser behavior and toggle tag
+      e.preventDefault();
+      toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+    };
+
+    window.addEventListener("keydown", handler, { capture: true });
+    return () => window.removeEventListener("keydown", handler, { capture: true });
+  }, [tags, selectedSegmentId, toggleTagOnSegment]);
+
   useHotkeys(
     "s",
     () => {

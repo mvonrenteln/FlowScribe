@@ -134,7 +134,8 @@ export function SpeakerSidebar({
   };
 
   const getTagSegmentCount = (tagId: string) => {
-    return segments.filter((s) => s.tags && s.tags.includes(tagId)).length;
+    // normalize missing tags
+    return segments.filter((s) => (s.tags ?? []).includes(tagId)).length;
   };
 
   const getTotalDuration = (speakerName: string) => {

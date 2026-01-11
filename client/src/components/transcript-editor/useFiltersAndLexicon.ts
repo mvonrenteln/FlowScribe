@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
+import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
 
@@ -160,11 +161,13 @@ export function useFiltersAndLexicon({
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
       if (filterNoTags) {
-        if (segment.tags.length > 0) return false;
+        if (getSegmentTags(segment).length > 0) return false;
       }
       if (filterTagIds.length > 0) {
         // OR-logic: segment matches if it has ANY of the selected tags
-        const hasMatchingTag = filterTagIds.some((tagId) => segment.tags.includes(tagId));
+        const hasMatchingTag = filterTagIds.some((tagId) =>
+          getSegmentTags(segment).includes(tagId),
+        );
         if (!hasMatchingTag) return false;
       }
 
