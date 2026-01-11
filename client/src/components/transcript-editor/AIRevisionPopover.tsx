@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { initializeSettings, updateProviderModel, updateSettingsDefaultProvider } from "@/lib/settings/settingsStorage";
 
 interface AIRevisionPopoverProps {
   segmentId: string;
@@ -28,6 +29,12 @@ interface AIRevisionPopoverProps {
 
 // How long to show status indicators (in ms)
 const STATUS_DISPLAY_TIME = 3000;
+
+// Module-level simple in-memory cache for provider models (lives until app reload)
+const modelCache: Map<string, string[]> = new Map();
+
+// Module-level store for last per-user selection (provider+model) — kept in-memory until reload
+const lastSelection: Map<string, { providerId?: string; model?: string }> = new Map();
 
 export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProps) {
   const { t } = useTranslation();
@@ -44,6 +51,33 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const currentProcessingSegmentId = useTranscriptStore((s) => s.aiRevisionCurrentSegmentId);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
+
+  // Local provider/model override state (per-popover)
+  const [settings] = useState(() => initializeSettings());
+  const [selectedProvider, setSelectedProvider] = useState<string | undefined>(undefined);
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
+  const [availableModels, setAvailableModels] = useState<Map<string, string[]>>(new Map());
+  const [loadingModels, setLoadingModels] = useState<Set<string>>(new Set());
+  const [modelError, setModelError] = useState<string | null>(null);
+
+  // Initialize selectedProvider/Model from in-memory lastSelection if present
+  useEffect(() => {
+    const saved = lastSelection.get("ai-revision") ?? {};
+    if (saved.providerId) {
+      setSelectedProvider(saved.providerId);
+      if (saved.model) setSelectedModel(saved.model);
+      return;
+    }
+
+    // No saved selection — use settings default provider and model
+    const defaultProviderId = settings.defaultAIProviderId ?? settings.aiProviders.find((p) => p.isDefault)?.id;
+    const defaultProvider = settings.aiProviders.find((p) => p.id === defaultProviderId) ?? settings.aiProviders[0];
+    if (defaultProvider) {
+      setSelectedProvider(defaultProvider.id);
+      const defaultModel = defaultProvider.model ?? defaultProvider.availableModels?.[0];
+      if (defaultModel) setSelectedModel(defaultModel);
+    }
+  }, []);
 
   // Check if THIS segment is currently being processed
   const isProcessingThis = isGlobalProcessing && currentProcessingSegmentId === segmentId;
@@ -73,9 +107,47 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
   const handleSelectPrompt = (promptId: string) => {
     setDisplayStatus("idle");
-    startSingleRevision(segmentId, promptId);
+    startSingleRevision(segmentId, promptId, selectedProvider, selectedModel);
     setOpen(false);
   };
+
+  const fetchModelsForProvider = async (providerId: string) => {
+    // Use module cache if present
+    if (modelCache.has(providerId)) {
+      const cached = modelCache.get(providerId) || [];
+      setAvailableModels((prev) => new Map([...prev, [providerId, cached]]));
+      setModelError(null);
+      return;
+    }
+
+    const providerConfig = settings.aiProviders.find((p) => p.id === providerId);
+    if (!providerConfig) return;
+
+    // Read available models from settings (preferred) or fall back to provider.model
+    const available = providerConfig.availableModels ?? (providerConfig.model ? [providerConfig.model] : []);
+    modelCache.set(providerId, available);
+    setAvailableModels((prev) => new Map([...prev, [providerId, available]]));
+    setModelError(null);
+  };
+
+  // Build simple provider list from settings for inline selection
+  const providerModels = settings.aiProviders.map((p) => ({ id: p.id, name: p.name, model: p.model, isDefault: p.id === settings.defaultAIProviderId || p.isDefault }));
+
+  // When popover opens, if a provider is selected fetch its models
+  useEffect(() => {
+    if (open && selectedProvider) {
+      fetchModelsForProvider(selectedProvider);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, selectedProvider]);
+
+  // Persist per-session last selection in module map
+  useEffect(() => {
+    lastSelection.set("ai-revision", {
+      providerId: selectedProvider,
+      model: selectedModel,
+    });
+  }, [selectedProvider, selectedModel]);
 
   // Determine icon and styling based on current status
   const getStatusDisplay = () => {
@@ -144,6 +216,7 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
       <PopoverContent className="w-56 p-1" align="end">
         <div className="flex flex-col">
+          {/* Provider / Model overrides moved into Settings submenu (see SettingsSubmenu below) */}
           {/* Status message if not idle */}
           {displayStatus === "no-changes" && (
             <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-sm mb-1 flex items-center gap-2">
@@ -192,6 +265,18 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
               {t("aiRevision.createInSettings")}
             </div>
           )}
+          {/* Settings submenu placed at the end */}
+          <div className="h-px bg-border my-1" />
+          <SettingsSubmenu
+            providerModels={providerModels}
+            availableModels={availableModels}
+            loadingModels={loadingModels}
+            selectedProvider={selectedProvider}
+            selectedModel={selectedModel}
+            setSelectedProvider={setSelectedProvider}
+            setSelectedModel={setSelectedModel}
+            settings={settings}
+          />
         </div>
       </PopoverContent>
     </Popover>
@@ -220,7 +305,7 @@ function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
         onClick={() => setShowMore(true)}
       >
         <MoreHorizontal className="h-4 w-4" />
-        <span className="flex-1">{t("aiRevision.moreTemplates")}</span>
+        <span className="flex-1">{t("aiRevision.morePrompts")}</span>
         <ChevronRight className="h-4 w-4" />
       </button>
     );
@@ -238,7 +323,7 @@ function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
         )}
         onClick={() => setShowMore(false)}
       >
-        <ChevronRight className="h-4 w-4 rotate-180" />
+          <span className="flex-1">{t("aiRevision.morePrompts")}</span>
         <span>{t("aiRevision.back")}</span>
       </button>
       <div className="h-px bg-border my-1" />
@@ -258,6 +343,121 @@ function MorePromptsSubmenu({ prompts, onSelect }: MorePromptsSubmenuProps) {
           <span className="flex-1 truncate">{promptItem.name}</span>
         </button>
       ))}
+    </div>
+  );
+}
+
+interface SettingsSubmenuProps {
+  providerModels: Array<{ id: string; name: string; model?: string; isDefault?: boolean }>;
+  availableModels: Map<string, string[]>;
+  loadingModels: Set<string>;
+  selectedProvider?: string;
+  selectedModel?: string;
+  setSelectedProvider: (id?: string) => void;
+  setSelectedModel: (m?: string) => void;
+  settings: ReturnType<typeof initializeSettings>;
+}
+
+function SettingsSubmenu({
+  providerModels,
+  availableModels,
+  loadingModels,
+  selectedProvider,
+  selectedModel,
+  setSelectedProvider,
+  setSelectedModel,
+  settings,
+}: SettingsSubmenuProps) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "text-left w-full text-muted-foreground",
+        )}
+        onClick={() => setOpen(true)}
+      >
+        <span className="flex-1">{t("aiRevision.settings") ?? "Settings"}</span>
+        <ChevronRight className="h-4 w-4" />
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col">
+      <button
+        type="button"
+        className={cn(
+          "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
+          "hover:bg-accent hover:text-accent-foreground",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "text-left w-full text-muted-foreground",
+        )}
+        onClick={() => setOpen(false)}
+      >
+        <span className="flex-1">{t("aiRevision.settings") ?? "Settings"}</span>
+        <span>{t("aiRevision.back")}</span>
+      </button>
+
+      <div className="h-px bg-border my-1" />
+
+      <div className="px-3 py-2">
+        <div className="text-[11px] text-muted-foreground mb-1">Provider</div>
+          <div className="max-w-[12rem] mb-2">
+          <select
+            className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
+            value={selectedProvider ?? ""}
+            onChange={(e) => {
+              const val = e.target.value || undefined;
+              setSelectedProvider(val);
+              // Persist provider as default so selection survives popover reopen
+              if (val) updateSettingsDefaultProvider(val);
+            }}
+            onClick={(e) => e.stopPropagation()}
+            title={settings.aiProviders.find((x) => x.id === selectedProvider)?.name ?? ""}
+          >
+            {providerModels.map((p) => (
+              <option key={p.id} value={p.id} title={p.name}>
+                {p.name}
+                {p.isDefault ? " ★" : ""}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div className="text-[11px] text-muted-foreground mb-1">Model</div>
+        {loadingModels.has(selectedProvider) ? (
+          <div className="text-xs text-muted-foreground">Loading models...</div>
+        ) : (
+          <div className="max-w-[12rem]">
+            <select
+              className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
+              value={selectedModel ?? ""}
+              onChange={(e) => {
+                const val = e.target.value || undefined;
+                setSelectedModel(val);
+                // Persist chosen model into provider config in settings
+                if (selectedProvider && val) updateProviderModel(selectedProvider, val);
+              }}
+              onClick={(e) => e.stopPropagation()}
+              title={selectedModel ?? ""}
+            >
+              {(availableModels.get(selectedProvider) ?? []).map((m) => (
+                <option key={`${selectedProvider}-${m}`} value={m} title={m}>
+                  {m}
+                  {m === (settings.aiProviders.find((p) => p.id === selectedProvider)?.model ?? "") ? " ★" : ""}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
+      </div>
     </div>
   );
 }

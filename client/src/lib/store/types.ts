@@ -416,8 +416,18 @@ export interface AIRevisionConfig {
 export interface AIRevisionSlice {
   // State is in InitialStoreState with aiRevision* prefix
   // Actions
-  startSingleRevision: (segmentId: string, promptId: string) => void;
-  startBatchRevision: (segmentIds: string[], promptId: string) => void;
+  startSingleRevision: (
+    segmentId: string,
+    promptId: string,
+    providerId?: string | undefined,
+    model?: string | undefined,
+  ) => void;
+  startBatchRevision: (
+    segmentIds: string[],
+    promptId: string,
+    providerId?: string | undefined,
+    model?: string | undefined,
+  ) => void;
   cancelRevision: () => void;
   acceptRevision: (segmentId: string) => void;
   rejectRevision: (segmentId: string) => void;

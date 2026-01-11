@@ -11,7 +11,8 @@
     "errorOccurred": "Ein Fehler ist aufgetreten.",
     "noTemplates": "Keine Templates konfiguriert.",
     "createInSettings": "Erstellen Sie Templates in den Einstellungen.",
-    "moreTemplates": "Weitere Templates...",
+    "morePrompts": "Weitere Prompts...",
+    "settings": "Einstellungen",
     "back": "Zurück"
   },
   "diffView": {
