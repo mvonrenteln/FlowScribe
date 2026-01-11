@@ -1,0 +1,514 @@
+# Tags System - Feature Concept
+
+## Overview
+
+The Tags System extends FlowScribe with a flexible, fine-grained annotation system. Tags are category-agnostic labels that can be applied to segments in addition to speakers. They function analogously to speakers (colors, editing, filtering) but are semantically independent and orthogonal to the speaker concept.
+
+**Core Characteristics:**
+- Independent of speakers (1:1 parallel hierarchy)
+- Multiple tags per segment possible (rare but supported)
+- Color-coded like speakers
+- Keyboard-first assignment (keys 1–0 + T for manual tag mode)
+- Editable, mergeable, renameable, deletable
+- Simple single/double-click filter logic (positive → negative/NOT)
+
+---
+
+## Architecture
+
+### Type Definitions
+
+```typescript
+// client/src/lib/store/types.ts
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+}
+
+// Update Segment
+export interface Segment {
+  id: string;
+  speaker: string;
+  tags: string[];  // ← NEW: Tag names or IDs (prefer names for consistency with speaker)
+  start: number;
+  end: number;
+  text: string;
+  words: Word[];
+  confirmed?: boolean;
+  bookmarked?: boolean;
+}
+```
+
+### Store Slices
+
+**New Slice: `tagsSlice.ts`**
+```typescript
+export interface TagsSlice {
+  tags: Tag[];
+  
+  // Mutations
+  addTag: (name: string) => void;
+  renameTag: (oldName: string, newName: string) => void;
+  mergeTag: (fromName: string, toName: string) => void;
+  deleteTag: (name: string) => void;
+  assignTagToSegment: (segmentId: string, tagName: string) => void;
+  removeTagFromSegment: (segmentId: string, tagName: string) => void;
+  
+  // Utility
+  getSegmentsWithTag: (tagName: string) => Segment[];
+  getSegmentsWithoutTag: (tagName: string) => Segment[];
+  getTagColor: (tagName: string) => string;
+}
+```
+
+**Extend: `store/types.ts` → `FilterState`**
+```typescript
+export interface FilterState {
+  speakers: string[];          // Speaker filter (existing)
+  tags: string[];              // NEW: Positive tag filters (include)
+  tagsExcluded: string[];      // NEW: Negative tag filters (exclude/NOT)
+  showNoTags?: boolean;        // NEW: Show only segments with NO tags
+}
+
+// Conceptually:
+// Displayed segments = (segment.speaker in speakers) 
+//                    AND (tags.length === 0 OR segment.tags.some(t => tags.includes(t)))
+//                    AND (segment.tags.every(t => !tagsExcluded.includes(t)))
+//                    AND (showNoTags ? segment.tags.length === 0 : true)
+```
+
+### Persistence
+
+**Sessions extend to include tags:**
+```typescript
+export interface PersistedSession {
+  // ... existing
+  tags: Tag[];                 // ← NEW
+  // Segments now include tags field
+}
+```
+
+---
+
+## UI Layout
+
+### Left Sidebar: Speaker & Tags Sections
+
+```
+┌─────────────────────────────────────────┐
+│         File: demo.mp3                  │
+├─────────────────────────────────────────┤
+│ [Search/Filter Input]                   │
+│                                         │
+│ 🔍 Speakers                      ▼      │
+├─────────────────────────────────────────┤
+│┌───────────────────────────────────────┐│
+││ ⊠ Alice                    (12 seg)   ││
+││ ⊠ Bob                      (8 seg)    ││
+││ ⊠ Narrator                 (5 seg)    ││
+││ ⊞ [+ Add Speaker]                    ││
+│└───────────────────────────────────────┘│
+│                                         │ ← ScrollArea (Speaker section)
+│                                         │
+│ 📌 Tags                           ▼     │
+├─────────────────────────────────────────┤
+│┌───────────────────────────────────────┐│
+││ ☐ OOC              (4 seg)     ⋮      ││ ← Right-click/dbl-click for NOT
+││ ☐ EDIT             (7 seg)     ⋮      ││    (context menu or toggle)
+││ ☐ FX               (2 seg)     ⋮      ││
+││ ☐ No Tags          (3 seg)     ⋮      ││
+││ ⊞ [+ Add Tag]                        ││
+│└───────────────────────────────────────┘│
+│                                         │ ← ScrollArea (Tags section)
+│                                         │
+│ ⚙ Other Filters                       │
+├─────────────────────────────────────────┤
+│┌───────────────────────────────────────┐│
+││ ☐ Bookmarks                (5 seg)   ││
+││ ☐ Low Confidence           (8 seg)   ││
+││ ☐ Spelling Issues          (12 seg)  ││
+│└───────────────────────────────────────┘│
+└─────────────────────────────────────────┘
+```
+
+**Key Points:**
+- Separate scrollable areas for speakers and tags (prevents one from pushing out the other)
+- Clear visual separation (icons: 🔍 vs 📌)
+- Consistent checkbox UI as existing filters
+- "No Tags" filter appears as special item in the tags section
+- Right-click/double-click on tag shows context menu with "Exclude (NOT)" option
+
+### Tag Filter Context Menu
+
+```
+Right-click on "OOC" tag:
+┌─────────────────────────┐
+│ ⊕ Include (OOC)         │ ← Single-click does this by default
+│ ⊖ Exclude (NOT OOC)     │ ← Double-click or right-click → this
+│ ─────────────────────── │
+│ Rename                  │
+│ Merge Into...           │
+│ Delete                  │
+└─────────────────────────┘
+
+Visual Indicator:
+- ☐ OOC (not selected)
+- ⊕ OOC (included/selected)
+- ⊖ OOC (excluded/NOT - different icon, e.g., strikethrough or X)
+```
+
+### Segment Card: Tag Display
+
+```
+┌──────────────────────────────────────────────┐
+│  00:42–00:58 | Alice  [EDIT] [FX]       ...  │
+│                                              │
+│  And then we noticed the problem...         │
+│                                              │
+│  Tags: [EDIT]✕ [FX]✕ [+ Add]       ▼      │ ← NEW: inline tag mgmt
+│                                              │
+└──────────────────────────────────────────────┘
+
+Context Menu (...):
+├─ Change Speaker
+├─ Split Segment
+├─ Manage Tags ──────┐
+│                    └─ Quick tag picker (list of all tags)
+├─ Merge...
+└─ Delete
+```
+
+---
+
+## Filter Interaction Model
+
+### Click Behavior
+
+**Single-click:**
+- Toggle tag in include filter (`tags` array)
+- Visual: ☐ → ⊕ (or vice versa, unmarked → checked)
+- Effect: Show segments with this tag
+
+**Double-click or right-click:**
+- Open context menu
+- Select "Exclude (NOT)" → toggle tag in exclude filter (`tagsExcluded` array)
+- Visual: ⊕ OOC → ⊖ OOC (e.g., strikethrough or different icon)
+- Effect: Hide segments with this tag
+
+### Filter Logic
+
+```
+User clicks:        → Filter State          → Result
+─────────────────────────────────────────────────────────
+Single "OOC"        → tags: ["OOC"]         → All OOC segments
+Single "OOC" + "FX" → tags: ["OOC", "FX"]   → OOC OR FX segments
+Single "Alice"      → speakers: ["Alice"]   → All Alice segments
+Alice + OOC         → speakers: ["Alice"],  → Alice AND OOC
+                      tags: ["OOC"]
+
+Dbl-click OOC       → tagsExcluded: ["OOC"] → All segments EXCEPT OOC
+Alice + NOT OOC     → speakers: ["Alice"],  → Alice segments without OOC
+                      tagsExcluded: ["OOC"]
+
+"No Tags"           → showNoTags: true      → Only untagged segments
+```
+
+### Common Workflows
+
+```
+1. Review all OOC sections:
+   → Single-click "OOC" tag
+   → Display: All segments with OOC tag
+
+2. Prepare Alice content for summarization (exclude OOC):
+   → Single-click "Alice" (speaker)
+   → Double-click "OOC" tag (to exclude)
+   → Display: Alice segments without OOC
+
+3. Find untagged content:
+   → Single-click "No Tags" filter
+   → Display: All segments with empty tags array
+
+4. Quick multi-tag filter (OR within tags):
+   → Single-click "EDIT" tag
+   → Single-click "REVIEW" tag
+   → Display: Segments with EDIT OR REVIEW
+   → (Note: NOT "EDIT AND REVIEW" — tags use OR logic, consistent with speakers)
+```
+
+---
+
+## Keyboard Shortcuts
+
+### Tag Assignment (Keyboard-First)
+
+```
+T + 1         →  Assign Tag #1 (toggle)
+T + 2         →  Assign Tag #2 (toggle)
+T + 3–9       →  Assign Tag #3–#9
+T + 0         →  Assign Tag #10
+
+Behavior:
+- If tag already on current segment → remove it
+- If not → add it
+- Works on single selection (current segment)
+- Works on range selections (apply tag to all selected segments)
+- Each segment: toggle independently
+
+Examples:
+- Current segment has OOC (Tag #1) → T+1 → removed
+- Current segment has no OOC → T+1 → added
+```
+
+### Tag Management (Keyboard-First)
+
+```
+Shift+T+1     →  Rename Tag #1 (inline edit)
+Shift+T+2–0   →  Rename Tag #2–#10
+
+Ctrl+T+1      →  Delete Tag #1 (remove from all segments + delete tag)
+Ctrl+T+2–0    →  Delete Tag #2–#10
+```
+
+### Alternative: Manual Tag Entry (if needed)
+
+```
+Cmd+T or Ctrl+T  →  Open "Add Tag" dialog
+                     → Type tag name
+                     → Tab-complete existing tags
+                     → Assign to current segment
+                     (fallback if keyboard shortcut slot exhausted)
+```
+
+---
+
+## Implementation Roadmap
+
+### Phase 1: MVP - Complete Usable Feature (2–3 PRs)
+
+**Goal:** Fully functional tag system with keyboard-first assignment, sidebar display (positive filters only), and segment badge display. No NOT-filter logic yet.
+
+1. **Core data model & store**
+   - Update `Segment` interface with `tags: string[]`
+   - Create `tagsSlice.ts` with CRUD operations: `addTag()`, `assignTagToSegment()`, `removeTagFromSegment()`, etc.
+   - Extend `FilterState` with `tags: string[]` (positive filter only)
+   - Update persistence (sessions include tags array)
+   - Tag color assignment (cycle through SPEAKER_COLORS palette)
+   - History integration (all mutations use addToHistory)
+
+2. **Sidebar UI - positive filtering only**
+   - Refactor `SpeakerSidebar` into two scrollable sections: Speakers + Tags
+   - Tag list rendering with segment counts
+   - Single-click toggle for include filter (positive tags)
+   - Visual indicator: ☐ (unmarked), ⊕ (included)
+   - Update `selectFilteredSegments()` predicate for positive tag filtering
+   - (NO context menu, NO double-click yet)
+
+3. **Keyboard-driven assignment**
+   - Implement T+1...0 keyboard shortcuts
+   - Toggle tag on current segment (or range selection)
+   - Each segment toggles independently
+   - Integration with selection/navigation hooks
+   - Tests for keyboard interactions
+
+4. **Segment card integration**
+   - Display tags inline as badges on segment cards
+   - Add ✕ button to remove each tag from segment
+   - Add "+ Add Tag" quick picker button (UI-based tag assignment)
+   - All inline operations work without context menu
+
+### Phase 2: Tag Management & Advanced Keyboard (1–2 PRs)
+
+**Goal:** Complete keyboard-driven management and additional UI conveniences.
+
+1. **Keyboard management shortcuts**
+   - Shift+T+N for rename tag (inline edit)
+   - Ctrl+T+N for delete tag (remove from all segments + delete tag)
+
+2. **Tag sidebar management UI**
+   - Rename, merge, delete operations (similar to speaker sidebar)
+   - Drag-and-drop merge (optional, reuse speaker pattern)
+   - Add speaker alongside "Add Tag" button
+
+3. **Enhanced segment UI**
+   - Context menu on segment: "Manage Tags" (opens tag picker dialog)
+   - Tag picker: searchable list of available tags
+
+4. **"No Tags" filter**
+   - Add "No Tags" as special item in tags section
+   - Single-click toggle for `showNoTags` state
+
+### Phase 3: Complex Filter Logic (1 PR)
+
+**Goal:** NOT-filters and advanced filter combinations.
+
+1. **Exclude (NOT) filter support**
+   - Extend `FilterState` with `tagsExcluded: string[]`
+   - Double-click or right-click on tag → context menu
+   - Menu option: "Exclude (NOT tag)"
+   - Visual indicator: ⊖ (excluded/NOT)
+
+2. **Filter predicate updates**
+   - Update `selectFilteredSegments()` with NOT logic
+   - Correct AND/NOT combination with speaker filters
+   - Test all filter combinations
+
+3. **Export & AI Integration (stretch)**
+   - Batch operations on filtered tags (summarize, etc.)
+   - Export: include tags in JSON/Whisper-X output
+   - Tag-based merge suggestions
+
+---
+
+## Design Consistency
+
+### ✓ Store Patterns
+- New `tagsSlice` mirrors `speakersSlice` structure
+- Immutable updates via Zustand setter
+- History integration (addToHistory on all mutations)
+
+### ✓ Filter Integration
+- Reuses existing `FilterState` mechanism
+- Extends cleanly with `tags` and `tagsExcluded` (additive, non-breaking)
+- Consistent selector pattern (`selectFilteredSegments` updated)
+
+### ✓ UI Consistency
+- Tag cards/items match speaker card design in sidebar
+- Same color palette + cycle logic (SPEAKER_COLORS)
+- Badges/pills match existing shadcn/ui components
+- Keyboard shortcut pattern analogous to speakers
+
+### ✓ Data Persistence
+- Sessions extend naturally (new `tags` field, new `tags` array on segments)
+- Backward-compatible: existing sessions without tags load with `tags: []`
+- Export format includes tags (JSON and Whisper-X parity)
+
+### ✓ AI Infrastructure
+- Tags compatible with existing AI feature pipelines (lib/ai/*)
+- Can be used as selection criteria in batch operations
+- No changes to core AI types (tags are metadata annotations)
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+1. **tagsSlice**
+   - `addTag()` → new tag with auto-color
+   - `renameTag()` → updates all segment references
+   - `mergeTag()` → migrates segments, deletes source
+   - `assignTagToSegment()` → idempotent (no duplicates)
+   - `removeTagFromSegment()` → safe if tag not present
+
+2. **Filter predicates**
+   - Positive filter (include tags): OR logic
+   - Negative filter (exclude tags): NOT logic
+   - Combined speaker + tags: AND logic
+   - "no tags" filter: tag array empty
+
+3. **Selectors**
+   - `selectFilteredSegments()` with tag filters
+   - `selectAvailableTags()` based on current segments
+
+### Integration Tests
+
+1. **Store integration**
+   - Tag operations trigger history updates
+   - Undo/redo with tags works correctly
+   - Tag persistence in sessions survives reload
+
+2. **UI component tests**
+   - Tag sidebar renders correctly
+   - Tag assignment keyboard shortcuts work
+   - Filter toggles update displayed segments
+
+---
+
+## Testing Strategy
+
+### Unit Tests
+
+1. **tagsSlice**
+   - `addTag()` → new tag with auto-color
+   - `renameTag()` → updates all segment references
+   - `mergeTag()` → migrates segments, deletes source
+   - `assignTagToSegment()` → idempotent (no duplicates)
+   - `removeTagFromSegment()` → safe if tag not present
+
+2. **Filter predicates**
+   - Positive filter (include tags): OR logic
+   - Negative filter (exclude tags): NOT logic (correct negation)
+   - Combined speaker + tags: AND between speaker & tag filters
+   - "No Tags" filter: correct empty array detection
+   - Multiple tags: correct OR logic
+
+3. **Selectors**
+   - `selectFilteredSegments()` with tag filters
+   - `selectAvailableTags()` based on current segments
+
+### Integration Tests
+
+4. **Store integration**
+   - Tag operations trigger history updates
+   - Undo/redo with tags works correctly
+   - Tag persistence in sessions survives reload
+
+5. **UI & Keyboard**
+   - Tag sidebar renders correctly
+   - Tag assignment shortcuts (T+1...0) work
+   - Filter toggles (single/double-click) update displayed segments
+   - Context menu for exclude (NOT) filter works
+
+---
+
+## Future Extensions
+
+1. **Tag suggestions**
+   - AI recommends tags based on segment content (Phase 2+)
+   - Autocomplete when naming new tags
+
+2. **Custom tag colors**
+   - Let users pick colors per tag (reuse speaker color picker pattern)
+   - Phase 2+ scope
+
+3. **Tag templates / Presets**
+   - Save/load common tag sets per project
+   - Quick-preset buttons in sidebar
+
+4. **Hierarchical tags**
+   - Prefix-based namespace: `OOC:INTRO`, `OOC:OUTRO`
+   - Phase 3+ scope
+
+5. **Batch tag operations**
+   - UI for applying tags to ranges
+   - Replace tag A with tag B across filtered segments
+
+---
+
+## Success Criteria
+
+- ✓ Tags assignable via T+1...0 (keyboard-first)
+- ✓ Tags filterable in sidebar (single-click = include, double-click/right-click = exclude/NOT)
+- ✓ Simple filter UI: no advanced modal needed
+- ✓ Tags persist across sessions
+- ✓ No regression in speaker filtering (additive only)
+- ✓ All tag operations undo/redo correctly
+- ✓ >80% test coverage on tag logic
+- ✓ UI consistent with speaker patterns
+- ✓ No memory/performance degradation with 100+ tags and complex filters
+
+
+## Success Criteria
+
+- ✓ Tags assignable via Alt+1...0 (keyboard-first)
+- ✓ Tags filterable in sidebar (AND/NOT logic)
+- ✓ Tags persist across sessions
+- ✓ No regression in speaker filtering (additive only)
+- ✓ All tag operations undo/redo correctly
+- ✓ >80% test coverage on tag logic
+- ✓ UI consistent with speaker patterns
+- ✓ No memory/performance degradation with 100+ tags
+
