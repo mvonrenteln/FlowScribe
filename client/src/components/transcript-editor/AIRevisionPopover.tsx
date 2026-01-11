@@ -33,9 +33,6 @@ const STATUS_DISPLAY_TIME = 3000;
 // Module-level simple in-memory cache for provider models (lives until app reload)
 const modelCache: Map<string, string[]> = new Map();
 
-// Module-level store for last per-user selection (provider+model) — kept in-memory until reload
-const lastSelection: Map<string, { providerId?: string; model?: string }> = new Map();
-
 export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProps) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -51,6 +48,8 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const isGlobalProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
   const currentProcessingSegmentId = useTranscriptStore((s) => s.aiRevisionCurrentSegmentId);
   const startSingleRevision = useTranscriptStore((s) => s.startSingleRevision);
+  const globalLastSelection = useTranscriptStore((s) => s.aiRevisionLastSelection);
+  const setGlobalLastSelection = useTranscriptStore((s) => s.setAiRevisionLastSelection);
 
   // Local provider/model override state (per-popover)
   const [settings] = useState(() => initializeSettings());
@@ -60,12 +59,11 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
   const [loadingModels, setLoadingModels] = useState<Set<string>>(new Set());
   const [modelError, setModelError] = useState<string | null>(null);
 
-  // Initialize selectedProvider/Model from in-memory lastSelection if present
+  // Initialize selectedProvider/Model from global store selection if present
   useEffect(() => {
-    const saved = lastSelection.get("ai-revision") ?? {};
-    if (saved.providerId) {
-      setSelectedProvider(saved.providerId);
-      if (saved.model) setSelectedModel(saved.model);
+    if (globalLastSelection?.providerId) {
+      setSelectedProvider(globalLastSelection.providerId);
+      if (globalLastSelection.model) setSelectedModel(globalLastSelection.model);
       return;
     }
 
@@ -77,7 +75,7 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
       const defaultModel = defaultProvider.model ?? defaultProvider.availableModels?.[0];
       if (defaultModel) setSelectedModel(defaultModel);
     }
-  }, []);
+  }, [globalLastSelection]);
 
   // Check if THIS segment is currently being processed
   const isProcessingThis = isGlobalProcessing && currentProcessingSegmentId === segmentId;
@@ -141,13 +139,10 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, selectedProvider]);
 
-  // Persist per-session last selection in module map
+  // Persist selection into global store so other popovers pick it up
   useEffect(() => {
-    lastSelection.set("ai-revision", {
-      providerId: selectedProvider,
-      model: selectedModel,
-    });
-  }, [selectedProvider, selectedModel]);
+    setGlobalLastSelection({ providerId: selectedProvider, model: selectedModel });
+  }, [selectedProvider, selectedModel, setGlobalLastSelection]);
 
   // Determine icon and styling based on current status
   const getStatusDisplay = () => {
@@ -416,8 +411,6 @@ function SettingsSubmenu({
             onChange={(e) => {
               const val = e.target.value || undefined;
               setSelectedProvider(val);
-              // Persist provider as default so selection survives popover reopen
-              if (val) updateSettingsDefaultProvider(val);
             }}
             onClick={(e) => e.stopPropagation()}
             title={settings.aiProviders.find((x) => x.id === selectedProvider)?.name ?? ""}
@@ -442,8 +435,7 @@ function SettingsSubmenu({
               onChange={(e) => {
                 const val = e.target.value || undefined;
                 setSelectedModel(val);
-                // Persist chosen model into provider config in settings
-                if (selectedProvider && val) updateProviderModel(selectedProvider, val);
+                setSelectedModel(val);
               }}
               onClick={(e) => e.stopPropagation()}
               title={selectedModel ?? ""}

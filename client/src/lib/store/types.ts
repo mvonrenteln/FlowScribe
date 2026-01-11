@@ -164,6 +164,11 @@ export interface InitialStoreState {
     message?: string;
     timestamp: number;
   } | null;
+  // Last provider/model selection for AI Revision UI (per-session or persisted)
+  aiRevisionLastSelection?: {
+    providerId?: string;
+    model?: string;
+  };
   // AI Segment Merge state
   aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
   aiSegmentMergeIsProcessing: boolean;
@@ -442,6 +447,8 @@ export interface AIRevisionSlice {
   setDefaultRevisionPrompt: (id: string | null) => void;
   setQuickAccessPrompts: (ids: string[]) => void;
   toggleQuickAccessPrompt: (id: string) => void;
+  // Persist last provider/model selection for AI Revision UI (optional persistence)
+  setAiRevisionLastSelection: (s?: { providerId?: string; model?: string }) => void;
 }
 
 // ==================== AI Segment Merge Types ====================

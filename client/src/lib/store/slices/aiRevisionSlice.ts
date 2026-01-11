@@ -121,6 +121,8 @@ export const initialAIRevisionState = {
     message?: string;
     timestamp: number;
   } | null,
+  // Track last selected provider/model for AI Revision UI (can be persisted via root persist)
+  aiRevisionLastSelection: undefined as { providerId?: string; model?: string } | undefined,
 };
 
 /**
@@ -613,5 +615,9 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
         quickAccessPromptIds: newIds,
       },
     });
+  },
+  // Persist last provider/model selection for UI components
+  setAiRevisionLastSelection: (s) => {
+    set({ aiRevisionLastSelection: s });
   },
 });
