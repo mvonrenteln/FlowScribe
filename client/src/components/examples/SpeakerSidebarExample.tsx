@@ -44,6 +44,7 @@ export default function SpeakerSidebarExample() {
       <SpeakerSidebar
         speakers={speakers}
         segments={mockSegments}
+        tags={[]}
         onRenameSpeaker={handleRename}
         onAddSpeaker={handleAdd}
         onSpeakerSelect={setSelectedSpeakerId}

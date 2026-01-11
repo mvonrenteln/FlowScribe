@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
-import type { Segment, Speaker } from "@/lib/store";
+import type { Segment, Speaker, Tag } from "@/lib/store";
 
 interface UseNavigationHotkeysOptions {
   isTranscriptEditing: () => boolean;
@@ -15,7 +15,9 @@ interface UseNavigationHotkeysOptions {
   selectedSegmentId: string | null;
   segments: Segment[];
   speakers: Speaker[];
+  tags: Tag[];
   updateSegmentSpeaker: (id: string, speaker: string) => void;
+  toggleTagOnSegment: (segmentId: string, tagId: string) => void;
   getSelectedSegmentIndex: () => number;
   mergeSegments: (id1: string, id2: string) => string | null;
   toggleSegmentBookmark: (id: string) => void;
@@ -54,7 +56,9 @@ export function useNavigationHotkeys({
   selectedSegmentId,
   segments,
   speakers,
+  tags,
   updateSegmentSpeaker,
+  toggleTagOnSegment,
   getSelectedSegmentIndex,
   mergeSegments,
   toggleSegmentBookmark,
@@ -385,4 +389,56 @@ export function useNavigationHotkeys({
     },
     { enableOnFormTags: false, preventDefault: true },
   );
+
+  // Tag Assignment: T+1...0 to toggle tags
+  useEffect(() => {
+    const handleTagShortcut = (event: KeyboardEvent) => {
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+
+      // Check if 'T' key is pressed (and held)
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+        if (isFormElement || target.isContentEditable) return;
+      }
+
+      // Handle T+1 through T+9 and T+0
+      if (event.key === "t" || event.key === "T") {
+        // T key pressed - wait for number key
+        const handleNumberKey = (numEvent: KeyboardEvent) => {
+          const key = numEvent.key;
+          if (key >= "1" && key <= "9") {
+            const tagIndex = Number.parseInt(key, 10) - 1;
+            if (tags[tagIndex]) {
+              event.preventDefault();
+              numEvent.preventDefault();
+              toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+            }
+          } else if (key === "0") {
+            const tagIndex = 9; // Tag #10
+            if (tags[tagIndex]) {
+              event.preventDefault();
+              numEvent.preventDefault();
+              toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+            }
+          }
+          // Cleanup listener after one keypress
+          window.removeEventListener("keydown", handleNumberKey);
+        };
+
+        // Add temporary listener for the number key
+        window.addEventListener("keydown", handleNumberKey, { once: true });
+
+        // Remove listener after timeout (500ms)
+        setTimeout(() => {
+          window.removeEventListener("keydown", handleNumberKey);
+        }, 500);
+      }
+    };
+
+    window.addEventListener("keydown", handleTagShortcut);
+    return () => window.removeEventListener("keydown", handleTagShortcut);
+  }, [isTranscriptEditing, selectedSegmentId, tags, toggleTagOnSegment]);
 }

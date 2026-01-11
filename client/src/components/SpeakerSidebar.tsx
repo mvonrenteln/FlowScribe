@@ -1,4 +1,4 @@
-import { Check, Edit2, Merge, Plus, X } from "lucide-react";
+import { Check, Edit2, Merge, Plus, Tag as TagIcon, UsersRound, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -10,19 +10,25 @@ import {
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
-import type { Segment, Speaker } from "@/lib/store";
+import type { Segment, Speaker, Tag } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
   segments: Segment[];
+  tags: Tag[];
   onRenameSpeaker: (oldName: string, newName: string) => void;
   onAddSpeaker: (name: string) => void;
   onMergeSpeakers?: (fromName: string, toName: string) => void;
   onSpeakerSelect?: (speakerId: string) => void;
   onClearFilter?: () => void;
   selectedSpeakerId?: string;
+  // Tag operations
+  onAddTag?: (name: string) => void;
+  onRenameTag?: (tagId: string, newName: string) => void;
+  onTagSelect?: (tagId: string) => void;
+  selectedTagIds?: string[];
   lowConfidenceFilterActive?: boolean;
   onToggleLowConfidenceFilter?: () => void;
   lowConfidenceThreshold?: number | null;
@@ -57,12 +63,17 @@ interface SpeakerSidebarProps {
 export function SpeakerSidebar({
   speakers,
   segments,
+  tags,
   onRenameSpeaker,
   onAddSpeaker,
   onMergeSpeakers,
   onSpeakerSelect,
   onClearFilter,
   selectedSpeakerId,
+  onAddTag,
+  onRenameTag,
+  onTagSelect,
+  selectedTagIds = [],
   lowConfidenceFilterActive = false,
   onToggleLowConfidenceFilter,
   lowConfidenceThreshold = null,
@@ -97,7 +108,12 @@ export function SpeakerSidebar({
   const [editValue, setEditValue] = useState("");
   const [isAdding, setIsAdding] = useState(false);
   const [newSpeakerName, setNewSpeakerName] = useState("");
+  const [editingTagId, setEditingTagId] = useState<string | null>(null);
+  const [editTagValue, setEditTagValue] = useState("");
+  const [isAddingTag, setIsAddingTag] = useState(false);
+  const [newTagName, setNewTagName] = useState("");
   const editInputRef = useRef<HTMLInputElement>(null);
+  const editTagInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (editingId && editInputRef.current) {
@@ -106,8 +122,19 @@ export function SpeakerSidebar({
     }
   }, [editingId]);
 
+  useEffect(() => {
+    if (editingTagId && editTagInputRef.current) {
+      editTagInputRef.current.focus();
+      editTagInputRef.current.select();
+    }
+  }, [editingTagId]);
+
   const getSegmentCount = (speakerName: string) => {
     return segments.filter((s) => s.speaker === speakerName).length;
+  };
+
+  const getTagSegmentCount = (tagId: string) => {
+    return segments.filter((s) => s.tags && s.tags.includes(tagId)).length;
   };
 
   const getTotalDuration = (speakerName: string) => {
@@ -167,6 +194,44 @@ export function SpeakerSidebar({
     }
   };
 
+  const handleStartTagEdit = (tag: Tag) => {
+    setEditingTagId(tag.id);
+    setEditTagValue(tag.name);
+  };
+
+  const handleSaveTagEdit = (tagId: string) => {
+    const trimmedValue = editTagValue.trim();
+    const tag = tags.find((t) => t.id === tagId);
+    if (tag && trimmedValue && trimmedValue !== tag.name) {
+      onRenameTag?.(tagId, trimmedValue);
+    }
+    setEditingTagId(null);
+    setEditTagValue("");
+  };
+
+  const handleCancelTagEdit = () => {
+    setEditingTagId(null);
+    setEditTagValue("");
+  };
+
+  const handleAddTag = () => {
+    if (newTagName.trim()) {
+      onAddTag?.(newTagName.trim());
+      setNewTagName("");
+      setIsAddingTag(false);
+    }
+  };
+
+  const handleTagKeyDown = (event: KeyboardEvent<HTMLDivElement>, tagId: string) => {
+    if (editingTagId === tagId) {
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      onTagSelect?.(tagId);
+    }
+  };
+
   // Debounce search input to prevent filtering on every keystroke
   const [localSearchQuery, setLocalSearchQuery] = useState(searchQuery);
 
@@ -216,7 +281,18 @@ export function SpeakerSidebar({
         />
       </div>
 
-      <ScrollArea className="flex-1">
+      {/* Speakers Section */}
+      <div className="px-4 pt-3 pb-2 border-b">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <UsersRound className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Speakers
+            </span>
+          </div>
+        </div>
+      </div>
+      <ScrollArea className="flex-1" style={{ maxHeight: "40%" }}>
         <div className="p-2 space-y-1">
           {speakers.map((speaker, index) => (
             <div
@@ -344,184 +420,353 @@ export function SpeakerSidebar({
               </div>
             </div>
           ))}
-          <div className="pt-3 mt-3 border-t">
-            <div className="flex items-center justify-between px-1">
-              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Review
-              </div>
+
+          {/* Add Speaker Button */}
+          {isAdding ? (
+            <div className="flex items-center gap-1 pt-2">
+              <Input
+                value={newSpeakerName}
+                onChange={(e) => setNewSpeakerName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddSpeaker();
+                  if (e.key === "Escape") {
+                    setIsAdding(false);
+                    setNewSpeakerName("");
+                  }
+                }}
+                placeholder="Speaker name..."
+                className="h-8 text-sm"
+                autoFocus
+                data-testid="input-new-speaker"
+              />
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddSpeaker}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => {
+                  setIsAdding(false);
+                  setNewSpeakerName("");
+                }}
+                data-testid="button-cancel-add-speaker"
+              >
+                <X className="h-4 w-4" />
+              </Button>
             </div>
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                lowConfidenceFilterActive && "bg-accent",
-                lowConfidenceThreshold === null && "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (lowConfidenceThreshold === null) return;
-                onToggleLowConfidenceFilter?.();
-              }}
-              data-testid="button-filter-low-confidence"
-            >
-              <span>Low confidence score</span>
-              <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
-            </button>
-            {lowConfidenceFilterActive && (
-              <div className="mt-3 space-y-2 px-1">
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <span>Threshold</span>
-                  <span>
-                    {lowConfidenceThreshold === null
-                      ? "No scores"
-                      : lowConfidenceThreshold.toFixed(2)}
-                  </span>
-                </div>
-                <Slider
-                  value={[lowConfidenceThreshold ?? 0.4]}
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  disabled={lowConfidenceThreshold === null}
-                  onValueChange={(value) => {
-                    onLowConfidenceThresholdChange?.(value[0] ?? 0.4);
-                  }}
-                />
-                <div className="flex justify-end">
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => onLowConfidenceThresholdChange?.(null)}
-                    disabled={lowConfidenceThreshold === null}
-                  >
-                    Auto
-                  </Button>
-                </div>
-              </div>
-            )}
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                spellcheckFilterActive && "bg-accent",
-                (!spellcheckEnabled || spellcheckCount === 0) &&
-                  !spellcheckFilterActive &&
-                  "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (!spellcheckEnabled) return;
-                if (spellcheckCount === 0 && !spellcheckFilterActive) return;
-                onToggleSpellcheckFilter?.();
-              }}
-              data-testid="button-filter-spellcheck"
-            >
-              <span>Spelling issues</span>
-              <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                lexiconFilterActive && "bg-accent",
-                lexiconMatchCount === 0 && !lexiconFilterActive && "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (lexiconMatchCount === 0 && !lexiconFilterActive) return;
-                onToggleLexiconFilter?.();
-              }}
-              data-testid="button-filter-glossary"
-            >
-              <span>Glossary matches</span>
-              <span className="text-xs text-muted-foreground">{lexiconMatchCount}</span>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                lexiconLowScoreFilterActive && "bg-accent",
-                lexiconLowScoreMatchCount === 0 &&
-                  !lexiconLowScoreFilterActive &&
-                  "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;
-                onToggleLexiconLowScoreFilter?.();
-              }}
-              data-testid="button-filter-glossary-low-score"
-            >
-              <span>Uncertain Glossary Matches</span>
-              <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
-            </button>
-            <button
-              type="button"
-              className={cn(
-                "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-                "hover-elevate",
-                bookmarkFilterActive && "bg-accent",
-                bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
-              )}
-              onClick={() => {
-                if (bookmarkCount === 0 && !bookmarkFilterActive) return;
-                onToggleBookmarkFilter?.();
-              }}
-              data-testid="button-filter-bookmarks"
-            >
-              <span>Bookmarked</span>
-              <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
-            </button>
-          </div>
+          ) : (
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setIsAdding(true)}
+                data-testid="button-add-speaker"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Speaker
+              </Button>
+            </div>
+          )}
         </div>
       </ScrollArea>
 
-      <div className="p-2 border-t">
-        {isAdding ? (
-          <div className="flex items-center gap-1">
-            <Input
-              value={newSpeakerName}
-              onChange={(e) => setNewSpeakerName(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") handleAddSpeaker();
-                if (e.key === "Escape") {
-                  setIsAdding(false);
-                  setNewSpeakerName("");
-                }
-              }}
-              placeholder="Speaker name..."
-              className="h-8 text-sm"
-              autoFocus
-              data-testid="input-new-speaker"
-            />
-            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddSpeaker}>
-              <Check className="h-4 w-4" />
-            </Button>
-            <Button
-              size="icon"
-              variant="ghost"
-              className="h-8 w-8"
-              onClick={() => {
-                setIsAdding(false);
-                setNewSpeakerName("");
-              }}
-              data-testid="button-cancel-add-speaker"
-            >
-              <X className="h-4 w-4" />
-            </Button>
+      {/* Tags Section */}
+      <div className="px-4 pt-3 pb-2 border-b">
+        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
+            <TagIcon className="h-4 w-4 text-muted-foreground" />
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+              Tags
+            </span>
           </div>
-        ) : (
-          <Button
-            variant="outline"
-            size="sm"
-            className="w-full"
-            onClick={() => setIsAdding(true)}
-            data-testid="button-add-speaker"
+        </div>
+      </div>
+      <ScrollArea className="flex-1" style={{ maxHeight: "30%" }}>
+        <div className="p-2 space-y-1">
+          {tags.map((tag, index) => (
+            <div
+              key={tag.id}
+              className={cn(
+                "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
+                selectedTagIds.includes(tag.id) && "bg-accent",
+              )}
+              onClick={() => {
+                if (editingTagId === tag.id) {
+                  return;
+                }
+                onTagSelect?.(tag.id);
+              }}
+              onKeyDown={(event) => handleTagKeyDown(event, tag.id)}
+              data-testid={`tag-card-${tag.id}`}
+              role="button"
+              tabIndex={0}
+              aria-pressed={selectedTagIds.includes(tag.id)}
+            >
+              <div
+                className="w-1 h-10 rounded-full flex-shrink-0"
+                style={{ backgroundColor: tag.color }}
+              />
+
+              <div className="flex-1 min-w-0">
+                {editingTagId === tag.id ? (
+                  <div className="flex items-center gap-1">
+                    <Input
+                      ref={editTagInputRef}
+                      value={editTagValue}
+                      onChange={(e) => setEditTagValue(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleSaveTagEdit(tag.id);
+                          return;
+                        }
+                        if (e.key === "Escape") {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleCancelTagEdit();
+                        }
+                      }}
+                      className="h-7 text-sm"
+                      autoFocus
+                      data-testid={`input-rename-tag-${tag.id}`}
+                    />
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleSaveTagEdit(tag.id);
+                      }}
+                    >
+                      <Check className="h-3 w-3" />
+                    </Button>
+                    <Button
+                      size="icon"
+                      variant="ghost"
+                      className="h-7 w-7"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        handleCancelTagEdit();
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </Button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5">
+                        {index + 1}
+                      </span>
+                      <span className="text-sm font-medium truncate">{tag.name}</span>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 invisible group-hover:visible"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleStartTagEdit(tag);
+                        }}
+                        data-testid={`button-edit-tag-${tag.id}`}
+                      >
+                        <Edit2 className="h-3 w-3" />
+                      </Button>
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <span>{getTagSegmentCount(tag.id)} segments</span>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          ))}
+
+          {/* Add Tag Button */}
+          {isAddingTag ? (
+            <div className="flex items-center gap-1 pt-2">
+              <Input
+                value={newTagName}
+                onChange={(e) => setNewTagName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") handleAddTag();
+                  if (e.key === "Escape") {
+                    setIsAddingTag(false);
+                    setNewTagName("");
+                  }
+                }}
+                placeholder="Tag name..."
+                className="h-8 text-sm"
+                autoFocus
+                data-testid="input-new-tag"
+              />
+              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddTag}>
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                className="h-8 w-8"
+                onClick={() => {
+                  setIsAddingTag(false);
+                  setNewTagName("");
+                }}
+                data-testid="button-cancel-add-tag"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          ) : (
+            <div className="pt-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full"
+                onClick={() => setIsAddingTag(true)}
+                data-testid="button-add-tag"
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Tag
+              </Button>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Review/Filters Section */}
+      <div className="border-t">
+        <div className="px-4 pt-3 pb-2">
+          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+            Review
+          </div>
+        </div>
+        <div className="p-2 space-y-1">
+          <button
+            type="button"
+            className={cn(
+              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+              "hover-elevate",
+              lowConfidenceFilterActive && "bg-accent",
+              lowConfidenceThreshold === null && "opacity-50 cursor-not-allowed",
+            )}
+            onClick={() => {
+              if (lowConfidenceThreshold === null) return;
+              onToggleLowConfidenceFilter?.();
+            }}
+            data-testid="button-filter-low-confidence"
           >
-            <Plus className="h-4 w-4 mr-2" />
-            Add Speaker
-          </Button>
-        )}
+            <span>Low confidence score</span>
+            <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
+          </button>
+          {lowConfidenceFilterActive && (
+            <div className="mt-3 space-y-2 px-1">
+              <div className="flex items-center justify-between text-xs text-muted-foreground">
+                <span>Threshold</span>
+                <span>
+                  {lowConfidenceThreshold === null
+                    ? "No scores"
+                    : lowConfidenceThreshold.toFixed(2)}
+                </span>
+              </div>
+              <Slider
+                value={[lowConfidenceThreshold ?? 0.4]}
+                min={0}
+                max={1}
+                step={0.05}
+                disabled={lowConfidenceThreshold === null}
+                onValueChange={(value) => {
+                  onLowConfidenceThresholdChange?.(value[0] ?? 0.4);
+                }}
+              />
+              <div className="flex justify-end">
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={() => onLowConfidenceThresholdChange?.(null)}
+                  disabled={lowConfidenceThreshold === null}
+                >
+                  Auto
+                </Button>
+              </div>
+            </div>
+          )}
+          <button
+            type="button"
+            className={cn(
+              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+              "hover-elevate",
+              spellcheckFilterActive && "bg-accent",
+              (!spellcheckEnabled || spellcheckCount === 0) &&
+                !spellcheckFilterActive &&
+                "opacity-50 cursor-not-allowed",
+            )}
+            onClick={() => {
+              if (!spellcheckEnabled) return;
+              if (spellcheckCount === 0 && !spellcheckFilterActive) return;
+              onToggleSpellcheckFilter?.();
+            }}
+            data-testid="button-filter-spellcheck"
+          >
+            <span>Spelling issues</span>
+            <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+              "hover-elevate",
+              lexiconFilterActive && "bg-accent",
+              lexiconMatchCount === 0 && !lexiconFilterActive && "opacity-50 cursor-not-allowed",
+            )}
+            onClick={() => {
+              if (lexiconMatchCount === 0 && !lexiconFilterActive) return;
+              onToggleLexiconFilter?.();
+            }}
+            data-testid="button-filter-glossary"
+          >
+            <span>Glossary matches</span>
+            <span className="text-xs text-muted-foreground">{lexiconMatchCount}</span>
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+              "hover-elevate",
+              lexiconLowScoreFilterActive && "bg-accent",
+              lexiconLowScoreMatchCount === 0 &&
+                !lexiconLowScoreFilterActive &&
+                "opacity-50 cursor-not-allowed",
+            )}
+            onClick={() => {
+              if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;
+              onToggleLexiconLowScoreFilter?.();
+            }}
+            data-testid="button-filter-glossary-low-score"
+          >
+            <span>Uncertain Glossary Matches</span>
+            <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
+          </button>
+          <button
+            type="button"
+            className={cn(
+              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+              "hover-elevate",
+              bookmarkFilterActive && "bg-accent",
+              bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
+            )}
+            onClick={() => {
+              if (bookmarkCount === 0 && !bookmarkFilterActive) return;
+              onToggleBookmarkFilter?.();
+            }}
+            data-testid="button-filter-bookmarks"
+          >
+            <span>Bookmarked</span>
+            <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
+          </button>
+        </div>
       </div>
     </div>
   );

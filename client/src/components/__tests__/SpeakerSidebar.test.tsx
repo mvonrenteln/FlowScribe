@@ -37,6 +37,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={onRenameSpeaker}
         onAddSpeaker={vi.fn()}
       />,
@@ -58,6 +59,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={onAddSpeaker}
         onMergeSpeakers={onMergeSpeakers}
@@ -84,6 +86,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         onSpeakerSelect={onSpeakerSelect}
@@ -107,6 +110,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={onAddSpeaker}
       />,
@@ -134,6 +138,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={onRenameSpeaker}
         onAddSpeaker={vi.fn()}
       />,
@@ -166,6 +171,7 @@ describe("SpeakerSidebar", () => {
             words: [{ word: "Hallo", start: 0, end: 1, score: 0.2 }],
           },
         ]}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         lowConfidenceFilterActive={true}
@@ -189,6 +195,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         lexiconFilterActive={false}
@@ -214,6 +221,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         spellcheckEnabled={true}
@@ -225,5 +233,34 @@ describe("SpeakerSidebar", () => {
 
     await userEvent.click(screen.getByTestId("button-filter-spellcheck"));
     expect(onToggleSpellcheckFilter).toHaveBeenCalled();
+  });
+
+  it("handles segments without tags and computes tag counts safely", async () => {
+    const onAddTag = vi.fn();
+    const onRenameSpeaker = vi.fn();
+
+    // segments where tags is undefined (older data)
+    const segmentsWithoutTags = [
+      { id: "seg-a", speaker: "SPEAKER_00", start: 0, end: 1, text: "A", words: [] },
+      { id: "seg-b", speaker: "SPEAKER_01", start: 1, end: 2, text: "B", words: [] },
+    ];
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segmentsWithoutTags as any}
+        tags={[]}
+        onRenameSpeaker={onRenameSpeaker}
+        onAddSpeaker={vi.fn()}
+        onAddTag={onAddTag}
+      />,
+    );
+
+    // Should render without throwing and allow adding a tag
+    await userEvent.click(screen.getByTestId("button-add-tag"));
+    const addInput = screen.getByTestId("input-new-tag");
+    await userEvent.type(addInput, "Important{enter}");
+
+    expect(onAddTag).toHaveBeenCalledWith("Important");
   });
 });

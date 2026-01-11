@@ -1315,7 +1315,6 @@ transcript editor. Fix spelling, grammar, remove fillers, improve clarity.`;
 ```
 /src/components/ai/
 ├── AIFeaturePanel.tsx           # Generic feature panel wrapper
-├── AIProviderSelector.tsx       # Provider/model selection
 ├── AIProgressIndicator.tsx      # Progress bar with status
 ├── AIResultsViewer.tsx          # Generic results display
 ├── AIBatchControls.tsx          # Batch operation controls

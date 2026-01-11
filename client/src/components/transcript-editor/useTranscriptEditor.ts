@@ -33,6 +33,9 @@ export const useTranscriptEditor = () => {
       addSpeaker: state.addSpeaker,
       mergeSpeakers: state.mergeSpeakers,
       renameSpeaker: state.renameSpeaker,
+      addTag: state.addTag,
+      renameTag: state.renameTag,
+      toggleTagOnSegment: state.toggleTagOnSegment,
       undo: state.undo,
       redo: state.redo,
       canUndo: state.canUndo,
@@ -63,6 +66,7 @@ export const useTranscriptEditor = () => {
   const selectedSegmentId = useTranscriptStore((state) => state.selectedSegmentId);
   const segments = useTranscriptStore((state) => state.segments);
   const speakers = useTranscriptStore((state) => state.speakers);
+  const tags = useTranscriptStore((state) => state.tags);
   const currentTime = useTranscriptStore((state) => state.currentTime);
   const isPlaying = useTranscriptStore((state) => state.isPlaying);
   const duration = useTranscriptStore((state) => state.duration);
@@ -141,6 +145,9 @@ export const useTranscriptEditor = () => {
     addSpeaker,
     mergeSpeakers,
     renameSpeaker,
+    addTag,
+    renameTag,
+    toggleTagOnSegment,
     undo,
     redo,
     canUndo,
@@ -249,6 +256,8 @@ export const useTranscriptEditor = () => {
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
+    filterTagIds,
+    setFilterTagIds,
     activeSpeakerName,
     lowConfidenceThreshold,
     lexiconMatchesBySegment,
@@ -380,6 +389,7 @@ export const useTranscriptEditor = () => {
     selectedSegmentId,
     segments,
     speakers,
+    tags,
     canUndo,
     canRedo,
     undo,
@@ -393,6 +403,7 @@ export const useTranscriptEditor = () => {
     confirmSegment,
     deleteSegment,
     updateSegmentSpeaker,
+    toggleTagOnSegment,
     setSelectedSegmentId,
     setCurrentTime,
     setIsPlaying,
@@ -581,12 +592,21 @@ export const useTranscriptEditor = () => {
     () => ({
       speakers,
       segments,
+      tags,
       onRenameSpeaker: handleRenameSpeaker,
       onAddSpeaker: addSpeaker,
       onMergeSpeakers: mergeSpeakers,
       selectedSpeakerId: filterSpeakerId,
       onSpeakerSelect: (id: string) =>
         setFilterSpeakerId((current) => (current === id ? undefined : id)),
+      onAddTag: addTag,
+      onRenameTag: renameTag,
+      selectedTagIds: filterTagIds,
+      onTagSelect: (tagId: string) => {
+        setFilterTagIds((current) =>
+          current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId],
+        );
+      },
       onClearFilters: clearFilters,
       lowConfidenceFilterActive: filterLowConfidence,
       onToggleLowConfidenceFilter: () => setFilterLowConfidence((current) => !current),
@@ -625,6 +645,8 @@ export const useTranscriptEditor = () => {
     }),
     [
       addSpeaker,
+      addTag,
+      renameTag,
       clearFilters,
       filterBookmarked,
       filterLexicon,
@@ -632,6 +654,7 @@ export const useTranscriptEditor = () => {
       filterLowConfidence,
       filterSpeakerId,
       filterSpellcheck,
+      filterTagIds,
       handleRenameSpeaker,
       lexiconLowScoreMatchCount,
       lexiconMatchCount,
@@ -644,12 +667,14 @@ export const useTranscriptEditor = () => {
       setFilterLowConfidence,
       setFilterSpeakerId,
       setFilterSpellcheck,
+      setFilterTagIds,
       setHighlightLowConfidence,
       setManualConfidenceThreshold,
       spellcheckEnabled,
       spellcheckMatchCount,
       spellcheckMatchLimitReached,
       speakers,
+      tags,
       searchQuery,
       setSearchQuery,
       isRegexSearch,

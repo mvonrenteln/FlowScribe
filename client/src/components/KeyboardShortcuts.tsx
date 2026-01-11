@@ -33,6 +33,8 @@ const shortcuts = {
     { keys: ["C"], description: "Confirm segment" },
     { keys: ["Delete"], description: "Delete selected segment" },
     { keys: ["1-9"], description: "Assign speaker by number" },
+    { keys: ["T", "1-9"], description: "Toggle tag assignment (T+1 to T+9)" },
+    { keys: ["T", "0"], description: "Toggle tag #10" },
   ],
   "AI Revision": [
     { keys: ["Alt", "R"], description: "Run default AI revision prompt" },

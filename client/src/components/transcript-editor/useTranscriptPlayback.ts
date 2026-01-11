@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { Segment, Speaker, TranscriptStore } from "@/lib/store/types";
+import type { Segment, Speaker, Tag, TranscriptStore } from "@/lib/store/types";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
 
 interface UseTranscriptPlaybackParams {
@@ -11,6 +11,7 @@ interface UseTranscriptPlaybackParams {
   selectedSegmentId: string | null;
   segments: Segment[];
   speakers: Speaker[];
+  tags: Tag[];
   canUndo: () => boolean;
   canRedo: () => boolean;
   undo: () => void;
@@ -24,6 +25,7 @@ interface UseTranscriptPlaybackParams {
   confirmSegment: TranscriptStore["confirmSegment"];
   deleteSegment: TranscriptStore["deleteSegment"];
   updateSegmentSpeaker: TranscriptStore["updateSegmentSpeaker"];
+  toggleTagOnSegment: TranscriptStore["toggleTagOnSegment"];
   setSelectedSegmentId: TranscriptStore["setSelectedSegmentId"];
   setCurrentTime: TranscriptStore["setCurrentTime"];
   setIsPlaying: TranscriptStore["setIsPlaying"];
@@ -49,6 +51,7 @@ export const useTranscriptPlayback = ({
   selectedSegmentId,
   segments,
   speakers,
+  tags,
   canUndo,
   canRedo,
   undo,
@@ -62,6 +65,7 @@ export const useTranscriptPlayback = ({
   confirmSegment,
   deleteSegment,
   updateSegmentSpeaker,
+  toggleTagOnSegment,
   setSelectedSegmentId,
   setCurrentTime,
   setIsPlaying,
@@ -122,7 +126,9 @@ export const useTranscriptPlayback = ({
     selectedSegmentId,
     segments,
     speakers,
+    tags,
     updateSegmentSpeaker,
+    toggleTagOnSegment,
     getSelectedSegmentIndex,
     mergeSegments,
     toggleSegmentBookmark,

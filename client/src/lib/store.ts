@@ -46,6 +46,7 @@ import type {
   Speaker,
   SpellcheckCustomDictionary,
   SpellcheckLanguage,
+  Tag,
   TranscriptStore,
   Word,
 } from "./store/types";
@@ -378,5 +379,6 @@ export type {
   SpellcheckCustomDictionary,
   SpellcheckLanguage,
   SessionKind,
+  Tag,
   Word,
 };
