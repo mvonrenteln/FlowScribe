@@ -16,6 +16,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     {
       id: "seg-unicode",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 0,
       end: 1,
       text: "Müller", // NFC by default in JS string literals usually
@@ -24,6 +25,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     {
       id: "seg-punct",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 2,
       end: 3,
       text: "The bluebird.",
@@ -35,6 +37,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     {
       id: "seg-split",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 4,
       end: 5,
       text: "blue - bird", // Text has spaces
@@ -46,6 +49,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     {
       id: "seg-desync",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 6,
       end: 7,
       text: "Some corrupted text",

@@ -15,8 +15,8 @@ describe("useTranscriptPlayback", () => {
   const setSelectedSegmentId = vi.fn();
   const setEditRequestId = vi.fn();
   const segments = [
-    { id: "s1", speaker: "A", start: 0, end: 5, text: "hello", words: [] },
-    { id: "s2", speaker: "A", start: 6, end: 10, text: "world", words: [] },
+    { id: "s1", speaker: "A", tags: [], start: 0, end: 5, text: "hello", words: [] },
+    { id: "s2", speaker: "A", tags: [], start: 6, end: 10, text: "world", words: [] },
   ];
 
   beforeEach(() => {

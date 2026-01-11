@@ -313,6 +313,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       speakers: updatedSpeakers,
       selectedSegmentId,
       currentTime,
+      tags: get().tags,
     });
 
     // Single state update with history
@@ -386,6 +387,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       speakers: updatedSpeakers,
       selectedSegmentId,
       currentTime,
+      tags: get().tags,
     });
 
     // Single state update with history

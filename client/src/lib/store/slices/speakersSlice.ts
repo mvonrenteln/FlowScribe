@@ -33,6 +33,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       speakers: newSpeakers,
       selectedSegmentId,
       currentTime,
+      tags: get().tags,
     });
     set({
       segments: newSegments,
@@ -57,6 +58,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       speakers: newSpeakers,
       selectedSegmentId,
       currentTime,
+      tags: get().tags,
     });
     set({
       speakers: newSpeakers,
@@ -93,6 +95,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       speakers: newSpeakers,
       selectedSegmentId,
       currentTime,
+      tags: get().tags,
     });
     set({
       segments: newSegments,

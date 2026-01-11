@@ -9,6 +9,7 @@ const mockSegments: Segment[] = [
   {
     id: "1",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 0.5,
     end: 4.2,
     text: "Hello, welcome to the podcast.",
@@ -23,6 +24,7 @@ const mockSegments: Segment[] = [
   {
     id: "2",
     speaker: "SPEAKER_01",
+    tags: [],
     start: 4.5,
     end: 8.0,
     text: "Thank you for having me here today.",

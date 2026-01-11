@@ -11,6 +11,7 @@ const baseSegments: Segment[] = [
   {
     id: "seg-1",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 0,
     end: 1,
     text: "First segment",
@@ -20,6 +21,7 @@ const baseSegments: Segment[] = [
   {
     id: "seg-2",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 1,
     end: 2,
     text: "Second segment",
@@ -29,6 +31,7 @@ const baseSegments: Segment[] = [
   {
     id: "seg-3",
     speaker: "SPEAKER_01",
+    tags: [],
     start: 2,
     end: 3,
     text: "Confirmed segment",
@@ -94,6 +97,7 @@ describe("MergePanel", () => {
         {
           id: "seg-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "First segment",
@@ -103,6 +107,7 @@ describe("MergePanel", () => {
         {
           id: "seg-2",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 1,
           end: 2,
           text: "Second segment",
@@ -112,6 +117,7 @@ describe("MergePanel", () => {
         {
           id: "seg-3",
           speaker: "SPEAKER_01",
+          tags: [],
           start: 2,
           end: 3,
           text: "Third segment",
@@ -121,6 +127,7 @@ describe("MergePanel", () => {
         {
           id: "seg-4",
           speaker: "SPEAKER_01",
+          tags: [],
           start: 3,
           end: 4,
           text: "Fourth segment",

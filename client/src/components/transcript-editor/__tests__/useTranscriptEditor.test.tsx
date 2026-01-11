@@ -58,6 +58,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo",
@@ -66,6 +67,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Welt",
@@ -74,6 +76,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-3",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 3,
             end: 4,
             text: "Servus",
@@ -104,6 +107,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 3,
             text: "Hallo Welt Heute",
@@ -143,6 +147,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo Welt",
@@ -151,6 +156,7 @@ describe("useTranscriptEditor", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Servus",

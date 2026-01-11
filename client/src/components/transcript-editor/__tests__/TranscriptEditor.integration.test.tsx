@@ -185,6 +185,7 @@ describe("TranscriptEditor integration", () => {
             { word: "Hallo", start: 0, end: 1 },
             { word: "Welt", start: 1, end: 2 },
           ],
+          tags: [],
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
@@ -208,6 +209,7 @@ describe("TranscriptEditor integration", () => {
           end: 1,
           text: "Hello there",
           words: [],
+          tags: [],
         },
         {
           id: "segment-2",
@@ -216,6 +218,7 @@ describe("TranscriptEditor integration", () => {
           end: 2,
           text: "general kenobi",
           words: [],
+          tags: [],
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
@@ -261,6 +264,7 @@ describe("TranscriptEditor integration", () => {
           end: 1,
           text: "Hallo",
           words: [{ word: "Hallo", start: 0, end: 1 }],
+          tags: [],
         },
         {
           id: "segment-2",
@@ -269,6 +273,7 @@ describe("TranscriptEditor integration", () => {
           end: 3,
           text: "Servus",
           words: [{ word: "Servus", start: 2, end: 3 }],
+          tags: [],
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
@@ -308,6 +313,7 @@ describe("TranscriptEditor integration", () => {
           end: 1,
           text: "Hallo",
           words: [{ word: "Hallo", start: 0, end: 1 }],
+          tags: [],
         },
         {
           id: "segment-2",
@@ -316,6 +322,7 @@ describe("TranscriptEditor integration", () => {
           end: 3,
           text: "Servus",
           words: [{ word: "Servus", start: 2, end: 3 }],
+          tags: [],
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
@@ -349,6 +356,7 @@ describe("TranscriptEditor integration", () => {
           end: 1,
           text: "Wrd",
           words: [{ word: "Wrd", start: 0, end: 1 }],
+          tags: [],
         },
         {
           id: "segment-2",
@@ -357,6 +365,7 @@ describe("TranscriptEditor integration", () => {
           end: 3,
           text: "Word",
           words: [{ word: "Word", start: 2, end: 3 }],
+          tags: [],
         },
       ],
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
@@ -392,6 +401,7 @@ describe("TranscriptEditor integration", () => {
           end: 1,
           text: "First",
           words: [{ word: "First", start: 0, end: 1 }],
+          tags: [],
         },
         {
           id: "segment-2",
@@ -400,6 +410,7 @@ describe("TranscriptEditor integration", () => {
           end: 2,
           text: "Second",
           words: [{ word: "Second", start: 1, end: 2 }],
+          tags: [],
         },
         {
           id: "segment-3",
@@ -408,6 +419,7 @@ describe("TranscriptEditor integration", () => {
           end: 3,
           text: "Third",
           words: [{ word: "Third", start: 2, end: 3 }],
+          tags: [],
         },
         {
           id: "segment-4",
@@ -416,6 +428,7 @@ describe("TranscriptEditor integration", () => {
           end: 4,
           text: "Fourth",
           words: [{ word: "Fourth", start: 3, end: 4 }],
+          tags: [],
         },
       ],
       speakers: [

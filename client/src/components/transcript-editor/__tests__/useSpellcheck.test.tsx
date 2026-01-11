@@ -27,6 +27,7 @@ describe("useSpellcheck", () => {
       {
         id: "segment-1",
         speaker: "SPEAKER_00",
+        tags: [],
         start: 0,
         end: 1,
         text: "Wrd",
@@ -73,6 +74,7 @@ describe("useSpellcheck", () => {
       {
         id: "segment-1",
         speaker: "SPEAKER_00",
+        tags: [],
         start: 0,
         end: 1,
         text: "Test",

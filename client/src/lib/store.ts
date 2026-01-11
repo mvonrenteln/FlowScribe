@@ -33,6 +33,7 @@ import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
 import { createSpellcheckSlice } from "./store/slices/spellcheckSlice";
+import { createTagsSlice } from "./store/slices/tagsSlice";
 import type {
   AIPrompt,
   AISpeakerConfig,
@@ -78,6 +79,7 @@ const initialHistoryState = buildInitialHistory(
     ? {
         segments: activeSession.segments,
         speakers: activeSession.speakers,
+        tags: activeSession.tags ?? [],
         selectedSegmentId: activeSession.selectedSegmentId,
         currentTime: activeSession.currentTime ?? 0,
       }
@@ -96,6 +98,7 @@ const initialState: InitialStoreState = {
   recentSessions: buildRecentSessions(sessionsState.sessions),
   segments: activeSession?.segments ?? [],
   speakers: activeSession?.speakers ?? [],
+  tags: activeSession?.tags ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
   currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
@@ -150,6 +153,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createPlaybackSlice(set),
       ...createSegmentsSlice(set, get, storeContext),
       ...createSpeakersSlice(set, get),
+      ...createTagsSlice(set, get),
       ...createLexiconSlice(set, get),
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
@@ -175,6 +179,7 @@ if (canUseLocalStorage()) {
         !previous ||
         previous.segments !== state.segments ||
         previous.speakers !== state.speakers ||
+        previous.tags !== state.tags ||
         !isSameFileReference(previous.audioRef, state.audioRef) ||
         !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
         previous.isWhisperXFormat !== state.isWhisperXFormat;
@@ -192,6 +197,7 @@ if (canUseLocalStorage()) {
           transcriptRef: state.transcriptRef,
           segments: state.segments,
           speakers: state.speakers,
+          tags: state.tags,
           selectedSegmentId: state.selectedSegmentId,
           currentTime: state.currentTime,
           isWhisperXFormat: state.isWhisperXFormat,
@@ -205,6 +211,7 @@ if (canUseLocalStorage()) {
           nextEntry.transcriptRef = state.transcriptRef;
           nextEntry.segments = state.segments;
           nextEntry.speakers = state.speakers;
+          nextEntry.tags = state.tags;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
           // Only update timestamp if content changed, not just on activation
           if (baseChanged || !previous) {

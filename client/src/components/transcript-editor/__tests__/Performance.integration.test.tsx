@@ -36,6 +36,7 @@ describe("Performance and Scrolling Logic", () => {
         end: i + 1,
         text: `Segment ${i}`,
         words: [{ word: `Word ${i}`, start: i, end: i + 0.5 }],
+        tags: [],
       })),
       speakers: [{ id: "s1", name: "Speaker", color: "blue" }],
       currentTime: 0,

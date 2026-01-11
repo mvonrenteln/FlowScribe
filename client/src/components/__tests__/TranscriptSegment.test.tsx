@@ -12,6 +12,7 @@ const speakers: Speaker[] = [
 const segment: Segment = {
   id: "seg-1",
   speaker: "SPEAKER_00",
+  tags: [],
   start: 0,
   end: 2,
   text: "Hallo Welt",

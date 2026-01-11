@@ -233,6 +233,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo",
@@ -241,6 +242,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Welt",
@@ -249,6 +251,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-3",
             speaker: "SPEAKER_01",
+            tags: [],
             start: 2,
             end: 3,
             text: "Servus",
@@ -299,6 +302,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo",
@@ -307,6 +311,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Welt",
@@ -315,6 +320,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-3",
             speaker: "SPEAKER_01",
+            tags: [],
             start: 2,
             end: 3,
             text: "Servus",
@@ -364,6 +370,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Zwergenbar",
@@ -372,6 +379,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Ritter",
@@ -401,6 +409,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Glimmer",
@@ -409,6 +418,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-2",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 1,
             end: 2,
             text: "Andere",
@@ -438,6 +448,7 @@ describe("FilterPanel", () => {
           {
             id: "segment-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Glimmer",
@@ -470,6 +481,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Zwergenbar",
@@ -478,6 +490,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-2",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 1,
           end: 2,
           text: "Zwergenbear",
@@ -505,6 +518,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Geweihten",
@@ -513,6 +527,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-2",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 1,
           end: 2,
           text: "Unrelated",
@@ -540,6 +555,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Zwergenbar",
@@ -548,6 +564,7 @@ describe("FilterPanel", () => {
         {
           id: "segment-2",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 1,
           end: 2,
           text: "Unrelated",

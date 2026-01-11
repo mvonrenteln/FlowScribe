@@ -27,6 +27,8 @@ export interface FiltersAndLexiconState {
   filterLexicon: boolean;
   filterLexiconLowScore: boolean;
   filterSpellcheck: boolean;
+  filterTagIds: string[];
+  filterNoTags: boolean;
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
   activeSpeakerName?: string;
@@ -61,6 +63,8 @@ export function useFiltersAndLexicon({
   const [filterLexicon, setFilterLexicon] = useState(false);
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
+  const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
+  const [filterNoTags, setFilterNoTags] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
 
@@ -155,6 +159,14 @@ export function useFiltersAndLexicon({
       if (filterSpellcheck) {
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
+      if (filterNoTags) {
+        if (segment.tags.length > 0) return false;
+      }
+      if (filterTagIds.length > 0) {
+        // OR-logic: segment matches if it has ANY of the selected tags
+        const hasMatchingTag = filterTagIds.some((tagId) => segment.tags.includes(tagId));
+        if (!hasMatchingTag) return false;
+      }
 
       if (searchNormalized) {
         if (isRegexSearch) {
@@ -196,6 +208,8 @@ export function useFiltersAndLexicon({
     filterLexiconLowScore,
     filterLowConfidence,
     filterSpellcheck,
+    filterTagIds,
+    filterNoTags,
     lexiconMatchesBySegment,
     lowConfidenceThreshold,
     normalizedSegmentsById,
@@ -218,6 +232,8 @@ export function useFiltersAndLexicon({
     setFilterLexicon(false);
     setFilterLexiconLowScore(false);
     setFilterSpellcheck(false);
+    setFilterTagIds([]);
+    setFilterNoTags(false);
     setSearchQuery("");
     setIsRegexSearch(false);
   }, []);
@@ -235,6 +251,10 @@ export function useFiltersAndLexicon({
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
+    filterTagIds,
+    setFilterTagIds,
+    filterNoTags,
+    setFilterNoTags,
     highlightLowConfidence,
     setHighlightLowConfidence,
     manualConfidenceThreshold,

@@ -27,6 +27,7 @@ describe("Speakers slice", () => {
         {
           id: "seg-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Hallo Welt",

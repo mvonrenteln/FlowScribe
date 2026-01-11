@@ -126,6 +126,7 @@ describe("WaveformPlayer", () => {
             end: 2,
             text: "Hello",
             words: [],
+            tags: [],
           },
         ]}
         speakers={[
@@ -175,6 +176,7 @@ describe("WaveformPlayer", () => {
           {
             id: "seg-1",
             speaker: "Speaker 1",
+            tags: [],
             start: 0,
             end: 2,
             text: "Hello",

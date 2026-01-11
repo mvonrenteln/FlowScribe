@@ -31,6 +31,7 @@ const buildPersistedSession = (state: TranscriptStore): PersistedSession => ({
   transcriptRef: state.transcriptRef,
   segments: state.segments,
   speakers: state.speakers,
+  tags: state.tags,
   selectedSegmentId: state.selectedSegmentId,
   currentTime: state.currentTime,
   isWhisperXFormat: state.isWhisperXFormat,
@@ -87,6 +88,7 @@ export const createSessionSlice = (
       baseSessionKey,
       segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
       selectedSegmentId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
@@ -97,6 +99,7 @@ export const createSessionSlice = (
               {
                 segments: session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
+                tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? state.currentTime,
               },
@@ -143,6 +146,7 @@ export const createSessionSlice = (
       baseSessionKey,
       segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
       selectedSegmentId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
@@ -153,6 +157,7 @@ export const createSessionSlice = (
               {
                 segments: session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
+                tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
               },
@@ -180,6 +185,7 @@ export const createSessionSlice = (
       baseSessionKey: session.baseSessionKey ?? null,
       segments: session.segments,
       speakers: session.speakers,
+      tags: session.tags ?? [],
       selectedSegmentId,
       currentTime: session.currentTime ?? 0,
       isWhisperXFormat: session.isWhisperXFormat ?? false,
@@ -187,6 +193,7 @@ export const createSessionSlice = (
         {
           segments: session.segments,
           speakers: session.speakers,
+          tags: session.tags ?? [],
           selectedSegmentId,
           currentTime: session.currentTime ?? 0,
         },
@@ -276,6 +283,7 @@ export const buildInitialHistory = (
   session: {
     segments: Segment[];
     speakers: TranscriptStore["speakers"];
+    tags: TranscriptStore["tags"];
     selectedSegmentId: string | null;
     currentTime: number;
   } | null,
@@ -286,6 +294,7 @@ export const buildInitialHistory = (
         {
           segments: session.segments,
           speakers: session.speakers,
+          tags: session.tags,
           selectedSegmentId: session.selectedSegmentId,
           currentTime: session.currentTime,
         },

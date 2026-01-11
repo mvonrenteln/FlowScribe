@@ -37,8 +37,8 @@ describe("useNavigationHotkeys", () => {
     clearSpeakerFilter: vi.fn(),
     selectedSegmentId: "segment-1",
     segments: [
-      { id: "segment-1", speaker: "SPEAKER_00", start: 0, end: 1, text: "", words: [] },
-      { id: "segment-2", speaker: "SPEAKER_01", start: 2, end: 3, text: "", words: [] },
+      { id: "segment-1", speaker: "SPEAKER_00", start: 0, end: 1, text: "", words: [], tags: [] },
+      { id: "segment-2", speaker: "SPEAKER_01", start: 2, end: 3, text: "", words: [], tags: [] },
     ],
     speakers: [
       { id: "speaker-0", name: "SPEAKER_00", color: "red" },
@@ -91,7 +91,15 @@ describe("useNavigationHotkeys", () => {
         mergeSegments: mergeSegments.mockReturnValue("merged-id"),
         segments: [
           ...baseOptions.segments,
-          { id: "segment-3", speaker: "SPEAKER_00", start: 4, end: 5, text: "", words: [] },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
         ],
         selectedSegmentId: "segment-2",
         getSelectedSegmentIndex: () => 1,

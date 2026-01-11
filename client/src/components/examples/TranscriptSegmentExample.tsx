@@ -11,6 +11,7 @@ const mockSpeakers: Speaker[] = [
 const mockSegment: Segment = {
   id: "seg1",
   speaker: "SPEAKER_00",
+  tags: [],
   start: 0.5,
   end: 4.2,
   text: "Hello, welcome to the podcast. Today we are going to discuss something interesting.",

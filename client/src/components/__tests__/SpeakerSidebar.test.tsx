@@ -13,6 +13,7 @@ const segments: Segment[] = [
   {
     id: "seg-1",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 0,
     end: 1,
     text: "Hallo",
@@ -21,6 +22,7 @@ const segments: Segment[] = [
   {
     id: "seg-2",
     speaker: "SPEAKER_01",
+    tags: [],
     start: 1,
     end: 2,
     text: "Servus",
@@ -157,6 +159,7 @@ describe("SpeakerSidebar", () => {
           {
             id: "seg-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo",
