@@ -102,4 +102,4 @@ Transcript rendering is performance-sensitive on long files.
 - Pure logic goes to utilities; side effects stay in services.
 - For deeper architectural principles/patterns: `docs/agent-rules/architecture-rules.md`
 
-A change is not considered done unless check, lint, and tests are green.
+A change is not considered done unless check, lint, and tests are green!
