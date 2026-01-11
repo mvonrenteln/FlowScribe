@@ -19,6 +19,7 @@ import {
   initialAIRevisionState,
   normalizeAIRevisionConfig,
 } from "./store/slices/aiRevisionSlice";
+import { createAiRevisionSelectionSlice } from "./store/slices/aiRevisionSelectionSlice";
 import {
   createAISegmentMergeSlice,
   initialAISegmentMergeState,
@@ -155,6 +156,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAISpeakerSlice(set, get),
       ...createConfidenceSlice(set, get),
       ...createAIRevisionSlice(set, get),
+      ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
     };
   }),

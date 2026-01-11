@@ -141,6 +141,8 @@ export function AIRevisionPopover({ segmentId, disabled }: AIRevisionPopoverProp
 
   // Persist selection into global store so other popovers pick it up
   useEffect(() => {
+    // Avoid overwriting persisted selection on mount when local state is still undefined
+    if (selectedProvider === undefined && selectedModel === undefined) return;
     setGlobalLastSelection({ providerId: selectedProvider, model: selectedModel });
   }, [selectedProvider, selectedModel, setGlobalLastSelection]);
 

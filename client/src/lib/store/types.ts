@@ -164,11 +164,6 @@ export interface InitialStoreState {
     message?: string;
     timestamp: number;
   } | null;
-  // Last provider/model selection for AI Revision UI (per-session or persisted)
-  aiRevisionLastSelection?: {
-    providerId?: string;
-    model?: string;
-  };
   // AI Segment Merge state
   aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
   aiSegmentMergeIsProcessing: boolean;
