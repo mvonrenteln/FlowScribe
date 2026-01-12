@@ -40,20 +40,27 @@ export function SegmentHeader({
   const [hasOverflow, setHasOverflow] = useState(false);
   const tagContainerRef = useRef<HTMLDivElement>(null);
 
-  // Check if tags overflow
+  // Check if tags overflow - recheck when tags change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: Need to recalculate when tags are added/removed
   useEffect(() => {
     const checkOverflow = () => {
       if (tagContainerRef.current) {
         const { scrollWidth, clientWidth } = tagContainerRef.current;
-        setHasOverflow(scrollWidth > clientWidth);
+        const overflow = scrollWidth > clientWidth + 1; // +1 for rounding
+        setHasOverflow(overflow);
       }
     };
 
-    checkOverflow();
+    // Small delay to ensure DOM is fully rendered
+    const timer = setTimeout(checkOverflow, 0);
+
     // Recheck on window resize
     window.addEventListener("resize", checkOverflow);
-    return () => window.removeEventListener("resize", checkOverflow);
-  }, []);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [segment.tags?.length]); // Recheck when tag count changes
   return (
     <div className="relative flex flex-wrap items-center gap-2 mb-2 overflow-visible">
       <DropdownMenu>
@@ -104,14 +111,16 @@ export function SegmentHeader({
           {/* Normal inline tag display */}
           {/* biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag management */}
           <div
-            ref={tagContainerRef}
             className="flex items-center gap-1.5"
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
             role="presentation"
           >
             {/* Tag badges container - clips when too long */}
-            <div className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden">
+            <div
+              ref={tagContainerRef}
+              className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden"
+            >
               {segment.tags.map((tagId) => {
                 const tag = tags.find((t) => t.id === tagId);
                 if (!tag) return null;
