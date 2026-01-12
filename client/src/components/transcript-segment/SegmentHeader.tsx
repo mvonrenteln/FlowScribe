@@ -1,5 +1,5 @@
 import { Plus, User, X } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -36,7 +36,24 @@ export function SegmentHeader({
   onRemoveTag,
   onAddTag,
 }: SegmentHeaderProps) {
-  const [overlayOpen, setOverlayOpen] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const tagContainerRef = useRef<HTMLDivElement>(null);
+
+  // Check if tags overflow
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tagContainerRef.current) {
+        const { scrollWidth, clientWidth } = tagContainerRef.current;
+        setHasOverflow(scrollWidth > clientWidth);
+      }
+    };
+
+    checkOverflow();
+    // Recheck on window resize
+    window.addEventListener("resize", checkOverflow);
+    return () => window.removeEventListener("resize", checkOverflow);
+  }, []);
   return (
     <div className="relative flex flex-wrap items-center gap-2 mb-2 overflow-visible">
       <DropdownMenu>
@@ -81,67 +98,75 @@ export function SegmentHeader({
         </span>
       )}
 
-      {/* Tag list with hover-to-expand functionality */}
+      {/* Tag list - inline with optional hover-to-expand for overflow */}
       {segment.tags && segment.tags.length > 0 && (
-        // biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag overlay
-        <div
-          className="ml-auto mr-2 relative group"
-          onMouseEnter={() => setOverlayOpen(true)}
-          onMouseLeave={() => setOverlayOpen(false)}
-          role="presentation"
-        >
-          {/* Tag container that transitions between inline and overlay mode */}
+        <div className="ml-auto mr-2 relative">
+          {/* Normal inline tag display */}
+          {/* biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag management */}
           <div
-            className={`
-              flex items-center gap-1.5 transition-all
-              ${
-                overlayOpen
-                  ? "absolute right-0 top-0 flex-wrap p-2 bg-popover border rounded shadow-lg z-50 max-h-56 overflow-auto"
-                  : "max-w-[28ch] overflow-hidden whitespace-nowrap"
-              }
-            `}
+            ref={tagContainerRef}
+            className="flex items-center gap-1.5"
+            onMouseEnter={() => setIsHovered(true)}
+            onMouseLeave={() => setIsHovered(false)}
+            role="presentation"
           >
-            {segment.tags.map((tagId) => {
-              const tag = tags.find((t) => t.id === tagId);
-              if (!tag) return null;
-              return (
-                <Badge
-                  key={tagId}
-                  variant="secondary"
-                  className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0"
-                  style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
-                >
-                  <span>{tag.name}</span>
-                  {onRemoveTag && overlayOpen && (
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        onRemoveTag(tagId);
-                      }}
-                      className="hover:text-destructive opacity-0 group-hover:opacity-100 transition-opacity"
-                      aria-label={`Remove tag ${tag.name}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </button>
-                  )}
-                </Badge>
-              );
-            })}
-            {/* Add Tag Button - visible on hover at the end of tag list */}
-            {onAddTag && overlayOpen && (
+            {/* Tag badges container - clips when too long */}
+            <div className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden">
+              {segment.tags.map((tagId) => {
+                const tag = tags.find((t) => t.id === tagId);
+                if (!tag) return null;
+                return (
+                  <Badge
+                    key={tagId}
+                    variant="secondary"
+                    className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group"
+                    style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
+                  >
+                    <span>{tag.name}</span>
+                    {onRemoveTag && isHovered && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveTag(tagId);
+                        }}
+                        className="hover:text-destructive transition-opacity"
+                        aria-label={`Remove tag ${tag.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
+
+            {/* Add Tag Button - always at the end */}
+            {onAddTag && (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-6 w-6 flex-shrink-0"
+                    className={`h-6 w-6 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
                     data-testid={`button-add-tag-${segment.id}`}
+                    onPointerDown={(e) => {
+                      // Keep hover state when clicking
+                      e.stopPropagation();
+                      setIsHovered(true);
+                    }}
                   >
                     <Plus className="h-3 w-3" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="max-h-64 overflow-auto">
+                <DropdownMenuContent
+                  align="end"
+                  className="max-h-64 overflow-auto"
+                  onCloseAutoFocus={() => {
+                    // Reset hover after closing dropdown
+                    setIsHovered(false);
+                  }}
+                >
                   {tags
                     .filter((tag) => !segment.tags?.includes(tag.id))
                     .map((tag) => (
@@ -166,6 +191,90 @@ export function SegmentHeader({
               </DropdownMenu>
             )}
           </div>
+
+          {/* Overlay for overflow - only shown when tags overflow and hovered */}
+          {hasOverflow && isHovered && (
+            // biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag overflow
+            <div
+              className="absolute right-0 top-0 flex flex-wrap gap-1.5 p-2 bg-popover border rounded shadow-lg z-50 max-w-xs"
+              onMouseEnter={() => setIsHovered(true)}
+              onMouseLeave={() => setIsHovered(false)}
+              role="presentation"
+            >
+              {segment.tags.map((tagId) => {
+                const tag = tags.find((t) => t.id === tagId);
+                if (!tag) return null;
+                return (
+                  <Badge
+                    key={`overlay-${tagId}`}
+                    variant="secondary"
+                    className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0"
+                    style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
+                  >
+                    <span>{tag.name}</span>
+                    {onRemoveTag && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveTag(tagId);
+                        }}
+                        className="hover:text-destructive"
+                        aria-label={`Remove tag ${tag.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                );
+              })}
+              {/* Add button in overlay */}
+              {onAddTag && (
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 flex-shrink-0"
+                      data-testid={`button-add-tag-overlay-${segment.id}`}
+                      onPointerDown={(e) => {
+                        e.stopPropagation();
+                        setIsHovered(true);
+                      }}
+                    >
+                      <Plus className="h-3 w-3" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent
+                    align="end"
+                    className="max-h-64 overflow-auto"
+                    onCloseAutoFocus={() => setIsHovered(false)}
+                  >
+                    {tags
+                      .filter((tag) => !segment.tags?.includes(tag.id))
+                      .map((tag) => (
+                        <DropdownMenuItem
+                          key={tag.id}
+                          onClick={() => onAddTag(tag.id)}
+                          data-testid={`menu-add-tag-${tag.id}`}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </DropdownMenuItem>
+                      ))}
+                    {tags.filter((tag) => !segment.tags?.includes(tag.id)).length === 0 && (
+                      <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                        Alle Tags bereits zugewiesen
+                      </div>
+                    )}
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
