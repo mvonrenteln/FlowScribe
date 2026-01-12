@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import { SPEAKER_COLORS } from "../constants";
 import type { SpeakersSlice, TranscriptStore } from "../types";
+import { generateId } from "../utils/id";
 import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
@@ -47,7 +48,7 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
     if (speakers.find((s) => s.name === name)) return;
 
     const newSpeaker = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name,
       color: SPEAKER_COLORS[speakers.length % SPEAKER_COLORS.length],
     };

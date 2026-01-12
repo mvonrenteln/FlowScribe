@@ -18,6 +18,7 @@ import type {
   TranscriptStore,
 } from "../types";
 import { normalizeAISpeakerConfig } from "../utils/aiSpeakerConfig";
+import { generateId } from "../utils/id";
 import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
@@ -292,7 +293,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     if (!speakerExists) {
       // Create new speaker with a random color
       const newSpeaker = {
-        id: crypto.randomUUID(),
+        id: generateId(),
         name: suggestion.suggestedSpeaker,
         color: SPEAKER_COLORS[speakers.length % SPEAKER_COLORS.length],
       };
@@ -358,7 +359,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
 
     // Create new speaker objects
     const newSpeakers = Array.from(newSpeakerIds).map((speakerId, idx) => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: speakerId,
       color: SPEAKER_COLORS[(speakers.length + idx) % SPEAKER_COLORS.length],
     }));
@@ -419,7 +420,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     const { aiSpeakerConfig } = get();
     const newPrompt: AIPrompt = {
       ...promptData,
-      id: crypto.randomUUID(),
+      id: generateId(),
     };
     set({
       aiSpeakerConfig: normalizeAISpeakerConfig({
