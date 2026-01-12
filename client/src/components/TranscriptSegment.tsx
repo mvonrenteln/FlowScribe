@@ -183,43 +183,9 @@ function TranscriptSegmentComponent({
             speakers={speakers}
             speakerColor={speakerColor}
             onSpeakerChange={onSpeakerChange}
+            tags={tags}
+            onRemoveTag={onRemoveTag}
           />
-
-          {/* Tag Badges */}
-          {segment.tags && segment.tags.length > 0 && (
-            <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
-              {segment.tags.map((tagId) => {
-                const tag = tags.find((t) => t.id === tagId);
-                if (!tag) return null;
-                return (
-                  <Badge
-                    key={tagId}
-                    variant="secondary"
-                    className="text-xs px-2 py-0.5 gap-1"
-                    style={{
-                      borderLeftWidth: "3px",
-                      borderLeftColor: tag.color,
-                    }}
-                  >
-                    {tag.name}
-                    {onRemoveTag && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRemoveTag(tagId);
-                        }}
-                        className="ml-1 hover:text-destructive"
-                        aria-label={`Remove tag ${tag.name}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    )}
-                  </Badge>
-                );
-              })}
-            </div>
-          )}
 
           {/* Speaker Suggestion (if present, shown ABOVE segment content) */}
           {pendingSpeakerSuggestion && onAcceptSpeakerSuggestion && onRejectSpeakerSuggestion && (
