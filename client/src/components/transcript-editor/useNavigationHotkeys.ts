@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useHotkeys } from "react-hotkeys-hook";
 import type { Segment, Speaker, Tag } from "@/lib/store";
 
@@ -308,9 +308,18 @@ export function useNavigationHotkeys({
     { enableOnFormTags: false },
   );
 
+  // Track if T key was recently pressed to avoid speaker assignment when doing T+1
+  const tKeyPressedRef = useRef(false);
+  const tKeyTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useHotkeys(
     "1,2,3,4,5,6,7,8,9",
     (event) => {
+      // Don't assign speaker if T was just pressed (T+number for tags)
+      if (tKeyPressedRef.current) {
+        event.preventDefault();
+        return;
+      }
       if (isTranscriptEditing()) return;
       const speakerIndex = Number(event.key) - 1;
       if (!Number.isInteger(speakerIndex)) return;
@@ -322,52 +331,18 @@ export function useNavigationHotkeys({
   );
 
   // Alt/Option+1..0 -> toggle tags 1..10 on the selected segment
-  useHotkeys(
-    "alt+1,alt+2,alt+3,alt+4,alt+5,alt+6,alt+7,alt+8,alt+9,alt+0",
-    (event) => {
-      if (isTranscriptEditing()) return;
-      if (!selectedSegmentId) return;
-
-      // Prefer physical key detection via `code` (Digit1..Digit0) because on macOS
-      // Option/Alt+digit can produce different `key` values (special chars).
-      const kbEvent = event as KeyboardEvent;
-      const code = kbEvent.code || "";
-      let tagIndex = -1;
-
-      if (code.startsWith("Digit")) {
-        const digit = code.replace("Digit", "");
-        if (digit === "0") {
-          tagIndex = 9;
-        } else {
-          const n = Number.parseInt(digit, 10);
-          if (!Number.isNaN(n)) tagIndex = n - 1;
-        }
-      } else {
-        // Fallback to `key` (numeric characters)
-        const key = kbEvent.key || "";
-        if (key >= "1" && key <= "9") {
-          tagIndex = Number.parseInt(key, 10) - 1;
-        } else if (key === "0") {
-          tagIndex = 9;
-        }
-      }
-
-      if (tagIndex < 0 || tagIndex >= tags.length) return;
-
-      toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
-    },
-    { enableOnFormTags: false, preventDefault: true },
-  );
-
-  // Some elements (focused segment textarea/div) can swallow or transform the key event.
-  // Add a capture-phase listener that uses `event.code` (Digit1..Digit0) and `altKey`
+  // Use capture-phase listener that uses `event.code` (Digit1..Digit0) and `altKey`
   // to reliably detect Option/Alt+digit on macOS even when a segment is focused.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+
       // Only react to Alt/Option + Digit keys
       if (!e.altKey) return;
       const code = e.code || "";
       if (!code.startsWith("Digit")) return;
+
       // Map Digit1..Digit9 -> 0..8, Digit0 -> 9
       const digit = code.replace("Digit", "");
       let tagIndex = -1;
@@ -379,16 +354,16 @@ export function useNavigationHotkeys({
       }
 
       if (tagIndex < 0 || tagIndex >= tags.length) return;
-      if (!selectedSegmentId) return;
 
       // Prevent default browser behavior and toggle tag
       e.preventDefault();
+      e.stopPropagation();
       toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
     };
 
     window.addEventListener("keydown", handler, { capture: true });
     return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [tags, selectedSegmentId, toggleTagOnSegment]);
+  }, [tags, selectedSegmentId, toggleTagOnSegment, isTranscriptEditing]);
 
   useHotkeys(
     "s",
@@ -461,11 +436,10 @@ export function useNavigationHotkeys({
 
   // Tag Assignment: T+1...0 to toggle tags
   useEffect(() => {
-    const handleTagShortcut = (event: KeyboardEvent) => {
+    const handleTKey = (event: KeyboardEvent) => {
       if (isTranscriptEditing()) return;
       if (!selectedSegmentId) return;
 
-      // Check if 'T' key is pressed (and held)
       const target = event.target as HTMLElement | null;
       if (target) {
         const tagName = target.tagName;
@@ -473,41 +447,62 @@ export function useNavigationHotkeys({
         if (isFormElement || target.isContentEditable) return;
       }
 
-      // Handle T+1 through T+9 and T+0
-      if (event.key === "t" || event.key === "T") {
-        // T key pressed - wait for number key
-        const handleNumberKey = (numEvent: KeyboardEvent) => {
-          const key = numEvent.key;
-          if (key >= "1" && key <= "9") {
-            const tagIndex = Number.parseInt(key, 10) - 1;
-            if (tags[tagIndex]) {
-              event.preventDefault();
-              numEvent.preventDefault();
-              toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
-            }
-          } else if (key === "0") {
-            const tagIndex = 9; // Tag #10
-            if (tags[tagIndex]) {
-              event.preventDefault();
-              numEvent.preventDefault();
-              toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
-            }
-          }
-          // Cleanup listener after one keypress
-          window.removeEventListener("keydown", handleNumberKey);
-        };
+      // Handle T key press
+      if (
+        (event.key === "t" || event.key === "T") &&
+        !event.ctrlKey &&
+        !event.metaKey &&
+        !event.altKey &&
+        !event.shiftKey
+      ) {
+        event.preventDefault(); // Prevent default T key behavior
+        tKeyPressedRef.current = true;
 
-        // Add temporary listener for the number key
-        window.addEventListener("keydown", handleNumberKey, { once: true });
-
-        // Remove listener after timeout (500ms)
-        setTimeout(() => {
-          window.removeEventListener("keydown", handleNumberKey);
+        // Reset flag after timeout
+        if (tKeyTimerRef.current) clearTimeout(tKeyTimerRef.current);
+        tKeyTimerRef.current = setTimeout(() => {
+          tKeyPressedRef.current = false;
         }, 500);
       }
     };
 
-    window.addEventListener("keydown", handleTagShortcut);
-    return () => window.removeEventListener("keydown", handleTagShortcut);
+    const handleNumberKey = (event: KeyboardEvent) => {
+      if (!tKeyPressedRef.current) return;
+      if (isTranscriptEditing()) return;
+      if (!selectedSegmentId) return;
+
+      const target = event.target as HTMLElement | null;
+      if (target) {
+        const tagName = target.tagName;
+        const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
+        if (isFormElement || target.isContentEditable) return;
+      }
+
+      const key = event.key;
+      let tagIndex = -1;
+
+      if (key >= "1" && key <= "9") {
+        tagIndex = Number.parseInt(key, 10) - 1;
+      } else if (key === "0") {
+        tagIndex = 9; // Tag #10
+      }
+
+      if (tagIndex >= 0 && tagIndex < tags.length) {
+        event.preventDefault();
+        event.stopPropagation();
+        toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+        tKeyPressedRef.current = false; // Reset flag after successful tag toggle
+        if (tKeyTimerRef.current) clearTimeout(tKeyTimerRef.current);
+      }
+    };
+
+    window.addEventListener("keydown", handleTKey, { capture: true });
+    window.addEventListener("keydown", handleNumberKey, { capture: true });
+
+    return () => {
+      window.removeEventListener("keydown", handleTKey, { capture: true });
+      window.removeEventListener("keydown", handleNumberKey, { capture: true });
+      if (tKeyTimerRef.current) clearTimeout(tKeyTimerRef.current);
+    };
   }, [isTranscriptEditing, selectedSegmentId, tags, toggleTagOnSegment]);
 }

@@ -1,4 +1,14 @@
-import { Check, Edit2, Merge, Plus, Tag as TagIcon, Trash2, UsersRound, X } from "lucide-react";
+import {
+  Check,
+  CircleDashed,
+  Edit2,
+  Merge,
+  Plus,
+  Tag as TagIcon,
+  Trash2,
+  UsersRound,
+  X,
+} from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +40,8 @@ interface SpeakerSidebarProps {
   onDeleteTag?: (tagId: string) => void;
   onTagSelect?: (tagId: string) => void;
   selectedTagIds?: string[];
+  noTagsFilterActive?: boolean;
+  onToggleNoTagsFilter?: () => void;
   lowConfidenceFilterActive?: boolean;
   onToggleLowConfidenceFilter?: () => void;
   lowConfidenceThreshold?: number | null;
@@ -76,6 +88,8 @@ export function SpeakerSidebar({
   onDeleteTag,
   onTagSelect,
   selectedTagIds = [],
+  noTagsFilterActive = false,
+  onToggleNoTagsFilter,
   lowConfidenceFilterActive = false,
   onToggleLowConfidenceFilter,
   lowConfidenceThreshold = null,
@@ -138,6 +152,10 @@ export function SpeakerSidebar({
   const getTagSegmentCount = (tagId: string) => {
     // normalize missing tags
     return segments.filter((s) => (s.tags ?? []).includes(tagId)).length;
+  };
+
+  const getNoTagsSegmentCount = () => {
+    return segments.filter((s) => (s.tags ?? []).length === 0).length;
   };
 
   const getTotalDuration = (speakerName: string) => {
@@ -615,6 +633,35 @@ export function SpeakerSidebar({
               </div>
             </div>
           ))}
+
+          {/* No Tags Filter */}
+          <div
+            className={cn(
+              "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
+              noTagsFilterActive && "bg-accent",
+            )}
+            onClick={() => onToggleNoTagsFilter?.()}
+            onKeyDown={(e) => {
+              if (e.key === "Enter" || e.key === " ") {
+                e.preventDefault();
+                onToggleNoTagsFilter?.();
+              }
+            }}
+            data-testid="no-tags-filter"
+            role="button"
+            tabIndex={0}
+            aria-pressed={noTagsFilterActive}
+          >
+            <CircleDashed className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <span className="text-sm font-medium">No Tags</span>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span>{getNoTagsSegmentCount()} segments</span>
+              </div>
+            </div>
+          </div>
 
           {/* Add Tag Button */}
           {isAddingTag ? (

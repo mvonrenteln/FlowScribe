@@ -37,6 +37,7 @@ export function SegmentHeader({
   onAddTag,
 }: SegmentHeaderProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
   const tagContainerRef = useRef<HTMLDivElement>(null);
 
@@ -129,18 +130,20 @@ export function SegmentHeader({
                     <Badge
                       key={tagId}
                       variant="secondary"
-                      className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group"
+                      className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group/tag"
                       style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
+                      onMouseEnter={() => setHoveredTagId(tagId)}
+                      onMouseLeave={() => setHoveredTagId(null)}
                     >
                       <span>{tag.name}</span>
-                      {onRemoveTag && isHovered && (
+                      {onRemoveTag && (
                         <button
                           type="button"
                           onClick={(e) => {
                             e.stopPropagation();
                             onRemoveTag(tagId);
                           }}
-                          className="hover:text-destructive transition-opacity"
+                          className={`transition-opacity ${hoveredTagId === tagId ? "opacity-100" : "opacity-0"} w-3`}
                           aria-label={`Remove tag ${tag.name}`}
                         >
                           <X className="h-3 w-3" />
@@ -208,6 +211,8 @@ export function SegmentHeader({
                       variant="secondary"
                       className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0"
                       style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
+                      onMouseEnter={() => setHoveredTagId(tagId)}
+                      onMouseLeave={() => setHoveredTagId(null)}
                     >
                       <span>{tag.name}</span>
                       {onRemoveTag && (
@@ -217,7 +222,7 @@ export function SegmentHeader({
                             e.stopPropagation();
                             onRemoveTag(tagId);
                           }}
-                          className="hover:text-destructive"
+                          className={`transition-opacity ${hoveredTagId === tagId ? "opacity-100" : "opacity-0"} w-3`}
                           aria-label={`Remove tag ${tag.name}`}
                         >
                           <X className="h-3 w-3" />
