@@ -1,4 +1,4 @@
-import { Check, Edit2, Merge, Plus, Tag as TagIcon, UsersRound, X } from "lucide-react";
+import { Check, Edit2, Merge, Plus, Tag as TagIcon, Trash2, UsersRound, X } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -27,6 +27,7 @@ interface SpeakerSidebarProps {
   // Tag operations
   onAddTag?: (name: string) => void;
   onRenameTag?: (tagId: string, newName: string) => void;
+  onDeleteTag?: (tagId: string) => void;
   onTagSelect?: (tagId: string) => void;
   selectedTagIds?: string[];
   lowConfidenceFilterActive?: boolean;
@@ -72,6 +73,7 @@ export function SpeakerSidebar({
   selectedSpeakerId,
   onAddTag,
   onRenameTag,
+  onDeleteTag,
   onTagSelect,
   selectedTagIds = [],
   lowConfidenceFilterActive = false,
@@ -564,18 +566,46 @@ export function SpeakerSidebar({
                         {index + 1}
                       </span>
                       <span className="text-sm font-medium truncate">{tag.name}</span>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 invisible group-hover:visible"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartTagEdit(tag);
-                        }}
-                        data-testid={`button-edit-tag-${tag.id}`}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
+                      <div className="invisible group-hover:visible flex gap-1">
+                        <Button
+                          size="icon"
+                          variant="ghost"
+                          className="h-6 w-6"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleStartTagEdit(tag);
+                          }}
+                          data-testid={`button-edit-tag-${tag.id}`}
+                        >
+                          <Edit2 className="h-3 w-3" />
+                        </Button>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={(e) => e.stopPropagation()}
+                              data-testid={`button-delete-tag-${tag.id}`}
+                            >
+                              <Trash2 className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onDeleteTag?.(tag.id);
+                              }}
+                              className="text-destructive focus:text-destructive"
+                              data-testid={`confirm-delete-tag-${tag.id}`}
+                            >
+                              <Trash2 className="h-3 w-3 mr-2" />
+                              Tag löschen
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{getTagSegmentCount(tag.id)} segments</span>

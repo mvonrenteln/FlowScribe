@@ -35,6 +35,7 @@ export const useTranscriptEditor = () => {
       renameSpeaker: state.renameSpeaker,
       addTag: state.addTag,
       renameTag: state.renameTag,
+      removeTag: state.removeTag,
       toggleTagOnSegment: state.toggleTagOnSegment,
       undo: state.undo,
       redo: state.redo,
@@ -147,6 +148,7 @@ export const useTranscriptEditor = () => {
     renameSpeaker,
     addTag,
     renameTag,
+    removeTag,
     toggleTagOnSegment,
     undo,
     redo,
@@ -601,6 +603,7 @@ export const useTranscriptEditor = () => {
         setFilterSpeakerId((current) => (current === id ? undefined : id)),
       onAddTag: addTag,
       onRenameTag: renameTag,
+      onDeleteTag: removeTag,
       selectedTagIds: filterTagIds,
       onTagSelect: (tagId: string) => {
         setFilterTagIds((current) =>
@@ -647,6 +650,7 @@ export const useTranscriptEditor = () => {
       addSpeaker,
       addTag,
       renameTag,
+      removeTag,
       clearFilters,
       filterBookmarked,
       filterLexicon,

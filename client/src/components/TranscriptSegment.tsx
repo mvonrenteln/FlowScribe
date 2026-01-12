@@ -1,6 +1,5 @@
 import { Check, Sparkles, X } from "lucide-react";
 import { memo, useState } from "react";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
@@ -38,6 +37,7 @@ interface TranscriptSegmentProps {
   readonly onConfirm: () => void;
   readonly onToggleBookmark: () => void;
   readonly onRemoveTag?: (tagId: string) => void;
+  readonly onAddTag?: (tagId: string) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -101,6 +101,7 @@ function TranscriptSegmentComponent({
   onConfirm,
   onToggleBookmark,
   onRemoveTag,
+  onAddTag,
   onIgnoreLexiconMatch,
   onIgnoreSpellcheckMatch,
   onAddSpellcheckToGlossary,
@@ -185,6 +186,7 @@ function TranscriptSegmentComponent({
             onSpeakerChange={onSpeakerChange}
             tags={tags}
             onRemoveTag={onRemoveTag}
+            onAddTag={onAddTag}
           />
 
           {/* Speaker Suggestion (if present, shown ABOVE segment content) */}

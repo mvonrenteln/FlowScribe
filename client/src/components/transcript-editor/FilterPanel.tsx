@@ -24,6 +24,7 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         selectedSpeakerId={props.selectedSpeakerId}
         onAddTag={props.onAddTag}
         onRenameTag={props.onRenameTag}
+        onDeleteTag={props.onDeleteTag}
         onTagSelect={props.onTagSelect}
         selectedTagIds={props.selectedTagIds}
         lowConfidenceFilterActive={props.lowConfidenceFilterActive}

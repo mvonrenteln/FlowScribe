@@ -41,6 +41,7 @@ function TranscriptListComponent({
   // Get tags and tag operations from store
   const tags = useTranscriptStore((s) => s.tags);
   const removeTagFromSegment = useTranscriptStore((s) => s.removeTagFromSegment);
+  const assignTagToSegment = useTranscriptStore((s) => s.assignTagToSegment);
 
   // Get pending revisions from store
   const pendingRevisions = useTranscriptStore((s) => s.aiRevisionSuggestions);
@@ -132,6 +133,7 @@ function TranscriptListComponent({
                   onConfirm={handlers.onConfirm}
                   onToggleBookmark={handlers.onToggleBookmark}
                   onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
+                  onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
                   onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
                   onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
                   onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
