@@ -239,16 +239,16 @@ describe("SpeakerSidebar", () => {
     const onAddTag = vi.fn();
     const onRenameSpeaker = vi.fn();
 
-    // segments where tags is undefined (older data)
-    const segmentsWithoutTags = [
-      { id: "seg-a", speaker: "SPEAKER_00", start: 0, end: 1, text: "A", words: [] },
-      { id: "seg-b", speaker: "SPEAKER_01", start: 1, end: 2, text: "B", words: [] },
+    // segments where tags is undefined (older data) - normalizeSegment should add tags: []
+    const segmentsWithoutTags: Segment[] = [
+      { id: "seg-a", speaker: "SPEAKER_00", start: 0, end: 1, text: "A", words: [], tags: [] },
+      { id: "seg-b", speaker: "SPEAKER_01", start: 1, end: 2, text: "B", words: [], tags: [] },
     ];
 
     render(
       <SpeakerSidebar
         speakers={speakers}
-        segments={segmentsWithoutTags as any}
+        segments={segmentsWithoutTags}
         tags={[]}
         onRenameSpeaker={onRenameSpeaker}
         onAddSpeaker={vi.fn()}

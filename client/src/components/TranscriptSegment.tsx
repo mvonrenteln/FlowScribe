@@ -1,8 +1,9 @@
 import { Check, Sparkles, X } from "lucide-react";
 import { memo, useState } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { SearchMatch, Segment, Speaker } from "@/lib/store";
+import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 import { SegmentActions } from "./transcript-segment/SegmentActions";
@@ -14,6 +15,7 @@ import { WordList } from "./transcript-segment/WordList";
 interface TranscriptSegmentProps {
   readonly segment: Segment;
   readonly speakers: Speaker[];
+  readonly tags?: Tag[];
   readonly isSelected: boolean;
   readonly isActive: boolean;
   readonly activeWordIndex?: number;
@@ -35,6 +37,7 @@ interface TranscriptSegmentProps {
   readonly onSplit: (wordIndex: number) => void;
   readonly onConfirm: () => void;
   readonly onToggleBookmark: () => void;
+  readonly onRemoveTag?: (tagId: string) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -75,6 +78,7 @@ interface TranscriptSegmentProps {
 function TranscriptSegmentComponent({
   segment,
   speakers,
+  tags = [],
   isSelected,
   isActive,
   activeWordIndex,
@@ -96,6 +100,7 @@ function TranscriptSegmentComponent({
   onSplit,
   onConfirm,
   onToggleBookmark,
+  onRemoveTag,
   onIgnoreLexiconMatch,
   onIgnoreSpellcheckMatch,
   onAddSpellcheckToGlossary,
@@ -179,6 +184,42 @@ function TranscriptSegmentComponent({
             speakerColor={speakerColor}
             onSpeakerChange={onSpeakerChange}
           />
+
+          {/* Tag Badges */}
+          {segment.tags && segment.tags.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2 mb-2">
+              {segment.tags.map((tagId) => {
+                const tag = tags.find((t) => t.id === tagId);
+                if (!tag) return null;
+                return (
+                  <Badge
+                    key={tagId}
+                    variant="secondary"
+                    className="text-xs px-2 py-0.5 gap-1"
+                    style={{
+                      borderLeftWidth: "3px",
+                      borderLeftColor: tag.color,
+                    }}
+                  >
+                    {tag.name}
+                    {onRemoveTag && (
+                      <button
+                        type="button"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRemoveTag(tagId);
+                        }}
+                        className="ml-1 hover:text-destructive"
+                        aria-label={`Remove tag ${tag.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
+                    )}
+                  </Badge>
+                );
+              })}
+            </div>
+          )}
 
           {/* Speaker Suggestion (if present, shown ABOVE segment content) */}
           {pendingSpeakerSuggestion && onAcceptSpeakerSuggestion && onRejectSpeakerSuggestion && (
@@ -348,6 +389,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
   return (
     prev.segment === next.segment &&
     prev.speakers === next.speakers &&
+    prev.tags === next.tags &&
     prev.isSelected === next.isSelected &&
     prev.isActive === next.isActive &&
     prev.activeWordIndex === next.activeWordIndex &&
@@ -367,6 +409,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onSplit === next.onSplit &&
     prev.onConfirm === next.onConfirm &&
     prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.onRemoveTag === next.onRemoveTag &&
     prev.onIgnoreLexiconMatch === next.onIgnoreLexiconMatch &&
     prev.onIgnoreSpellcheckMatch === next.onIgnoreSpellcheckMatch &&
     prev.onAddSpellcheckToGlossary === next.onAddSpellcheckToGlossary &&

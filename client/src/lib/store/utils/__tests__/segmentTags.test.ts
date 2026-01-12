@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { getSegmentTags, hasSegmentTag } from "../segmentTags";
 import type { Segment } from "@/lib/store/types";
+import { getSegmentTags, hasSegmentTag } from "../segmentTags";
 
 describe("segmentTags utils", () => {
   it("returns empty array for segment with empty tags", () => {

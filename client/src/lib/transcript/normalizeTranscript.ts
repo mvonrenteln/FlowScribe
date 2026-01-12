@@ -3,7 +3,7 @@ import type { Segment } from "@/lib/store";
 export type TranscriptLike = {
   id?: string;
   segments?: Array<Partial<Segment>>;
-  [k: string]: any;
+  [k: string]: unknown;
 };
 
 export function normalizeSegment(s: Partial<Segment>) {

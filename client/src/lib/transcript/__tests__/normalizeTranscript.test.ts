@@ -10,7 +10,7 @@ describe("normalizeTranscript", () => {
       ],
     };
 
-    const out = normalizeTranscript(input as any);
+    const out = normalizeTranscript(input as unknown as TranscriptLike);
 
     expect(out.segments[0].tags).toEqual([]);
     expect(out.segments[1].tags).toEqual([]);
