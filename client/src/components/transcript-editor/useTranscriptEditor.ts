@@ -294,6 +294,29 @@ export const useTranscriptEditor = () => {
     setManualConfidenceThreshold,
   });
 
+  // Tag select handler - optimized for performance
+  const handleTagSelect = useCallback(
+    (tagId: string) => {
+      // Three-state toggle: none → normal → NOT → none
+      const isNormal = filterTagIds.includes(tagId);
+      const isNot = filterNotTagIds.includes(tagId);
+
+      if (!isNormal && !isNot) {
+        // State: none → normal
+        setFilterTagIds((current) => [...current, tagId]);
+      } else if (isNormal) {
+        // State: normal → NOT
+        // Batch both state updates
+        setFilterTagIds((current) => current.filter((id) => id !== tagId));
+        setFilterNotTagIds((current) => [...current, tagId]);
+      } else {
+        // State: NOT → none
+        setFilterNotTagIds((current) => current.filter((id) => id !== tagId));
+      }
+    },
+    [filterTagIds, filterNotTagIds, setFilterTagIds, setFilterNotTagIds],
+  );
+
   const {
     replaceQuery,
     setReplaceQuery,
@@ -610,23 +633,7 @@ export const useTranscriptEditor = () => {
       onDeleteTag: removeTag,
       selectedTagIds: filterTagIds,
       selectedNotTagIds: filterNotTagIds,
-      onTagSelect: (tagId: string) => {
-        // Three-state toggle: none → normal → NOT → none
-        const isNormal = filterTagIds.includes(tagId);
-        const isNot = filterNotTagIds.includes(tagId);
-
-        if (!isNormal && !isNot) {
-          // State: none → normal
-          setFilterTagIds((current) => [...current, tagId]);
-        } else if (isNormal) {
-          // State: normal → NOT
-          setFilterTagIds((current) => current.filter((id) => id !== tagId));
-          setFilterNotTagIds((current) => [...current, tagId]);
-        } else {
-          // State: NOT → none
-          setFilterNotTagIds((current) => current.filter((id) => id !== tagId));
-        }
-      },
+      onTagSelect: handleTagSelect,
       noTagsFilterActive: filterNoTags,
       onToggleNoTagsFilter: () => setFilterNoTags((current) => !current),
       onClearFilters: clearFilters,
@@ -681,6 +688,7 @@ export const useTranscriptEditor = () => {
       filterNotTagIds,
       filterNoTags,
       handleRenameSpeaker,
+      handleTagSelect,
       lexiconLowScoreMatchCount,
       lexiconMatchCount,
       lowConfidenceThreshold,
@@ -692,8 +700,6 @@ export const useTranscriptEditor = () => {
       setFilterLowConfidence,
       setFilterSpeakerId,
       setFilterSpellcheck,
-      setFilterTagIds,
-      setFilterNotTagIds,
       setFilterNoTags,
       setHighlightLowConfidence,
       setManualConfidenceThreshold,

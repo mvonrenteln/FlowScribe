@@ -10,7 +10,7 @@ import {
   X,
   XCircle,
 } from "lucide-react";
-import { type KeyboardEvent, useEffect, useRef, useState } from "react";
+import { type KeyboardEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -152,9 +152,23 @@ export function SpeakerSidebar({
     return segments.filter((s) => s.speaker === speakerName).length;
   };
 
+  // Memoize tag segment counts to avoid recalculating on every render
+  const tagSegmentCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const tag of tags) {
+      counts.set(tag.id, 0);
+    }
+    for (const segment of segments) {
+      const segmentTags = segment.tags ?? [];
+      for (const tagId of segmentTags) {
+        counts.set(tagId, (counts.get(tagId) ?? 0) + 1);
+      }
+    }
+    return counts;
+  }, [segments, tags]);
+
   const getTagSegmentCount = (tagId: string) => {
-    // normalize missing tags
-    return segments.filter((s) => (s.tags ?? []).includes(tagId)).length;
+    return tagSegmentCounts.get(tagId) ?? 0;
   };
 
   const getNoTagsSegmentCount = () => {

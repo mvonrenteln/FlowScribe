@@ -1,5 +1,5 @@
 import { Download, FileJson, FileText } from "lucide-react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -79,6 +79,15 @@ export function ExportDialog({
 }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
+
+  // Memoize the export description text to avoid recalculation on every render
+  const exportDescription = useMemo(
+    () =>
+      useFilters
+        ? `Export ${filteredSegments.length} of ${segments.length} segments`
+        : `Export all ${segments.length} segments`,
+    [useFilters, filteredSegments.length, segments.length],
+  );
 
   const handleExport = () => {
     const segmentsToExport = useFilters ? filteredSegments : segments;
@@ -184,11 +193,7 @@ export function ExportDialog({
             />
             <Label htmlFor="use-filters" className="cursor-pointer">
               <span className="font-medium">Apply active filters</span>
-              <p className="text-sm text-muted-foreground">
-                {useFilters
-                  ? `Export ${filteredSegments.length} of ${segments.length} segments`
-                  : `Export all ${segments.length} segments`}
-              </p>
+              <p className="text-sm text-muted-foreground">{exportDescription}</p>
             </Label>
           </div>
         </div>
