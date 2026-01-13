@@ -53,6 +53,8 @@ export default function ExportDialogExample() {
         open={open}
         onOpenChange={setOpen}
         segments={mockSegments}
+        filteredSegments={mockSegments}
+        tags={[]}
         fileName="my-transcript"
       />
     </div>

@@ -29,6 +29,7 @@ export interface FiltersAndLexiconState {
   filterLexiconLowScore: boolean;
   filterSpellcheck: boolean;
   filterTagIds: string[];
+  filterNotTagIds: string[];
   filterNoTags: boolean;
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
@@ -65,6 +66,7 @@ export function useFiltersAndLexicon({
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
   const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
+  const [filterNotTagIds, setFilterNotTagIds] = useState<string[]>([]);
   const [filterNoTags, setFilterNoTags] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
@@ -170,6 +172,13 @@ export function useFiltersAndLexicon({
         );
         if (!hasMatchingTag) return false;
       }
+      if (filterNotTagIds.length > 0) {
+        // NOT-logic: segment matches if it does NOT have ANY of the NOT-selected tags
+        const hasExcludedTag = filterNotTagIds.some((tagId) =>
+          getSegmentTags(segment).includes(tagId),
+        );
+        if (hasExcludedTag) return false;
+      }
 
       if (searchNormalized) {
         if (isRegexSearch) {
@@ -212,6 +221,7 @@ export function useFiltersAndLexicon({
     filterLowConfidence,
     filterSpellcheck,
     filterTagIds,
+    filterNotTagIds,
     filterNoTags,
     lexiconMatchesBySegment,
     lowConfidenceThreshold,
@@ -236,6 +246,7 @@ export function useFiltersAndLexicon({
     setFilterLexiconLowScore(false);
     setFilterSpellcheck(false);
     setFilterTagIds([]);
+    setFilterNotTagIds([]);
     setFilterNoTags(false);
     setSearchQuery("");
     setIsRegexSearch(false);
@@ -256,6 +267,8 @@ export function useFiltersAndLexicon({
     setFilterSpellcheck,
     filterTagIds,
     setFilterTagIds,
+    filterNotTagIds,
+    setFilterNotTagIds,
     filterNoTags,
     setFilterNoTags,
     highlightLowConfidence,

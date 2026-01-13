@@ -8,6 +8,7 @@ import {
   Trash2,
   UsersRound,
   X,
+  XCircle,
 } from "lucide-react";
 import { type KeyboardEvent, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
@@ -40,6 +41,7 @@ interface SpeakerSidebarProps {
   onDeleteTag?: (tagId: string) => void;
   onTagSelect?: (tagId: string) => void;
   selectedTagIds?: string[];
+  selectedNotTagIds?: string[];
   noTagsFilterActive?: boolean;
   onToggleNoTagsFilter?: () => void;
   lowConfidenceFilterActive?: boolean;
@@ -88,6 +90,7 @@ export function SpeakerSidebar({
   onDeleteTag,
   onTagSelect,
   selectedTagIds = [],
+  selectedNotTagIds = [],
   noTagsFilterActive = false,
   onToggleNoTagsFilter,
   lowConfidenceFilterActive = false,
@@ -506,133 +509,145 @@ export function SpeakerSidebar({
       </div>
       <ScrollArea className="flex-1" style={{ maxHeight: "30%" }}>
         <div className="p-2 space-y-1">
-          {tags.map((tag, index) => (
-            <div
-              key={tag.id}
-              className={cn(
-                "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
-                selectedTagIds.includes(tag.id) && "bg-accent",
-              )}
-              onClick={() => {
-                if (editingTagId === tag.id) {
-                  return;
-                }
-                onTagSelect?.(tag.id);
-              }}
-              onKeyDown={(event) => handleTagKeyDown(event, tag.id)}
-              data-testid={`tag-card-${tag.id}`}
-              role="button"
-              tabIndex={0}
-              aria-pressed={selectedTagIds.includes(tag.id)}
-            >
+          {tags.map((tag, index) => {
+            const isNotFilter = selectedNotTagIds.includes(tag.id);
+            const isNormalFilter = selectedTagIds.includes(tag.id);
+            return (
               <div
-                className="w-1 h-10 rounded-full flex-shrink-0"
-                style={{ backgroundColor: tag.color }}
-              />
-
-              <div className="flex-1 min-w-0">
-                {editingTagId === tag.id ? (
-                  <div className="flex items-center gap-1">
-                    <Input
-                      ref={editTagInputRef}
-                      value={editTagValue}
-                      onChange={(e) => setEditTagValue(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === "Enter") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleSaveTagEdit(tag.id);
-                          return;
-                        }
-                        if (e.key === "Escape") {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleCancelTagEdit();
-                        }
-                      }}
-                      className="h-7 text-sm"
-                      autoFocus
-                      data-testid={`input-rename-tag-${tag.id}`}
-                    />
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleSaveTagEdit(tag.id);
-                      }}
-                    >
-                      <Check className="h-3 w-3" />
-                    </Button>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-7 w-7"
-                      onClick={(event) => {
-                        event.stopPropagation();
-                        handleCancelTagEdit();
-                      }}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
-                  </div>
-                ) : (
-                  <>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5">
-                        {index + 1}
-                      </span>
-                      <span className="text-sm font-medium truncate">{tag.name}</span>
-                      <div className="invisible group-hover:visible flex gap-1">
-                        <Button
-                          size="icon"
-                          variant="ghost"
-                          className="h-6 w-6"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleStartTagEdit(tag);
-                          }}
-                          data-testid={`button-edit-tag-${tag.id}`}
-                        >
-                          <Edit2 className="h-3 w-3" />
-                        </Button>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              size="icon"
-                              variant="ghost"
-                              className="h-6 w-6"
-                              onClick={(e) => e.stopPropagation()}
-                              data-testid={`button-delete-tag-${tag.id}`}
-                            >
-                              <Trash2 className="h-3 w-3" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onDeleteTag?.(tag.id);
-                              }}
-                              className="text-destructive focus:text-destructive"
-                              data-testid={`confirm-delete-tag-${tag.id}`}
-                            >
-                              <Trash2 className="h-3 w-3 mr-2" />
-                              Tag löschen
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                      <span>{getTagSegmentCount(tag.id)} segments</span>
-                    </div>
-                  </>
+                key={tag.id}
+                className={cn(
+                  "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
+                  (isNormalFilter || isNotFilter) && "bg-accent",
                 )}
+                onClick={() => {
+                  if (editingTagId === tag.id) {
+                    return;
+                  }
+                  onTagSelect?.(tag.id);
+                }}
+                onKeyDown={(event) => handleTagKeyDown(event, tag.id)}
+                data-testid={`tag-card-${tag.id}`}
+                role="button"
+                tabIndex={0}
+                aria-pressed={isNormalFilter || isNotFilter}
+              >
+                <div
+                  className="w-1 h-10 rounded-full flex-shrink-0"
+                  style={{ backgroundColor: tag.color }}
+                />
+
+                <div className="flex-1 min-w-0">
+                  {editingTagId === tag.id ? (
+                    <div className="flex items-center gap-1">
+                      <Input
+                        ref={editTagInputRef}
+                        value={editTagValue}
+                        onChange={(e) => setEditTagValue(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleSaveTagEdit(tag.id);
+                            return;
+                          }
+                          if (e.key === "Escape") {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleCancelTagEdit();
+                          }
+                        }}
+                        className="h-7 text-sm"
+                        autoFocus
+                        data-testid={`input-rename-tag-${tag.id}`}
+                      />
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleSaveTagEdit(tag.id);
+                        }}
+                      >
+                        <Check className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-7 w-7"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleCancelTagEdit();
+                        }}
+                      >
+                        <X className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground border rounded px-1.5 py-0.5">
+                          {index + 1}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-sm font-medium truncate",
+                            isNotFilter && "line-through",
+                          )}
+                        >
+                          {tag.name}
+                        </span>
+                        {isNotFilter && <XCircle className="h-4 w-4 text-destructive" />}
+                        <div className="invisible group-hover:visible flex gap-1">
+                          <Button
+                            size="icon"
+                            variant="ghost"
+                            className="h-6 w-6"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleStartTagEdit(tag);
+                            }}
+                            data-testid={`button-edit-tag-${tag.id}`}
+                          >
+                            <Edit2 className="h-3 w-3" />
+                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="h-6 w-6"
+                                onClick={(e) => e.stopPropagation()}
+                                data-testid={`button-delete-tag-${tag.id}`}
+                              >
+                                <Trash2 className="h-3 w-3" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end">
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onDeleteTag?.(tag.id);
+                                }}
+                                className="text-destructive focus:text-destructive"
+                                data-testid={`confirm-delete-tag-${tag.id}`}
+                              >
+                                <Trash2 className="h-3 w-3 mr-2" />
+                                Tag löschen
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <span>{getTagSegmentCount(tag.id)} segments</span>
+                      </div>
+                    </>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {/* No Tags Filter */}
           <div

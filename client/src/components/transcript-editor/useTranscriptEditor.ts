@@ -260,6 +260,8 @@ export const useTranscriptEditor = () => {
     setFilterSpellcheck,
     filterTagIds,
     setFilterTagIds,
+    filterNotTagIds,
+    setFilterNotTagIds,
     filterNoTags,
     setFilterNoTags,
     activeSpeakerName,
@@ -607,10 +609,23 @@ export const useTranscriptEditor = () => {
       onRenameTag: renameTag,
       onDeleteTag: removeTag,
       selectedTagIds: filterTagIds,
+      selectedNotTagIds: filterNotTagIds,
       onTagSelect: (tagId: string) => {
-        setFilterTagIds((current) =>
-          current.includes(tagId) ? current.filter((id) => id !== tagId) : [...current, tagId],
-        );
+        // Three-state toggle: none → normal → NOT → none
+        const isNormal = filterTagIds.includes(tagId);
+        const isNot = filterNotTagIds.includes(tagId);
+
+        if (!isNormal && !isNot) {
+          // State: none → normal
+          setFilterTagIds((current) => [...current, tagId]);
+        } else if (isNormal) {
+          // State: normal → NOT
+          setFilterTagIds((current) => current.filter((id) => id !== tagId));
+          setFilterNotTagIds((current) => [...current, tagId]);
+        } else {
+          // State: NOT → none
+          setFilterNotTagIds((current) => current.filter((id) => id !== tagId));
+        }
       },
       noTagsFilterActive: filterNoTags,
       onToggleNoTagsFilter: () => setFilterNoTags((current) => !current),
@@ -663,6 +678,7 @@ export const useTranscriptEditor = () => {
       filterSpeakerId,
       filterSpellcheck,
       filterTagIds,
+      filterNotTagIds,
       filterNoTags,
       handleRenameSpeaker,
       lexiconLowScoreMatchCount,
@@ -677,6 +693,7 @@ export const useTranscriptEditor = () => {
       setFilterSpeakerId,
       setFilterSpellcheck,
       setFilterTagIds,
+      setFilterNotTagIds,
       setFilterNoTags,
       setHighlightLowConfidence,
       setManualConfidenceThreshold,
@@ -774,6 +791,8 @@ export const useTranscriptEditor = () => {
       showExport,
       onExportChange: setShowExport,
       segments,
+      filteredSegments,
+      tags,
       audioFileName: audioFile?.name,
       showLexicon,
       onLexiconChange: setShowLexicon,
@@ -816,6 +835,8 @@ export const useTranscriptEditor = () => {
       handleCreateRevision,
       sessionKind,
       segments,
+      filteredSegments,
+      tags,
       recentSessions,
       sessionKey,
       sessionLabel,

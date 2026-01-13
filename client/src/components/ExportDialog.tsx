@@ -1,6 +1,7 @@
 import { Download, FileJson, FileText } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Dialog,
   DialogContent,
@@ -11,12 +12,15 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import type { Segment } from "@/lib/store";
+import type { Segment, Tag } from "@/lib/store";
+import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   segments: Segment[];
+  filteredSegments: Segment[];
+  tags: Tag[];
   fileName?: string;
 }
 
@@ -41,7 +45,9 @@ ${formatTime(segment.start)} --> ${formatTime(segment.end)}
     .join("\n");
 }
 
-function formatTXT(segments: Segment[]): string {
+function formatTXT(segments: Segment[], tags: Tag[]): string {
+  const tagsById = new Map(tags.map((t) => [t.id, t]));
+
   return segments
     .map((segment) => {
       const formatTime = (seconds: number): string => {
@@ -50,7 +56,15 @@ function formatTXT(segments: Segment[]): string {
         return `${mins}:${secs.toString().padStart(2, "0")}`;
       };
 
-      return `[${formatTime(segment.start)}] ${segment.speaker}: ${segment.text}`;
+      const segmentTagIds = getSegmentTags(segment);
+      const tagNames = segmentTagIds
+        .map((tagId) => tagsById.get(tagId)?.name)
+        .filter((name): name is string => !!name);
+
+      const speakerLabel =
+        tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
+
+      return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
     })
     .join("\n\n");
 }
@@ -59,28 +73,41 @@ export function ExportDialog({
   open,
   onOpenChange,
   segments,
+  filteredSegments,
+  tags,
   fileName = "transcript",
 }: ExportDialogProps) {
   const [format, setFormat] = useState<ExportFormat>("json");
+  const [useFilters, setUseFilters] = useState(true);
 
   const handleExport = () => {
+    const segmentsToExport = useFilters ? filteredSegments : segments;
     let content: string;
     let mimeType: string;
     let extension: string;
 
     switch (format) {
       case "json":
-        content = JSON.stringify({ segments }, null, 2);
+        content = JSON.stringify(
+          {
+            segments: segmentsToExport.map((seg) => ({
+              ...seg,
+              tags: seg.tags || [],
+            })),
+          },
+          null,
+          2,
+        );
         mimeType = "application/json";
         extension = "json";
         break;
       case "srt":
-        content = formatSRT(segments);
+        content = formatSRT(segmentsToExport);
         mimeType = "text/srt";
         extension = "srt";
         break;
       case "txt":
-        content = formatTXT(segments);
+        content = formatTXT(segmentsToExport, tags);
         mimeType = "text/plain";
         extension = "txt";
         break;
@@ -148,6 +175,22 @@ export function ExportDialog({
               </Label>
             </div>
           </RadioGroup>
+
+          <div className="flex items-center gap-2 mt-4 pt-4 border-t">
+            <Checkbox
+              id="use-filters"
+              checked={useFilters}
+              onCheckedChange={(checked) => setUseFilters(checked === true)}
+            />
+            <Label htmlFor="use-filters" className="cursor-pointer">
+              <span className="font-medium">Apply active filters</span>
+              <p className="text-sm text-muted-foreground">
+                {useFilters
+                  ? `Export ${filteredSegments.length} of ${segments.length} segments`
+                  : `Export all ${segments.length} segments`}
+              </p>
+            </Label>
+          </div>
         </div>
 
         <DialogFooter>

@@ -27,6 +27,7 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         onDeleteTag={props.onDeleteTag}
         onTagSelect={props.onTagSelect}
         selectedTagIds={props.selectedTagIds}
+        selectedNotTagIds={props.selectedNotTagIds}
         noTagsFilterActive={props.noTagsFilterActive}
         onToggleNoTagsFilter={props.onToggleNoTagsFilter}
         lowConfidenceFilterActive={props.lowConfidenceFilterActive}

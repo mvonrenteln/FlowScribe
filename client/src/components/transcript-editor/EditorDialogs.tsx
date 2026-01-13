@@ -14,6 +14,8 @@ export function EditorDialogs({
   showExport,
   onExportChange,
   segments,
+  filteredSegments,
+  tags,
   audioFileName,
   showLexicon: _showLexicon,
   onLexiconChange: _onLexiconChange,
@@ -42,6 +44,8 @@ export function EditorDialogs({
         open={showExport}
         onOpenChange={onExportChange}
         segments={segments}
+        filteredSegments={filteredSegments}
+        tags={tags}
         fileName={audioFileName?.replace(/\.[^/.]+$/, "") || "transcript"}
       />
       {/* GlossaryDialog removed — use Settings -> Glossary for management */}
