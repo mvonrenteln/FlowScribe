@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
 import { ExportDialog } from "../ExportDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
@@ -8,7 +9,7 @@ import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];
 
-export function EditorDialogs({
+const EditorDialogsComponent = ({
   showShortcuts,
   onShortcutsChange,
   showExport,
@@ -36,7 +37,7 @@ export function EditorDialogs({
   onOpenSettings,
   settingsInitialSection,
   setSettingsInitialSection: _setSettingsInitialSection,
-}: DialogProps) {
+}: DialogProps) => {
   return (
     <>
       <KeyboardShortcuts open={showShortcuts} onOpenChange={onShortcutsChange} />
@@ -73,4 +74,7 @@ export function EditorDialogs({
       />
     </>
   );
-}
+};
+
+// Memoize to prevent re-renders when unrelated dialogProps change
+export const EditorDialogs = memo(EditorDialogsComponent);

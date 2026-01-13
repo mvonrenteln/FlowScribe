@@ -1,5 +1,5 @@
 import { Download, FileJson, FileText } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -45,30 +45,6 @@ ${formatTime(segment.start)} --> ${formatTime(segment.end)}
     .join("\n");
 }
 
-function formatTXT(segments: Segment[], tags: Tag[]): string {
-  const tagsById = new Map(tags.map((t) => [t.id, t]));
-
-  return segments
-    .map((segment) => {
-      const formatTime = (seconds: number): string => {
-        const mins = Math.floor(seconds / 60);
-        const secs = Math.floor(seconds % 60);
-        return `${mins}:${secs.toString().padStart(2, "0")}`;
-      };
-
-      const segmentTagIds = getSegmentTags(segment);
-      const tagNames = segmentTagIds
-        .map((tagId) => tagsById.get(tagId)?.name)
-        .filter((name): name is string => !!name);
-
-      const speakerLabel =
-        tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
-
-      return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
-    })
-    .join("\n\n");
-}
-
 const ExportDialogComponent = ({
   open,
   onOpenChange,
@@ -80,7 +56,53 @@ const ExportDialogComponent = ({
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
 
-  // Memoize the export description text to avoid recalculation on every render
+  // Pre-compute tagsById Map once
+  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
+
+  // Determine which segments to export
+  const segmentsToExport = useFilters ? filteredSegments : segments;
+
+  // Pre-compute all export formats (only recalculates when segments/tags change)
+  const exportedJSON = useMemo(
+    () =>
+      JSON.stringify(
+        {
+          segments: segmentsToExport.map((seg) => ({
+            ...seg,
+            tags: seg.tags || [],
+          })),
+        },
+        null,
+        2,
+      ),
+    [segmentsToExport],
+  );
+
+  const exportedSRT = useMemo(() => formatSRT(segmentsToExport), [segmentsToExport]);
+
+  const exportedTXT = useMemo(() => {
+    return segmentsToExport
+      .map((segment) => {
+        const formatTime = (seconds: number): string => {
+          const mins = Math.floor(seconds / 60);
+          const secs = Math.floor(seconds % 60);
+          return `${mins}:${secs.toString().padStart(2, "0")}`;
+        };
+
+        const segmentTagIds = getSegmentTags(segment);
+        const tagNames = segmentTagIds
+          .map((tagId) => tagsById.get(tagId)?.name)
+          .filter((name): name is string => !!name);
+
+        const speakerLabel =
+          tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
+
+        return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
+      })
+      .join("\n\n");
+  }, [segmentsToExport, tagsById]);
+
+  // Memoize the export description text
   const exportDescription = useMemo(
     () =>
       useFilters
@@ -89,34 +111,24 @@ const ExportDialogComponent = ({
     [useFilters, filteredSegments.length, segments.length],
   );
 
-  const handleExport = () => {
-    const segmentsToExport = useFilters ? filteredSegments : segments;
+  const handleExport = useCallback(() => {
     let content: string;
     let mimeType: string;
     let extension: string;
 
     switch (format) {
       case "json":
-        content = JSON.stringify(
-          {
-            segments: segmentsToExport.map((seg) => ({
-              ...seg,
-              tags: seg.tags || [],
-            })),
-          },
-          null,
-          2,
-        );
+        content = exportedJSON;
         mimeType = "application/json";
         extension = "json";
         break;
       case "srt":
-        content = formatSRT(segmentsToExport);
+        content = exportedSRT;
         mimeType = "text/srt";
         extension = "srt";
         break;
       case "txt":
-        content = formatTXT(segmentsToExport, tags);
+        content = exportedTXT;
         mimeType = "text/plain";
         extension = "txt";
         break;
@@ -133,7 +145,7 @@ const ExportDialogComponent = ({
     URL.revokeObjectURL(url);
 
     onOpenChange(false);
-  };
+  }, [format, exportedJSON, exportedSRT, exportedTXT, fileName, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

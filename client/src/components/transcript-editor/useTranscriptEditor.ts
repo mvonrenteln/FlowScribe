@@ -790,16 +790,24 @@ export const useTranscriptEditor = () => {
     ],
   );
 
+  // Separate export dialog props to avoid re-renders when segments/tags change
+  const exportDialogData = useMemo(
+    () => ({
+      segments,
+      filteredSegments,
+      tags,
+      audioFileName: audioFile?.name,
+    }),
+    [segments, filteredSegments, tags, audioFile?.name],
+  );
+
   const dialogProps = useMemo(
     () => ({
       showShortcuts,
       onShortcutsChange: setShowShortcuts,
       showExport,
       onExportChange: setShowExport,
-      segments,
-      filteredSegments,
-      tags,
-      audioFileName: audioFile?.name,
+      ...exportDialogData,
       showLexicon,
       onLexiconChange: setShowLexicon,
       showSpellcheckDialog,
@@ -835,14 +843,11 @@ export const useTranscriptEditor = () => {
       setSettingsInitialSection,
     }),
     [
-      audioFile?.name,
       activeSessionDisplayName,
       canCreateRevision,
+      exportDialogData,
       handleCreateRevision,
       sessionKind,
-      segments,
-      filteredSegments,
-      tags,
       recentSessions,
       sessionKey,
       sessionLabel,
