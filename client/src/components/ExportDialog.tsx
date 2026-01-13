@@ -1,5 +1,5 @@
 import { Download, FileJson, FileText } from "lucide-react";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -69,14 +69,14 @@ function formatTXT(segments: Segment[], tags: Tag[]): string {
     .join("\n\n");
 }
 
-export function ExportDialog({
+const ExportDialogComponent = ({
   open,
   onOpenChange,
   segments,
   filteredSegments,
   tags,
   fileName = "transcript",
-}: ExportDialogProps) {
+}: ExportDialogProps) => {
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
 
@@ -210,4 +210,6 @@ export function ExportDialog({
       </DialogContent>
     </Dialog>
   );
-}
+};
+
+export const ExportDialog = memo(ExportDialogComponent);

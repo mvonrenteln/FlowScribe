@@ -94,6 +94,15 @@ export function useFiltersAndLexicon({
     [normalizedSegments],
   );
 
+  // Pre-compute tag sets for O(1) lookups during filtering
+  const segmentTagSets = useMemo(() => {
+    const tagSets = new Map<string, Set<string>>();
+    for (const segment of segments) {
+      tagSets.set(segment.id, new Set(getSegmentTags(segment)));
+    }
+    return tagSets;
+  }, [segments]);
+
   const autoConfidenceThreshold = useMemo(() => {
     const scores = segments
       .flatMap((segment) => segment.words)
@@ -162,21 +171,21 @@ export function useFiltersAndLexicon({
       if (filterSpellcheck) {
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
+      // Tag filtering with pre-computed sets for O(1) lookups
+      const segmentTags = segmentTagSets.get(segment.id);
       if (filterNoTags) {
-        if (getSegmentTags(segment).length > 0) return false;
+        if (segmentTags && segmentTags.size > 0) return false;
       }
       if (filterTagIds.length > 0) {
         // OR-logic: segment matches if it has ANY of the selected tags
-        const hasMatchingTag = filterTagIds.some((tagId) =>
-          getSegmentTags(segment).includes(tagId),
-        );
+        if (!segmentTags) return false;
+        const hasMatchingTag = filterTagIds.some((tagId) => segmentTags.has(tagId));
         if (!hasMatchingTag) return false;
       }
       if (filterNotTagIds.length > 0) {
         // NOT-logic: segment matches if it does NOT have ANY of the NOT-selected tags
-        const hasExcludedTag = filterNotTagIds.some((tagId) =>
-          getSegmentTags(segment).includes(tagId),
-        );
+        if (!segmentTags) return true; // No tags means not excluded
+        const hasExcludedTag = filterNotTagIds.some((tagId) => segmentTags.has(tagId));
         if (hasExcludedTag) return false;
       }
 
@@ -227,6 +236,7 @@ export function useFiltersAndLexicon({
     lowConfidenceThreshold,
     normalizedSegmentsById,
     segments,
+    segmentTagSets,
     spellcheckMatchesBySegment,
     searchQuery,
     isRegexSearch,
