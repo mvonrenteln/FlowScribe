@@ -640,10 +640,15 @@ export function SpeakerSidebar({
               "group flex items-center gap-2 p-2 rounded-md cursor-pointer hover-elevate",
               noTagsFilterActive && "bg-accent",
             )}
-            onClick={() => onToggleNoTagsFilter?.()}
+            onClick={(e) => {
+              e.stopPropagation();
+              console.log("No Tags clicked", { noTagsFilterActive, onToggleNoTagsFilter });
+              onToggleNoTagsFilter?.();
+            }}
             onKeyDown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
+                e.stopPropagation();
                 onToggleNoTagsFilter?.();
               }
             }}

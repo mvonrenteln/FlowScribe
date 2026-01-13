@@ -458,6 +458,21 @@ export function useNavigationHotkeys({
         event.preventDefault(); // Prevent default T key behavior
         tKeyPressedRef.current = true;
 
+        // Open tag menu dropdown on the selected segment
+        const segmentEl = document.querySelector(`[data-segment-id="${selectedSegmentId}"]`);
+        if (segmentEl) {
+          // Try to find and click the Add Tag button in the segment header
+          const addTagButton = segmentEl.querySelector(
+            '[data-testid*="button-add-tag"], [data-testid*="button-add-first-tag"]',
+          ) as HTMLButtonElement;
+          if (addTagButton) {
+            // Small delay to ensure T key press is processed first
+            setTimeout(() => {
+              addTagButton.click();
+            }, 10);
+          }
+        }
+
         // Reset flag after timeout
         if (tKeyTimerRef.current) clearTimeout(tKeyTimerRef.current);
         tKeyTimerRef.current = setTimeout(() => {
