@@ -3,6 +3,7 @@ import { memo, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
 import { normalizeSpellcheckToken } from "@/lib/spellcheck";
 import type { SearchMatch, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -173,51 +174,54 @@ export const TranscriptWord = memo(
       // Also handle unicode normalization in highlighting if possible, but that's hard with regex on raw text.
       // We will stick to the regex but ensuring we handle the "split" result correctly.
 
-      let regex: RegExp;
-      try {
-        if (isRegexSearch) {
-          regex = new RegExp(`(${query})`, "gi");
-        } else {
-          // Normalize the query for the regex creation if we want to match "u" to "ü" ??
-          // Standard Regex won't match "u" to "ü" unless we strictly map.
-          // For highlighting, if the filter found it via normalization, but the regex doesn't match raw text,
-          // we won't highlight it. That might be the "missing highlighting" issue!
-          // The user searches "valla" (normalized) but text is "voilà" (or similar).
-          // Filter says YES. Highlight says NO (because "valla" != "voilà").
+      const regex = createSearchRegex(query, isRegexSearch);
+      if (!regex) return text;
 
-          // If we want to highlight "müller" when searching "muller", we need the regex to handle it.
-          // Or we use a non-regex approach?
-          // Let's stick to strict highlighting for now (what matches the query visually).
-          // BUT user said "Blume." failed.
+      if (isRegexSearch) {
+        const matches = findMatchesInText(text, regex);
+        if (matches.length === 0) return text;
 
-          const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-          regex = new RegExp(`(${escaped})`, "gi");
+        const parts: Array<React.ReactNode> = [];
+        let lastIndex = 0;
+
+        matches.forEach((match, i) => {
+          if (match.start === match.end) return;
+          if (match.start > lastIndex) {
+            parts.push(text.slice(lastIndex, match.start));
+          }
+
+          const matchedText = text.slice(match.start, match.end);
+          parts.push(
+            <mark
+              key={`${match.start}-${match.end}-${i}`}
+              className={cn(
+                "rounded-sm px-0.5 mx-[-0.5px] transition-colors duration-200",
+                replaceQuery
+                  ? isCurrentMatch
+                    ? "bg-primary text-primary-foreground shadow-sm"
+                    : "bg-muted text-muted-foreground dark:bg-primary/35 dark:text-primary-foreground"
+                  : "bg-primary text-primary-foreground shadow-sm",
+              )}
+            >
+              {matchedText}
+            </mark>,
+          );
+
+          lastIndex = match.end;
+        });
+
+        if (lastIndex < text.length) {
+          parts.push(text.slice(lastIndex));
         }
-      } catch {
-        return text;
+
+        return parts;
       }
 
       const parts = text.split(regex);
       if (parts.length === 1) return text;
 
       return parts.map((part, i) => {
-        if (!part) return null; // Filter empty strings from split if any (though usually we want them for key/structure?)
-        // Actually split keeps empty strings at boundaries. We should render them as text (empty).
-
-        // We check if this part matches the regex.
-        // Re-running regex.test(part) is usually fine for "GI" regex on the part produced by capturing group.
-        // However, regex is stateful if 'g' is used with exec, but .test with 'g' also advances lastIndex.
-        // AND `split` doesn't use lastIndex.
-        // BUT `regex.test(part)` advances `regex.lastIndex` if 'g' is set!
-        // This is a common bug. calling .test() on the same regex instance multiple times.
-        // We should use a fresh regex or reset lastIndex, or simpler:
-        // Just check if part.toLowerCase() == query.toLowerCase() (for simple search)?
-        // No, regex search needs regex.
-        // For the capturing group split, the "odd" indices are usually the matches?
-        // "a_b_c".split(/(_)/) -> ["a", "_", "b", "_", "c"].
-        // Indices: 0, 1, 2, 3, 4. 1 and 3 are matches.
-        // So valid matches are at index 1, 3, 5...
-
+        if (!part) return null;
         if (i % 2 === 1) {
           return (
             <mark

@@ -1,5 +1,5 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { Segment } from "@/lib/store";
 import { useSearchAndReplace } from "../useSearchAndReplace";
 
@@ -29,6 +29,10 @@ describe("useSearchAndReplace", () => {
       ],
     },
   ];
+
+  beforeEach(() => {
+    mockUpdateSegmentsTexts.mockClear();
+  });
 
   it("finds matches across segments", () => {
     const { result } = renderHook(() =>
@@ -93,6 +97,78 @@ describe("useSearchAndReplace", () => {
     expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
       { id: "seg-1", text: "hi world" },
       { id: "seg-2", text: "hi again" },
+    ]);
+  });
+
+  it("replaces current regex match with capture groups", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Tanzenprobe- Generalprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 0, end: 0.4 },
+          { word: "Generalprobe", start: 0.4, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "Tanzenprobe- (.*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-Probe");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "General-Probe" }]);
+  });
+
+  it("replaces all regex matches with capture groups", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Tanzenprobe- Generalprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 0, end: 0.4 },
+          { word: "Generalprobe", start: 0.4, end: 1 },
+        ],
+      },
+      {
+        id: "seg-2",
+        speaker: "B",
+        start: 2,
+        end: 3,
+        text: "Tanzenprobe- Hauptprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 2, end: 2.4 },
+          { word: "Hauptprobe", start: 2.4, end: 3 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "Tanzenprobe- (.*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-Probe");
+    });
+
+    act(() => {
+      result.current.replaceAll();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
+      { id: "seg-1", text: "General-Probe" },
+      { id: "seg-2", text: "Haupt-Probe" },
     ]);
   });
 });

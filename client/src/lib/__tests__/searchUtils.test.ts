@@ -40,8 +40,14 @@ describe("searchUtils", () => {
     it("creates a custom regex when isRegex is true", () => {
       const regex = createSearchRegex("h.llo", true);
       expect(regex).not.toBeNull();
-      expect(regex?.source).toBe("(h.llo)");
+      expect(regex?.source).toBe("h.llo");
       expect(regex?.test("hello")).toBe(true);
+    });
+
+    it("preserves capturing groups for regex replacements", () => {
+      const regex = createSearchRegex("Tanzenprobe- (.*)probe", true);
+      expect(regex).not.toBeNull();
+      expect(regex?.source).toBe("Tanzenprobe- (.*)probe");
     });
 
     it("returns null for invalid custom regex", () => {

@@ -9,6 +9,52 @@ interface MatchLocation {
   text: string;
 }
 
+const applyReplacementTemplate = (
+  template: string,
+  matchText: string,
+  offset: number,
+  input: string,
+  groups: Array<string | undefined>,
+  namedGroups?: Record<string, string>,
+) => {
+  const suffixStart = offset + matchText.length;
+  return template.replace(/\$(\$|&|`|'|\d{1,2}|<[^>]+>)/g, (token, value) => {
+    if (value === "$") return "$";
+    if (value === "&") return matchText;
+    if (value === "`") return input.slice(0, offset);
+    if (value === "'") return input.slice(suffixStart);
+    if (value.startsWith("<") && value.endsWith(">")) {
+      const groupName = value.slice(1, -1);
+      return namedGroups?.[groupName] ?? "";
+    }
+    const index = Number(value);
+    if (Number.isNaN(index) || index <= 0) return token;
+    return groups[index - 1] ?? "";
+  });
+};
+
+const parseReplacementArgs = (
+  args: Array<unknown>,
+): {
+  matchText: string;
+  offset: number;
+  input: string;
+  groups: Array<string | undefined>;
+  namedGroups?: Record<string, string>;
+} => {
+  const matchText = args[0] as string;
+  const lastArg = args[args.length - 1];
+  const hasNamedGroups = typeof lastArg === "object" && lastArg !== null;
+  const namedGroups = hasNamedGroups ? (lastArg as Record<string, string>) : undefined;
+  const offsetIndex = hasNamedGroups ? args.length - 3 : args.length - 2;
+  const inputIndex = hasNamedGroups ? args.length - 2 : args.length - 1;
+  const offset = args[offsetIndex] as number;
+  const input = args[inputIndex] as string;
+  const groups = args.slice(1, offsetIndex) as Array<string | undefined>;
+
+  return { matchText, offset, input, groups, namedGroups };
+};
+
 export function useSearchAndReplace(
   segments: Segment[],
   updateSegmentsTexts: (updates: Array<{ id: string; text: string }>) => void,
@@ -146,6 +192,34 @@ export function useSearchAndReplace(
     const segment = segments.find((s) => s.id === match.segmentId);
     if (!segment) return;
 
+    if (isRegexSearch && regex) {
+      const flags = regex.flags.includes("g") ? regex.flags : `${regex.flags}g`;
+      const searchRegex = new RegExp(regex.source, flags);
+      let replaced = false;
+      const newText = segment.text.replace(searchRegex, (...args) => {
+        const { matchText, offset, input, groups, namedGroups } = parseReplacementArgs(
+          args as Array<unknown>,
+        );
+        if (replaced || offset !== match.startIndex) {
+          return matchText;
+        }
+        replaced = true;
+        return applyReplacementTemplate(
+          replaceQuery,
+          matchText,
+          offset,
+          input,
+          groups,
+          namedGroups,
+        );
+      });
+
+      if (replaced && newText !== segment.text) {
+        updateSegmentsTexts([{ id: segment.id, text: newText }]);
+      }
+      return;
+    }
+
     const text = segment.text;
     const before = text.substring(0, match.startIndex);
     const after = text.substring(match.endIndex);
@@ -157,7 +231,15 @@ export function useSearchAndReplace(
     // will recalculate and the useEffect will handle index adjustment if needed.
     // However, to mimic "Replace and Find Next", we can keep the same index
     // which will now point to the "next" match in the list.
-  }, [currentMatchIndex, allMatches, segments, replaceQuery, updateSegmentsTexts]);
+  }, [
+    currentMatchIndex,
+    allMatches,
+    segments,
+    replaceQuery,
+    updateSegmentsTexts,
+    isRegexSearch,
+    regex,
+  ]);
 
   return {
     replaceQuery,

@@ -43,10 +43,10 @@ export function createSearchRegex(query: string, isRegex: boolean): RegExp | nul
 
   try {
     if (isRegex) {
-      const rx = new RegExp(`(${trimmedQuery})`, "gi");
-      // Reject clear "match everything" regexes like (.*) or (.+),
-      // possibly wrapped with anchors like (^.*$) which would result in '(^.*$)'.
-      if (/^\(\^?\.([*+])\$?\)$/.test(rx.source)) return null;
+      const rx = new RegExp(trimmedQuery, "gi");
+      // Reject clear "match everything" regexes like .* or .+,
+      // possibly wrapped with anchors like ^.*$.
+      if (/^\^?\.([*+])\$?$/.test(rx.source)) return null;
       return rx;
     }
     return new RegExp(`(${escapeRegExp(trimmedQuery)})`, "gi");
