@@ -36,8 +36,8 @@ interface SpeakerSidebarProps {
   onClearFilter?: () => void;
   selectedSpeakerId?: string;
   // Tag operations
-  onAddTag?: (name: string) => void;
-  onRenameTag?: (tagId: string, newName: string) => void;
+  onAddTag?: (name: string) => boolean | void;
+  onRenameTag?: (tagId: string, newName: string) => boolean | void;
   onDeleteTag?: (tagId: string) => void;
   onTagSelect?: (tagId: string) => void;
   selectedTagIds?: string[];
@@ -131,6 +131,8 @@ export function SpeakerSidebar({
   const [editTagValue, setEditTagValue] = useState("");
   const [isAddingTag, setIsAddingTag] = useState(false);
   const [newTagName, setNewTagName] = useState("");
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [tagInputInvalid, setTagInputInvalid] = useState(false);
   const editInputRef = useRef<HTMLInputElement>(null);
   const editTagInputRef = useRef<HTMLInputElement>(null);
 
@@ -241,10 +243,17 @@ export function SpeakerSidebar({
     const trimmedValue = editTagValue.trim();
     const tag = tags.find((t) => t.id === tagId);
     if (tag && trimmedValue && trimmedValue !== tag.name) {
-      onRenameTag?.(tagId, trimmedValue);
+      const ok = onRenameTag?.(tagId, trimmedValue);
+      if (ok === false) {
+        setTagInputInvalid(true);
+        setTagError("Tag name invalid or already exists");
+        return;
+      }
     }
     setEditingTagId(null);
     setEditTagValue("");
+    setTagInputInvalid(false);
+    setTagError(null);
   };
 
   const handleCancelTagEdit = () => {
@@ -253,11 +262,22 @@ export function SpeakerSidebar({
   };
 
   const handleAddTag = () => {
-    if (newTagName.trim()) {
-      onAddTag?.(newTagName.trim());
-      setNewTagName("");
-      setIsAddingTag(false);
+    const trimmed = newTagName.trim();
+    if (!trimmed) {
+      setTagError("Tag name cannot be empty or whitespace");
+      setTagInputInvalid(true);
+      return;
     }
+    const ok = onAddTag?.(trimmed);
+    if (ok === false) {
+      setTagError("Tag name invalid or already exists");
+      setTagInputInvalid(true);
+      return;
+    }
+    setNewTagName("");
+    setIsAddingTag(false);
+    setTagInputInvalid(false);
+    setTagError(null);
   };
 
   const handleTagKeyDown = (event: KeyboardEvent<HTMLDivElement>, tagId: string) => {
@@ -699,7 +719,8 @@ export function SpeakerSidebar({
 
           {/* Add Tag Button */}
           {isAddingTag ? (
-            <div className="flex items-center gap-1 pt-2">
+            <>
+              <div className="flex items-center gap-1 pt-2">
               <Input
                 value={newTagName}
                 onChange={(e) => setNewTagName(e.target.value)}
@@ -711,7 +732,7 @@ export function SpeakerSidebar({
                   }
                 }}
                 placeholder="Tag name..."
-                className="h-8 text-sm"
+                className={cn("h-8 text-sm", tagInputInvalid && "border-destructive ring-1 ring-destructive")}
                 autoFocus
                 data-testid="input-new-tag"
               />
@@ -730,7 +751,13 @@ export function SpeakerSidebar({
               >
                 <X className="h-4 w-4" />
               </Button>
-            </div>
+              </div>
+              {tagError && (
+                <p className="text-destructive text-xs mt-1 px-2" data-testid="tag-error">
+                  {tagError}
+                </p>
+              )}
+            </>
           ) : (
             <div className="pt-2">
               <Button
@@ -745,35 +772,14 @@ export function SpeakerSidebar({
               </Button>
             </div>
           )}
-        </div>
-      </ScrollArea>
-
-      {/* Review/Filters Section */}
-      <div className="border-t">
-        <div className="px-4 pt-3 pb-2">
-          <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
-            Review
-          </div>
-        </div>
-        <div className="p-2 space-y-1">
-          <button
-            type="button"
-            className={cn(
-              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-              "hover-elevate",
-              lowConfidenceFilterActive && "bg-accent",
-              lowConfidenceThreshold === null && "opacity-50 cursor-not-allowed",
-            )}
-            onClick={() => {
-              if (lowConfidenceThreshold === null) return;
-              onToggleLowConfidenceFilter?.();
-            }}
-            data-testid="button-filter-low-confidence"
-          >
-            <span>Low confidence score</span>
-            <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
-          </button>
-          {lowConfidenceFilterActive && (
+          <div className="border-t">
+            {/* Review/Filters Section */}
+            <div className="px-4 pt-3 pb-2">
+              <div className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">
+                Review
+              </div>
+            </div>
+            <div className="p-2 space-y-1">
             <div className="mt-3 space-y-2 px-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">
                 <span>Threshold</span>
@@ -804,7 +810,7 @@ export function SpeakerSidebar({
                 </Button>
               </div>
             </div>
-          )}
+          
           <button
             type="button"
             className={cn(
@@ -879,7 +885,9 @@ export function SpeakerSidebar({
             <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
           </button>
         </div>
+        </div>
       </div>
+      </ScrollArea>
     </div>
   );
 }

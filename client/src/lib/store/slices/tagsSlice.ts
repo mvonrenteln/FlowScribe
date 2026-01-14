@@ -14,11 +14,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
 
     const raw = name ?? "";
     // Reject explicit empty string and names that are only whitespace
-    if (raw === "" || raw.trim() === "") return;
+    if (raw === "" || raw.trim() === "") return false;
     const normalized = raw.trim();
     // Prevent duplicate names (case-insensitive)
     const exists = tags.some((t) => t.name.trim().toLowerCase() === normalized.toLowerCase());
-    if (exists) return;
+    if (exists) return false;
 
     const newTag: Tag = {
       id: crypto.randomUUID(),
@@ -38,6 +38,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
+    return true;
   },
 
   removeTag: (tagId) => {
@@ -71,12 +72,12 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
 
     const raw = newName ?? "";
     // Reject explicit empty string and whitespace-only new names
-    if (raw === "" || raw.trim() === "") return;
+    if (raw === "" || raw.trim() === "") return false;
     const normalized = raw.trim();
-    if (tag.name === normalized) return;
+    if (tag.name === normalized) return false;
     // Prevent renaming to an existing name (case-insensitive)
     const exists = tags.some((t) => t.id !== tagId && t.name.trim().toLowerCase() === normalized.toLowerCase());
-    if (exists) return;
+    if (exists) return false;
 
     const newTags = tags.map((t) => (t.id === tagId ? { ...t, name: normalized } : t));
     const nextHistory = addToHistory(history, historyIndex, {
@@ -91,6 +92,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
+    return true;
   },
 
   updateTagColor: (tagId, color) => {
