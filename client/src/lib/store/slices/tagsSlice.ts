@@ -15,7 +15,8 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
    * Tags are session-local and referenced by id in `Segment.tags`.
    */
   addTag: (name) => {
-    const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } = get();
+    const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } =
+      get();
 
     const raw = name ?? "";
     // Reject explicit empty string and names that are only whitespace
@@ -75,7 +76,8 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
    * Returns true on success, false on validation failure or if tag not found.
    */
   renameTag: (tagId, newName) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } = get();
+    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
+      get();
     const tag = tags.find((t) => t.id === tagId);
     if (!tag) return false;
 
@@ -85,7 +87,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     const normalized = raw.trim();
     if (tag.name === normalized) return false;
     // Prevent renaming to an existing name (case-insensitive)
-    const exists = tags.some((t) => t.id !== tagId && t.name.trim().toLowerCase() === normalized.toLowerCase());
+    const exists = tags.some(
+      (t) => t.id !== tagId && t.name.trim().toLowerCase() === normalized.toLowerCase(),
+    );
     if (exists) return false;
 
     const newTags = tags.map((t) => (t.id === tagId ? { ...t, name: normalized } : t));

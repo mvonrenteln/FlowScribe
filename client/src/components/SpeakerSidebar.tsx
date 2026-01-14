@@ -36,8 +36,8 @@ interface SpeakerSidebarProps {
   onClearFilter?: () => void;
   selectedSpeakerId?: string;
   // Tag operations
-  onAddTag?: (name: string) => boolean | void;
-  onRenameTag?: (tagId: string, newName: string) => boolean | void;
+  onAddTag?: (name: string) => boolean | undefined;
+  onRenameTag?: (tagId: string, newName: string) => boolean | undefined;
   onDeleteTag?: (tagId: string) => void;
   onTagSelect?: (tagId: string) => void;
   selectedTagIds?: string[];
@@ -727,42 +727,45 @@ export function SpeakerSidebar({
           {isAddingTag ? (
             <>
               <div className="flex items-center gap-1 pt-2">
-              <Input
-                value={newTagName}
-                onChange={(e) => {
-                  setNewTagName(e.target.value);
-                  if (tagInputInvalid) {
-                    setTagInputInvalid(false);
-                    setTagError(null);
-                  }
-                }}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") handleAddTag();
-                  if (e.key === "Escape") {
+                <Input
+                  value={newTagName}
+                  onChange={(e) => {
+                    setNewTagName(e.target.value);
+                    if (tagInputInvalid) {
+                      setTagInputInvalid(false);
+                      setTagError(null);
+                    }
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleAddTag();
+                    if (e.key === "Escape") {
+                      setIsAddingTag(false);
+                      setNewTagName("");
+                    }
+                  }}
+                  placeholder="Tag name..."
+                  className={cn(
+                    "h-8 text-sm",
+                    tagInputInvalid && "border-destructive ring-1 ring-destructive",
+                  )}
+                  autoFocus
+                  data-testid="input-new-tag"
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddTag}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="ghost"
+                  className="h-8 w-8"
+                  onClick={() => {
                     setIsAddingTag(false);
                     setNewTagName("");
-                  }
-                }}
-                placeholder="Tag name..."
-                className={cn("h-8 text-sm", tagInputInvalid && "border-destructive ring-1 ring-destructive")}
-                autoFocus
-                data-testid="input-new-tag"
-              />
-              <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleAddTag}>
-                <Check className="h-4 w-4" />
-              </Button>
-              <Button
-                size="icon"
-                variant="ghost"
-                className="h-8 w-8"
-                onClick={() => {
-                  setIsAddingTag(false);
-                  setNewTagName("");
-                }}
-                data-testid="button-cancel-add-tag"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+                  }}
+                  data-testid="button-cancel-add-tag"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
               {tagError && (
                 <p className="text-destructive text-xs mt-1 px-2" data-testid="tag-error">
@@ -799,7 +802,9 @@ export function SpeakerSidebar({
                   "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
                   "hover-elevate",
                   lowConfidenceFilterActive && "bg-accent",
-                  lowConfidenceCount === 0 && !lowConfidenceFilterActive && "opacity-50 cursor-not-allowed",
+                  lowConfidenceCount === 0 &&
+                    !lowConfidenceFilterActive &&
+                    "opacity-50 cursor-not-allowed",
                 )}
                 onClick={() => {
                   if (lowConfidenceCount === 0 && !lowConfidenceFilterActive) return;
@@ -811,113 +816,115 @@ export function SpeakerSidebar({
               </button>
             </div>
             <div className="p-2 space-y-1">
-            <div className="mt-3 space-y-2 px-1">
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>Threshold</span>
-                <span>
-                  {lowConfidenceThreshold === null
-                    ? "No scores"
-                    : lowConfidenceThreshold.toFixed(2)}
-                </span>
-              </div>
-              <Slider
-                value={[lowConfidenceThreshold ?? 0.4]}
-                min={0}
-                max={1}
-                step={0.05}
-                disabled={lowConfidenceThreshold === null}
-                onValueChange={(value) => {
-                  onLowConfidenceThresholdChange?.(value[0] ?? 0.4);
-                }}
-              />
-              <div className="flex justify-end">
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={() => onLowConfidenceThresholdChange?.(null)}
+              <div className="mt-3 space-y-2 px-1">
+                <div className="flex items-center justify-between text-xs text-muted-foreground">
+                  <span>Threshold</span>
+                  <span>
+                    {lowConfidenceThreshold === null
+                      ? "No scores"
+                      : lowConfidenceThreshold.toFixed(2)}
+                  </span>
+                </div>
+                <Slider
+                  value={[lowConfidenceThreshold ?? 0.4]}
+                  min={0}
+                  max={1}
+                  step={0.05}
                   disabled={lowConfidenceThreshold === null}
-                >
-                  Auto
-                </Button>
+                  onValueChange={(value) => {
+                    onLowConfidenceThresholdChange?.(value[0] ?? 0.4);
+                  }}
+                />
+                <div className="flex justify-end">
+                  <Button
+                    size="sm"
+                    variant="ghost"
+                    onClick={() => onLowConfidenceThresholdChange?.(null)}
+                    disabled={lowConfidenceThreshold === null}
+                  >
+                    Auto
+                  </Button>
+                </div>
               </div>
+
+              <button
+                type="button"
+                className={cn(
+                  "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                  "hover-elevate",
+                  spellcheckFilterActive && "bg-accent",
+                  (!spellcheckEnabled || spellcheckCount === 0) &&
+                    !spellcheckFilterActive &&
+                    "opacity-50 cursor-not-allowed",
+                )}
+                onClick={() => {
+                  if (!spellcheckEnabled) return;
+                  if (spellcheckCount === 0 && !spellcheckFilterActive) return;
+                  onToggleSpellcheckFilter?.();
+                }}
+                data-testid="button-filter-spellcheck"
+              >
+                <span>Spelling issues</span>
+                <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                  "hover-elevate",
+                  lexiconFilterActive && "bg-accent",
+                  lexiconMatchCount === 0 &&
+                    !lexiconFilterActive &&
+                    "opacity-50 cursor-not-allowed",
+                )}
+                onClick={() => {
+                  if (lexiconMatchCount === 0 && !lexiconFilterActive) return;
+                  onToggleLexiconFilter?.();
+                }}
+                data-testid="button-filter-glossary"
+              >
+                <span>Glossary matches</span>
+                <span className="text-xs text-muted-foreground">{lexiconMatchCount}</span>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                  "hover-elevate",
+                  lexiconLowScoreFilterActive && "bg-accent",
+                  lexiconLowScoreMatchCount === 0 &&
+                    !lexiconLowScoreFilterActive &&
+                    "opacity-50 cursor-not-allowed",
+                )}
+                onClick={() => {
+                  if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;
+                  onToggleLexiconLowScoreFilter?.();
+                }}
+                data-testid="button-filter-glossary-low-score"
+              >
+                <span>Uncertain Glossary Matches</span>
+                <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
+              </button>
+              <button
+                type="button"
+                className={cn(
+                  "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                  "hover-elevate",
+                  bookmarkFilterActive && "bg-accent",
+                  bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
+                )}
+                onClick={() => {
+                  if (bookmarkCount === 0 && !bookmarkFilterActive) return;
+                  onToggleBookmarkFilter?.();
+                }}
+                data-testid="button-filter-bookmarks"
+              >
+                <span>Bookmarked</span>
+                <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
+              </button>
             </div>
-          
-          <button
-            type="button"
-            className={cn(
-              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-              "hover-elevate",
-              spellcheckFilterActive && "bg-accent",
-              (!spellcheckEnabled || spellcheckCount === 0) &&
-                !spellcheckFilterActive &&
-                "opacity-50 cursor-not-allowed",
-            )}
-            onClick={() => {
-              if (!spellcheckEnabled) return;
-              if (spellcheckCount === 0 && !spellcheckFilterActive) return;
-              onToggleSpellcheckFilter?.();
-            }}
-            data-testid="button-filter-spellcheck"
-          >
-            <span>Spelling issues</span>
-            <span className="text-xs text-muted-foreground">{spellcheckCountLabel}</span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-              "hover-elevate",
-              lexiconFilterActive && "bg-accent",
-              lexiconMatchCount === 0 && !lexiconFilterActive && "opacity-50 cursor-not-allowed",
-            )}
-            onClick={() => {
-              if (lexiconMatchCount === 0 && !lexiconFilterActive) return;
-              onToggleLexiconFilter?.();
-            }}
-            data-testid="button-filter-glossary"
-          >
-            <span>Glossary matches</span>
-            <span className="text-xs text-muted-foreground">{lexiconMatchCount}</span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-              "hover-elevate",
-              lexiconLowScoreFilterActive && "bg-accent",
-              lexiconLowScoreMatchCount === 0 &&
-                !lexiconLowScoreFilterActive &&
-                "opacity-50 cursor-not-allowed",
-            )}
-            onClick={() => {
-              if (lexiconLowScoreMatchCount === 0 && !lexiconLowScoreFilterActive) return;
-              onToggleLexiconLowScoreFilter?.();
-            }}
-            data-testid="button-filter-glossary-low-score"
-          >
-            <span>Uncertain Glossary Matches</span>
-            <span className="text-xs text-muted-foreground">{lexiconLowScoreMatchCount}</span>
-          </button>
-          <button
-            type="button"
-            className={cn(
-              "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
-              "hover-elevate",
-              bookmarkFilterActive && "bg-accent",
-              bookmarkCount === 0 && !bookmarkFilterActive && "opacity-50 cursor-not-allowed",
-            )}
-            onClick={() => {
-              if (bookmarkCount === 0 && !bookmarkFilterActive) return;
-              onToggleBookmarkFilter?.();
-            }}
-            data-testid="button-filter-bookmarks"
-          >
-            <span>Bookmarked</span>
-            <span className="text-xs text-muted-foreground">{bookmarkCount}</span>
-          </button>
+          </div>
         </div>
-        </div>
-      </div>
       </ScrollArea>
     </div>
   );

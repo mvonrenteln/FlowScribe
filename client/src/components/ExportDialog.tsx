@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { buildJSONExport } from "@/lib/exportUtils";
 import type { Segment, Tag } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 
@@ -64,18 +65,8 @@ const ExportDialogComponent = ({
 
   // Pre-compute all export formats (only recalculates when segments/tags change)
   const exportedJSON = useMemo(
-    () =>
-      JSON.stringify(
-        {
-          segments: segmentsToExport.map((seg) => ({
-            ...seg,
-            tags: seg.tags || [],
-          })),
-        },
-        null,
-        2,
-      ),
-    [segmentsToExport],
+    () => JSON.stringify(buildJSONExport(segmentsToExport, tags), null, 2),
+    [segmentsToExport, tags],
   );
 
   const exportedSRT = useMemo(() => formatSRT(segmentsToExport), [segmentsToExport]);
