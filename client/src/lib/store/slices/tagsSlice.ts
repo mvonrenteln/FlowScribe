@@ -9,6 +9,11 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice => ({
   // Tag CRUD Operations
+  /**
+   * Create a new tag in the current session.
+   * Returns true on success, false on validation failure (duplicate or empty name).
+   * Tags are session-local and referenced by id in `Segment.tags`.
+   */
   addTag: (name) => {
     const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } = get();
 
@@ -65,10 +70,14 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     });
   },
 
+  /**
+   * Rename an existing tag by id. Keeps tag.id stable.
+   * Returns true on success, false on validation failure or if tag not found.
+   */
   renameTag: (tagId, newName) => {
     const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } = get();
     const tag = tags.find((t) => t.id === tagId);
-    if (!tag) return;
+    if (!tag) return false;
 
     const raw = newName ?? "";
     // Reject explicit empty string and whitespace-only new names

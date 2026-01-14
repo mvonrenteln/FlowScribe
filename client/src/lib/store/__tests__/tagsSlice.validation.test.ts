@@ -17,21 +17,21 @@ describe('tagsSlice validation', () => {
   it('prevents creating duplicate tag names (case-insensitive, trimmed)', () => {
     const store = useTranscriptStore.getState();
 
-    store.addTag('Important');
+    expect(store.addTag('Important')).toBe(true);
     expect(useTranscriptStore.getState().tags.length).toBe(1);
 
     // duplicate exact
-    store.addTag('Important');
+    expect(store.addTag('Important')).toBe(false);
     expect(useTranscriptStore.getState().tags.length).toBe(1);
 
     // duplicate different case and surrounding spaces
-    store.addTag('  important  ');
+    expect(store.addTag('  important  ')).toBe(false);
     expect(useTranscriptStore.getState().tags.length).toBe(1);
   });
 
   it('rejects names that are only whitespace when creating', () => {
     const store = useTranscriptStore.getState();
-    store.addTag('   ');
+    expect(store.addTag('   ')).toBe(false);
     // still no tags created
     expect(useTranscriptStore.getState().tags.length).toBe(0);
   });
@@ -43,13 +43,13 @@ describe('tagsSlice validation', () => {
     const [one, two] = useTranscriptStore.getState().tags;
 
     // Attempt rename 'Two' -> 'One' should be prevented
-    s.renameTag(two.id, 'One');
+    expect(s.renameTag(two.id, 'One')).toBe(false);
     const names = useTranscriptStore.getState().tags.map((t) => t.name);
     expect(names).toContain('One');
     expect(names).toContain('Two');
 
     // Rename with different case should be prevented
-    s.renameTag(two.id, '  one  ');
+    expect(s.renameTag(two.id, '  one  ')).toBe(false);
     const names2 = useTranscriptStore.getState().tags.map((t) => t.name);
     expect(names2).toContain('One');
     expect(names2).toContain('Two');
@@ -59,7 +59,7 @@ describe('tagsSlice validation', () => {
     const s = useTranscriptStore.getState();
     s.addTag('A');
     const tagId = useTranscriptStore.getState().tags[0].id;
-    s.renameTag(tagId, '   ');
+    expect(s.renameTag(tagId, '   ')).toBe(false);
     expect(useTranscriptStore.getState().tags[0].name).toBe('A');
   });
 });

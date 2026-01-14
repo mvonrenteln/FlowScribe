@@ -259,9 +259,19 @@ export interface SpeakersSlice {
 
 export interface TagsSlice {
   // Tag CRUD Operations
-  addTag: (name: string) => void;
+  /**
+   * Create a new Tag in the current session.
+   * Returns `true` when the tag was successfully created.
+   * Returns `false` when validation failed (empty/whitespace-only name or duplicate name).
+   * Note: Tags are session-local (stored on `PersistedSession.tags`).
+   */
+  addTag: (name: string) => boolean;
   removeTag: (tagId: string) => void;
-  renameTag: (tagId: string, newName: string) => void;
+  /**
+   * Rename an existing Tag (keeps `id` unchanged).
+   * Returns `true` on success, `false` if validation failed (empty/whitespace-only or duplicate name) or tag not found.
+   */
+  renameTag: (tagId: string, newName: string) => boolean;
   updateTagColor: (tagId: string, color: string) => void;
 
   // Tag Assignment Operations

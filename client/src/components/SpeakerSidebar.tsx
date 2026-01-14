@@ -791,6 +791,25 @@ export function SpeakerSidebar({
                 Review
               </div>
             </div>
+            <div className="p-2">
+              <button
+                type="button"
+                data-testid="button-filter-low-confidence"
+                className={cn(
+                  "mt-2 w-full flex items-center justify-between gap-2 rounded-md px-2 py-1.5 text-sm",
+                  "hover-elevate",
+                  lowConfidenceFilterActive && "bg-accent",
+                  lowConfidenceCount === 0 && !lowConfidenceFilterActive && "opacity-50 cursor-not-allowed",
+                )}
+                onClick={() => {
+                  if (lowConfidenceCount === 0 && !lowConfidenceFilterActive) return;
+                  onToggleLowConfidenceFilter?.();
+                }}
+              >
+                <span>Low confidence</span>
+                <span className="text-xs text-muted-foreground">{lowConfidenceCount}</span>
+              </button>
+            </div>
             <div className="p-2 space-y-1">
             <div className="mt-3 space-y-2 px-1">
               <div className="flex items-center justify-between text-xs text-muted-foreground">

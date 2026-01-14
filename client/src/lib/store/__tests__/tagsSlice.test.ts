@@ -18,7 +18,8 @@ describe("tagsSlice", () => {
 
   describe("Tag CRUD operations", () => {
     it("adds a tag", () => {
-      useTranscriptStore.getState().addTag("Production");
+      const ok = useTranscriptStore.getState().addTag("Production");
+      expect(ok).toBe(true);
 
       const tags = useTranscriptStore.getState().tags;
       expect(tags).toHaveLength(1);
@@ -41,7 +42,8 @@ describe("tagsSlice", () => {
       useTranscriptStore.getState().addTag("Typo");
       const tagId = useTranscriptStore.getState().tags[0].id;
 
-      useTranscriptStore.getState().renameTag(tagId, "Fixed");
+      const ok = useTranscriptStore.getState().renameTag(tagId, "Fixed");
+      expect(ok).toBe(true);
 
       const tag = useTranscriptStore.getState().tags.find((t) => t.id === tagId);
       expect(tag?.name).toBe("Fixed");
