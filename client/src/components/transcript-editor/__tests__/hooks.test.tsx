@@ -154,6 +154,49 @@ describe("useFiltersAndLexicon", () => {
     expect(result.current.filteredSegments[0]?.id).toBe("segment-1");
   });
 
+  it("excludes confirmed segments from lexicon matches", () => {
+    const segments: Segment[] = [
+      {
+        id: "segment-confirmed",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Hallo",
+        words: [{ word: "Hallo", start: 0, end: 1 }],
+        confirmed: true,
+      },
+      {
+        id: "segment-open",
+        speaker: "SPEAKER_00",
+        start: 2,
+        end: 3,
+        text: "Hallo",
+        words: [{ word: "Hallo", start: 2, end: 3 }],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [{ term: "Hallo", variants: [], falsePositives: [] }],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    expect(result.current.lexiconMatchesBySegment.has("segment-confirmed")).toBe(false);
+    expect(result.current.lexiconMatchCount).toBe(1);
+
+    act(() => result.current.setFilterLexicon(true));
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0]?.id).toBe("segment-open");
+  });
+
   it("filters by spellcheck matches and computes empty state", () => {
     const spellcheckMatches = new Map<string, Map<number, unknown>>([
       ["segment-2", new Map([[0, {}]])],
