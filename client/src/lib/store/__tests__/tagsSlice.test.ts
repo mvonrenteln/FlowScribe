@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
-import { createTestSegment } from "../../../test/testSegmentHelper";
+import { createTestSegment } from "@/test/testSegmentHelper";
 
 describe("tagsSlice", () => {
   beforeEach(() => {
