@@ -433,7 +433,7 @@ export const createAISegmentMergeSlice = (
     const { aiSegmentMergeConfig } = get();
     const newPrompt: AIPrompt = {
       ...promptData,
-      id: crypto.randomUUID(),
+      id: generateId(),
     };
     set({
       aiSegmentMergeConfig: normalizeAISegmentMergeConfig({

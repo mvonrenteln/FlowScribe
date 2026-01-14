@@ -5,6 +5,7 @@ import {
   saveSpellcheckDictionary,
 } from "@/lib/spellcheckDictionaryStorage";
 import type { SpellcheckSlice, TranscriptStore } from "../types";
+import { generateId } from "../utils/id";
 import {
   normalizeSpellcheckIgnoreWords,
   normalizeSpellcheckLanguages,
@@ -65,7 +66,7 @@ export const createSpellcheckSlice = (set: StoreSetter, get: StoreGetter): Spell
     }
   },
   addSpellcheckCustomDictionary: async (dictionary) => {
-    const entry = { ...dictionary, id: crypto.randomUUID() };
+    const entry = { ...dictionary, id: generateId() };
     try {
       await saveSpellcheckDictionary(entry);
     } catch (err) {
