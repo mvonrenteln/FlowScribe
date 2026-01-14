@@ -10,12 +10,19 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice => ({
   // Tag CRUD Operations
   addTag: (name) => {
-    const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } =
-      get();
+    const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } = get();
+
+    const raw = name ?? "";
+    // Reject explicit empty string and names that are only whitespace
+    if (raw === "" || raw.trim() === "") return;
+    const normalized = raw.trim();
+    // Prevent duplicate names (case-insensitive)
+    const exists = tags.some((t) => t.name.trim().toLowerCase() === normalized.toLowerCase());
+    if (exists) return;
 
     const newTag: Tag = {
       id: crypto.randomUUID(),
-      name,
+      name: normalized,
       color: SPEAKER_COLORS[tags.length % SPEAKER_COLORS.length],
     };
     const newTags = [...tags, newTag];
@@ -58,13 +65,20 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
   },
 
   renameTag: (tagId, newName) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } = get();
     const tag = tags.find((t) => t.id === tagId);
     if (!tag) return;
-    if (tag.name === newName) return;
 
-    const newTags = tags.map((t) => (t.id === tagId ? { ...t, name: newName } : t));
+    const raw = newName ?? "";
+    // Reject explicit empty string and whitespace-only new names
+    if (raw === "" || raw.trim() === "") return;
+    const normalized = raw.trim();
+    if (tag.name === normalized) return;
+    // Prevent renaming to an existing name (case-insensitive)
+    const exists = tags.some((t) => t.id !== tagId && t.name.trim().toLowerCase() === normalized.toLowerCase());
+    if (exists) return;
+
+    const newTags = tags.map((t) => (t.id === tagId ? { ...t, name: normalized } : t));
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,

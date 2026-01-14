@@ -303,12 +303,12 @@ describe("tagsSlice", () => {
       ).not.toThrow();
     });
 
-    it("handles empty tag name", () => {
+    it("rejects empty or whitespace-only tag names", () => {
       useTranscriptStore.getState().addTag("");
+      useTranscriptStore.getState().addTag("   ");
 
       const tags = useTranscriptStore.getState().tags;
-      expect(tags).toHaveLength(1);
-      expect(tags[0].name).toBe("");
+      expect(tags).toHaveLength(0);
     });
 
     it("removes tag even if not present on segment", () => {
