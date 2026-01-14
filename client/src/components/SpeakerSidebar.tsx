@@ -576,7 +576,13 @@ export function SpeakerSidebar({
                       <Input
                         ref={editTagInputRef}
                         value={editTagValue}
-                        onChange={(e) => setEditTagValue(e.target.value)}
+                        onChange={(e) => {
+                          setEditTagValue(e.target.value);
+                          if (tagInputInvalid) {
+                            setTagInputInvalid(false);
+                            setTagError(null);
+                          }
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === "Enter") {
                             e.preventDefault();
@@ -723,7 +729,13 @@ export function SpeakerSidebar({
               <div className="flex items-center gap-1 pt-2">
               <Input
                 value={newTagName}
-                onChange={(e) => setNewTagName(e.target.value)}
+                onChange={(e) => {
+                  setNewTagName(e.target.value);
+                  if (tagInputInvalid) {
+                    setTagInputInvalid(false);
+                    setTagError(null);
+                  }
+                }}
                 onKeyDown={(e) => {
                   if (e.key === "Enter") handleAddTag();
                   if (e.key === "Escape") {
