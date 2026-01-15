@@ -29,7 +29,16 @@ const applyReplacementTemplate = (
     }
     const index = Number(value);
     if (Number.isNaN(index) || index <= 0) return token;
-    return groups[index - 1] ?? "";
+    if (index <= groups.length) {
+      return groups[index - 1] ?? "";
+    }
+    if (value.length === 2) {
+      const firstDigit = Number(value[0]);
+      if (!Number.isNaN(firstDigit) && firstDigit > 0 && firstDigit <= groups.length) {
+        return `${groups[firstDigit - 1] ?? ""}${value[1]}`;
+      }
+    }
+    return token;
   });
 };
 

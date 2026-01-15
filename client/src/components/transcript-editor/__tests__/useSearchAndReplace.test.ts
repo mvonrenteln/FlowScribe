@@ -171,4 +171,62 @@ describe("useSearchAndReplace", () => {
       { id: "seg-2", text: "Haupt-Probe" },
     ]);
   });
+
+  it("handles numeric group fallback in regex replacements", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "(a)", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$10");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "a0b" }]);
+  });
+
+  it("keeps numeric tokens literal when no capture groups exist", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "a", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$10");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "$10b" }]);
+  });
 });
