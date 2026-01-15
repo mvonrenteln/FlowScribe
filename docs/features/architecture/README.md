@@ -21,6 +21,22 @@ All developer APIs, patterns, and implementation guidelines are documented there
 
 ## Feature-Specific Architecture
 
+### Tags System
+
+📄 [`tags-implementation.md`](./tags-implementation.md)
+
+Developer reference for the Tags feature including:
+
+- Data model and store API
+- Filter logic and predicate
+- UI components and interactions
+- Keyboard shortcuts (T+1–0)
+- Testing strategy
+- Integration with persistence and export
+- Performance considerations
+
+User guide available at [`../tags-system.md`](../tags-system.md).
+
 ### AI Segment Merge
 
 📄 [`ai-segment-merge.md`](./ai-segment-merge.md)

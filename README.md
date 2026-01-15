@@ -19,6 +19,7 @@ Built for people who live inside transcripts: researchers, journalists, podcaste
 - Word‑level highlighting during playback
 - Inline editing with undo/redo
 - Speaker management (rename, merge, assign)
+- **🏷️ Flexible Tags** — Add color-coded tags to segments (keyboard-first with T+1–0), filter by inclusion/exclusion, and export with your transcript.
 - **AI-powered speaker classification** (Ollama, OpenAI, Custom providers)
 - **🆕 AI Transcript Revision** — Fix grammar, improve clarity, or apply custom templates with one click. Process single segments or batch-revise filtered content with side-by-side diff preview.
 - Split/merge segments with precision

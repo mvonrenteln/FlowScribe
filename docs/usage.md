@@ -30,11 +30,20 @@ This guide walks you through the core workflow: load audio, refine the transcrip
 
 ![Inline editing](screenshots/inline-editing.png)
 
-## 4) Manage Speakers
+## 4) Manage Speakers & Tags
 
+### Speakers
 - Rename speakers to match real names.
 - Merge speakers if two labels represent the same person.
 - Filter by speaker to focus on one voice at a time.
+
+### Tags
+- Add color-coded tags to segments for flexible organization.
+- Use keyboard shortcuts (**T + 1–10**) to tag segments quickly.
+- Filter by tag (single-click to include, double-click to exclude).
+- Export filtered results or the full transcript with tags intact.
+
+For details, see [Tags](features/tags-system.md).
 
 ![Speaker sidebar](screenshots/speaker-sidebar.png)
 
