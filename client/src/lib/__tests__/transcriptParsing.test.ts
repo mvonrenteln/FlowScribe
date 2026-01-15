@@ -45,4 +45,15 @@ describe("transcriptParsing", () => {
     expect(parsed?.segments[0]?.words[0]?.word).toBe("just");
     expect(parsed?.segments[0]?.words[0]?.score).toBeUndefined();
   });
+
+  it("preserves segment tags when parsing WhisperX data", () => {
+    const data = {
+      segments: [
+        { speaker: "SPEAKER_01", start: 0, end: 1, text: "a", tags: ["alpha"] },
+      ],
+    };
+
+    const parsed = parseTranscriptData(data);
+    expect(parsed?.segments[0].tags).toEqual(["alpha"]);
+  });
 });

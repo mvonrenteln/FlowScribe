@@ -25,9 +25,34 @@ export const createSegmentsSlice = (
         color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
       }));
 
+    // If incoming segments include `tags` as names (from WhisperX import),
+    // create new Tag objects with random ids for each unique name and map
+    // segment.tag names -> ids. Imported tags are session-local.
+    const incomingTagNames = new Set<string>();
+    for (const s of data.segments) {
+      if ((s as any).tags && Array.isArray((s as any).tags)) {
+        for (const name of (s as any).tags) {
+          if (typeof name === "string" && name.trim() !== "") {
+            incomingTagNames.add(name.trim());
+          }
+        }
+      }
+    }
+
+    const importedTags = Array.from(incomingTagNames).map((name, i) => ({
+      id: crypto.randomUUID(),
+      name: name.trim(),
+      color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
+    }));
+
+    const nameToId = new Map(importedTags.map((t) => [t.name, t.id]));
+
     const segments = data.segments.map((s) => ({
       ...s,
       id: s.id || generateId(),
+      tags: (s as any).tags && Array.isArray((s as any).tags)
+        ? (s as any).tags.map((n: string) => nameToId.get((n || "").toString().trim()) || n)
+        : [],
     }));
 
     const selectedSegmentId = segments[0]?.id ?? null;
@@ -68,10 +93,10 @@ export const createSegmentsSlice = (
     set({
       segments,
       speakers,
-      tags: [],
+      tags: importedTags,
       selectedSegmentId,
       isWhisperXFormat: data.isWhisperXFormat || false,
-      history: [{ segments, speakers, tags: [], selectedSegmentId, currentTime: 0 }],
+      history: [{ segments, speakers, tags: importedTags, selectedSegmentId, currentTime: 0 }],
       historyIndex: 0,
       transcriptRef: data.reference ?? get().transcriptRef,
       sessionKey,

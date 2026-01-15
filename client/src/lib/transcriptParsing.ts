@@ -18,6 +18,7 @@ export interface WhisperXSegment {
   end: number;
   text: string;
   words?: WhisperXWord[];
+  tags?: string[];
 }
 
 export const isWhisperFormat = (data: unknown): data is WhisperSegment[] => {
@@ -66,7 +67,7 @@ export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] })
   return data.segments.map((segment, index) => ({
     id: `seg-${index}`,
     speaker: segment.speaker || "SPEAKER_00",
-    tags: [],
+    tags: Array.isArray(segment.tags) ? segment.tags.map((t) => (typeof t === "string" ? t : String(t))) : [],
     start: segment.start,
     end: segment.end,
     text: segment.text.trim(),
