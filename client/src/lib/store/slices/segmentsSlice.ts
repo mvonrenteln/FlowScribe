@@ -30,8 +30,10 @@ export const createSegmentsSlice = (
     // segment.tag names -> ids. Imported tags are session-local.
     const incomingTagNames = new Set<string>();
     for (const s of data.segments) {
-      if ((s as any).tags && Array.isArray((s as any).tags)) {
-        for (const name of (s as any).tags) {
+      const raw = s as unknown as { tags?: unknown };
+      const tagsField = raw.tags;
+      if (Array.isArray(tagsField)) {
+        for (const name of tagsField) {
           if (typeof name === "string" && name.trim() !== "") {
             incomingTagNames.add(name.trim());
           }
@@ -47,14 +49,23 @@ export const createSegmentsSlice = (
 
     const nameToId = new Map(importedTags.map((t) => [t.name, t.id]));
 
-    const segments = data.segments.map((s) => ({
-      ...s,
-      id: s.id || generateId(),
-      tags:
-        (s as any).tags && Array.isArray((s as any).tags)
-          ? (s as any).tags.map((n: string) => nameToId.get((n || "").toString().trim()) || n)
-          : [],
-    }));
+    const segments: Segment[] = data.segments.map((s) => {
+      const base = s as unknown as Segment;
+      const id = base.id || generateId();
+      const tagsField = (base as unknown as { tags?: unknown }).tags;
+      const tags = Array.isArray(tagsField)
+        ? (tagsField as unknown[]).map((n) => {
+            const str = (n || "").toString().trim();
+            return nameToId.get(str) || str;
+          })
+        : [];
+
+      return {
+        ...base,
+        id,
+        tags,
+      };
+    });
 
     const selectedSegmentId = segments[0]?.id ?? null;
 

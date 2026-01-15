@@ -67,7 +67,9 @@ export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] })
   return data.segments.map((segment, index) => ({
     id: `seg-${index}`,
     speaker: segment.speaker || "SPEAKER_00",
-    tags: Array.isArray(segment.tags) ? segment.tags.map((t) => (typeof t === "string" ? t : String(t))) : [],
+    tags: Array.isArray(segment.tags)
+      ? segment.tags.map((t) => (typeof t === "string" ? t : String(t)))
+      : [],
     start: segment.start,
     end: segment.end,
     text: segment.text.trim(),
