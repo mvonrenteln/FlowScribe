@@ -259,4 +259,37 @@ describe("useSearchAndReplace", () => {
     // $2 should be treated as empty string when only one capture exists
     expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "b" }]);
   });
+
+  it("matches and replaces words with umlauts using regex \n\\w class", () => {
+    const umlautSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Fährtenleseprobe",
+        words: [
+          { word: "Fährtenleseprobe", start: 0, end: 1 },
+        ],
+      },
+    ];
+
+    // Use the pattern that previously failed: (\w*)probe
+    const { result } = renderHook(() =>
+      useSearchAndReplace(umlautSegments, mockUpdateSegmentsTexts, "(\\w*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-REPL");
+    });
+
+    // Replace the first (and only) match
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
+      { id: "seg-1", text: "Fährtenlese-REPL" },
+    ]);
+  });
 });
