@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
 import { resetStore } from "./storeTestUtils";
 
@@ -11,7 +11,15 @@ describe("WhisperX import with tags", () => {
     const data = {
       segments: [
         { id: "s1", speaker: "A", start: 0, end: 1, text: "one", words: [], tags: ["alpha"] },
-        { id: "s2", speaker: "B", start: 1, end: 2, text: "two", words: [], tags: ["beta", "alpha"] },
+        {
+          id: "s2",
+          speaker: "B",
+          start: 1,
+          end: 2,
+          text: "two",
+          words: [],
+          tags: ["beta", "alpha"],
+        },
       ],
       isWhisperXFormat: true,
     };

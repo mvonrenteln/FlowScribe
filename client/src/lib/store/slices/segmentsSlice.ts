@@ -50,9 +50,10 @@ export const createSegmentsSlice = (
     const segments = data.segments.map((s) => ({
       ...s,
       id: s.id || generateId(),
-      tags: (s as any).tags && Array.isArray((s as any).tags)
-        ? (s as any).tags.map((n: string) => nameToId.get((n || "").toString().trim()) || n)
-        : [],
+      tags:
+        (s as any).tags && Array.isArray((s as any).tags)
+          ? (s as any).tags.map((n: string) => nameToId.get((n || "").toString().trim()) || n)
+          : [],
     }));
 
     const selectedSegmentId = segments[0]?.id ?? null;

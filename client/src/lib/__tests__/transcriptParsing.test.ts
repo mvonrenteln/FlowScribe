@@ -48,9 +48,7 @@ describe("transcriptParsing", () => {
 
   it("preserves segment tags when parsing WhisperX data", () => {
     const data = {
-      segments: [
-        { speaker: "SPEAKER_01", start: 0, end: 1, text: "a", tags: ["alpha"] },
-      ],
+      segments: [{ speaker: "SPEAKER_01", start: 0, end: 1, text: "a", tags: ["alpha"] }],
     };
 
     const parsed = parseTranscriptData(data);
