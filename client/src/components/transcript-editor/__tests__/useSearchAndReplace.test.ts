@@ -171,4 +171,33 @@ describe("useSearchAndReplace", () => {
       { id: "seg-2", text: "Haupt-Probe" },
     ]);
   });
+
+  it("treats $10 as group 1 plus literal when group 10 is missing", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "(a)", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$10");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "a0b" }]);
+  });
 });
