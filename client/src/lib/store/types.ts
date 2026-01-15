@@ -19,6 +19,7 @@ export interface Word {
 export interface Segment {
   id: string;
   speaker: string;
+  tags: string[];
   start: number;
   end: number;
   text: string;
@@ -28,6 +29,12 @@ export interface Segment {
 }
 
 export interface Speaker {
+  id: string;
+  name: string;
+  color: string;
+}
+
+export interface Tag {
   id: string;
   name: string;
   color: string;
@@ -51,6 +58,7 @@ export interface SpellcheckCustomDictionary {
 export interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
+  tags: Tag[];
   selectedSegmentId: string | null;
   currentTime: number;
 }
@@ -60,6 +68,7 @@ export interface PersistedSession {
   transcriptRef: FileReference | null;
   segments: Segment[];
   speakers: Speaker[];
+  tags: Tag[];
   selectedSegmentId: string | null;
   currentTime: number;
   isWhisperXFormat: boolean;
@@ -116,6 +125,7 @@ export interface InitialStoreState {
   recentSessions: RecentSessionSummary[];
   segments: Segment[];
   speakers: Speaker[];
+  tags: Tag[];
   selectedSegmentId: string | null;
   currentTime: number;
   isPlaying: boolean;
@@ -183,6 +193,7 @@ export type TranscriptStore = InitialStoreState &
   HistorySlice &
   SegmentsSlice &
   SpeakersSlice &
+  TagsSlice &
   LexiconSlice &
   SpellcheckSlice &
   AISpeakerSlice &
@@ -244,6 +255,35 @@ export interface SpeakersSlice {
   renameSpeaker: (oldName: string, newName: string) => void;
   addSpeaker: (name: string) => void;
   mergeSpeakers: (fromName: string, toName: string) => void;
+}
+
+export interface TagsSlice {
+  // Tag CRUD Operations
+  /**
+   * Create a new Tag in the current session.
+   * Returns `true` when the tag was successfully created.
+   * Returns `false` when validation failed (empty/whitespace-only name or duplicate name).
+   * Note: Tags are session-local (stored on `PersistedSession.tags`).
+   */
+  addTag: (name: string) => boolean;
+  removeTag: (tagId: string) => void;
+  /**
+   * Rename an existing Tag (keeps `id` unchanged).
+   * Returns `true` on success, `false` if validation failed (empty/whitespace-only or duplicate name) or tag not found.
+   */
+  renameTag: (tagId: string, newName: string) => boolean;
+  updateTagColor: (tagId: string, color: string) => void;
+
+  // Tag Assignment Operations
+  assignTagToSegment: (segmentId: string, tagId: string) => void;
+  removeTagFromSegment: (segmentId: string, tagId: string) => void;
+  toggleTagOnSegment: (segmentId: string, tagId: string) => void;
+
+  // Tag Selectors
+  selectTagById: (tagId: string) => Tag | undefined;
+  selectSegmentsByTagId: (tagId: string) => Segment[];
+  selectTagsForSegment: (segmentId: string) => Tag[];
+  selectUntaggedSegments: () => Segment[];
 }
 
 export interface LexiconSlice {

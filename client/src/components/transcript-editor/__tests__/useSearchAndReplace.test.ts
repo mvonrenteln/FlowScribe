@@ -9,6 +9,7 @@ describe("useSearchAndReplace", () => {
     {
       id: "seg-1",
       speaker: "A",
+      tags: [],
       start: 0,
       end: 1,
       text: "hello world",
@@ -20,6 +21,7 @@ describe("useSearchAndReplace", () => {
     {
       id: "seg-2",
       speaker: "B",
+      tags: [],
       start: 2,
       end: 3,
       text: "hello again",

@@ -13,6 +13,7 @@ const segments: Segment[] = [
   {
     id: "seg-1",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 0,
     end: 1,
     text: "Hallo",
@@ -21,6 +22,7 @@ const segments: Segment[] = [
   {
     id: "seg-2",
     speaker: "SPEAKER_01",
+    tags: [],
     start: 1,
     end: 2,
     text: "Servus",
@@ -35,6 +37,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={onRenameSpeaker}
         onAddSpeaker={vi.fn()}
       />,
@@ -56,6 +59,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={onAddSpeaker}
         onMergeSpeakers={onMergeSpeakers}
@@ -82,6 +86,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         onSpeakerSelect={onSpeakerSelect}
@@ -105,6 +110,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={onAddSpeaker}
       />,
@@ -132,6 +138,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={onRenameSpeaker}
         onAddSpeaker={vi.fn()}
       />,
@@ -157,12 +164,14 @@ describe("SpeakerSidebar", () => {
           {
             id: "seg-1",
             speaker: "SPEAKER_00",
+            tags: [],
             start: 0,
             end: 1,
             text: "Hallo",
             words: [{ word: "Hallo", start: 0, end: 1, score: 0.2 }],
           },
         ]}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         lowConfidenceFilterActive={true}
@@ -186,6 +195,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         lexiconFilterActive={false}
@@ -211,6 +221,7 @@ describe("SpeakerSidebar", () => {
       <SpeakerSidebar
         speakers={speakers}
         segments={segments}
+        tags={[]}
         onRenameSpeaker={vi.fn()}
         onAddSpeaker={vi.fn()}
         spellcheckEnabled={true}
@@ -222,5 +233,34 @@ describe("SpeakerSidebar", () => {
 
     await userEvent.click(screen.getByTestId("button-filter-spellcheck"));
     expect(onToggleSpellcheckFilter).toHaveBeenCalled();
+  });
+
+  it("handles segments without tags and computes tag counts safely", async () => {
+    const onAddTag = vi.fn();
+    const onRenameSpeaker = vi.fn();
+
+    // segments where tags is undefined (older data) - normalizeSegment should add tags: []
+    const segmentsWithoutTags: Segment[] = [
+      { id: "seg-a", speaker: "SPEAKER_00", start: 0, end: 1, text: "A", words: [], tags: [] },
+      { id: "seg-b", speaker: "SPEAKER_01", start: 1, end: 2, text: "B", words: [], tags: [] },
+    ];
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={segmentsWithoutTags}
+        tags={[]}
+        onRenameSpeaker={onRenameSpeaker}
+        onAddSpeaker={vi.fn()}
+        onAddTag={onAddTag}
+      />,
+    );
+
+    // Should render without throwing and allow adding a tag
+    await userEvent.click(screen.getByTestId("button-add-tag"));
+    const addInput = screen.getByTestId("input-new-tag");
+    await userEvent.type(addInput, "Important{enter}");
+
+    expect(onAddTag).toHaveBeenCalledWith("Important");
   });
 });

@@ -22,6 +22,7 @@ describe("useFiltersAndLexicon", () => {
       end: 1,
       text: "Hallo",
       words: [{ word: "Hallo", start: 0, end: 1 }],
+      tags: [],
     },
     {
       id: "segment-2",
@@ -30,6 +31,7 @@ describe("useFiltersAndLexicon", () => {
       end: 3,
       text: "Welt",
       words: [{ word: "Welt", start: 2, end: 3 }],
+      tags: [],
     },
   ];
 
@@ -42,6 +44,7 @@ describe("useFiltersAndLexicon", () => {
         end: 1,
         text: "bluebird",
         words: [{ word: "bluebird", start: 0, end: 1 }],
+        tags: [],
       },
     ];
 
@@ -78,6 +81,7 @@ describe("useFiltersAndLexicon", () => {
         end: 1,
         text: "BLUEBIRD",
         words: [{ word: "BLUEBIRD", start: 0, end: 1 }],
+        tags: [],
       },
     ];
 
@@ -109,6 +113,7 @@ describe("useFiltersAndLexicon", () => {
         end: 1,
         text: "bluebird,",
         words: [{ word: "bluebird,", start: 0, end: 1 }],
+        tags: [],
       },
     ];
 
@@ -195,6 +200,7 @@ describe("useScrollAndSelection", () => {
       end: 1,
       text: "Hallo",
       words: [{ word: "Hallo", start: 0, end: 1 }],
+      tags: [],
     },
     {
       id: "segment-2",
@@ -203,6 +209,7 @@ describe("useScrollAndSelection", () => {
       end: 3,
       text: "Servus",
       words: [{ word: "Servus", start: 2, end: 3 }],
+      tags: [],
     },
   ];
 
@@ -560,5 +567,288 @@ describe("useScrollAndSelection", () => {
 
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     vi.restoreAllMocks();
+  });
+});
+
+describe("useFiltersAndLexicon - Tag filtering", () => {
+  it("filters segments by single tag ID", () => {
+    const segments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Tagged with OOC",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-2",
+        speaker: "SPEAKER_00",
+        start: 1,
+        end: 2,
+        text: "No tags",
+        words: [],
+        tags: [],
+      },
+      {
+        id: "seg-3",
+        speaker: "SPEAKER_00",
+        start: 2,
+        end: 3,
+        text: "Tagged with Production",
+        words: [],
+        tags: ["tag-prod"],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    act(() => result.current.setFilterTagIds(["tag-ooc"]));
+
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0].id).toBe("seg-1");
+  });
+
+  it("filters segments by multiple tag IDs with OR-logic", () => {
+    const segments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Tagged with OOC",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-2",
+        speaker: "SPEAKER_00",
+        start: 1,
+        end: 2,
+        text: "Tagged with Production",
+        words: [],
+        tags: ["tag-prod"],
+      },
+      {
+        id: "seg-3",
+        speaker: "SPEAKER_00",
+        start: 2,
+        end: 3,
+        text: "Tagged with both",
+        words: [],
+        tags: ["tag-ooc", "tag-prod"],
+      },
+      {
+        id: "seg-4",
+        speaker: "SPEAKER_00",
+        start: 3,
+        end: 4,
+        text: "No tags",
+        words: [],
+        tags: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    // Filter by OOC OR Production (OR-logic)
+    act(() => result.current.setFilterTagIds(["tag-ooc", "tag-prod"]));
+
+    expect(result.current.filteredSegments).toHaveLength(3);
+    const ids = result.current.filteredSegments.map((s) => s.id);
+    expect(ids).toContain("seg-1");
+    expect(ids).toContain("seg-2");
+    expect(ids).toContain("seg-3");
+    expect(ids).not.toContain("seg-4");
+  });
+
+  it("filters segments with no tags when filterNoTags is true", () => {
+    const segments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Tagged",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-2",
+        speaker: "SPEAKER_00",
+        start: 1,
+        end: 2,
+        text: "No tags",
+        words: [],
+        tags: [],
+      },
+      {
+        id: "seg-3",
+        speaker: "SPEAKER_00",
+        start: 2,
+        end: 3,
+        text: "Also no tags",
+        words: [],
+        tags: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    act(() => result.current.setFilterNoTags(true));
+
+    expect(result.current.filteredSegments).toHaveLength(2);
+    const ids = result.current.filteredSegments.map((s) => s.id);
+    expect(ids).toContain("seg-2");
+    expect(ids).toContain("seg-3");
+    expect(ids).not.toContain("seg-1");
+  });
+
+  it("clears tag filters when clearFilters is called", () => {
+    const segments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Tagged",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-2",
+        speaker: "SPEAKER_00",
+        start: 1,
+        end: 2,
+        text: "No tags",
+        words: [],
+        tags: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    act(() => {
+      result.current.setFilterTagIds(["tag-ooc"]);
+      result.current.setFilterNoTags(true);
+    });
+
+    expect(result.current.filterTagIds).toHaveLength(1);
+    expect(result.current.filterNoTags).toBe(true);
+
+    act(() => result.current.clearFilters());
+
+    expect(result.current.filterTagIds).toHaveLength(0);
+    expect(result.current.filterNoTags).toBe(false);
+    expect(result.current.filteredSegments).toHaveLength(2);
+  });
+
+  it("combines tag filter with speaker filter", () => {
+    const segments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "Alice",
+        start: 0,
+        end: 1,
+        text: "Alice with OOC",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-2",
+        speaker: "Bob",
+        start: 1,
+        end: 2,
+        text: "Bob with OOC",
+        words: [],
+        tags: ["tag-ooc"],
+      },
+      {
+        id: "seg-3",
+        speaker: "Alice",
+        start: 2,
+        end: 3,
+        text: "Alice without tags",
+        words: [],
+        tags: [],
+      },
+    ];
+
+    const speakers = [
+      { id: "SPEAKER_00", name: "Alice", color: "#000" },
+      { id: "SPEAKER_01", name: "Bob", color: "#111" },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers,
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+      }),
+    );
+
+    // Filter: Alice AND has OOC tag
+    act(() => {
+      result.current.setFilterSpeakerId("SPEAKER_00");
+      result.current.setFilterTagIds(["tag-ooc"]);
+    });
+
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0].id).toBe("seg-1");
   });
 });

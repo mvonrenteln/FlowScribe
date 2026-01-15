@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
+import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
 
@@ -27,6 +28,9 @@ export interface FiltersAndLexiconState {
   filterLexicon: boolean;
   filterLexiconLowScore: boolean;
   filterSpellcheck: boolean;
+  filterTagIds: string[];
+  filterNotTagIds: string[];
+  filterNoTags: boolean;
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
   activeSpeakerName?: string;
@@ -61,6 +65,9 @@ export function useFiltersAndLexicon({
   const [filterLexicon, setFilterLexicon] = useState(false);
   const [filterLexiconLowScore, setFilterLexiconLowScore] = useState(false);
   const [filterSpellcheck, setFilterSpellcheck] = useState(false);
+  const [filterTagIds, setFilterTagIds] = useState<string[]>([]);
+  const [filterNotTagIds, setFilterNotTagIds] = useState<string[]>([]);
+  const [filterNoTags, setFilterNoTags] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
 
@@ -86,6 +93,15 @@ export function useFiltersAndLexicon({
     () => new Map(normalizedSegments.map((entry) => [entry.id, entry])),
     [normalizedSegments],
   );
+
+  // Pre-compute tag sets for O(1) lookups during filtering
+  const segmentTagSets = useMemo(() => {
+    const tagSets = new Map<string, Set<string>>();
+    for (const segment of segments) {
+      tagSets.set(segment.id, new Set(getSegmentTags(segment)));
+    }
+    return tagSets;
+  }, [segments]);
 
   const autoConfidenceThreshold = useMemo(() => {
     const scores = segments
@@ -155,6 +171,23 @@ export function useFiltersAndLexicon({
       if (filterSpellcheck) {
         if (!spellcheckMatchesBySegment.has(segment.id)) return false;
       }
+      // Tag filtering with pre-computed sets for O(1) lookups
+      const segmentTags = segmentTagSets.get(segment.id);
+      if (filterNoTags) {
+        if (segmentTags && segmentTags.size > 0) return false;
+      }
+      if (filterTagIds.length > 0) {
+        // OR-logic: segment matches if it has ANY of the selected tags
+        if (!segmentTags) return false;
+        const hasMatchingTag = filterTagIds.some((tagId) => segmentTags.has(tagId));
+        if (!hasMatchingTag) return false;
+      }
+      if (filterNotTagIds.length > 0) {
+        // NOT-logic: segment matches if it does NOT have ANY of the NOT-selected tags
+        if (!segmentTags) return true; // No tags means not excluded
+        const hasExcludedTag = filterNotTagIds.some((tagId) => segmentTags.has(tagId));
+        if (hasExcludedTag) return false;
+      }
 
       if (searchNormalized) {
         if (isRegexSearch) {
@@ -196,10 +229,14 @@ export function useFiltersAndLexicon({
     filterLexiconLowScore,
     filterLowConfidence,
     filterSpellcheck,
+    filterTagIds,
+    filterNotTagIds,
+    filterNoTags,
     lexiconMatchesBySegment,
     lowConfidenceThreshold,
     normalizedSegmentsById,
     segments,
+    segmentTagSets,
     spellcheckMatchesBySegment,
     searchQuery,
     isRegexSearch,
@@ -218,6 +255,9 @@ export function useFiltersAndLexicon({
     setFilterLexicon(false);
     setFilterLexiconLowScore(false);
     setFilterSpellcheck(false);
+    setFilterTagIds([]);
+    setFilterNotTagIds([]);
+    setFilterNoTags(false);
     setSearchQuery("");
     setIsRegexSearch(false);
   }, []);
@@ -235,6 +275,12 @@ export function useFiltersAndLexicon({
     setFilterLexiconLowScore,
     filterSpellcheck,
     setFilterSpellcheck,
+    filterTagIds,
+    setFilterTagIds,
+    filterNotTagIds,
+    setFilterNotTagIds,
+    filterNoTags,
+    setFilterNoTags,
     highlightLowConfidence,
     setHighlightLowConfidence,
     manualConfidenceThreshold,

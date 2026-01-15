@@ -10,11 +10,11 @@ const initialSpeakers: Speaker[] = [
 ];
 
 const mockSegments: Segment[] = [
-  { id: "1", speaker: "SPEAKER_00", start: 0, end: 5, text: "Hello", words: [] },
-  { id: "2", speaker: "SPEAKER_01", start: 5, end: 12, text: "Hi", words: [] },
-  { id: "3", speaker: "SPEAKER_00", start: 12, end: 20, text: "How are you?", words: [] },
-  { id: "4", speaker: "SPEAKER_02", start: 20, end: 35, text: "Good thanks", words: [] },
-  { id: "5", speaker: "SPEAKER_00", start: 35, end: 45, text: "Great", words: [] },
+  { id: "1", speaker: "SPEAKER_00", tags: [], start: 0, end: 5, text: "Hello", words: [] },
+  { id: "2", speaker: "SPEAKER_01", tags: [], start: 5, end: 12, text: "Hi", words: [] },
+  { id: "3", speaker: "SPEAKER_00", tags: [], start: 12, end: 20, text: "How are you?", words: [] },
+  { id: "4", speaker: "SPEAKER_02", tags: [], start: 20, end: 35, text: "Good thanks", words: [] },
+  { id: "5", speaker: "SPEAKER_00", tags: [], start: 35, end: 45, text: "Great", words: [] },
 ];
 
 export default function SpeakerSidebarExample() {
@@ -44,6 +44,7 @@ export default function SpeakerSidebarExample() {
       <SpeakerSidebar
         speakers={speakers}
         segments={mockSegments}
+        tags={[]}
         onRenameSpeaker={handleRename}
         onAddSpeaker={handleAdd}
         onSpeakerSelect={setSelectedSpeakerId}

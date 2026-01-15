@@ -38,6 +38,11 @@ function TranscriptListComponent({
   onMatchClick,
   findMatchIndex,
 }: TranscriptListProps) {
+  // Get tags and tag operations from store
+  const tags = useTranscriptStore((s) => s.tags);
+  const removeTagFromSegment = useTranscriptStore((s) => s.removeTagFromSegment);
+  const assignTagToSegment = useTranscriptStore((s) => s.assignTagToSegment);
+
   // Get pending revisions from store
   const pendingRevisions = useTranscriptStore((s) => s.aiRevisionSuggestions);
   const lastRevisionResult = useTranscriptStore((s) => s.aiRevisionLastResult);
@@ -103,6 +108,7 @@ function TranscriptListComponent({
                 <TranscriptSegment
                   segment={segment}
                   speakers={speakers}
+                  tags={tags}
                   isSelected={segment.id === selectedSegmentId}
                   isActive={activeSegmentId === segment.id}
                   currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
@@ -126,6 +132,8 @@ function TranscriptListComponent({
                   onSplit={handlers.onSplit}
                   onConfirm={handlers.onConfirm}
                   onToggleBookmark={handlers.onToggleBookmark}
+                  onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
+                  onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
                   onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
                   onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
                   onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}

@@ -28,6 +28,7 @@ These shortcuts are global unless you are editing text. In edit mode, only Enter
 - `Delete` — Delete selected segment
 - `C` — Confirm selected segment
 - `B` — Bookmark selected segment
+- `T` + `1..0` — Toggle tag #1–#10 on selected segment(s)
 
 ## Undo / Redo
 

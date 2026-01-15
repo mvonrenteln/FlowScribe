@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
 import { ExportDialog } from "../ExportDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
@@ -8,12 +9,14 @@ import type { TranscriptEditorState } from "./useTranscriptEditor";
 
 type DialogProps = TranscriptEditorState["dialogProps"];
 
-export function EditorDialogs({
+const EditorDialogsComponent = ({
   showShortcuts,
   onShortcutsChange,
   showExport,
   onExportChange,
   segments,
+  filteredSegments,
+  tags,
   audioFileName,
   showLexicon: _showLexicon,
   onLexiconChange: _onLexiconChange,
@@ -34,7 +37,7 @@ export function EditorDialogs({
   onOpenSettings,
   settingsInitialSection,
   setSettingsInitialSection: _setSettingsInitialSection,
-}: DialogProps) {
+}: DialogProps) => {
   return (
     <>
       <KeyboardShortcuts open={showShortcuts} onOpenChange={onShortcutsChange} />
@@ -42,6 +45,8 @@ export function EditorDialogs({
         open={showExport}
         onOpenChange={onExportChange}
         segments={segments}
+        filteredSegments={filteredSegments}
+        tags={tags}
         fileName={audioFileName?.replace(/\.[^/.]+$/, "") || "transcript"}
       />
       {/* GlossaryDialog removed — use Settings -> Glossary for management */}
@@ -69,4 +74,7 @@ export function EditorDialogs({
       />
     </>
   );
-}
+};
+
+// Memoize to prevent re-renders when unrelated dialogProps change
+export const EditorDialogs = memo(EditorDialogsComponent);

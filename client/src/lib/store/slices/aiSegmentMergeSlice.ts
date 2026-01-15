@@ -108,7 +108,7 @@ const applyMergeToSegments = (
   const [first, second] =
     index1 < index2 ? [segments[index1], segments[index2]] : [segments[index2], segments[index1]];
 
-  const mergedBase = buildMergedSegment(first, second);
+  const mergedBase = { ...buildMergedSegment(first, second), tags: first.tags ?? [] };
   const mergedText =
     applySmoothing && suggestion.smoothedText ? suggestion.smoothedText : suggestion.mergedText;
   const mergedSegment = applyTextUpdateToSegment(mergedBase, mergedText) ?? mergedBase;
@@ -297,6 +297,7 @@ export const createAISegmentMergeSlice = (
       speakers: state.speakers,
       selectedSegmentId: nextSelectedSegmentId,
       currentTime: state.currentTime,
+      tags: state.tags,
     });
 
     set({
@@ -386,6 +387,7 @@ export const createAISegmentMergeSlice = (
         speakers: state.speakers,
         selectedSegmentId: finalSelectedSegmentId,
         currentTime: state.currentTime,
+        tags: state.tags,
       });
 
       set({

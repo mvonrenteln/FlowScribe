@@ -11,6 +11,7 @@ const baseSegments: Segment[] = [
   {
     id: "seg-1",
     speaker: "SPEAKER_00",
+    tags: [],
     start: 2.5,
     end: 3.5,
     text: "Needs revision",
@@ -20,6 +21,7 @@ const baseSegments: Segment[] = [
   {
     id: "seg-2",
     speaker: "SPEAKER_01",
+    tags: [],
     start: 4,
     end: 5,
     text: "Confirmed content",

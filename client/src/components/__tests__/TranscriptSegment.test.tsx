@@ -12,6 +12,7 @@ const speakers: Speaker[] = [
 const segment: Segment = {
   id: "seg-1",
   speaker: "SPEAKER_00",
+  tags: [],
   start: 0,
   end: 2,
   text: "Hallo Welt",
@@ -29,6 +30,7 @@ describe("TranscriptSegment", () => {
       <TranscriptSegment
         segment={segment}
         speakers={speakers}
+        tags={[]}
         isSelected={false}
         isActive={false}
         onSelect={onSelect}
@@ -57,6 +59,7 @@ describe("TranscriptSegment", () => {
     const onSplit = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -85,6 +88,7 @@ describe("TranscriptSegment", () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -115,6 +119,7 @@ describe("TranscriptSegment", () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -147,6 +152,7 @@ describe("TranscriptSegment", () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -177,6 +183,7 @@ describe("TranscriptSegment", () => {
     const onTextChange = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -208,6 +215,7 @@ describe("TranscriptSegment", () => {
   it("opens edit mode on double-click anywhere in segment (not just on text)", async () => {
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -236,6 +244,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -274,6 +283,7 @@ describe("TranscriptSegment", () => {
     const onSeek = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -298,6 +308,7 @@ describe("TranscriptSegment", () => {
   it("uses fallback speaker color when missing speaker data", () => {
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={[]}
         isSelected={false}
@@ -323,6 +334,7 @@ describe("TranscriptSegment", () => {
     const onSplit = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -350,6 +362,7 @@ describe("TranscriptSegment", () => {
     const onSplit = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -376,6 +389,7 @@ describe("TranscriptSegment", () => {
     const onConfirm = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -401,6 +415,7 @@ describe("TranscriptSegment", () => {
     const onConfirm = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -425,6 +440,7 @@ describe("TranscriptSegment", () => {
     const onToggleBookmark = vi.fn();
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -449,6 +465,7 @@ describe("TranscriptSegment", () => {
     const confirmedSegment: Segment = { ...segment, confirmed: true };
     render(
       <TranscriptSegment
+        tags={[]}
         segment={confirmedSegment}
         speakers={speakers}
         isSelected={false}
@@ -479,6 +496,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={scoredSegment}
         speakers={speakers}
         isSelected={false}
@@ -509,6 +527,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -540,6 +559,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -575,6 +595,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -615,6 +636,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segmentWithHyphen}
         speakers={speakers}
         isSelected={false}
@@ -649,6 +671,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segment}
         speakers={speakers}
         isSelected={false}
@@ -708,6 +731,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segmentWithPunctuation}
         speakers={speakers}
         isSelected={false}
@@ -751,6 +775,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segmentWithHyphen}
         speakers={speakers}
         isSelected={false}
@@ -795,6 +820,7 @@ describe("TranscriptSegment", () => {
 
     render(
       <TranscriptSegment
+        tags={[]}
         segment={segmentWithHyphen}
         speakers={speakers}
         isSelected={false}

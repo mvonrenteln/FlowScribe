@@ -2,7 +2,7 @@ import { Check, Sparkles, X } from "lucide-react";
 import { memo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import type { SearchMatch, Segment, Speaker } from "@/lib/store";
+import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 import { SegmentActions } from "./transcript-segment/SegmentActions";
@@ -14,6 +14,7 @@ import { WordList } from "./transcript-segment/WordList";
 interface TranscriptSegmentProps {
   readonly segment: Segment;
   readonly speakers: Speaker[];
+  readonly tags?: Tag[];
   readonly isSelected: boolean;
   readonly isActive: boolean;
   readonly activeWordIndex?: number;
@@ -35,6 +36,8 @@ interface TranscriptSegmentProps {
   readonly onSplit: (wordIndex: number) => void;
   readonly onConfirm: () => void;
   readonly onToggleBookmark: () => void;
+  readonly onRemoveTag?: (tagId: string) => void;
+  readonly onAddTag?: (tagId: string) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -75,6 +78,7 @@ interface TranscriptSegmentProps {
 function TranscriptSegmentComponent({
   segment,
   speakers,
+  tags = [],
   isSelected,
   isActive,
   activeWordIndex,
@@ -96,6 +100,8 @@ function TranscriptSegmentComponent({
   onSplit,
   onConfirm,
   onToggleBookmark,
+  onRemoveTag,
+  onAddTag,
   onIgnoreLexiconMatch,
   onIgnoreSpellcheckMatch,
   onAddSpellcheckToGlossary,
@@ -178,6 +184,9 @@ function TranscriptSegmentComponent({
             speakers={speakers}
             speakerColor={speakerColor}
             onSpeakerChange={onSpeakerChange}
+            tags={tags}
+            onRemoveTag={onRemoveTag}
+            onAddTag={onAddTag}
           />
 
           {/* Speaker Suggestion (if present, shown ABOVE segment content) */}
@@ -348,6 +357,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
   return (
     prev.segment === next.segment &&
     prev.speakers === next.speakers &&
+    prev.tags === next.tags &&
     prev.isSelected === next.isSelected &&
     prev.isActive === next.isActive &&
     prev.activeWordIndex === next.activeWordIndex &&
@@ -367,6 +377,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onSplit === next.onSplit &&
     prev.onConfirm === next.onConfirm &&
     prev.onToggleBookmark === next.onToggleBookmark &&
+    prev.onRemoveTag === next.onRemoveTag &&
     prev.onIgnoreLexiconMatch === next.onIgnoreLexiconMatch &&
     prev.onIgnoreSpellcheckMatch === next.onIgnoreSpellcheckMatch &&
     prev.onAddSpellcheckToGlossary === next.onAddSpellcheckToGlossary &&

@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import { buildSessionKey, isSameFileReference } from "@/lib/fileReference";
 import { buildRecentSessions } from "@/lib/storage";
+import { normalizeSegments } from "@/lib/transcript/normalizeTranscript";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type {
@@ -31,6 +32,7 @@ const buildPersistedSession = (state: TranscriptStore): PersistedSession => ({
   transcriptRef: state.transcriptRef,
   segments: state.segments,
   speakers: state.speakers,
+  tags: state.tags,
   selectedSegmentId: state.selectedSegmentId,
   currentTime: state.currentTime,
   isWhisperXFormat: state.isWhisperXFormat,
@@ -55,6 +57,8 @@ export const createSessionSlice = (
         : buildSessionKey(reference, state.transcriptRef);
     const session = context.getSessionsCache()[sessionKey];
     const shouldPromoteCurrent = !session && state.segments.length > 0;
+    const persistedSegments = session ? normalizeSegments(session.segments) : undefined;
+    const persistedHistorySegments = session ? normalizeSegments(session.segments) : undefined;
     if (shouldPromoteCurrent) {
       context.setSessionsCache({
         ...context.getSessionsCache(),
@@ -85,18 +89,20 @@ export const createSessionSlice = (
       sessionKind,
       sessionLabel,
       baseSessionKey,
-      segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
+      segments: persistedSegments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
       selectedSegmentId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
         session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
       history:
-        session?.segments.length || shouldPromoteCurrent
+        session?.segments?.length || shouldPromoteCurrent
           ? [
               {
-                segments: session?.segments ?? state.segments,
+                segments: persistedHistorySegments ?? session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
+                tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? state.currentTime,
               },
@@ -111,6 +117,8 @@ export const createSessionSlice = (
       state.audioRef === null ? state.sessionKey : buildSessionKey(state.audioRef, reference);
     const session = context.getSessionsCache()[sessionKey];
     const shouldPromoteCurrent = !session && state.segments.length > 0;
+    const persistedSegments = session ? normalizeSegments(session.segments) : undefined;
+    const persistedHistorySegments = session ? normalizeSegments(session.segments) : undefined;
     if (shouldPromoteCurrent) {
       context.setSessionsCache({
         ...context.getSessionsCache(),
@@ -141,18 +149,20 @@ export const createSessionSlice = (
       sessionKind,
       sessionLabel,
       baseSessionKey,
-      segments: session?.segments ?? (shouldPromoteCurrent ? state.segments : []),
+      segments: persistedSegments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
+      tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
       selectedSegmentId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
         session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
       history:
-        session?.segments.length || shouldPromoteCurrent
+        session?.segments?.length || shouldPromoteCurrent
           ? [
               {
-                segments: session?.segments ?? state.segments,
+                segments: persistedHistorySegments ?? session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
+                tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
               },
@@ -178,15 +188,17 @@ export const createSessionSlice = (
       sessionKind: session.kind ?? "current",
       sessionLabel: session.label ?? null,
       baseSessionKey: session.baseSessionKey ?? null,
-      segments: session.segments,
+      segments: normalizeSegments(session.segments),
       speakers: session.speakers,
+      tags: session.tags ?? [],
       selectedSegmentId,
       currentTime: session.currentTime ?? 0,
       isWhisperXFormat: session.isWhisperXFormat ?? false,
       history: [
         {
-          segments: session.segments,
+          segments: normalizeSegments(session.segments),
           speakers: session.speakers,
+          tags: session.tags ?? [],
           selectedSegmentId,
           currentTime: session.currentTime ?? 0,
         },
@@ -276,6 +288,7 @@ export const buildInitialHistory = (
   session: {
     segments: Segment[];
     speakers: TranscriptStore["speakers"];
+    tags: TranscriptStore["tags"];
     selectedSegmentId: string | null;
     currentTime: number;
   } | null,
@@ -286,6 +299,7 @@ export const buildInitialHistory = (
         {
           segments: session.segments,
           speakers: session.speakers,
+          tags: session.tags,
           selectedSegmentId: session.selectedSegmentId,
           currentTime: session.currentTime,
         },

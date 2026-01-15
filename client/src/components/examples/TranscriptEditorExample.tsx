@@ -8,6 +8,7 @@ const mockTranscript = {
     {
       id: "seg-1",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 0.5,
       end: 4.2,
       text: "Hello and welcome to our podcast today. I am excited to have you here.",
@@ -31,6 +32,7 @@ const mockTranscript = {
     {
       id: "seg-2",
       speaker: "SPEAKER_01",
+      tags: [],
       start: 4.8,
       end: 9.5,
       text: "Thank you so much for having me. It is a pleasure to be here and discuss this topic.",
@@ -58,6 +60,7 @@ const mockTranscript = {
     {
       id: "seg-3",
       speaker: "SPEAKER_00",
+      tags: [],
       start: 10.2,
       end: 15.8,
       text: "Absolutely. So let us dive right in. Can you tell our listeners a bit about your background?",
@@ -84,6 +87,7 @@ const mockTranscript = {
     {
       id: "seg-4",
       speaker: "SPEAKER_01",
+      tags: [],
       start: 16.5,
       end: 25.0,
       text: "Of course. I have been working in this field for over fifteen years now. It all started when I was a student at university.",
@@ -117,6 +121,7 @@ const mockTranscript = {
     {
       id: "seg-5",
       speaker: "SPEAKER_02",
+      tags: [],
       start: 25.8,
       end: 30.2,
       text: "That is really interesting. I had a similar experience when I started my career.",

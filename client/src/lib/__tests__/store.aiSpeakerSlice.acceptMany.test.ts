@@ -21,6 +21,7 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
       {
         id: "seg1",
         text: "Hello world",
+        tags: [],
         start: 0,
         end: 1,
         speaker: "SPEAKER_00",
@@ -30,6 +31,7 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
       {
         id: "seg2",
         text: "Second segment",
+        tags: [],
         start: 1,
         end: 2,
         speaker: "SPEAKER_00",
@@ -39,6 +41,7 @@ describe("aiSpeakerSlice - acceptManySuggestions", () => {
       {
         id: "seg3",
         text: "Third segment",
+        tags: [],
         start: 2,
         end: 3,
         speaker: "SPEAKER_01",

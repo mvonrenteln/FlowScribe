@@ -15,12 +15,21 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
       <SpeakerSidebar
         speakers={props.speakers}
         segments={props.segments}
+        tags={props.tags}
         onRenameSpeaker={props.onRenameSpeaker}
         onAddSpeaker={props.onAddSpeaker}
         onMergeSpeakers={props.onMergeSpeakers}
         onSpeakerSelect={props.onSpeakerSelect}
         onClearFilter={props.onClearFilters}
         selectedSpeakerId={props.selectedSpeakerId}
+        onAddTag={props.onAddTag}
+        onRenameTag={props.onRenameTag}
+        onDeleteTag={props.onDeleteTag}
+        onTagSelect={props.onTagSelect}
+        selectedTagIds={props.selectedTagIds}
+        selectedNotTagIds={props.selectedNotTagIds}
+        noTagsFilterActive={props.noTagsFilterActive}
+        onToggleNoTagsFilter={props.onToggleNoTagsFilter}
         lowConfidenceFilterActive={props.lowConfidenceFilterActive}
         onToggleLowConfidenceFilter={props.onToggleLowConfidenceFilter}
         lowConfidenceThreshold={props.lowConfidenceThreshold}

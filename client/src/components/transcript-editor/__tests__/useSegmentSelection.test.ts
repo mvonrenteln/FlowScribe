@@ -49,9 +49,9 @@ describe("useSegmentSelection", () => {
 
   it("exposes merge handlers only for adjacent segments", () => {
     const segments = [
-      { ...baseSegment, id: "segment-1", start: 0, end: 1 },
-      { ...baseSegment, id: "segment-2", start: 1, end: 2 },
-      { ...baseSegment, id: "segment-3", start: 3, end: 4 },
+      { ...baseSegment, id: "segment-1", tags: [], start: 0, end: 1 },
+      { ...baseSegment, id: "segment-2", tags: [], start: 1, end: 2 },
+      { ...baseSegment, id: "segment-3", tags: [], start: 3, end: 4 },
     ];
 
     const { result } = renderHook(() =>
@@ -94,6 +94,7 @@ describe("useSegmentSelection", () => {
       {
         ...baseSegment,
         id: "segment-1",
+        tags: [],
         start: 0,
         end: 3,
         text: "Hallo Welt Heute",

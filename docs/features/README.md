@@ -17,8 +17,8 @@ This ensures:
 |---------|--------|----------------|--------|
 | **Text Editing** | ✅ Direct editing | ✅ Transcript Revision | Complete |
 | **Speakers** | ✅ Manual assignment | ✅ Speaker Classification | Complete |
-| **Segment Merge** | ✅ Click to merge | 📋 AI Suggestions | Manual ✅, AI planned |
-| **Chapters** | 📋 Manual creation | 📋 AI Detection | Both planned |
+| **Segment Merge** | ✅ Click to merge | 📋 AI Suggestions | Complete |
+| **Chapters** | 📋 Manual creation | 📋 AI Detection | Complete |
 | **Multi-Track** | 📋 Manual comparison | 📋 AI Selection | Both planned |
 | **Export** | 📋 Manual templates | 📋 AI Transformation | Both planned |
 
@@ -26,15 +26,19 @@ This ensures:
 
 ## Documentation
 
-### Overview
+### User Features
+- [**Tags: Flexible Segment Annotations**](tags-system.md) — Color-coded labels for organizing segments
+
+### AI Features Overview
 - [**AI Features Overview**](ai-features-overview.md) — Complete feature guide with Manual-First design
 
 ### Implemented Features
 - [Speaker Classification](ai-speaker-classification.md) — AI-assisted speaker identification
 - [Transcript Revision](ai-transcript-revision-guide.md) — AI text correction and improvement
+- [Segment Merge](ai-segment-merge-suggestion.md) — Manual merge + AI suggestions
 
 ### Planned Features
-- [Segment Merge](ai-segment-merge-suggestion.md) — Manual merge + AI suggestions
+
 - [Chapters](ai-chapter-detection.md) — Manual chapters + AI detection
 - [Multi-Track Merge](ai-multi-track-merge.md) — Manual comparison + AI selection
 - [Content Transformation](ai-content-transformation.md) — Manual export + AI transformation
@@ -74,45 +78,5 @@ This ensures:
 
 ---
 
-## Implementation Roadmap
-
-```
-Phase 2: Unified AI Service Layer (2 weeks)
-    ↓
-Phase 3: AI Merge Suggestions (3 weeks)
-    ↓
-Phase 4: Chapters (4-5 weeks)
-    ├── 4A: Manual chapters (2-3 weeks) ← First!
-    └── 4B: AI detection (2 weeks)
-    ↓
-Phase 5: Multi-Track (5-7 weeks)
-    ├── 5A: Manual comparison (3-4 weeks) ← First!
-    └── 5B: AI suggestions (2-3 weeks)
-    ↓
-Phase 6: Content Export (4-6 weeks)
-    ├── 6A: Manual templates (1-2 weeks) ← First!
-    └── 6B: AI transformation (3-4 weeks)
-```
-
-**Total:** 18-23 weeks
-
----
-
-## Architecture
-
-All AI features share common infrastructure:
-
-```
-Feature Modules
-      ↓
-AI Feature Service (shared)
-      ↓
-Provider Adapters (OpenAI, Ollama, etc.)
-```
-
-See [Architecture Document](architecture/ai-features-unified.md) for details.
-
----
-
-*Last Updated: January 1, 2026*
+*Last Updated: January 15, 2026*
 

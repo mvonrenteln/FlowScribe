@@ -36,6 +36,7 @@ describe("Segments slice", () => {
         {
           id: "seg-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 3,
           text: "Hallo Welt",
@@ -64,6 +65,7 @@ describe("Segments slice", () => {
         {
           id: "seg-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Hallo Welt",
@@ -89,6 +91,7 @@ describe("Segments slice", () => {
         {
           id: "seg-1",
           speaker: "SPEAKER_00",
+          tags: [],
           start: 0,
           end: 1,
           text: "Hallo Welt",
