@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { Segment } from "@/lib/store";
+import type { Segment } from "../../../lib/store";
 import { useSearchAndReplace } from "../useSearchAndReplace";
 
 describe("useSearchAndReplace", () => {
