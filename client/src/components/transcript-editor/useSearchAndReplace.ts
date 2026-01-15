@@ -9,7 +9,7 @@ interface MatchLocation {
   text: string;
 }
 
-const applyReplacementTemplate = (
+export const applyReplacementTemplate = (
   template: string,
   matchText: string,
   offset: number,

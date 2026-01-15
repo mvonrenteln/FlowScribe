@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
+import { applyReplacementTemplate } from "@/components/transcript-editor/useSearchAndReplace";
 import { normalizeSpellcheckToken } from "@/lib/spellcheck";
 import type { SearchMatch, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -38,6 +39,7 @@ interface TranscriptWordProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  readonly segmentText?: string;
 }
 
 export const TranscriptWord = memo(
@@ -66,6 +68,7 @@ export const TranscriptWord = memo(
     isRegexSearch = false,
     currentMatch,
     wordRange,
+    segmentText,
     replaceQuery = "",
     onReplaceCurrent,
     onMatchClick,
@@ -296,7 +299,43 @@ export const TranscriptWord = memo(
       </button>
     );
 
+    let resolvedReplacePreview: string | null = null;
     if (isCurrentMatch && replaceQuery && onReplaceCurrent) {
+      if (isRegexSearch && currentMatch) {
+        try {
+          const regex = createSearchRegex(searchQuery ?? "", true);
+          if (regex && typeof segmentText === "string") {
+            // We need the capture groups as applied to the whole segment text
+            // so we can correctly resolve $1/$2... even when the match spans
+            // word boundaries.
+            regex.lastIndex = 0;
+            let found: RegExpExecArray | null = null;
+            while ((found = regex.exec(segmentText)) !== null) {
+              if (found.index === currentMatch.startIndex && found[0].length === (currentMatch.endIndex - currentMatch.startIndex)) {
+                const matchText = found[0];
+                const index = found.index ?? 0;
+                const input = found.input ?? segmentText;
+                const namedGroups = (found as any).groups;
+                resolvedReplacePreview = applyReplacementTemplate(
+                  replaceQuery,
+                  matchText,
+                  index,
+                  input,
+                  (found as any).slice(1) ?? [],
+                  namedGroups,
+                );
+                break;
+              }
+              if (!regex.global) break;
+              if (found.index === regex.lastIndex) regex.lastIndex += 1;
+            }
+          }
+        } catch (_e) {
+          resolvedReplacePreview = replaceQuery;
+        }
+      } else {
+        resolvedReplacePreview = replaceQuery;
+      }
       return (
         <Popover open={!!replaceQuery}>
           <PopoverTrigger asChild>{wordButton}</PopoverTrigger>
@@ -315,7 +354,7 @@ export const TranscriptWord = memo(
               </code>
               <span className="text-muted-foreground text-xs">→</span>
               <code className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold border border-primary/20 shadow-sm">
-                {replaceQuery}
+                {resolvedReplacePreview ?? replaceQuery}
               </code>
               <Button
                 size="sm"
