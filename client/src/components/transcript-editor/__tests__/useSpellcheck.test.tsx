@@ -122,4 +122,59 @@ describe("useSpellcheck", () => {
       { timeout: 1000 },
     );
   });
+
+  it("skips confirmed segments when collecting matches", async () => {
+    const segments = [
+      {
+        id: "segment-1",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "Wrd",
+        words: [{ word: "Wrd", start: 0, end: 1 }],
+        confirmed: true,
+      },
+      {
+        id: "segment-2",
+        speaker: "SPEAKER_00",
+        start: 1,
+        end: 2,
+        text: "Wrd",
+        words: [{ word: "Wrd", start: 1, end: 2 }],
+      },
+    ];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
+    const { result } = renderHook(() =>
+      useSpellcheck({
+        audioUrl: null,
+        isWaveReady: true,
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      }),
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.has("segment-1")).toBe(false);
+        expect(result.current.spellcheckMatchesBySegment.get("segment-2")?.get(0)).toEqual({
+          suggestions: ["Word"],
+        });
+      },
+      { timeout: 1000 },
+    );
+  });
 });

@@ -68,6 +68,9 @@ const buildMatches = (
   const matches = new Map<string, Map<number, LexiconMatchMeta>>();
 
   segments.forEach((segment) => {
+    if (segment.confirmed) {
+      return;
+    }
     const wordMatches = new Map<number, LexiconMatchMeta>();
 
     segment.words.forEach((word, index) => {

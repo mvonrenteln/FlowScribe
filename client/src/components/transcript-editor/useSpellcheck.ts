@@ -214,6 +214,14 @@ export function useSpellcheck({
 
       while (segmentIndex < segments.length && (iterations < 120 || timeRemaining > 4)) {
         const segment = segments[segmentIndex];
+        if (segment.confirmed) {
+          segmentIndex += 1;
+          wordIndex = 0;
+          iterations += 1;
+          processedSinceUpdate += 1;
+          timeRemaining = deadline?.timeRemaining?.() ?? 0;
+          continue;
+        }
         const words = segment.words;
         const wordMatches = matches.get(segment.id) ?? new Map<number, SpellcheckMatchMeta>();
 
