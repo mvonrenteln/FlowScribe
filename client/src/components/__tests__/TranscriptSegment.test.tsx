@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TranscriptSegment } from "@/components/TranscriptSegment";
@@ -113,6 +113,49 @@ describe("TranscriptSegment", () => {
     fireEvent.keyDown(textarea, { key: "Enter" });
 
     expect(onTextChange).toHaveBeenCalledWith("Hallo zusammen");
+  });
+
+  it("uses the view height for the editor size", async () => {
+    render(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const textBlock = screen.getByTestId("text-segment-seg-1");
+    const textWrapper = textBlock.parentElement as HTMLDivElement;
+    textWrapper.getBoundingClientRect = () =>
+      ({
+        height: 140,
+        width: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }) as DOMRect;
+    fireEvent.doubleClick(textBlock);
+
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    fireEvent.change(textarea, { target: { value: "Hallo zusammen" } });
+
+    await waitFor(() => {
+      expect(textarea.style.height).toBe("140px");
+    });
   });
 
   it("cancels edits on Escape", async () => {

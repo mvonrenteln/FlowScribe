@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import type { Segment } from "@/lib/store";
 
 interface UseSegmentEditingParams {
@@ -7,6 +7,7 @@ interface UseSegmentEditingParams {
   readonly onEditRequestHandled?: () => void;
   readonly onTextChange: (text: string) => void;
   readonly onSelect: () => void;
+  readonly getViewHeight?: () => number | null;
 }
 
 export function useSegmentEditing({
@@ -15,9 +16,11 @@ export function useSegmentEditing({
   onEditRequestHandled,
   onTextChange,
   onSelect,
+  getViewHeight,
 }: UseSegmentEditingParams) {
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(segment.text);
+  const [editHeight, setEditHeight] = useState<number | null>(null);
   const editInputRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -30,6 +33,20 @@ export function useSegmentEditing({
     if (isEditing) {
       editInputRef.current?.focus();
     }
+  }, [isEditing]);
+
+  useLayoutEffect(() => {
+    if (!isEditing) return;
+    const textarea = editInputRef.current;
+    if (!textarea) return;
+    if (editHeight) {
+      textarea.style.height = `${editHeight}px`;
+    }
+  }, [editHeight, isEditing]);
+
+  useEffect(() => {
+    if (isEditing) return;
+    setEditHeight(null);
   }, [isEditing]);
 
   useEffect(() => {
@@ -48,13 +65,19 @@ export function useSegmentEditing({
 
   const handleStartEdit = useCallback(() => {
     setDraftText(segment.text);
+    const measuredHeight = getViewHeight?.() ?? null;
+    setEditHeight(measuredHeight && measuredHeight > 0 ? measuredHeight : null);
     setIsEditing(true);
-  }, [segment.text]);
+  }, [getViewHeight, segment.text]);
 
   const handleSaveEdit = useCallback(() => {
     setIsEditing(false);
     onTextChange(draftText);
   }, [draftText, onTextChange]);
+
+  const handleDraftChange = useCallback((event: React.ChangeEvent<HTMLTextAreaElement>) => {
+    setDraftText(event.target.value);
+  }, []);
 
   const handleCancelEdit = useCallback(() => {
     setIsEditing(false);
@@ -154,7 +177,8 @@ export function useSegmentEditing({
     handleSegmentDoubleClick,
     handleSelectKeyDown,
     handleStartEdit,
+    handleDraftChange,
+    editHeight,
     isEditing,
-    setDraftText,
   };
 }

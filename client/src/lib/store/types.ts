@@ -19,7 +19,7 @@ export interface Word {
 export interface Segment {
   id: string;
   speaker: string;
-  tags: string[];
+  tags?: string[];
   start: number;
   end: number;
   text: string;

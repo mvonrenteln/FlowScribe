@@ -311,7 +311,7 @@ export const createSegmentsSlice = (
     const merged: Segment = {
       id: generateId(),
       speaker: first.speaker,
-      tags: Array.from(new Set([...first.tags, ...second.tags])),
+      tags: Array.from(new Set([...(first.tags ?? []), ...(second.tags ?? [])])),
       start: first.start,
       end: second.end,
       text: `${first.text} ${second.text}`,

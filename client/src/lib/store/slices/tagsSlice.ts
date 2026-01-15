@@ -54,7 +54,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     const newTags = tags.filter((t) => t.id !== tagId);
     const newSegments = segments.map((s) => ({
       ...s,
-      tags: s.tags.filter((id) => id !== tagId),
+      tags: (s.tags ?? []).filter((id) => id !== tagId),
     }));
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,

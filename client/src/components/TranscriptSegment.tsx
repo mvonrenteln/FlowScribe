@@ -1,5 +1,5 @@
 import { Check, Sparkles, X } from "lucide-react";
-import { memo, useState } from "react";
+import { memo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
@@ -126,6 +126,7 @@ function TranscriptSegmentComponent({
 }: TranscriptSegmentProps) {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   const [spellcheckExpandedIndex, setSpellcheckExpandedIndex] = useState<number | null>(null);
+  const textDisplayRef = useRef<HTMLDivElement>(null);
 
   const {
     draftText,
@@ -137,14 +138,16 @@ function TranscriptSegmentComponent({
     handleSegmentDoubleClick,
     handleSelectKeyDown,
     handleStartEdit,
+    handleDraftChange,
+    editHeight,
     isEditing,
-    setDraftText,
   } = useSegmentEditing({
     segment,
     editRequested,
     onEditRequestHandled,
     onTextChange,
     onSelect,
+    getViewHeight: () => textDisplayRef.current?.getBoundingClientRect().height ?? null,
   });
 
   const speaker = speakers.find((s) => s.name === segment.speaker);
@@ -238,16 +241,17 @@ function TranscriptSegmentComponent({
           )}
 
           {isEditing ? (
-            <div className="space-y-2">
+            <div className="flex items-start gap-3">
               <Textarea
                 ref={editInputRef}
                 value={draftText}
-                onChange={(event) => setDraftText(event.target.value)}
+                onChange={handleDraftChange}
                 onKeyDown={handleEditKeyDown}
-                className="text-base leading-relaxed"
+                className="text-base md:text-base leading-relaxed min-h-0 resize-none overflow-auto border-0 p-0 rounded-none focus-visible:ring-1 focus-visible:ring-ring focus-visible:ring-offset-0"
+                style={editHeight ? { height: `${editHeight}px` } : undefined}
                 data-testid={`textarea-segment-${segment.id}`}
               />
-              <div className="flex items-center gap-2">
+              <div className="flex flex-col gap-2 pt-0.5">
                 <Button
                   size="sm"
                   onClick={(event) => {
@@ -281,6 +285,7 @@ function TranscriptSegmentComponent({
             />
           ) : (
             <div
+              ref={textDisplayRef}
               onMouseDown={(event) => {
                 // Only prevent default for single clicks, not double clicks
                 if (event.detail === 1) {
