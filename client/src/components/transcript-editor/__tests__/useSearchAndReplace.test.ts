@@ -229,4 +229,34 @@ describe("useSearchAndReplace", () => {
 
     expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "$10b" }]);
   });
+
+  it("treats missing single-digit capture as empty string", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "(a)", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$2");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    // $2 should be treated as empty string when only one capture exists
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "b" }]);
+  });
 });

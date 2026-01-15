@@ -32,13 +32,20 @@ const applyReplacementTemplate = (
     if (index <= groups.length) {
       return groups[index - 1] ?? "";
     }
+    // If this is a two-digit token like $10, try the single-digit fallback
+    // (treat as $1 + "0") when appropriate. If that fallback can't be
+    // sensibly applied, leave the token literal for two-digit tokens.
     if (value.length === 2) {
       const firstDigit = Number(value[0]);
       if (!Number.isNaN(firstDigit) && firstDigit > 0 && firstDigit <= groups.length) {
         return `${groups[firstDigit - 1] ?? ""}${value[1]}`;
       }
+      return token;
     }
-    return token;
+    // For single-digit references to non-existent captures (e.g. $2 when
+    // there is only one capture), native String.prototype.replace returns
+    // an empty string rather than the literal token. Emulate that here.
+    return "";
   });
 };
 
