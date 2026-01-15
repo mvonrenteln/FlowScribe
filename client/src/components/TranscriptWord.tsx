@@ -1,10 +1,10 @@
 import { BookOpenText, Check, Replace } from "lucide-react";
 import { memo, useMemo } from "react";
+import { applyReplacementTemplate } from "@/components/transcript-editor/useSearchAndReplace";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
-import { applyReplacementTemplate } from "@/components/transcript-editor/useSearchAndReplace";
 import { normalizeSpellcheckToken } from "@/lib/spellcheck";
 import type { SearchMatch, Word } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -309,25 +309,37 @@ export const TranscriptWord = memo(
             // so we can correctly resolve $1/$2... even when the match spans
             // word boundaries.
             regex.lastIndex = 0;
-            let found: RegExpExecArray | null = null;
-            while ((found = regex.exec(segmentText)) !== null) {
-              if (found.index === currentMatch.startIndex && found[0].length === (currentMatch.endIndex - currentMatch.startIndex)) {
+            // Use an explicit loop to avoid assignment-in-expression lint rule
+            let found: RegExpExecArray | null = regex.exec(segmentText);
+            while (found !== null) {
+              if (
+                found.index === currentMatch.startIndex &&
+                found[0].length === currentMatch.endIndex - currentMatch.startIndex
+              ) {
                 const matchText = found[0];
                 const index = found.index ?? 0;
                 const input = found.input ?? segmentText;
-                const namedGroups = (found as any).groups;
+                // Modern runtimes/types expose `groups` on RegExpExecArray; extend the type
+                const foundWithGroups = found as RegExpExecArray & {
+                  groups?: Record<string, string>;
+                };
+                const namedGroups = foundWithGroups.groups;
+                const numericGroups = Array.prototype.slice.call(foundWithGroups, 1) as Array<
+                  string | undefined
+                >;
                 resolvedReplacePreview = applyReplacementTemplate(
                   replaceQuery,
                   matchText,
                   index,
                   input,
-                  (found as any).slice(1) ?? [],
+                  numericGroups ?? [],
                   namedGroups,
                 );
                 break;
               }
               if (!regex.global) break;
               if (found.index === regex.lastIndex) regex.lastIndex += 1;
+              found = regex.exec(segmentText);
             }
           }
         } catch (_e) {

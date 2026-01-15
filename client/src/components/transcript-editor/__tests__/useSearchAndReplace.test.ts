@@ -268,9 +268,7 @@ describe("useSearchAndReplace", () => {
         start: 0,
         end: 1,
         text: "Fährtenleseprobe",
-        words: [
-          { word: "Fährtenleseprobe", start: 0, end: 1 },
-        ],
+        words: [{ word: "Fährtenleseprobe", start: 0, end: 1 }],
       },
     ];
 
