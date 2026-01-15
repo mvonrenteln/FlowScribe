@@ -326,17 +326,6 @@ Behavior:
 Examples:
 - Current segment has OOC (Tag #1) → T+1 → removed
 - Current segment has no OOC → T+1 → added
-```
-
-### Tag Management (Keyboard-First)
-
-```
-Shift+T+1     →  Rename Tag #1 (inline edit)
-Shift+T+2–0   →  Rename Tag #2–#10
-
-Ctrl+T+1      →  Delete Tag #1 (remove from all segments + delete tag)
-Ctrl+T+2–0    →  Delete Tag #2–#10
-```
 
 ### Alternative: Manual Tag Entry (if needed)
 
@@ -368,7 +357,7 @@ Cmd+T or Ctrl+T  →  Open "Add Tag" dialog
    - Refactor `SpeakerSidebar` into two scrollable sections: Speakers + Tags
    - Tag list rendering with segment counts
    - Single-click toggle for include filter (positive tags)
-   - Visual indicator: ☐ (unmarked), ⊕ (included)
+   - Visual indicator: without background (unmarked), with background (included)
    - Update `selectFilteredSegments()` predicate for positive tag filtering
    - (NO context menu, NO double-click yet)
 
@@ -389,17 +378,11 @@ Cmd+T or Ctrl+T  →  Open "Add Tag" dialog
 
 **Goal:** Complete keyboard-driven management and additional UI conveniences.
 
-1. **Keyboard management shortcuts**
-   - Shift+T+N for rename tag (inline edit)
-   - Ctrl+T+N for delete tag (remove from all segments + delete tag)
-
 2. **Tag sidebar management UI**
-   - Rename, merge, delete operations (similar to speaker sidebar)
-   - Drag-and-drop merge (optional, reuse speaker pattern)
+   - Rename, delete operations (similar to speaker sidebar)
    - Add speaker alongside "Add Tag" button
 
 3. **Enhanced segment UI**
-   - Context menu on segment: "Manage Tags" (opens tag picker dialog)
    - Tag picker: searchable list of available tags
 
 4. **"No Tags" filter**
@@ -412,8 +395,6 @@ Cmd+T or Ctrl+T  →  Open "Add Tag" dialog
 
 1. **Exclude (NOT) filter support**
    - Extend `FilterState` with `tagsExcluded: string[]`
-   - Double-click or right-click on tag → context menu
-   - Menu option: "Exclude (NOT tag)"
    - Visual indicator: ⊖ (excluded/NOT)
 
 2. **Filter predicate updates**
@@ -421,10 +402,8 @@ Cmd+T or Ctrl+T  →  Open "Add Tag" dialog
    - Correct AND/NOT combination with speaker filters
    - Test all filter combinations
 
-3. **Export & AI Integration (stretch)**
-   - Batch operations on filtered tags (summarize, etc.)
+3. **Export**
    - Export: include tags in JSON/Whisper-X output
-   - Tag-based merge suggestions
 
 ---
 
