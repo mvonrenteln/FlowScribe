@@ -142,3 +142,30 @@ Press **Alt+R** to instantly apply your default revision template to the selecte
 - [AI Speaker Classification Guide](features/ai-speaker-classification.md)
 - [AI Transcript Revision Guide](features/ai-transcript-revision-guide.md)
 
+
+## Search & Replace (Regex)
+
+FlowScribe supports both simple literal search/replace and regular-expression-based replacements. Toggle the regex option in the search panel to use regex mode.
+
+Replacement templates support the following tokens (compatible with JavaScript-style replacements):
+
+- `$$` — Inserts a literal `$`.
+- `$&` — Inserts the entire matched substring.
+- ``$` `` — Inserts the text before the match (left context).
+- `$'` — Inserts the text after the match (right context).
+- `$1`, `$2`, ... — Inserts the corresponding numbered capture group.
+- `$<name>` — Inserts a named capture group by name (if present in the regex).
+
+Examples:
+
+- Regex search: `(\w+)-(\w+)`, replacement: `$2-$1` → swaps the two dash-separated parts. Example: `hello-world` → `world-hello`.
+- Regex search: `Order-(\d{4})-([A-Z]+)`, replacement: `$2-$1` → captures parts of an order code and reorders them. Example: `Order-2025-ABC` → `ABC-2025`.
+- Literal search: `flower` (regex off), replacement: `flower.` → adds a trailing period to exact matches of `flower`.
+
+Notes:
+
+- When using regex mode, FlowScribe matches across segment text and resolves capture groups against the full segment text so `$1`/named groups reflect the full regex result, even if the visible word is only part of that match.
+- If a numeric capture like `$10` is used and there are only 1–9 captures, the replacement logic falls back to treating `$10` as `$1` followed by the literal `0` when appropriate.
+
+For implementation details, see the `applyReplacementTemplate` logic in `client/src/components/transcript-editor/useSearchAndReplace.ts`.
+

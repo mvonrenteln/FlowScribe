@@ -26,6 +26,8 @@ export function escapeRegExp(string: string): string {
  * If isRegex is true, it attempts to parse the query as a regex.
  * If isRegex is false, it treats the query as a literal string.
  */
+import XRegExp from "xregexp";
+
 export function createSearchRegex(query: string, isRegex: boolean): RegExp | null {
   const trimmedQuery = query.trim();
   if (!trimmedQuery) return null;
@@ -43,10 +45,36 @@ export function createSearchRegex(query: string, isRegex: boolean): RegExp | nul
 
   try {
     if (isRegex) {
-      const rx = new RegExp(`(${trimmedQuery})`, "gi");
-      // Reject clear "match everything" regexes like (.*) or (.+),
-      // possibly wrapped with anchors like (^.*$) which would result in '(^.*$)'.
-      if (/^\(\^?\.([*+])\$?\)$/.test(rx.source)) return null;
+      const source = trimmedQuery;
+      const containsW = /\\[wW]/.test(source);
+
+      if (containsW) {
+        // Use XRegExp to build a Unicode-aware regex. XRegExp supports
+        // the `\p{L}` style via its addons and handles many edge cases.
+        try {
+          // Replace \w/\W with XRegExp token for Unicode letters/numbers
+          // XRegExp supports Unicode categories when using its `unicode` flag.
+          const unicodeWordClass = "[\\p{L}\\p{M}\\p{N}_]";
+          const unicodeNonWordClass = "[^\\p{L}\\p{M}\\p{N}_]";
+          const replaced = source
+            .replace(/\\w/g, unicodeWordClass)
+            .replace(/\\W/g, unicodeNonWordClass);
+
+          // Build with XRegExp so that `\p{L}` works across environments
+          const rx = XRegExp(replaced, "gi");
+          if (/^\^?\.([*+])\$?$/.test(rx.source)) return null;
+          // Convert XRegExp to native RegExp for the rest of the codebase
+          return new RegExp(rx.source, rx.flags);
+        } catch (_e) {
+          // Fall back to native behavior if XRegExp fails for any reason
+          const rx = new RegExp(trimmedQuery, "gi");
+          if (/^\^?\.([*+])\$?$/.test(rx.source)) return null;
+          return rx;
+        }
+      }
+
+      const rx = new RegExp(trimmedQuery, "gi");
+      if (/^\^?\.([*+])\$?$/.test(rx.source)) return null;
       return rx;
     }
     return new RegExp(`(${escapeRegExp(trimmedQuery)})`, "gi");

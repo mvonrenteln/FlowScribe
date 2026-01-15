@@ -158,6 +158,7 @@ export function WordList({
             currentMatch={currentMatch}
             wordRange={{ start: wordStart, end: wordEnd }}
             replaceQuery={replaceQuery}
+            segmentText={segment.text}
             onReplaceCurrent={onReplaceCurrent}
             onMatchClick={onMatchClick}
             findMatchIndex={findMatchIndex}

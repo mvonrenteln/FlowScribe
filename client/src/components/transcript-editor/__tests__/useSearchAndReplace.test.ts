@@ -1,6 +1,6 @@
 import { act, renderHook } from "@testing-library/react";
-import { describe, expect, it, vi } from "vitest";
-import type { Segment } from "@/lib/store";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { Segment } from "../../../lib/store";
 import { useSearchAndReplace } from "../useSearchAndReplace";
 
 describe("useSearchAndReplace", () => {
@@ -31,6 +31,10 @@ describe("useSearchAndReplace", () => {
       ],
     },
   ];
+
+  beforeEach(() => {
+    mockUpdateSegmentsTexts.mockClear();
+  });
 
   it("finds matches across segments", () => {
     const { result } = renderHook(() =>
@@ -95,6 +99,197 @@ describe("useSearchAndReplace", () => {
     expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
       { id: "seg-1", text: "hi world" },
       { id: "seg-2", text: "hi again" },
+    ]);
+  });
+
+  it("replaces current regex match with capture groups", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Tanzenprobe- Generalprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 0, end: 0.4 },
+          { word: "Generalprobe", start: 0.4, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "Tanzenprobe- (.*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-Probe");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "General-Probe" }]);
+  });
+
+  it("replaces all regex matches with capture groups", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Tanzenprobe- Generalprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 0, end: 0.4 },
+          { word: "Generalprobe", start: 0.4, end: 1 },
+        ],
+      },
+      {
+        id: "seg-2",
+        speaker: "B",
+        start: 2,
+        end: 3,
+        text: "Tanzenprobe- Hauptprobe",
+        words: [
+          { word: "Tanzenprobe-", start: 2, end: 2.4 },
+          { word: "Hauptprobe", start: 2.4, end: 3 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "Tanzenprobe- (.*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-Probe");
+    });
+
+    act(() => {
+      result.current.replaceAll();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
+      { id: "seg-1", text: "General-Probe" },
+      { id: "seg-2", text: "Haupt-Probe" },
+    ]);
+  });
+
+  it("handles numeric group fallback in regex replacements", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "(a)", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$10");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "a0b" }]);
+  });
+
+  it("keeps numeric tokens literal when no capture groups exist", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "a", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$10");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "$10b" }]);
+  });
+
+  it("treats missing single-digit capture as empty string", () => {
+    const regexSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "ab",
+        words: [
+          { word: "a", start: 0, end: 0.5 },
+          { word: "b", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+    const { result } = renderHook(() =>
+      useSearchAndReplace(regexSegments, mockUpdateSegmentsTexts, "(a)", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$2");
+    });
+
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    // $2 should be treated as empty string when only one capture exists
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([{ id: "seg-1", text: "b" }]);
+  });
+
+  it("matches and replaces words with umlauts using regex \n\\w class", () => {
+    const umlautSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "Fährtenleseprobe",
+        words: [{ word: "Fährtenleseprobe", start: 0, end: 1 }],
+      },
+    ];
+
+    // Use the pattern that previously failed: (\w*)probe
+    const { result } = renderHook(() =>
+      useSearchAndReplace(umlautSegments, mockUpdateSegmentsTexts, "(\\w*)probe", true),
+    );
+
+    act(() => {
+      result.current.setReplaceQuery("$1-REPL");
+    });
+
+    // Replace the first (and only) match
+    act(() => {
+      result.current.replaceCurrent();
+    });
+
+    expect(mockUpdateSegmentsTexts).toHaveBeenCalledWith([
+      { id: "seg-1", text: "Fährtenlese-REPL" },
     ]);
   });
 });

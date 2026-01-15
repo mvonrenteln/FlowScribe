@@ -76,7 +76,8 @@
     "vaul": "^1.1.2",
     "wavesurfer.js": "^7.12.1",
     "wouter": "^3.3.5",
-    "zustand": "^5.0.9"
+    "zustand": "^5.0.9",
+    "xregexp": "^5.0.1"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.3.10",
