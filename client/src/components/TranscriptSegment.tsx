@@ -45,7 +45,7 @@ interface TranscriptSegmentProps {
   readonly onMergeWithPrevious?: () => void;
   readonly onMergeWithNext?: () => void;
   readonly onDelete: () => void;
-  readonly onSeek: (time: number) => void;
+  readonly onSeek: (time: number, meta?: { source?: string }) => void;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
   readonly replaceQuery?: string;

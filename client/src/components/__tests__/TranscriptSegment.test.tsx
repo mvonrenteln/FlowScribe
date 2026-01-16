@@ -50,7 +50,7 @@ describe("TranscriptSegment", () => {
     await userEvent.click(word);
 
     expect(onSelect).toHaveBeenCalled();
-    expect(onSeek).toHaveBeenCalledWith(0);
+    expect(onSeek).toHaveBeenCalledWith(0, { source: "word_click" });
     expect(screen.getByText("Hallo")).toBeInTheDocument();
     expect(screen.getByText("Welt")).toBeInTheDocument();
   });
@@ -345,7 +345,7 @@ describe("TranscriptSegment", () => {
     const word = screen.getByTestId("word-seg-1-0");
     fireEvent.keyDown(word, { key: "Enter" });
 
-    expect(onSeek).toHaveBeenCalledWith(0);
+    expect(onSeek).toHaveBeenCalledWith(0, { source: "word_click" });
   });
 
   it("uses fallback speaker color when missing speaker data", () => {

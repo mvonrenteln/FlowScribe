@@ -159,7 +159,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
     return {
       ...initialState,
       ...createSessionSlice(set, get, storeContext),
-      ...createPlaybackSlice(set),
+      ...createPlaybackSlice(set, get),
       ...createSegmentsSlice(set, get, storeContext),
       ...createSpeakersSlice(set, get),
       ...createTagsSlice(set, get),

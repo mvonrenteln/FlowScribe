@@ -2,8 +2,7 @@ import type { Segment } from "@/lib/store/types";
 
 interface SegmentNavigatorActions {
   setSelectedSegmentId: (segmentId: string) => void;
-  setCurrentTime: (time: number) => void;
-  requestSeek: (time: number) => void;
+  seekToTime: (time: number, meta?: { source?: string }) => void;
 }
 
 export function createSegmentNavigator(
@@ -15,8 +14,7 @@ export function createSegmentNavigator(
     if (!segment) return false;
 
     actions.setSelectedSegmentId(segmentId);
-    actions.setCurrentTime(segment.start);
-    actions.requestSeek(segment.start);
+    actions.seekToTime(segment.start, { source: "ai_navigation" });
     return true;
   };
 }

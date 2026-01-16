@@ -80,8 +80,7 @@ describe("SpeakerPanel", () => {
   it("navigates to the segment when a suggestion is clicked", async () => {
     const user = userEvent.setup();
     const setSelectedSegmentId = vi.fn();
-    const setCurrentTime = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
 
     setStoreState({
       segments: baseSegments,
@@ -95,8 +94,7 @@ describe("SpeakerPanel", () => {
         },
       ],
       setSelectedSegmentId,
-      setCurrentTime,
-      requestSeek,
+      seekToTime,
     });
 
     render(<SpeakerPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
@@ -107,8 +105,7 @@ describe("SpeakerPanel", () => {
     });
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(setCurrentTime).toHaveBeenCalledWith(0);
-    expect(requestSeek).toHaveBeenCalledWith(0);
+    expect(seekToTime).toHaveBeenCalledWith(0, { source: "ai_navigation" });
   });
 
   it("shows the results section while processing even without suggestions", () => {

@@ -24,7 +24,7 @@ interface WordListProps {
   readonly replaceQuery?: string;
   readonly currentMatch?: SearchMatch;
   readonly onTextChange: (text: string) => void;
-  readonly onSeek: (time: number) => void;
+  readonly onSeek: (time: number, meta?: { source?: string }) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -66,7 +66,7 @@ export function WordList({
       if (shiftKey) {
         setSelectedWordIndex(index);
       } else {
-        onSeek(word.start);
+        onSeek(word.start, { source: "word_click" });
       }
     },
     [onSeek, setSelectedWordIndex],

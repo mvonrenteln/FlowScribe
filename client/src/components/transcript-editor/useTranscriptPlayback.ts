@@ -27,9 +27,8 @@ interface UseTranscriptPlaybackParams {
   updateSegmentSpeaker: TranscriptStore["updateSegmentSpeaker"];
   toggleTagOnSegment: TranscriptStore["toggleTagOnSegment"];
   setSelectedSegmentId: TranscriptStore["setSelectedSegmentId"];
-  setCurrentTime: TranscriptStore["setCurrentTime"];
   setIsPlaying: TranscriptStore["setIsPlaying"];
-  requestSeek: TranscriptStore["requestSeek"];
+  seekToTime: TranscriptStore["seekToTime"];
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
@@ -67,9 +66,8 @@ export const useTranscriptPlayback = ({
   updateSegmentSpeaker,
   toggleTagOnSegment,
   setSelectedSegmentId,
-  setCurrentTime,
   setIsPlaying,
-  requestSeek,
+  seekToTime,
   onShowExport,
   onShowShortcuts,
   onShowSettings,
@@ -87,27 +85,26 @@ export const useTranscriptPlayback = ({
   }, [isPlaying, setIsPlaying]);
 
   const handleSeek = useCallback(
-    (time: number) => {
-      setCurrentTime(time);
-      requestSeek(time);
+    (time: number, meta?: { source?: string }) => {
+      seekToTime(time, meta);
     },
-    [requestSeek, setCurrentTime],
+    [seekToTime],
   );
 
   const handleWaveformSeek = useCallback(
     (time: number) => {
-      setCurrentTime(time);
+      seekToTime(time, { source: "waveform" });
     },
-    [setCurrentTime],
+    [seekToTime],
   );
 
   const handleSkipBack = useCallback(() => {
-    requestSeek(Math.max(0, currentTime - 5));
-  }, [currentTime, requestSeek]);
+    seekToTime(currentTime - 5);
+  }, [currentTime, seekToTime]);
 
   const handleSkipForward = useCallback(() => {
-    requestSeek(Math.min(duration, currentTime + 5));
-  }, [currentTime, duration, requestSeek]);
+    seekToTime(currentTime + 5);
+  }, [currentTime, seekToTime]);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -135,7 +132,7 @@ export const useTranscriptPlayback = ({
     confirmSegment,
     deleteSegment,
     setEditRequestId: (id) => setEditRequestId(id),
-    requestSeek,
+    seekToTime,
     setIsPlaying,
     handleSplitAtCurrentWord,
     canUndo,

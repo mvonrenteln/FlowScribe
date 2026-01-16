@@ -258,7 +258,7 @@ describe("useScrollAndSelection", () => {
 
   it("seeks to the next filtered segment during restricted playback", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
 
     renderHook(() =>
@@ -273,13 +273,13 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: true,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       }),
     );
 
     await waitFor(() => {
-      expect(requestSeek).toHaveBeenCalledWith(2);
+      expect(seekToTime).toHaveBeenCalledWith(2, { source: "restrict_playback" });
       expect(setSelectedSegmentId).toHaveBeenCalledWith("segment-2");
     });
     expect(setIsPlaying).not.toHaveBeenCalled();
@@ -287,7 +287,7 @@ describe("useScrollAndSelection", () => {
 
   it("keeps the active segment selected when visible", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
     const activeSegment = segments[0];
 
@@ -303,7 +303,7 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: false,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       }),
     );
@@ -315,7 +315,7 @@ describe("useScrollAndSelection", () => {
 
   it("scrolls to the active segment when selection is stale", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
@@ -339,7 +339,7 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: false,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       },
     });
@@ -368,7 +368,7 @@ describe("useScrollAndSelection", () => {
       restrictPlaybackToFiltered: false,
       lowConfidenceThreshold: 0.2,
       setSelectedSegmentId,
-      requestSeek,
+      seekToTime,
       setIsPlaying,
     });
 
@@ -383,7 +383,7 @@ describe("useScrollAndSelection", () => {
 
   it("scrolls during playback even if visibility check is strict", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
@@ -408,7 +408,7 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: false,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       },
     });
@@ -449,7 +449,7 @@ describe("useScrollAndSelection", () => {
       restrictPlaybackToFiltered: false,
       lowConfidenceThreshold: 0.2,
       setSelectedSegmentId,
-      requestSeek,
+      seekToTime,
       setIsPlaying,
     });
 
@@ -463,7 +463,7 @@ describe("useScrollAndSelection", () => {
 
   it("scrolls to the next segment when in a silent gap during playback", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
@@ -488,7 +488,7 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: false,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       },
     });
@@ -515,7 +515,7 @@ describe("useScrollAndSelection", () => {
       restrictPlaybackToFiltered: false,
       lowConfidenceThreshold: 0.2,
       setSelectedSegmentId,
-      requestSeek,
+      seekToTime,
       setIsPlaying,
     });
 
@@ -530,7 +530,7 @@ describe("useScrollAndSelection", () => {
 
   it("forces a jump (auto) scroll when a significant time seek is detected", async () => {
     const setSelectedSegmentId = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
     const setIsPlaying = vi.fn();
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
@@ -555,7 +555,7 @@ describe("useScrollAndSelection", () => {
         restrictPlaybackToFiltered: false,
         lowConfidenceThreshold: 0.2,
         setSelectedSegmentId,
-        requestSeek,
+        seekToTime,
         setIsPlaying,
       },
     });
@@ -598,7 +598,7 @@ describe("useScrollAndSelection", () => {
       restrictPlaybackToFiltered: false,
       lowConfidenceThreshold: 0.2,
       setSelectedSegmentId,
-      requestSeek,
+      seekToTime,
       setIsPlaying,
     });
 

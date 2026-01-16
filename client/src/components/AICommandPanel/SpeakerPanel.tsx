@@ -53,8 +53,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
   const setActivePrompt = useTranscriptStore((s) => s.setActivePrompt);
 
   const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
-  const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
-  const requestSeek = useTranscriptStore((s) => s.requestSeek);
+  const seekToTime = useTranscriptStore((s) => s.seekToTime);
 
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
@@ -80,10 +79,9 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
     () =>
       createSegmentNavigator(segmentById, {
         setSelectedSegmentId,
-        setCurrentTime,
-        requestSeek,
+        seekToTime,
       }),
-    [segmentById, setSelectedSegmentId, setCurrentTime, requestSeek],
+    [segmentById, setSelectedSegmentId, seekToTime],
   );
 
   const handleStartAnalysis = () => {

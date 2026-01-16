@@ -61,8 +61,7 @@ describe("RevisionPanel", () => {
   it("navigates to the segment when a revision result is clicked", async () => {
     const user = userEvent.setup();
     const setSelectedSegmentId = vi.fn();
-    const setCurrentTime = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
 
     setStoreState({
       segments: baseSegments,
@@ -77,8 +76,7 @@ describe("RevisionPanel", () => {
         },
       ],
       setSelectedSegmentId,
-      setCurrentTime,
-      requestSeek,
+      seekToTime,
     });
 
     render(<RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
@@ -89,7 +87,6 @@ describe("RevisionPanel", () => {
     });
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(setCurrentTime).toHaveBeenCalledWith(2.5);
-    expect(requestSeek).toHaveBeenCalledWith(2.5);
+    expect(seekToTime).toHaveBeenCalledWith(2.5, { source: "ai_navigation" });
   });
 });

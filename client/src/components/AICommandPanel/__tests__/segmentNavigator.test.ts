@@ -17,36 +17,30 @@ describe("createSegmentNavigator", () => {
   it("navigates to a known segment", () => {
     const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
     const setSelectedSegmentId = vi.fn();
-    const setCurrentTime = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
 
     const navigate = createSegmentNavigator(segmentById, {
       setSelectedSegmentId,
-      setCurrentTime,
-      requestSeek,
+      seekToTime,
     });
 
     expect(navigate("seg-1")).toBe(true);
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(setCurrentTime).toHaveBeenCalledWith(12.5);
-    expect(requestSeek).toHaveBeenCalledWith(12.5);
+    expect(seekToTime).toHaveBeenCalledWith(12.5, { source: "ai_navigation" });
   });
 
   it("returns false when the segment is missing", () => {
     const segmentById = new Map(segments.map((segment) => [segment.id, segment]));
     const setSelectedSegmentId = vi.fn();
-    const setCurrentTime = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
 
     const navigate = createSegmentNavigator(segmentById, {
       setSelectedSegmentId,
-      setCurrentTime,
-      requestSeek,
+      seekToTime,
     });
 
     expect(navigate("missing")).toBe(false);
     expect(setSelectedSegmentId).not.toHaveBeenCalled();
-    expect(setCurrentTime).not.toHaveBeenCalled();
-    expect(requestSeek).not.toHaveBeenCalled();
+    expect(seekToTime).not.toHaveBeenCalled();
   });
 });

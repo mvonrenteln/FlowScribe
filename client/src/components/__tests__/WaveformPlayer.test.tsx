@@ -97,6 +97,7 @@ describe("WaveformPlayer", () => {
   beforeEach(() => {
     waveSurferMock.handlers.clear();
     vi.clearAllMocks();
+    waveSurferMock.instance.getCurrentTime = vi.fn(() => 0);
     useTranscriptStore.setState({ seekRequestTime: null });
   });
 
@@ -230,8 +231,8 @@ describe("WaveformPlayer", () => {
       waveSurferMock.handlers.get("interaction")?.(18);
     });
 
-    expect(onSeek).toHaveBeenCalledWith(12);
-    expect(onSeek).toHaveBeenCalledWith(18);
+    expect(onSeek).toHaveBeenCalledWith(12, { source: "waveform" });
+    expect(onSeek).toHaveBeenCalledWith(18, { source: "waveform" });
   });
 
   it("handles seek requests from the store", async () => {
@@ -250,6 +251,50 @@ describe("WaveformPlayer", () => {
     });
 
     expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+  });
+
+  it("clears seek requests when already at the requested time", async () => {
+    waveSurferMock.instance.getCurrentTime = vi.fn(() => 80);
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    act(() => {
+      useTranscriptStore.setState({ seekRequestTime: 80 });
+    });
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+    });
+
+    expect(waveSurferMock.instance.setTime).not.toHaveBeenCalled();
+  });
+
+  it("ignores waveform seek events triggered by a programmatic seek", async () => {
+    const onSeek = vi.fn();
+    render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" onSeek={onSeek} />);
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    act(() => {
+      useTranscriptStore.setState({ seekRequestTime: 40 });
+    });
+
+    await waitFor(() => {
+      expect(waveSurferMock.instance.setTime).toHaveBeenCalledWith(40);
+    });
+
+    act(() => {
+      waveSurferMock.handlers.get("seeking")?.(40);
+      waveSurferMock.handlers.get("interaction")?.(41);
+    });
+
+    expect(onSeek).toHaveBeenCalledWith(41, { source: "waveform" });
+    expect(onSeek).not.toHaveBeenCalledWith(40, expect.anything());
   });
 
   it("updates playback rate when ready", async () => {

@@ -223,6 +223,7 @@ export interface PlaybackSlice {
   setDuration: (duration: number) => void;
   requestSeek: (time: number) => void;
   clearSeekRequest: () => void;
+  seekToTime: (time: number, meta?: { source?: string }) => void;
 }
 
 export interface HistorySlice {

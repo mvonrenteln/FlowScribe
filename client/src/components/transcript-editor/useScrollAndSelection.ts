@@ -13,7 +13,7 @@ interface UseScrollAndSelectionOptions {
   restrictPlaybackToFiltered: boolean;
   lowConfidenceThreshold: number | null;
   setSelectedSegmentId: (id: string | null) => void;
-  requestSeek: (time: number) => void;
+  seekToTime: (time: number, meta?: { source?: string }) => void;
   setIsPlaying: (value: boolean) => void;
 }
 
@@ -28,7 +28,7 @@ export function useScrollAndSelection({
   restrictPlaybackToFiltered,
   lowConfidenceThreshold,
   setSelectedSegmentId,
-  requestSeek,
+  seekToTime,
   setIsPlaying,
 }: UseScrollAndSelectionOptions) {
   const transcriptListRef = useRef<HTMLDivElement>(null);
@@ -266,7 +266,7 @@ export function useScrollAndSelection({
     const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
     if (nextSegment) {
       setSelectedSegmentId(nextSegment.id);
-      requestSeek(nextSegment.start);
+      seekToTime(nextSegment.start, { source: "restrict_playback" });
       return;
     }
     setIsPlaying(false);
@@ -278,7 +278,7 @@ export function useScrollAndSelection({
     isTranscriptEditing,
     lowConfidenceThreshold,
     restrictPlaybackToFiltered,
-    requestSeek,
+    seekToTime,
     setIsPlaying,
     setSelectedSegmentId,
   ]);
