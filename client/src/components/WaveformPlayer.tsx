@@ -160,8 +160,16 @@ export function WaveformPlayer({
     setIsReady(false);
     initialSeekAppliedRef.current = false;
 
-    const regions = RegionsPlugin.create();
-    regionsRef.current = regions;
+    // DEV-only: allow disabling regions to run perf A/B tests
+    const devDisableRegions =
+      import.meta.env.DEV && (globalThis as any).__DEV_DISABLE_REGIONS === true;
+    let regions: RegionsPlugin | null = null;
+    if (!devDisableRegions) {
+      regions = RegionsPlugin.create();
+      regionsRef.current = regions;
+    } else {
+      regionsRef.current = null;
+    }
     const colors = getWaveColors();
     const ws = WaveSurfer.create({
       container: containerRef.current,
@@ -176,7 +184,7 @@ export function WaveformPlayer({
       minPxPerSec: 100,
       hideScrollbar: true,
       autoCenter: false,
-      plugins: [regions],
+      plugins: regions ? [regions] : [],
     });
 
     wavesurferRef.current = ws;
@@ -270,44 +278,7 @@ export function WaveformPlayer({
     return () => observer.disconnect();
   }, [applyWaveColors]);
 
-  useEffect(() => {
-    const regions = regionsRef.current;
-    if (!regions || !isReady) return;
 
-    regions.clearRegions();
-
-    if (!showSpeakerRegions) return;
-
-    segments.forEach((segment) => {
-      const color = getSpeakerColor(segment.speaker);
-      const region = regions.addRegion({
-        id: segment.id,
-        start: segment.start,
-        end: segment.end,
-        color: withAlpha(color, 0.2),
-        drag: false,
-        resize: true,
-      });
-
-      if (region.element) {
-        region.element.classList.add("ws-region");
-        region.element.style.border = "0";
-        region.element.style.boxShadow = "none";
-        region.element.style.outline = "none";
-        region.element.style.borderLeft = "0";
-        region.element.style.borderRight = "0";
-        region.element.querySelectorAll(".wavesurfer-handle").forEach((handle) => {
-          (handle as HTMLElement).style.background = "transparent";
-        });
-      }
-
-      region.on("update-end", () => {
-        if (onSegmentBoundaryChange) {
-          onSegmentBoundaryChange(segment.id, region.start, region.end);
-        }
-      });
-    });
-  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange, withAlpha]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;

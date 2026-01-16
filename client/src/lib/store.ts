@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
+import { mark } from "@/lib/logging";
 import {
   buildRecentSessions,
   canUseLocalStorage,
@@ -176,9 +177,25 @@ export const useTranscriptStore = create<TranscriptStore>()(
 );
 
 if (canUseLocalStorage()) {
+  let __storeSubscriptionCount = 0;
   useTranscriptStore.subscribe(
     (state) => state,
     (state) => {
+      __storeSubscriptionCount += 1;
+      if (__storeSubscriptionCount % 100 === 0) {
+        mark("store-subscription-bulk", { count: __storeSubscriptionCount });
+      }
+      // DEV-only: allow temporarily disabling persistence to run A/B perf tests.
+      // Set `window.__DEV_DISABLE_PERSISTENCE = true` in the browser console to disable.
+      if (import.meta.env.DEV) {
+        try {
+          // global flag checked on each subscription fire; default is false.
+          const devDisabled = (globalThis as any).__DEV_DISABLE_PERSISTENCE === true;
+          if (devDisabled) return;
+        } catch (e) {
+          // ignore safety errors in exotic environments
+        }
+      }
       if (!storeContext) return;
       const sessionKey = state.sessionKey;
       const sessionsCache = storeContext.getSessionsCache();

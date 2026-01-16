@@ -2,6 +2,7 @@ import { Check, Sparkles, X } from "lucide-react";
 import { memo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { mark } from "@/lib/logging";
 import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
@@ -126,6 +127,18 @@ function TranscriptSegmentComponent({
   onRejectSpeakerSuggestion,
 }: TranscriptSegmentProps) {
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  if (import.meta.env.DEV) {
+    try {
+      const key = `render-segment-${segment.id}`;
+      const w = window as Window & { __renderCounts?: Record<string, number> };
+      w.__renderCounts = w.__renderCounts || {};
+      w.__renderCounts[key] = (w.__renderCounts[key] || 0) + 1;
+      // mark every 50 renders for visibility
+      if (w.__renderCounts[key] % 50 === 0) {
+        mark("segment-render", { segmentId: segment.id, count: w.__renderCounts[key] });
+      }
+    } catch {}
+  }
   const [spellcheckExpandedIndex, setSpellcheckExpandedIndex] = useState<number | null>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
 

@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { mark, time } from "@/lib/logging";
 import type { Segment } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
 import { isElementVisible } from "./visibility";
@@ -89,6 +90,7 @@ export function useScrollAndSelection({
   const lastTargetIdRef = useRef<string | null>(null);
   const lastTimeRef = useRef(currentTime);
   const lastIsPlayingRef = useRef(isPlaying);
+  const lastVisibilityCheckRef = useRef<number>(0);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -127,8 +129,14 @@ export function useScrollAndSelection({
       }
 
       lastScrollRef.current = { id: segmentId, at: now };
+      mark("scroll-effect-start", { segmentId, behavior: options.behavior });
       requestAnimationFrame(() => {
-        targetElement.scrollIntoView({ block: options.block, behavior: options.behavior });
+        time(
+          "scroll-effect",
+          () => targetElement.scrollIntoView({ block: options.block, behavior: options.behavior }),
+          { segmentId, behavior: options.behavior },
+        );
+        mark("scroll-effect-end", { segmentId, behavior: options.behavior });
       });
     },
     [],
@@ -136,6 +144,17 @@ export function useScrollAndSelection({
 
   useEffect(() => {
     if (isTranscriptEditing()) return;
+
+    // Throttle heavy scroll/visibility checks during playback to at most ~4Hz
+    const nowMs = Date.now();
+    const isThrottledCheck = isPlaying && nowMs - lastVisibilityCheckRef.current < 250;
+    if (isThrottledCheck) {
+      // Only update tracked time and exit early; this avoids DOM queries 60x/sec
+      lastTimeRef.current = currentTime;
+      lastIsPlayingRef.current = isPlaying;
+      return;
+    }
+    lastVisibilityCheckRef.current = nowMs;
 
     const now = Date.now();
     const isInteracting = now - lastInteractionTimeRef.current < 2000;

@@ -1,3 +1,5 @@
+export * from "./loggingService";
+export * from "./perfMonitor";
 /**
  * Public logging exports for the application
  */

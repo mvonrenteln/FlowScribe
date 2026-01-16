@@ -159,6 +159,8 @@ export const useSegmentSelection = ({
   }, [activeSegment, currentTime]);
 
   const segmentHandlers = useMemo(() => {
+    // Defensive: ensure handlerCacheRef.current is initialized (HMR/dev can cause transient undefined)
+    if (!handlerCacheRef.current) handlerCacheRef.current = new Map<string, SegmentHandlers>();
     const currentIds = new Set(segments.map((s) => s.id));
     for (const id of Array.from(handlerCacheRef.current.keys())) {
       if (!currentIds.has(id)) {
