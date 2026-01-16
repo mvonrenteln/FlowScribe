@@ -61,8 +61,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const clearRevisions = useTranscriptStore((s) => s.clearRevisions);
   const updateRevisionConfig = useTranscriptStore((s) => s.updateRevisionConfig);
   const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
-  const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
-  const requestSeek = useTranscriptStore((s) => s.requestSeek);
+  const seekToTime = useTranscriptStore((s) => s.seekToTime);
 
   const { settings, selectedProviderId, selectedModel, selectProvider, setSelectedModel } =
     useAiSettingsSelection({
@@ -92,10 +91,9 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
     () =>
       createSegmentNavigator(segmentById, {
         setSelectedSegmentId,
-        setCurrentTime,
-        requestSeek,
+        seekToTime,
       }),
-    [segmentById, setSelectedSegmentId, setCurrentTime, requestSeek],
+    [segmentById, setSelectedSegmentId, seekToTime],
   );
 
   const handleStart = () => {

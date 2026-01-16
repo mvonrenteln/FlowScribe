@@ -3,6 +3,7 @@ import { memo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
+import type { SeekMeta } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
 import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 import { SegmentActions } from "./transcript-segment/SegmentActions";
@@ -45,7 +46,7 @@ interface TranscriptSegmentProps {
   readonly onMergeWithPrevious?: () => void;
   readonly onMergeWithNext?: () => void;
   readonly onDelete: () => void;
-  readonly onSeek: (time: number) => void;
+  readonly onSeek: (time: number, meta: SeekMeta) => void;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
   readonly replaceQuery?: string;

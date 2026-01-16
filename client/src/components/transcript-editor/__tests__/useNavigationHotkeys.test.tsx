@@ -18,7 +18,7 @@ describe("useNavigationHotkeys", () => {
   const confirmSegment = vi.fn();
   const deleteSegment = vi.fn();
   const setEditRequestId = vi.fn();
-  const requestSeek = vi.fn();
+  const seekToTime = vi.fn();
   const setIsPlaying = vi.fn();
   const handleSplitAtCurrentWord = vi.fn();
   const selectPreviousSegment = vi.fn();
@@ -53,7 +53,7 @@ describe("useNavigationHotkeys", () => {
     confirmSegment,
     deleteSegment,
     setEditRequestId,
-    requestSeek,
+    seekToTime,
     setIsPlaying,
     handleSplitAtCurrentWord,
     canUndo: () => true,
@@ -139,6 +139,13 @@ describe("useNavigationHotkeys", () => {
     const event = new KeyboardEvent("keydown", { key: " ", bubbles: true });
     window.dispatchEvent(event);
     expect(handlePlayPause).toHaveBeenCalled();
+  });
+
+  it("seeks and plays from the selected segment on enter", () => {
+    renderHook(() => useNavigationHotkeys(baseOptions));
+    hotkeyHandlers.get("enter")?.(new KeyboardEvent("keydown", { key: "Enter" }));
+    expect(seekToTime).toHaveBeenCalledWith(0, { source: "hotkey", action: "jump" });
+    expect(setIsPlaying).toHaveBeenCalledWith(true);
   });
 
   it("ignores hotkeys while editing", () => {

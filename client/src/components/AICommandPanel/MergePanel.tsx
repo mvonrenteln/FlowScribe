@@ -51,8 +51,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
   const setActiveSegmentMergePrompt = useTranscriptStore((s) => s.setActiveSegmentMergePrompt);
 
   const setSelectedSegmentId = useTranscriptStore((s) => s.setSelectedSegmentId);
-  const setCurrentTime = useTranscriptStore((s) => s.setCurrentTime);
-  const requestSeek = useTranscriptStore((s) => s.requestSeek);
+  const seekToTime = useTranscriptStore((s) => s.seekToTime);
 
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState(config.batchSize.toString());
@@ -114,10 +113,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
     () =>
       createSegmentNavigator(segmentById, {
         setSelectedSegmentId,
-        setCurrentTime,
-        requestSeek,
+        seekToTime,
       }),
-    [segmentById, setSelectedSegmentId, setCurrentTime, requestSeek],
+    [segmentById, setSelectedSegmentId, seekToTime],
   );
 
   const handleStart = () => {

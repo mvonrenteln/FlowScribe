@@ -18,7 +18,7 @@ interface WaveformPlayerProps {
   onTimeUpdate: (time: number) => void;
   onPlayPause: (playing: boolean) => void;
   onDurationChange: (duration: number) => void;
-  onSeek: (time: number) => void;
+  onSeek: (time: number, meta?: { source?: "waveform" | "programmatic" | "unknown" }) => void;
   onSegmentBoundaryChange?: (segmentId: string, start: number, end: number) => void;
   onReady?: () => void;
 }
@@ -230,7 +230,7 @@ export function WaveformPlayer({
 
     const handleSeekEvent = (time?: number) => {
       const nextTime = typeof time === "number" ? time : ws.getCurrentTime();
-      onSeek(nextTime);
+      onSeek(nextTime, { source: "waveform" });
     };
 
     ws.on("seeking", handleSeekEvent);
@@ -332,6 +332,10 @@ export function WaveformPlayer({
     const duration = ws.getDuration();
     if (!Number.isFinite(duration) || duration <= 0) return;
     const time = Math.max(0, Math.min(duration, seekRequestTime));
+    if (Math.abs(ws.getCurrentTime() - time) <= 0.02) {
+      clearSeekRequest();
+      return;
+    }
     ws.setTime(time);
     clearSeekRequest();
   }, [seekRequestTime, isReady, clearSeekRequest]);

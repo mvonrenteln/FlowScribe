@@ -1,6 +1,7 @@
 import type { Dispatch, SetStateAction } from "react";
 import { useCallback } from "react";
 import type { SearchMatch, Segment, Word } from "@/lib/store";
+import type { SeekMeta } from "@/lib/store/types";
 import { TranscriptWord } from "../TranscriptWord";
 import { buildReplacementText, getHyphenTarget } from "./lexiconActions";
 
@@ -24,7 +25,7 @@ interface WordListProps {
   readonly replaceQuery?: string;
   readonly currentMatch?: SearchMatch;
   readonly onTextChange: (text: string) => void;
-  readonly onSeek: (time: number) => void;
+  readonly onSeek: (time: number, meta: SeekMeta) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -66,7 +67,7 @@ export function WordList({
       if (shiftKey) {
         setSelectedWordIndex(index);
       } else {
-        onSeek(word.start);
+        onSeek(word.start, { source: "transcript", action: "word_click" });
       }
     },
     [onSeek, setSelectedWordIndex],

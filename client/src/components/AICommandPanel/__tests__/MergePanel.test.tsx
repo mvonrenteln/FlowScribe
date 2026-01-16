@@ -157,8 +157,7 @@ describe("MergePanel", () => {
   it("navigates to the segment when a merge suggestion is clicked", async () => {
     const user = userEvent.setup();
     const setSelectedSegmentId = vi.fn();
-    const setCurrentTime = vi.fn();
-    const requestSeek = vi.fn();
+    const seekToTime = vi.fn();
 
     setStoreState({
       segments: baseSegments,
@@ -177,8 +176,7 @@ describe("MergePanel", () => {
         },
       ],
       setSelectedSegmentId,
-      setCurrentTime,
-      requestSeek,
+      seekToTime,
     });
 
     render(<MergePanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
@@ -189,7 +187,6 @@ describe("MergePanel", () => {
     });
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(setCurrentTime).toHaveBeenCalledWith(0);
-    expect(requestSeek).toHaveBeenCalledWith(0);
+    expect(seekToTime).toHaveBeenCalledWith(0, { source: "ai", action: "jump" });
   });
 });

@@ -10,8 +10,7 @@ vi.mock("../useNavigationHotkeys", () => ({
 
 describe("useTranscriptPlayback", () => {
   const setIsPlaying = vi.fn();
-  const setCurrentTime = vi.fn();
-  const requestSeek = vi.fn();
+  const seekToTime = vi.fn();
   const setSelectedSegmentId = vi.fn();
   const setEditRequestId = vi.fn();
   const segments = [
@@ -22,8 +21,7 @@ describe("useTranscriptPlayback", () => {
   beforeEach(() => {
     useNavigationHotkeysMock.mockReset();
     setIsPlaying.mockReset();
-    setCurrentTime.mockReset();
-    requestSeek.mockReset();
+    seekToTime.mockReset();
     setSelectedSegmentId.mockReset();
     setEditRequestId.mockReset();
   });
@@ -51,9 +49,8 @@ describe("useTranscriptPlayback", () => {
     deleteSegment: vi.fn(),
     updateSegmentSpeaker: vi.fn(),
     setSelectedSegmentId,
-    setCurrentTime,
     setIsPlaying,
-    requestSeek,
+    seekToTime,
     onShowExport: vi.fn(),
     onShowShortcuts: vi.fn(),
     onShowSettings: vi.fn(),
@@ -89,19 +86,17 @@ describe("useTranscriptPlayback", () => {
       result.current.handleSeekInternal(12.5);
     });
 
-    expect(setCurrentTime).toHaveBeenCalledWith(12.5);
-    expect(requestSeek).toHaveBeenCalledWith(12.5);
+    expect(seekToTime).toHaveBeenCalledWith(12.5, { source: "transcript", action: "controls" });
   });
 
-  it("does not request seek when waveform reports a seek", () => {
+  it("forwards waveform seeks through the shared handler", () => {
     const { result } = renderHook(() => useTranscriptPlayback(defaultParams));
 
     act(() => {
       result.current.handleWaveformSeek(7);
     });
 
-    expect(setCurrentTime).toHaveBeenCalledWith(7);
-    expect(requestSeek).not.toHaveBeenCalled();
+    expect(seekToTime).toHaveBeenCalledWith(7, { source: "waveform" });
   });
 
   it("wires hotkeys with the provided callbacks", () => {
