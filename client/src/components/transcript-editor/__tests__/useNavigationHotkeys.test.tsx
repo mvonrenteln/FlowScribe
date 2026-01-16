@@ -144,7 +144,7 @@ describe("useNavigationHotkeys", () => {
   it("seeks and plays from the selected segment on enter", () => {
     renderHook(() => useNavigationHotkeys(baseOptions));
     hotkeyHandlers.get("enter")?.(new KeyboardEvent("keydown", { key: "Enter" }));
-    expect(seekToTime).toHaveBeenCalledWith(0);
+    expect(seekToTime).toHaveBeenCalledWith(0, { source: "hotkey", action: "jump" });
     expect(setIsPlaying).toHaveBeenCalledWith(true);
   });
 

@@ -5,6 +5,10 @@ type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 export const createPlaybackSlice = (set: StoreSetter, get: StoreGetter): PlaybackSlice => ({
+  updatePlaybackTime: (time) => {
+    if (!Number.isFinite(time)) return;
+    set({ currentTime: time });
+  },
   setCurrentTime: (time) => set({ currentTime: time }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
   setDuration: (duration) => set({ duration }),
@@ -15,13 +19,12 @@ export const createPlaybackSlice = (set: StoreSetter, get: StoreGetter): Playbac
     const { duration, currentTime, seekRequestTime } = get();
     const maxTime = Number.isFinite(duration) && duration > 0 ? duration : null;
     const clampedTime = maxTime === null ? Math.max(0, time) : Math.max(0, Math.min(maxTime, time));
-    const isWaveformSource = meta?.source === "waveform";
 
     if (Math.abs(currentTime - clampedTime) <= 0.001 && seekRequestTime === null) {
       return;
     }
 
-    if (isWaveformSource) {
+    if (meta.source === "waveform") {
       set({ currentTime: clampedTime });
       return;
     }

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import type { Segment } from "@/lib/store";
+import type { SeekMeta } from "@/lib/store/types";
 import { isElementVisible } from "./visibility";
 
 interface UseScrollAndSelectionOptions {
@@ -13,7 +14,7 @@ interface UseScrollAndSelectionOptions {
   restrictPlaybackToFiltered: boolean;
   lowConfidenceThreshold: number | null;
   setSelectedSegmentId: (id: string | null) => void;
-  seekToTime: (time: number, meta?: { source?: string }) => void;
+  seekToTime: (time: number, meta: SeekMeta) => void;
   setIsPlaying: (value: boolean) => void;
 }
 
@@ -266,7 +267,7 @@ export function useScrollAndSelection({
     const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
     if (nextSegment) {
       setSelectedSegmentId(nextSegment.id);
-      seekToTime(nextSegment.start, { source: "restrict_playback" });
+      seekToTime(nextSegment.start, { source: "system", action: "restrict_playback" });
       return;
     }
     setIsPlaying(false);

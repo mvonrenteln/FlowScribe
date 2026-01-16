@@ -105,7 +105,7 @@ describe("SpeakerPanel", () => {
     });
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(seekToTime).toHaveBeenCalledWith(0, { source: "ai_navigation" });
+    expect(seekToTime).toHaveBeenCalledWith(0, { source: "ai", action: "jump" });
   });
 
   it("shows the results section while processing even without suggestions", () => {

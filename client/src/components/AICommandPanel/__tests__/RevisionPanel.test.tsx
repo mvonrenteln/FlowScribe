@@ -87,6 +87,6 @@ describe("RevisionPanel", () => {
     });
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(seekToTime).toHaveBeenCalledWith(2.5, { source: "ai_navigation" });
+    expect(seekToTime).toHaveBeenCalledWith(2.5, { source: "ai", action: "jump" });
   });
 });

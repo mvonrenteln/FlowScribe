@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useRef } from "react";
 import { useTranscriptStore } from "@/lib/store";
-import type { Segment, TranscriptStore } from "@/lib/store/types";
+import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { useScrollAndSelection } from "./useScrollAndSelection";
 
 export interface SegmentHandlers {
@@ -25,7 +25,7 @@ interface UseSegmentSelectionParams {
   setSelectedSegmentId: TranscriptStore["setSelectedSegmentId"];
   setCurrentTime: TranscriptStore["setCurrentTime"];
   setIsPlaying: TranscriptStore["setIsPlaying"];
-  seekToTime: TranscriptStore["seekToTime"];
+  seekToTime: (time: number, meta: SeekMeta) => void;
   clearSeekRequest: TranscriptStore["clearSeekRequest"];
   splitSegment: TranscriptStore["splitSegment"];
   confirmSegment: TranscriptStore["confirmSegment"];
@@ -91,11 +91,11 @@ export const useSegmentSelection = ({
     if (currentIndex > 0) {
       const segment = filteredSegments[currentIndex - 1];
       setSelectedSegmentId(segment.id);
-      seekToTime(segment.start, { source: "segment_nav" });
+      seekToTime(segment.start, { source: "hotkey", action: "arrow" });
     } else if (currentIndex === -1 && filteredSegments.length > 0) {
       const segment = filteredSegments[filteredSegments.length - 1];
       setSelectedSegmentId(segment.id);
-      seekToTime(segment.start, { source: "segment_nav" });
+      seekToTime(segment.start, { source: "hotkey", action: "arrow" });
     }
   }, [filteredSegments, getSelectedSegmentIndex, seekToTime, setSelectedSegmentId]);
 
@@ -104,11 +104,11 @@ export const useSegmentSelection = ({
     if (currentIndex < filteredSegments.length - 1) {
       const segment = filteredSegments[currentIndex + 1];
       setSelectedSegmentId(segment.id);
-      seekToTime(segment.start, { source: "segment_nav" });
+      seekToTime(segment.start, { source: "hotkey", action: "arrow" });
     } else if (currentIndex === -1 && filteredSegments.length > 0) {
       const segment = filteredSegments[0];
       setSelectedSegmentId(segment.id);
-      seekToTime(segment.start, { source: "segment_nav" });
+      seekToTime(segment.start, { source: "hotkey", action: "arrow" });
     }
   }, [filteredSegments, getSelectedSegmentIndex, seekToTime, setSelectedSegmentId]);
 
@@ -187,7 +187,7 @@ export const useSegmentSelection = ({
             const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
             if (current) {
               setSelectedSegmentId(current.id);
-              seekToTime(current.start, { source: "segment_click" });
+              seekToTime(current.start, { source: "transcript", action: "segment_click" });
             }
           },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),

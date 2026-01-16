@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import type { Segment, Speaker, Tag, TranscriptStore } from "@/lib/store/types";
+import type { SeekMeta, Segment, Speaker, Tag, TranscriptStore } from "@/lib/store/types";
 import { useNavigationHotkeys } from "./useNavigationHotkeys";
 
 interface UseTranscriptPlaybackParams {
@@ -85,8 +85,8 @@ export const useTranscriptPlayback = ({
   }, [isPlaying, setIsPlaying]);
 
   const handleSeek = useCallback(
-    (time: number, meta?: { source?: string }) => {
-      seekToTime(time, meta);
+    (time: number, meta?: SeekMeta) => {
+      seekToTime(time, meta ?? { source: "transcript", action: "controls" });
     },
     [seekToTime],
   );
@@ -99,11 +99,11 @@ export const useTranscriptPlayback = ({
   );
 
   const handleSkipBack = useCallback(() => {
-    seekToTime(currentTime - 5);
+    seekToTime(currentTime - 5, { source: "transcript", action: "controls" });
   }, [currentTime, seekToTime]);
 
   const handleSkipForward = useCallback(() => {
-    seekToTime(currentTime + 5);
+    seekToTime(currentTime + 5, { source: "transcript", action: "controls" });
   }, [currentTime, seekToTime]);
 
   const getSelectedSegmentIndex = useCallback(() => {

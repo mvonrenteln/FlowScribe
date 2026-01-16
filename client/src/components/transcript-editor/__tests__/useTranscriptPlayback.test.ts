@@ -86,7 +86,7 @@ describe("useTranscriptPlayback", () => {
       result.current.handleSeekInternal(12.5);
     });
 
-    expect(seekToTime).toHaveBeenCalledWith(12.5, undefined);
+    expect(seekToTime).toHaveBeenCalledWith(12.5, { source: "transcript", action: "controls" });
   });
 
   it("forwards waveform seeks through the shared handler", () => {

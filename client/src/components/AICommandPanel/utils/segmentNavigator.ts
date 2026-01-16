@@ -1,8 +1,8 @@
-import type { Segment } from "@/lib/store/types";
+import type { SeekMeta, Segment } from "@/lib/store/types";
 
 interface SegmentNavigatorActions {
   setSelectedSegmentId: (segmentId: string) => void;
-  seekToTime: (time: number, meta?: { source?: string }) => void;
+  seekToTime: (time: number, meta: SeekMeta) => void;
 }
 
 export function createSegmentNavigator(
@@ -14,7 +14,7 @@ export function createSegmentNavigator(
     if (!segment) return false;
 
     actions.setSelectedSegmentId(segmentId);
-    actions.seekToTime(segment.start, { source: "ai_navigation" });
+    actions.seekToTime(segment.start, { source: "ai", action: "jump" });
     return true;
   };
 }

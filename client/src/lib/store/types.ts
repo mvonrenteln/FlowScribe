@@ -218,13 +218,21 @@ export interface SessionSlice {
 }
 
 export interface PlaybackSlice {
+  updatePlaybackTime: (time: number) => void;
   setCurrentTime: (time: number) => void;
   setIsPlaying: (playing: boolean) => void;
   setDuration: (duration: number) => void;
   requestSeek: (time: number) => void;
   clearSeekRequest: () => void;
-  seekToTime: (time: number, meta?: { source?: string }) => void;
+  seekToTime: (time: number, meta: SeekMeta) => void;
 }
+
+export type SeekMeta =
+  | { source: "waveform" }
+  | { source: "transcript"; action: "segment_click" | "word_click" | "controls" }
+  | { source: "hotkey"; action: "arrow" | "jump" }
+  | { source: "ai"; action: "jump" | "focus" }
+  | { source: "system"; action: "restore_session" | "load" | "restrict_playback" };
 
 export interface HistorySlice {
   undo: () => void;

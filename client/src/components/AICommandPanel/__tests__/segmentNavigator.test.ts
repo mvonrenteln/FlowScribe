@@ -26,7 +26,7 @@ describe("createSegmentNavigator", () => {
 
     expect(navigate("seg-1")).toBe(true);
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
-    expect(seekToTime).toHaveBeenCalledWith(12.5, { source: "ai_navigation" });
+    expect(seekToTime).toHaveBeenCalledWith(12.5, { source: "ai", action: "jump" });
   });
 
   it("returns false when the segment is missing", () => {

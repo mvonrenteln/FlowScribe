@@ -279,7 +279,7 @@ describe("useScrollAndSelection", () => {
     );
 
     await waitFor(() => {
-      expect(seekToTime).toHaveBeenCalledWith(2, { source: "restrict_playback" });
+      expect(seekToTime).toHaveBeenCalledWith(2, { source: "system", action: "restrict_playback" });
       expect(setSelectedSegmentId).toHaveBeenCalledWith("segment-2");
     });
     expect(setIsPlaying).not.toHaveBeenCalled();

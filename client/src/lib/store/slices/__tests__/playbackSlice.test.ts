@@ -15,7 +15,7 @@ describe("playbackSlice seekToTime", () => {
       seekRequestTime: null,
     });
 
-    useTranscriptStore.getState().seekToTime(-2);
+    useTranscriptStore.getState().seekToTime(-2, { source: "hotkey", action: "jump" });
 
     const { currentTime, seekRequestTime } = useTranscriptStore.getState();
     expect(currentTime).toBe(0);
@@ -28,7 +28,7 @@ describe("playbackSlice seekToTime", () => {
       duration: 10,
     });
 
-    useTranscriptStore.getState().seekToTime(15);
+    useTranscriptStore.getState().seekToTime(15, { source: "hotkey", action: "jump" });
 
     const { currentTime, seekRequestTime } = useTranscriptStore.getState();
     expect(currentTime).toBe(10);
@@ -43,7 +43,7 @@ describe("playbackSlice seekToTime", () => {
       seekRequestTime: null,
     });
 
-    useTranscriptStore.getState().seekToTime(Number.NaN);
+    useTranscriptStore.getState().seekToTime(Number.NaN, { source: "hotkey", action: "jump" });
 
     const { currentTime, seekRequestTime } = useTranscriptStore.getState();
     expect(currentTime).toBe(2);
@@ -58,7 +58,7 @@ describe("playbackSlice seekToTime", () => {
       seekRequestTime: null,
     });
 
-    useTranscriptStore.getState().seekToTime(5 + 0.0001);
+    useTranscriptStore.getState().seekToTime(5 + 0.0001, { source: "hotkey", action: "jump" });
 
     const { currentTime, seekRequestTime } = useTranscriptStore.getState();
     expect(currentTime).toBe(5);
@@ -103,10 +103,44 @@ describe("playbackSlice seekToTime", () => {
       seekRequestTime: null,
     });
 
-    useTranscriptStore.getState().seekToTime(50, { source: "segment_click" });
+    useTranscriptStore.getState().seekToTime(50, { source: "transcript", action: "segment_click" });
 
     const { currentTime, seekRequestTime } = useTranscriptStore.getState();
     expect(currentTime).toBe(50);
     expect(seekRequestTime).toBe(50);
+  });
+});
+
+describe("playbackSlice updatePlaybackTime", () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
+  it("updates only currentTime", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      currentTime: 1,
+      seekRequestTime: 10,
+    });
+
+    useTranscriptStore.getState().updatePlaybackTime(2);
+
+    const { currentTime, seekRequestTime } = useTranscriptStore.getState();
+    expect(currentTime).toBe(2);
+    expect(seekRequestTime).toBe(10);
+  });
+
+  it("ignores non-finite times", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      currentTime: 1,
+      seekRequestTime: null,
+    });
+
+    useTranscriptStore.getState().updatePlaybackTime(Number.NaN);
+
+    const { currentTime, seekRequestTime } = useTranscriptStore.getState();
+    expect(currentTime).toBe(1);
+    expect(seekRequestTime).toBeNull();
   });
 });
