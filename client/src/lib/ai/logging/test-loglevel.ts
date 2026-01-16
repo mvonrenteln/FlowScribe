@@ -1,5 +1,5 @@
 // Quick test for loglevel integration
-import { createLogger, enableFeatureDebug, setGlobalLogLevel } from "@/lib/ai/logging";
+import { createLogger, enableFeatureDebug, setGlobalLogLevel } from "@/lib/logging";
 
 // Test 1: Basic logging
 const logger = createLogger({ feature: "TestFeature" });

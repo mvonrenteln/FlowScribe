@@ -48,6 +48,14 @@ When using agents/tools, make sure file edits are saved to disk before `check/li
 - Do not delete or weaken existing tests to “make CI green” unless the test is proven wrong and replaced with a better one.
 - If coverage drops, add tests or refactor to isolate testable pure logic; do not accept a net drop for new features.
 
+### 4) Documentation language and maintenance
+
+- All repository documentation, developer-facing docs, code comments, and in-line documentation MUST be written in English.
+- When you add new functionality or change behavior, update or add developer documentation explaining the intent and usage. Keep documentation close to the code (e.g., `docs/developer/`), and reference architecture docs when appropriate.
+- Public API surface, exported functions, modules and significant internal functions should include concise JSDoc-style comments describing purpose, inputs, outputs, and side effects.
+- Developer docs should include brief how-to steps for enabling debug modes, configuration options, and example usage when applicable.
+
+
 ## Critical invariants (highest blast radius)
 
 ### A) Player ↔ Transcript synchronization MUST stay stable
