@@ -9,11 +9,11 @@
 
 import type { BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
 import type { AIFeatureResult } from "@/lib/ai/core/types";
-import { createLogger } from "@/lib/ai/logging/loggingService";
 import {
   applyRecoveryStrategies,
   createStandardStrategies,
 } from "@/lib/ai/parsing/recoveryStrategies";
+import { createLogger } from "@/lib/logging";
 import { mergeResponseSchema } from "./config";
 import type { MergeAnalysisIssue, RawMergeSuggestion } from "./types";
 import { normalizeRawSuggestion } from "./utils";

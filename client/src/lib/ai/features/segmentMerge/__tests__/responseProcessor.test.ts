@@ -4,7 +4,7 @@
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AIFeatureResult } from "@/lib/ai/core/types";
-import { disableFeatureDebug, enableFeatureDebug } from "@/lib/ai/logging/loggingService";
+import { disableFeatureDebug, enableFeatureDebug } from "@/lib/logging";
 import {
   extractRawResponse,
   isRawMergeSuggestion,

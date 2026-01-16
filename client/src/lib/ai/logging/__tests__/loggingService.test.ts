@@ -9,7 +9,7 @@ import {
   disableGlobalDebug,
   enableFeatureDebug,
   enableGlobalDebug,
-} from "../loggingService";
+} from "@/lib/logging";
 
 describe("AILogger", () => {
   let logSpy: ReturnType<typeof vi.spyOn>;

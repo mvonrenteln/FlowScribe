@@ -8,7 +8,7 @@
  */
 
 import { executeFeature } from "@/lib/ai";
-import { createLogger } from "@/lib/ai/logging/loggingService";
+import { createLogger } from "@/lib/logging";
 import { buildMergePrompt, hasEligiblePairs } from "./promptBuilder";
 import { processAIResponse } from "./responseProcessor";
 import type {

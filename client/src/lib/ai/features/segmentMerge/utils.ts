@@ -9,7 +9,7 @@
 
 import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
 import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
-import { createLogger } from "@/lib/ai/logging/loggingService";
+import { createLogger } from "@/lib/logging";
 import type {
   MergeAnalysisSegment,
   MergeConfidenceLevel,
