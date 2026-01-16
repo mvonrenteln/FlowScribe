@@ -51,7 +51,6 @@ export function WaveformPlayer({
   const pendingTimeRef = useRef<number | null>(null);
   const currentTimeRef = useRef(_currentTime);
   const initialSeekAppliedRef = useRef(false);
-  const ignoreSeekRef = useRef<number | null>(null);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -231,11 +230,6 @@ export function WaveformPlayer({
 
     const handleSeekEvent = (time?: number) => {
       const nextTime = typeof time === "number" ? time : ws.getCurrentTime();
-      const ignoreTime = ignoreSeekRef.current;
-      if (ignoreTime !== null && Math.abs(nextTime - ignoreTime) <= 0.01) {
-        ignoreSeekRef.current = null;
-        return;
-      }
       onSeek(nextTime, { source: "waveform" });
     };
 
@@ -342,7 +336,6 @@ export function WaveformPlayer({
       clearSeekRequest();
       return;
     }
-    ignoreSeekRef.current = time;
     ws.setTime(time);
     clearSeekRequest();
   }, [seekRequestTime, isReady, clearSeekRequest]);

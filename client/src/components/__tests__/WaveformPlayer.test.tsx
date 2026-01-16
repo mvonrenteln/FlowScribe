@@ -272,7 +272,7 @@ describe("WaveformPlayer", () => {
     expect(waveSurferMock.instance.setTime).not.toHaveBeenCalled();
   });
 
-  it("ignores waveform seek events triggered by a programmatic seek", async () => {
+  it("forwards waveform seek events even after a programmatic seek", async () => {
     const onSeek = vi.fn();
     render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" onSeek={onSeek} />);
 
@@ -293,8 +293,8 @@ describe("WaveformPlayer", () => {
       waveSurferMock.handlers.get("interaction")?.(41);
     });
 
+    expect(onSeek).toHaveBeenCalledWith(40, { source: "waveform" });
     expect(onSeek).toHaveBeenCalledWith(41, { source: "waveform" });
-    expect(onSeek).not.toHaveBeenCalledWith(40, expect.anything());
   });
 
   it("updates playback rate when ready", async () => {

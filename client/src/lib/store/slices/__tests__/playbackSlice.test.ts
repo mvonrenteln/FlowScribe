@@ -64,4 +64,49 @@ describe("playbackSlice seekToTime", () => {
     expect(currentTime).toBe(5);
     expect(seekRequestTime).toBeNull();
   });
+
+  it("avoids enqueueing waveform seeks when already at time", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      duration: 10,
+      currentTime: 5,
+      seekRequestTime: null,
+    });
+
+    useTranscriptStore.getState().seekToTime(5.01, { source: "waveform" });
+
+    const { currentTime, seekRequestTime } = useTranscriptStore.getState();
+    expect(currentTime).toBeCloseTo(5.01, 1);
+    expect(seekRequestTime).toBeNull();
+  });
+
+  it("waveform source updates only the store time", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      duration: 100,
+      currentTime: 0,
+      seekRequestTime: null,
+    });
+
+    useTranscriptStore.getState().seekToTime(50, { source: "waveform" });
+
+    const { currentTime, seekRequestTime } = useTranscriptStore.getState();
+    expect(currentTime).toBe(50);
+    expect(seekRequestTime).toBeNull();
+  });
+
+  it("non-waveform sources enqueue waveform seek", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      duration: 100,
+      currentTime: 0,
+      seekRequestTime: null,
+    });
+
+    useTranscriptStore.getState().seekToTime(50, { source: "segment_click" });
+
+    const { currentTime, seekRequestTime } = useTranscriptStore.getState();
+    expect(currentTime).toBe(50);
+    expect(seekRequestTime).toBe(50);
+  });
 });
