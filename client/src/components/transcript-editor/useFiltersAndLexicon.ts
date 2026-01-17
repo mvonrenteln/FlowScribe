@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
+import { computeAutoConfidenceThreshold } from "@/lib/transcript/lowConfidenceThreshold";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
 
@@ -104,15 +105,7 @@ export function useFiltersAndLexicon({
   }, [segments]);
 
   const autoConfidenceThreshold = useMemo(() => {
-    const scores = segments
-      .flatMap((segment) => segment.words)
-      .map((word) => word.score)
-      .filter((score): score is number => typeof score === "number");
-    if (scores.length === 0) return null;
-    scores.sort((a, b) => a - b);
-    const index = Math.floor(scores.length * 0.1);
-    const percentile = scores[Math.min(index, scores.length - 1)];
-    return Math.min(0.4, percentile);
+    return computeAutoConfidenceThreshold(segments);
   }, [segments]);
 
   const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;

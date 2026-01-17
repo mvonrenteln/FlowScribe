@@ -15,8 +15,8 @@ if (import.meta.env.DEV) {
     "error",
     (ev: ErrorEvent) => {
       try {
-        const msg = ev && ev.message;
-        const file = (ev as any).filename || "";
+        const msg = ev?.message;
+        const file = ev?.filename ?? "";
         if (
           (typeof msg === "string" && msg.includes(IGNORED_MESSAGE)) ||
           (typeof file === "string" &&
@@ -24,7 +24,7 @@ if (import.meta.env.DEV) {
         ) {
           ev.preventDefault();
         }
-      } catch (e) {
+      } catch (_e) {
         // swallow any errors in the filter itself
       }
     },
@@ -33,11 +33,11 @@ if (import.meta.env.DEV) {
 
   window.addEventListener("unhandledrejection", (ev: PromiseRejectionEvent) => {
     try {
-      const reason = ev && (ev as any).reason;
+      const reason = ev?.reason;
       if (typeof reason === "string" && reason.includes(IGNORED_MESSAGE)) {
         ev.preventDefault();
       }
-    } catch (e) {
+    } catch (_e) {
       // ignore
     }
   });
