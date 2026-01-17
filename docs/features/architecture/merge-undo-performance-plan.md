@@ -58,11 +58,14 @@ Reduce merge/undo input latency (INP) from seconds to sub-300ms by targeting the
 - Skipped normalization work for search/tag filtering when those features are inactive to reduce per-update work.
 - Reused lexicon matches for unchanged segments to avoid recomputing similarity scans on merge/undo when word content is stable.
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
+- Stabilized merge handler identities to reduce transcript row re-renders on merge/undo.
 
 ## Follow-ups (Higher Effort)
 
 - Move spellcheck processing into a Worker to eliminate main-thread pressure when spellcheck is enabled.
 - Evaluate similar per-word caching for lexicon matching to reduce similarity-score scans on large transcripts.
+- Reduce render surface during merge/undo (stable handlers, tighter memoization, fewer prop changes per row).
+- Minimize reconcile scope so only affected segments redraw (row-level memo + focused updates).
 
 ## Execution Order
 

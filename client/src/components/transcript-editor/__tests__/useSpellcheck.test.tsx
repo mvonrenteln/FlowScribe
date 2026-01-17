@@ -45,8 +45,6 @@ describe("useSpellcheck", () => {
 
     const { result } = renderHook(() =>
       useSpellcheck({
-        audioUrl: null,
-        isWaveReady: true,
         spellcheckEnabled: true,
         spellcheckLanguages,
         spellcheckCustomEnabled: false,
@@ -89,8 +87,6 @@ describe("useSpellcheck", () => {
 
     const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
       initialProps: {
-        audioUrl: null,
-        isWaveReady: true,
         spellcheckEnabled: true,
         spellcheckLanguages,
         spellcheckCustomEnabled: false,
@@ -103,8 +99,6 @@ describe("useSpellcheck", () => {
     });
 
     rerender({
-      audioUrl: null,
-      isWaveReady: true,
       spellcheckEnabled: false,
       spellcheckLanguages,
       spellcheckCustomEnabled: false,
@@ -154,8 +148,6 @@ describe("useSpellcheck", () => {
 
     const { result } = renderHook(() =>
       useSpellcheck({
-        audioUrl: null,
-        isWaveReady: true,
         spellcheckEnabled: true,
         spellcheckLanguages,
         spellcheckCustomEnabled: false,
@@ -209,8 +201,6 @@ describe("useSpellcheck", () => {
 
     const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
       initialProps: {
-        audioUrl: null,
-        isWaveReady: true,
         spellcheckEnabled: true,
         spellcheckLanguages,
         spellcheckCustomEnabled: false,
@@ -231,8 +221,6 @@ describe("useSpellcheck", () => {
 
     getSpellcheckMatchMock.mockClear();
     rerender({
-      audioUrl: null,
-      isWaveReady: true,
       spellcheckEnabled: true,
       spellcheckLanguages,
       spellcheckCustomEnabled: false,
@@ -250,5 +238,77 @@ describe("useSpellcheck", () => {
       },
       { timeout: 1000 },
     );
+  });
+
+  it("recomputes matches if a previous run was interrupted", async () => {
+    const originalRequestIdle = (
+      globalThis as typeof globalThis & {
+        requestIdleCallback?: (cb: () => void) => number;
+      }
+    ).requestIdleCallback;
+    (
+      globalThis as typeof globalThis & {
+        requestIdleCallback?: (cb: () => void) => number;
+      }
+    ).requestIdleCallback = (cb) => {
+      cb({ timeRemaining: () => 50 } as IdleDeadline);
+      return 0;
+    };
+    const segments = [
+      {
+        id: "segment-1",
+        speaker: "SPEAKER_00",
+        tags: [],
+        start: 0,
+        end: 1,
+        text: "Wrd",
+        words: [{ word: "Wrd", start: 0, end: 1 }],
+      },
+    ];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
+    const { rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords,
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(getSpellcheckMatchMock).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+
+    (
+      globalThis as typeof globalThis & {
+        requestIdleCallback?: (cb: () => void) => number;
+      }
+    ).requestIdleCallback = originalRequestIdle;
   });
 });

@@ -20,8 +20,6 @@ vi.mock("@/lib/spellcheck", () => ({
 
 describe("useSpellcheck - Custom Dictionaries", () => {
   const baseOptions = {
-    audioUrl: "test.mp3",
-    isWaveReady: true,
     spellcheckEnabled: true,
     spellcheckLanguages: ["de", "en"] as ("de" | "en")[],
     spellcheckCustomEnabled: false,

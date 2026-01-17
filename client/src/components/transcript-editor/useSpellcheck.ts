@@ -13,8 +13,6 @@ export interface SpellcheckMatchMeta {
 }
 
 export interface UseSpellcheckOptions {
-  audioUrl: string | null;
-  isWaveReady: boolean;
   spellcheckEnabled: boolean;
   spellcheckLanguages: SpellcheckLanguage[];
   spellcheckCustomEnabled: boolean;
@@ -26,8 +24,6 @@ export interface UseSpellcheckOptions {
 }
 
 export function useSpellcheck({
-  audioUrl,
-  isWaveReady,
   spellcheckEnabled,
   spellcheckLanguages,
   spellcheckCustomEnabled,
@@ -49,6 +45,7 @@ export function useSpellcheck({
   const previousMatchesRef = useRef<Map<string, Map<number, SpellcheckMatchMeta>>>(new Map());
   const previousCacheKeyRef = useRef<string | null>(null);
   const previousSpellcheckersRef = useRef(spellcheckers);
+  const previousRunCompletedRef = useRef(false);
 
   // When custom dictionaries are enabled, they replace built-in languages
   const effectiveSpellcheckLanguages = useMemo(
@@ -105,12 +102,6 @@ export function useSpellcheck({
   useEffect(() => {
     let isMounted = true;
     let scheduled: IdleHandle | null = null;
-    if (audioUrl && !isWaveReady) {
-      return () => {
-        isMounted = false;
-        cancelIdle(scheduled);
-      };
-    }
     if (
       !spellcheckEnabled ||
       (effectiveSpellcheckLanguages.length === 0 && !spellcheckCustomEnabled)
@@ -142,9 +133,7 @@ export function useSpellcheck({
       cancelIdle(scheduled);
     };
   }, [
-    audioUrl,
     cancelIdle,
-    isWaveReady,
     scheduleIdle,
     spellcheckCustomDictionaries,
     spellcheckCustomEnabled,
@@ -171,6 +160,7 @@ export function useSpellcheck({
     const runId = spellcheckRunIdRef.current + 1;
     spellcheckRunIdRef.current = runId;
     setSpellcheckMatchLimitReached(false);
+    previousRunCompletedRef.current = false;
 
     if (!spellcheckEnabled || spellcheckers.length === 0 || segments.length === 0) {
       setSpellcheckMatchesBySegment(new Map());
@@ -178,6 +168,7 @@ export function useSpellcheck({
       previousMatchesRef.current = new Map();
       previousCacheKeyRef.current = null;
       previousSpellcheckersRef.current = spellcheckers;
+      previousRunCompletedRef.current = true;
       return;
     }
 
@@ -199,7 +190,8 @@ export function useSpellcheck({
     const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}`;
     const reuseMatches =
       previousCacheKeyRef.current === cacheKey &&
-      previousSpellcheckersRef.current === spellcheckers;
+      previousSpellcheckersRef.current === spellcheckers &&
+      previousRunCompletedRef.current;
     const matches = new Map<string, Map<number, SpellcheckMatchMeta>>();
     const segmentsToProcess: Segment[] = [];
     let matchCount = 0;
@@ -239,12 +231,18 @@ export function useSpellcheck({
       setSpellcheckMatchesBySegment(new Map(matches));
       previousMatchesRef.current = new Map(matches);
       setSpellcheckMatchLimitReached(true);
+      previousCacheKeyRef.current = cacheKey;
+      previousSpellcheckersRef.current = spellcheckers;
+      previousRunCompletedRef.current = true;
       return;
     }
 
     if (segmentsToProcess.length === 0) {
       setSpellcheckMatchesBySegment(new Map(matches));
       previousMatchesRef.current = new Map(matches);
+      previousCacheKeyRef.current = cacheKey;
+      previousSpellcheckersRef.current = spellcheckers;
+      previousRunCompletedRef.current = true;
       return;
     }
 
@@ -322,8 +320,14 @@ export function useSpellcheck({
       } else if (matches.size === 0) {
         setSpellcheckMatchesBySegment(new Map());
         previousMatchesRef.current = new Map();
+        previousCacheKeyRef.current = cacheKey;
+        previousSpellcheckersRef.current = spellcheckers;
+        previousRunCompletedRef.current = true;
       } else {
         previousMatchesRef.current = new Map(matches);
+        previousCacheKeyRef.current = cacheKey;
+        previousSpellcheckersRef.current = spellcheckers;
+        previousRunCompletedRef.current = true;
       }
     };
 

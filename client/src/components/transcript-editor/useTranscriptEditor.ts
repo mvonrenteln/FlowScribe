@@ -172,7 +172,7 @@ export const useTranscriptEditor = () => {
     setSpellcheckCustomEnabled,
   } = transcriptActions;
 
-  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady, isWaveReady } =
+  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady } =
     useTranscriptInitialization({
       audioFile,
       audioUrl,
@@ -236,8 +236,6 @@ export const useTranscriptEditor = () => {
     spellcheckMatchCount,
     spellcheckMatchLimitReached,
   } = useSpellcheck({
-    audioUrl,
-    isWaveReady,
     spellcheckEnabled,
     spellcheckLanguages,
     spellcheckCustomEnabled,

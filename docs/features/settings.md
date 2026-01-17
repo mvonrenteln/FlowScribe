@@ -413,6 +413,8 @@ Manage your term glossary with fuzzy matching and smart highlighting.
 
 #### Enable/Disable Spellcheck
 
+- Spellcheck runs as soon as it is enabled and does not wait for waveform readiness
+
 Configure language checking and custom dictionaries.
 
 ### ✓ Spellcheck
@@ -603,5 +605,4 @@ The Settings panel uses a non-blocking drawer interface that slides in from the 
 FlowScribe provides a centralized Settings menu that gives you complete control over AI providers, appearance, language tools, and other application preferences. Access it via the gear icon in the toolbar or press **Cmd/Ctrl + ,**.
 
 ## Overview
-
 
