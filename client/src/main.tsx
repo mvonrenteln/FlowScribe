@@ -19,7 +19,8 @@ if (import.meta.env.DEV) {
         const file = (ev as any).filename || "";
         if (
           (typeof msg === "string" && msg.includes(IGNORED_MESSAGE)) ||
-          (typeof file === "string" && (file.includes("react_devtools_backend_compact.js") || file.includes("proxy.js")))
+          (typeof file === "string" &&
+            (file.includes("react_devtools_backend_compact.js") || file.includes("proxy.js")))
         ) {
           ev.preventDefault();
         }
@@ -27,7 +28,7 @@ if (import.meta.env.DEV) {
         // swallow any errors in the filter itself
       }
     },
-    true
+    true,
   );
 
   window.addEventListener("unhandledrejection", (ev: PromiseRejectionEvent) => {

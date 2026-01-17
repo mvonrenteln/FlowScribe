@@ -9,17 +9,17 @@ const segment: Segment = {
   id: "seg-1",
   speaker: "SPEAKER_00",
   tags: [],
-  start: 0,
-  end: 2,
+  start: 10,
+  end: 12,
   text: "Hallo Welt",
   words: [
-    { word: "Hallo", start: 0, end: 1 },
-    { word: "Welt", start: 1, end: 2 },
+    { word: "Hallo", start: 10, end: 11 },
+    { word: "Welt", start: 11, end: 12 },
   ],
 };
 
 describe("click selection regression", () => {
-  it("clicking a word selects the segment and seeks", async () => {
+  it("clicking the segment root selects after the click timeout", async () => {
     const onSeek = vi.fn();
     const onSelect = vi.fn();
 
@@ -51,10 +51,46 @@ describe("click selection regression", () => {
     vi.advanceTimersByTime(250);
     expect(onSelect).toHaveBeenCalled();
     vi.useRealTimers();
+  });
 
-    // Clicking a word should still seek — test separately
-    const word = screen.getByTestId("word-seg-1-0");
+  it("clicking a word selects without segment-start seek and seeks to the word time", async () => {
+    vi.useFakeTimers();
+    const onSeek = vi.fn();
+    const onSelect = vi.fn(() => {
+      onSeek(segment.start, { source: "transcript", action: "segment_click" });
+    });
+    const onSelectOnly = vi.fn();
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        tags={[]}
+        isSelected={false}
+        isActive={false}
+        onSelect={onSelect}
+        onSelectOnly={onSelectOnly}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={onSeek}
+      />,
+    );
+
+    const word = screen.getByTestId("word-seg-1-1");
     fireEvent.click(word);
-    expect(onSeek).toHaveBeenCalledWith(0, { source: "transcript", action: "word_click" });
+
+    // Flush any pending segment single-click timeout if it was scheduled.
+    vi.advanceTimersByTime(250);
+
+    expect(onSelect).not.toHaveBeenCalled();
+    expect(onSelectOnly).toHaveBeenCalled();
+    expect(onSeek).toHaveBeenCalledWith(11, { source: "transcript", action: "word_click" });
+    expect(onSeek).not.toHaveBeenCalledWith(10, { source: "transcript", action: "segment_click" });
+
+    vi.useRealTimers();
   });
 });

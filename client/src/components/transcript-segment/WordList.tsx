@@ -67,6 +67,7 @@ export function WordList({
   const handleWordAction = useCallback(
     (word: Word, index: number, shiftKey: boolean) => {
       if (shiftKey) {
+        onSelectOnly?.();
         setSelectedWordIndex(index);
       } else {
         // First mark the segment as selected without triggering the
@@ -126,9 +127,12 @@ export function WordList({
     // biome-ignore lint/a11y/noStaticElementInteractions: Prevent default on mouse down to avoid text selection
     <div // NOSONAR
       onMouseDown={(event) => {
-        // Only prevent default for single clicks, not double clicks
+        // Only prevent default for single clicks, not double clicks.
+        // Also stop propagation so the parent segment's `onMouseDown` handler
+        // doesn't schedule a segment-start seek that overrides word seeks.
         if (event.detail === 1) {
           event.preventDefault();
+          event.stopPropagation();
         }
       }}
       className="text-base leading-relaxed outline-none"

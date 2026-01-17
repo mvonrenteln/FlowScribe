@@ -342,6 +342,7 @@ function TranscriptSegmentComponent({
                 currentMatch={currentMatch}
                 onTextChange={onTextChange}
                 onSeek={onSeek}
+                onSelectOnly={onSelectOnly}
                 onIgnoreLexiconMatch={onIgnoreLexiconMatch}
                 onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
                 onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
