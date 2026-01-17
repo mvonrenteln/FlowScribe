@@ -61,6 +61,7 @@ export interface HistoryState {
   tags: Tag[];
   selectedSegmentId: string | null;
   currentTime: number;
+  confidenceScoresVersion: number;
 }
 
 export interface PersistedSession {
@@ -158,6 +159,7 @@ export interface InitialStoreState {
   // Confidence highlighting
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  confidenceScoresVersion: number;
   // AI Revision state
   aiRevisionSuggestions: AIRevisionSuggestion[];
   aiRevisionIsProcessing: boolean;

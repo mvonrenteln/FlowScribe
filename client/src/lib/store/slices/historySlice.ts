@@ -19,6 +19,7 @@ export const createHistorySlice = (set: StoreSetter, get: StoreGetter): HistoryS
       selectedSegmentId: state.selectedSegmentId ?? selectedSegmentId,
       currentTime: state.currentTime,
       seekRequestTime: state.currentTime,
+      confidenceScoresVersion: state.confidenceScoresVersion,
       historyIndex: newIndex,
     });
   },
@@ -34,6 +35,7 @@ export const createHistorySlice = (set: StoreSetter, get: StoreGetter): HistoryS
       selectedSegmentId: state.selectedSegmentId ?? selectedSegmentId,
       currentTime: state.currentTime,
       seekRequestTime: state.currentTime,
+      confidenceScoresVersion: state.confidenceScoresVersion,
       historyIndex: newIndex,
     });
   },

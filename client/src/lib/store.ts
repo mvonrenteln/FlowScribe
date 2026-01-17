@@ -92,6 +92,7 @@ const initialHistoryState = buildInitialHistory(
         tags: activeSession.tags ?? [],
         selectedSegmentId: activeSession.selectedSegmentId,
         currentTime: activeSession.currentTime ?? 0,
+        confidenceScoresVersion: 0,
       }
     : null,
 );
@@ -132,6 +133,7 @@ const initialState: InitialStoreState = {
   // Confidence highlighting
   highlightLowConfidence: globalState?.highlightLowConfidence ?? true,
   manualConfidenceThreshold: globalState?.manualConfidenceThreshold ?? null,
+  confidenceScoresVersion: 0,
   // AI Revision state
   ...initialAIRevisionState,
   aiRevisionConfig: normalizeAIRevisionConfig(globalState?.aiRevisionConfig),

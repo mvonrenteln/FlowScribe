@@ -81,6 +81,7 @@ interface MergeApplyResult {
   segments: Segment[];
   mergedId: string;
   removedIds: [string, string];
+  scoresChanged: boolean;
 }
 
 const buildMergedSegment = (first: Segment, second: Segment) => ({
@@ -111,6 +112,7 @@ const applyMergeToSegments = (
   const mergedBase = { ...buildMergedSegment(first, second), tags: first.tags ?? [] };
   const mergedText =
     applySmoothing && suggestion.smoothedText ? suggestion.smoothedText : suggestion.mergedText;
+  const scoresChanged = mergedText.trim() !== mergedBase.text;
   const mergedSegment = applyTextUpdateToSegment(mergedBase, mergedText) ?? mergedBase;
 
   const minIndex = Math.min(index1, index2);
@@ -124,6 +126,7 @@ const applyMergeToSegments = (
     segments: nextSegments,
     mergedId: mergedSegment.id,
     removedIds: [first.id, second.id],
+    scoresChanged,
   };
 };
 
@@ -292,17 +295,22 @@ export const createAISegmentMergeSlice = (
         ? state.selectedSegmentId
         : mergeResult.mergedId;
 
+    const nextConfidenceScoresVersion = mergeResult.scoresChanged
+      ? state.confidenceScoresVersion + 1
+      : state.confidenceScoresVersion;
     const nextHistory = addToHistory(state.history, state.historyIndex, {
       segments: mergeResult.segments,
       speakers: state.speakers,
       selectedSegmentId: nextSelectedSegmentId,
       currentTime: state.currentTime,
       tags: state.tags,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
     });
 
     set({
       segments: mergeResult.segments,
       selectedSegmentId: nextSelectedSegmentId,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiSegmentMergeSuggestions: state.aiSegmentMergeSuggestions.map((s) => {
@@ -339,6 +347,7 @@ export const createAISegmentMergeSlice = (
     const invalidSegmentIds = new Set<string>();
     let nextSelectedSegmentId = state.selectedSegmentId;
     let mergedAny = false;
+    let scoresChanged = false;
 
     for (const suggestion of highConfidenceSuggestions) {
       const suggestionIndex = updatedSuggestions.findIndex((s) => s.id === suggestion.id);
@@ -358,6 +367,7 @@ export const createAISegmentMergeSlice = (
 
       mergedAny = true;
       workingSegments = mergeResult.segments;
+      scoresChanged = scoresChanged || mergeResult.scoresChanged;
       invalidSegmentIds.add(mergeResult.removedIds[0]);
       invalidSegmentIds.add(mergeResult.removedIds[1]);
 
@@ -382,17 +392,22 @@ export const createAISegmentMergeSlice = (
         : (workingSegments[0]?.id ?? null);
 
     if (mergedAny) {
+      const nextConfidenceScoresVersion = scoresChanged
+        ? state.confidenceScoresVersion + 1
+        : state.confidenceScoresVersion;
       const nextHistory = addToHistory(state.history, state.historyIndex, {
         segments: workingSegments,
         speakers: state.speakers,
         selectedSegmentId: finalSelectedSegmentId,
         currentTime: state.currentTime,
         tags: state.tags,
+        confidenceScoresVersion: nextConfidenceScoresVersion,
       });
 
       set({
         segments: workingSegments,
         selectedSegmentId: finalSelectedSegmentId,
+        confidenceScoresVersion: nextConfidenceScoresVersion,
         history: nextHistory.history,
         historyIndex: nextHistory.historyIndex,
         aiSegmentMergeSuggestions: updatedSuggestions,

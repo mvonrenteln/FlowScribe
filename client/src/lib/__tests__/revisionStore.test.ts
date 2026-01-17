@@ -22,7 +22,15 @@ describe("revisions stay isolated", () => {
       segments: baseSegments,
       speakers: baseSpeakers,
       selectedSegmentId: "seg-1",
-      history: [{ segments: baseSegments, speakers: baseSpeakers, selectedSegmentId: "seg-1" }],
+      history: [
+        {
+          segments: baseSegments,
+          speakers: baseSpeakers,
+          selectedSegmentId: "seg-1",
+          currentTime: 0,
+          confidenceScoresVersion: 0,
+        },
+      ],
       historyIndex: 0,
       sessionLabel: "Transcript A",
     });

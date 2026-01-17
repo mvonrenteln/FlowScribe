@@ -16,6 +16,7 @@ export const createSegmentsSlice = (
   context: StoreContext,
 ): SegmentsSlice => ({
   loadTranscript: (data) => {
+    const confidenceScoresVersion = get().confidenceScoresVersion + 1;
     const uniqueSpeakers = Array.from(new Set(data.segments.map((s) => s.speaker)));
     const speakers =
       data.speakers ||
@@ -91,9 +92,11 @@ export const createSegmentsSlice = (
             tags: session.tags ?? [],
             selectedSegmentId: selectedFromSession,
             currentTime: session.currentTime ?? 0,
+            confidenceScoresVersion,
           },
         ],
         historyIndex: 0,
+        confidenceScoresVersion,
         transcriptRef: data.reference ?? get().transcriptRef,
         sessionKey,
         sessionKind: session?.kind ?? "current",
@@ -108,8 +111,18 @@ export const createSegmentsSlice = (
       tags: importedTags,
       selectedSegmentId,
       isWhisperXFormat: data.isWhisperXFormat || false,
-      history: [{ segments, speakers, tags: importedTags, selectedSegmentId, currentTime: 0 }],
+      history: [
+        {
+          segments,
+          speakers,
+          tags: importedTags,
+          selectedSegmentId,
+          currentTime: 0,
+          confidenceScoresVersion,
+        },
+      ],
       historyIndex: 0,
+      confidenceScoresVersion,
       transcriptRef: data.reference ?? get().transcriptRef,
       sessionKey,
       sessionKind: "current",
@@ -142,8 +155,16 @@ export const createSegmentsSlice = (
   },
 
   updateSegmentsTexts: (updates) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const currentSegments = [...segments];
     let changed = false;
 
@@ -163,23 +184,34 @@ export const createSegmentsSlice = (
 
     if (!changed) return;
 
+    const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
     const nextHistory = addToHistory(history, historyIndex, {
       segments: currentSegments,
       speakers,
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
     });
     set({
       segments: currentSegments,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
   },
 
   updateSegmentSpeaker: (id, speaker) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment || segment.speaker === speaker) return;
     const newSegments = segments.map((s) => (s.id === id ? { ...s, speaker } : s));
@@ -189,6 +221,7 @@ export const createSegmentsSlice = (
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -198,31 +231,50 @@ export const createSegmentsSlice = (
   },
 
   confirmSegment: (id) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment) return;
     const updatedWords = segment.words.map((word) => ({ ...word, score: 1 }));
     const newSegments = segments.map((s) =>
       s.id === id ? { ...s, words: updatedWords, confirmed: true } : s,
     );
+    const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
     });
     set({
       segments: newSegments,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
   },
 
   toggleSegmentBookmark: (id) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment) return;
     const newSegments = segments.map((s) =>
@@ -234,6 +286,7 @@ export const createSegmentsSlice = (
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -243,7 +296,7 @@ export const createSegmentsSlice = (
   },
 
   splitSegment: (id, wordIndex) => {
-    const { segments, speakers, tags, history, historyIndex } = get();
+    const { segments, speakers, tags, history, historyIndex, confidenceScoresVersion } = get();
     const segmentIndex = segments.findIndex((s) => s.id === id);
     if (segmentIndex === -1) return;
 
@@ -286,6 +339,7 @@ export const createSegmentsSlice = (
       tags,
       selectedSegmentId: secondSegment.id,
       currentTime: secondSegment.start,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -298,7 +352,15 @@ export const createSegmentsSlice = (
   },
 
   mergeSegments: (id1, id2) => {
-    const { segments, speakers, tags, history, historyIndex, currentTime } = get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const index1 = segments.findIndex((s) => s.id === id1);
     const index2 = segments.findIndex((s) => s.id === id2);
 
@@ -331,6 +393,7 @@ export const createSegmentsSlice = (
       tags,
       selectedSegmentId: merged.id,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -342,8 +405,16 @@ export const createSegmentsSlice = (
   },
 
   updateSegmentTiming: (id, start, end) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const segment = segments.find((s) => s.id === id);
     if (!segment || (segment.start === start && segment.end === end)) return;
     const newSegments = segments.map((s) => (s.id === id ? { ...s, start, end } : s));
@@ -353,6 +424,7 @@ export const createSegmentsSlice = (
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -362,19 +434,30 @@ export const createSegmentsSlice = (
   },
 
   deleteSegment: (id) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const newSegments = segments.filter((s) => s.id !== id);
     if (newSegments.length === segments.length) return;
+    const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
     });
     set({
       segments: newSegments,
+      confidenceScoresVersion: nextConfidenceScoresVersion,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });

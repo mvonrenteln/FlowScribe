@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
@@ -18,6 +18,7 @@ interface UseFiltersAndLexiconOptions {
   // Confidence from store
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  confidenceScoresVersion: number;
   setHighlightLowConfidence: (enabled: boolean) => void;
   setManualConfidenceThreshold: (threshold: number | null) => void;
 }
@@ -57,6 +58,7 @@ export function useFiltersAndLexicon({
   spellcheckMatchesBySegment,
   highlightLowConfidence,
   manualConfidenceThreshold,
+  confidenceScoresVersion,
   setHighlightLowConfidence,
   setManualConfidenceThreshold,
 }: UseFiltersAndLexiconOptions) {
@@ -71,6 +73,7 @@ export function useFiltersAndLexicon({
   const [filterNoTags, setFilterNoTags] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
+  const segmentsRef = useRef(segments);
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
@@ -95,6 +98,10 @@ export function useFiltersAndLexicon({
     [normalizedSegments],
   );
 
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
+
   // Pre-compute tag sets for O(1) lookups during filtering
   const segmentTagSets = useMemo(() => {
     const tagSets = new Map<string, Set<string>>();
@@ -104,9 +111,13 @@ export function useFiltersAndLexicon({
     return tagSets;
   }, [segments]);
 
+  const shouldComputeAutoThreshold = manualConfidenceThreshold === null;
   const autoConfidenceThreshold = useMemo(() => {
-    return computeAutoConfidenceThreshold(segments);
-  }, [segments]);
+    if (!shouldComputeAutoThreshold) return null;
+    // Confidence scores do not change on merge/split, so depend on the score version.
+    void confidenceScoresVersion;
+    return computeAutoConfidenceThreshold(segmentsRef.current);
+  }, [confidenceScoresVersion, shouldComputeAutoThreshold]);
 
   const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
   const {

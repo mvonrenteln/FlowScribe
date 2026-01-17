@@ -52,6 +52,8 @@ Reduce merge/undo input latency (INP) from seconds to sub-300ms by targeting the
 
 - Added a linear-time selection helper for the auto confidence threshold and wired it into `useFiltersAndLexicon`.
 - Added unit coverage for percentile selection, clamping behavior, and empty-score handling.
+- Added a `confidenceScoresVersion` state to avoid recomputing the auto-threshold on merge/split when scores do not change.
+- Auto-threshold computation now skips when a manual threshold is set.
 
 ## Execution Order
 

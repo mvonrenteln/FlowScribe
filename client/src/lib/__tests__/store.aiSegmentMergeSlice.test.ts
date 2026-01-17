@@ -66,6 +66,7 @@ const seedStore = (overrides: Partial<TranscriptStore> = {}) => {
         speakers: [],
         selectedSegmentId: "seg-5",
         currentTime: 0,
+        confidenceScoresVersion: 0,
       },
     ],
     historyIndex: 0,

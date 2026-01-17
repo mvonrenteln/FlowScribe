@@ -29,6 +29,24 @@ describe("Segments slice", () => {
     expect(canUndo()).toBe(true);
   });
 
+  it("tracks confidence score changes separately from structural edits", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const initialVersion = useTranscriptStore.getState().confidenceScoresVersion;
+
+    useTranscriptStore.getState().mergeSegments("seg-1", "seg-2");
+    expect(useTranscriptStore.getState().confidenceScoresVersion).toBe(initialVersion);
+
+    resetStore();
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const versionAfterReload = useTranscriptStore.getState().confidenceScoresVersion;
+
+    useTranscriptStore.getState().updateSegmentText("seg-1", "Hallo zusammen");
+    expect(useTranscriptStore.getState().confidenceScoresVersion).toBe(versionAfterReload + 1);
+
+    useTranscriptStore.getState().confirmSegment("seg-1");
+    expect(useTranscriptStore.getState().confidenceScoresVersion).toBe(versionAfterReload + 2);
+  });
+
   it("preserves timestamps when replacing words", () => {
     useTranscriptStore.setState({
       ...useTranscriptStore.getState(),
