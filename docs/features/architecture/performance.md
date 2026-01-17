@@ -131,10 +131,4 @@ The following measures are prioritized by impact and implementation effort. Each
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
 - Stabilized merge handler identities to reduce transcript row re-renders during merge/undo.
 - Kept persistence from waking up on every tiny state change by watching only persistence-relevant fields and bucketing playback time updates.
-
-## Test Guidance (for the persistence subscription change)
-
-1. Start playback on a long transcript and scrub/seek rapidly.
-2. Verify persistence still updates session time after crossing the configured bucket threshold.
-3. Confirm selection changes and segment edits still persist without delay.
-4. Confirm UI input remains responsive during playback (no noticeable blocking on seek or controls).
+- Moved persistence JSON serialization to a worker so long sessions do not block the main thread during playback or rapid seeking.

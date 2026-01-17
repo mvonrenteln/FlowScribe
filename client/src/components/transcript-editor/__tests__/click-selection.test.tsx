@@ -41,12 +41,11 @@ describe("click selection regression", () => {
       />,
     );
 
-    // Clicking the segment root should select the segment
-    // The selection is delayed to allow double-click to cancel single-clicks.
-    // Use fake timers to advance the timeout.
     vi.useFakeTimers();
     const segmentEl = screen.getByTestId("segment-seg-1");
-    fireEvent.mouseDown(segmentEl, { button: 0, detail: 1 });
+    fireEvent.click(segmentEl, { button: 0, detail: 1 });
+    // Clicking the segment root should select the segment.
+    // The selection is delayed to allow double-click to cancel single-clicks.
     // Advance past the 200ms click timeout used in useSegmentEditing
     vi.advanceTimersByTime(250);
     expect(onSelect).toHaveBeenCalled();
@@ -78,7 +77,7 @@ describe("click selection regression", () => {
     );
 
     const textArea = screen.getByTestId("text-segment-seg-1");
-    fireEvent.mouseDown(textArea, { button: 0, detail: 1 });
+    fireEvent.click(textArea, { button: 0, detail: 1 });
     vi.advanceTimersByTime(250);
 
     expect(onSelect).toHaveBeenCalled();

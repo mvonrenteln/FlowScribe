@@ -187,7 +187,7 @@ function TranscriptSegmentComponent({
         isActive && "bg-accent/50",
         !isSelected && !isActive && "hover-elevate",
       )}
-      onMouseDown={(event) => {
+      onClick={(event) => {
         // Only trigger the single-click selection path for primary single clicks.
         if (event.button === 0 && event.detail === 1) {
           handleSegmentClick();

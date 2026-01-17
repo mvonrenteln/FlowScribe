@@ -29,19 +29,15 @@ Each item is evaluated and prioritized with the following criteria:
 
 ### P1 — High value, next in line
 
-4) Move session persistence off the main thread  
-**Impact:** Medium-High | **Effort:** Medium | **Risk:** Medium  
-**Description:** Eliminate synchronous serialization and storage writes during interactive operations. Use write-behind, throttling, or a worker-based pipeline so persistence never blocks seek, playback, or UI actions.
-
-5) Batch store updates for merge/undo actions  
+4) Batch store updates for merge/undo actions  
 **Impact:** High | **Effort:** Medium-Large | **Risk:** Medium  
 **Description:** Apply a single transactional update for merge/undo so derived computations and renders happen once. This reduces multiple sync renders and avoids repeated recalculation cascades.
 
-6) Minimize scroll effect work during playback  
+5) Minimize scroll effect work during playback  
 **Impact:** Medium | **Effort:** Small | **Risk:** Low  
 **Description:** Throttle or gate scroll sync work so it does not run on every playback tick. Replace repeated DOM queries with cached targets or visibility range signals.
 
-7) Waveform regions: prevent text-only updates from triggering audio/layout work  
+6) Waveform regions: prevent text-only updates from triggering audio/layout work  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Medium  
 **Description:** Add guards so waveform regions or audio data reprocessing is skipped when edits do not affect timing or audio visualization. This protects seek latency and reduces layout thrash.
 

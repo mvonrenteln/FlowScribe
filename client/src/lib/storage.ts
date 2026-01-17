@@ -7,6 +7,30 @@ import type {
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 const GLOBAL_STORAGE_KEY = "flowscribe:global";
 
+type PersistenceWorkerRequest = {
+  jobId: number;
+  sessionsState: PersistedSessionsState;
+  globalState: PersistedGlobalState;
+};
+
+type PersistenceWorkerResponse = {
+  jobId: number;
+  sessionsJson: string | null;
+  globalJson: string | null;
+  error?: string;
+};
+
+const createPersistenceWorker = (): Worker | null => {
+  if (typeof Worker === "undefined") return null;
+  try {
+    return new Worker(new URL("./workers/persistenceWorker.ts", import.meta.url), {
+      type: "module",
+    });
+  } catch {
+    return null;
+  }
+};
+
 export const canUseLocalStorage = () => {
   if (typeof window === "undefined") return false;
   try {
@@ -85,29 +109,66 @@ export const buildRecentSessions = (sessions: Record<string, PersistedSession>) 
     .sort((a, b) => (b.updatedAt ?? 0) - (a.updatedAt ?? 0));
 };
 
+/**
+ * Schedules persistence writes and offloads JSON serialization to a worker
+ * when available to avoid blocking the main thread.
+ */
 export const createStorageScheduler = (throttleMs: number) => {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
   let pendingGlobal: PersistedGlobalState | null = null;
+  let worker: Worker | null = null;
+  let latestJobId = 0;
+
+  const ensureWorker = () => {
+    if (worker) return worker;
+    worker = createPersistenceWorker();
+    if (!worker) return null;
+    worker.addEventListener("message", (event: MessageEvent<PersistenceWorkerResponse>) => {
+      const { jobId, sessionsJson, globalJson, error } = event.data || {};
+      if (!jobId || jobId !== latestJobId) return;
+      if (error) return;
+      try {
+        if (typeof sessionsJson === "string") {
+          window.localStorage.setItem(SESSIONS_STORAGE_KEY, sessionsJson);
+        }
+        if (typeof globalJson === "string") {
+          window.localStorage.setItem(GLOBAL_STORAGE_KEY, globalJson);
+        }
+      } catch {
+        // Ignore persistence failures (quota, serialization).
+      }
+    });
+    return worker;
+  };
 
   return (sessionsState: PersistedSessionsState, globalState: PersistedGlobalState) => {
     pendingSessions = sessionsState;
     pendingGlobal = globalState;
     if (persistTimeout) return;
     persistTimeout = setTimeout(() => {
+      const sessionsToPersist = pendingSessions;
+      const globalToPersist = pendingGlobal;
+      pendingSessions = null;
+      pendingGlobal = null;
+      persistTimeout = null;
+      if (!sessionsToPersist || !globalToPersist) return;
+      const activeWorker = ensureWorker();
+      if (activeWorker) {
+        latestJobId += 1;
+        const payload: PersistenceWorkerRequest = {
+          jobId: latestJobId,
+          sessionsState: sessionsToPersist,
+          globalState: globalToPersist,
+        };
+        activeWorker.postMessage(payload);
+        return;
+      }
       try {
-        if (pendingSessions) {
-          window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(pendingSessions));
-        }
-        if (pendingGlobal) {
-          window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(pendingGlobal));
-        }
+        window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToPersist));
+        window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(globalToPersist));
       } catch {
         // Ignore persistence failures (quota, serialization).
-      } finally {
-        pendingSessions = null;
-        pendingGlobal = null;
-        persistTimeout = null;
       }
     }, throttleMs);
   };
