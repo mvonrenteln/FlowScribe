@@ -2,8 +2,8 @@
 // Perf analysis script for perfMonitor JSON export
 // Usage: node analyze-perf.js perf.json [--csv out.csv] [--histogram] [--event name] [--top N] [--buckets N]
 
-import fs from "fs";
-import path from "path";
+import fs from "node:fs";
+import path from "node:path";
 
 function usage() {
   console.log(

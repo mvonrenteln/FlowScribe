@@ -190,9 +190,10 @@ if (canUseLocalStorage()) {
       if (import.meta.env.DEV) {
         try {
           // global flag checked on each subscription fire; default is false.
-          const devDisabled = (globalThis as any).__DEV_DISABLE_PERSISTENCE === true;
+          const maybeFlag = globalThis as unknown as { __DEV_DISABLE_PERSISTENCE?: unknown };
+          const devDisabled = maybeFlag.__DEV_DISABLE_PERSISTENCE === true;
           if (devDisabled) return;
-        } catch (e) {
+        } catch (_e) {
           // ignore safety errors in exotic environments
         }
       }
