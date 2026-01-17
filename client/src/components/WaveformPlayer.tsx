@@ -278,8 +278,6 @@ export function WaveformPlayer({
     return () => observer.disconnect();
   }, [applyWaveColors]);
 
-
-
   useEffect(() => {
     const ws = wavesurferRef.current;
     if (!ws || !isReady) return;

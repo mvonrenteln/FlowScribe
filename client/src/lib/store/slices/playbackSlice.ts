@@ -5,52 +5,45 @@ import type { PlaybackSlice, TranscriptStore } from "../types";
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
+let _playback_last = 0;
+let _playback_pending: number | null = null;
+let _playback_timer: number | null = null;
+
 export const createPlaybackSlice = (set: StoreSetter, get: StoreGetter): PlaybackSlice => ({
   updatePlaybackTime: (time) => {
     if (!Number.isFinite(time)) return;
     // Coalesce frequent playback updates to avoid store churn. Target ~10Hz (100ms).
-    // Use module-scoped refs via closure to keep state between calls.
     const now = Date.now();
-    // @ts-ignore - attach helpers to function object to persist across calls
-    if (!(updatePlaybackTime as any)._last) {
-      (updatePlaybackTime as any)._last = 0;
-      (updatePlaybackTime as any)._pending = null as number | null;
-      (updatePlaybackTime as any)._timer = null as number | null;
-    }
-
-    const last = (updatePlaybackTime as any)._last as number;
-    const pending = (updatePlaybackTime as any)._pending as number | null;
-    const timer = (updatePlaybackTime as any)._timer as number | null;
 
     const flush = () => {
-      const toSet = (updatePlaybackTime as any)._pending as number | null;
+      const toSet = _playback_pending;
       if (toSet !== null && Number.isFinite(toSet)) {
         perfTime("playback-update", () => set({ currentTime: toSet }), { time: toSet });
       }
-      (updatePlaybackTime as any)._pending = null;
-      (updatePlaybackTime as any)._timer = null;
-      (updatePlaybackTime as any)._last = Date.now();
+      _playback_pending = null;
+      _playback_timer = null;
+      _playback_last = Date.now();
     };
 
     const THROTTLE_MS = 100;
 
     // If enough time has passed since last actual write, write immediately.
-    if (now - last >= THROTTLE_MS) {
-      if (timer) {
-        clearTimeout(timer);
-        (updatePlaybackTime as any)._timer = null;
+    if (now - _playback_last >= THROTTLE_MS) {
+      if (_playback_timer) {
+        clearTimeout(_playback_timer);
+        _playback_timer = null;
       }
-      (updatePlaybackTime as any)._last = now;
+      _playback_last = now;
       perfTime("playback-update", () => set({ currentTime: time }), { time });
       return;
     }
 
     // Otherwise, schedule/replace a pending write.
-    (updatePlaybackTime as any)._pending = time;
-    if (timer) {
-      clearTimeout(timer);
+    _playback_pending = time;
+    if (_playback_timer) {
+      clearTimeout(_playback_timer);
     }
-    (updatePlaybackTime as any)._timer = setTimeout(flush, THROTTLE_MS) as unknown as number;
+    _playback_timer = setTimeout(flush, THROTTLE_MS) as unknown as number;
   },
   setCurrentTime: (time) => set({ currentTime: time }),
   setIsPlaying: (playing) => set({ isPlaying: playing }),
