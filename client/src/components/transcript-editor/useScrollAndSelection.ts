@@ -145,17 +145,6 @@ export function useScrollAndSelection({
   useEffect(() => {
     if (isTranscriptEditing()) return;
 
-    // Throttle heavy scroll/visibility checks during playback to at most ~4Hz
-    const nowMs = Date.now();
-    const isThrottledCheck = isPlaying && nowMs - lastVisibilityCheckRef.current < 250;
-    if (isThrottledCheck) {
-      // Only update tracked time and exit early; this avoids DOM queries 60x/sec
-      lastTimeRef.current = currentTime;
-      lastIsPlayingRef.current = isPlaying;
-      return;
-    }
-    lastVisibilityCheckRef.current = nowMs;
-
     const now = Date.now();
     const isInteracting = now - lastInteractionTimeRef.current < 2000;
 
@@ -183,6 +172,19 @@ export function useScrollAndSelection({
       : isInteracting && selectedSegmentId
         ? selectedSegmentId
         : (targetSegment?.id ?? selectedSegmentId ?? null);
+
+    // Throttle heavy scroll/visibility checks during playback to at most ~4Hz.
+    // Still allow immediate scrolls for important events (seek / resume / target change).
+    const nowMs = Date.now();
+    const isWithinThrottleWindow = isPlaying && nowMs - lastVisibilityCheckRef.current < 250;
+    const isSameTarget = scrollTargetId !== null && scrollTargetId === lastTargetIdRef.current;
+    const canSkipHeavyWork =
+      isWithinThrottleWindow &&
+      !isSeeking &&
+      !justResumed &&
+      (scrollTargetId === null || isSameTarget);
+    if (canSkipHeavyWork) return;
+    lastVisibilityCheckRef.current = nowMs;
 
     const container = transcriptListRef.current;
 
