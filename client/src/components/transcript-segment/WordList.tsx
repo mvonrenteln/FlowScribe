@@ -128,11 +128,15 @@ export function WordList({
     <div // NOSONAR
       onMouseDown={(event) => {
         // Only prevent default for single clicks, not double clicks.
-        // Also stop propagation so the parent segment's `onMouseDown` handler
-        // doesn't schedule a segment-start seek that overrides word seeks.
+        // Only stop propagation when the click originates from a word button,
+        // otherwise allow bubbling so empty-space clicks still select the segment.
         if (event.detail === 1) {
           event.preventDefault();
-          event.stopPropagation();
+          const target = event.target as HTMLElement | null;
+          const clickedWord = target?.closest?.("button.transcript-word");
+          if (clickedWord) {
+            event.stopPropagation();
+          }
         }
       }}
       className="text-base leading-relaxed outline-none"

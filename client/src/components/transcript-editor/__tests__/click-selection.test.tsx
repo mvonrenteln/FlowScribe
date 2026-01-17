@@ -53,6 +53,38 @@ describe("click selection regression", () => {
     vi.useRealTimers();
   });
 
+  it("clicking empty space in the text area selects the segment", async () => {
+    vi.useFakeTimers();
+    const onSeek = vi.fn();
+    const onSelect = vi.fn();
+
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        tags={[]}
+        isSelected={false}
+        isActive={false}
+        onSelect={onSelect}
+        onSelectOnly={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={onSeek}
+      />,
+    );
+
+    const textArea = screen.getByTestId("text-segment-seg-1");
+    fireEvent.mouseDown(textArea, { button: 0, detail: 1 });
+    vi.advanceTimersByTime(250);
+
+    expect(onSelect).toHaveBeenCalled();
+    vi.useRealTimers();
+  });
+
   it("clicking a word selects without segment-start seek and seeks to the word time", async () => {
     vi.useFakeTimers();
     const onSeek = vi.fn();
