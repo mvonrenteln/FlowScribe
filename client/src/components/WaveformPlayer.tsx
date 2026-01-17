@@ -1,5 +1,5 @@
 import { Minus, Plus } from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import WaveSurfer from "wavesurfer.js";
 import MinimapPlugin from "wavesurfer.js/dist/plugins/minimap.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.js";
@@ -51,6 +51,8 @@ export function WaveformPlayer({
   const pendingTimeRef = useRef<number | null>(null);
   const currentTimeRef = useRef(_currentTime);
   const initialSeekAppliedRef = useRef(false);
+  const regionSegmentsRef = useRef<Segment[]>(segments);
+  const lastShowSpeakerRegionsRef = useRef(showSpeakerRegions);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -144,6 +146,29 @@ export function WaveformPlayer({
   useEffect(() => {
     currentTimeRef.current = _currentTime;
   }, [_currentTime]);
+
+  const regionSegments = useMemo(() => {
+    const previous = regionSegmentsRef.current;
+    if (previous.length !== segments.length) {
+      regionSegmentsRef.current = segments;
+      return segments;
+    }
+    for (let i = 0; i < segments.length; i += 1) {
+      const nextSegment = segments[i];
+      const prevSegment = previous[i];
+      if (
+        !prevSegment ||
+        nextSegment.id !== prevSegment.id ||
+        nextSegment.start !== prevSegment.start ||
+        nextSegment.end !== prevSegment.end ||
+        nextSegment.speaker !== prevSegment.speaker
+      ) {
+        regionSegmentsRef.current = segments;
+        return segments;
+      }
+    }
+    return previous;
+  }, [segments]);
 
   useEffect(() => {
     return () => {
@@ -275,11 +300,18 @@ export function WaveformPlayer({
     const regions = regionsRef.current;
     if (!regions || !isReady) return;
 
+    if (!showSpeakerRegions) {
+      if (lastShowSpeakerRegionsRef.current) {
+        regions.clearRegions();
+      }
+      lastShowSpeakerRegionsRef.current = false;
+      return;
+    }
+
+    lastShowSpeakerRegionsRef.current = true;
     regions.clearRegions();
 
-    if (!showSpeakerRegions) return;
-
-    segments.forEach((segment) => {
+    regionSegments.forEach((segment) => {
       const color = getSpeakerColor(segment.speaker);
       const region = regions.addRegion({
         id: segment.id,
@@ -308,7 +340,14 @@ export function WaveformPlayer({
         }
       });
     });
-  }, [segments, isReady, showSpeakerRegions, getSpeakerColor, onSegmentBoundaryChange, withAlpha]);
+  }, [
+    regionSegments,
+    isReady,
+    showSpeakerRegions,
+    getSpeakerColor,
+    onSegmentBoundaryChange,
+    withAlpha,
+  ]);
 
   useEffect(() => {
     const ws = wavesurferRef.current;

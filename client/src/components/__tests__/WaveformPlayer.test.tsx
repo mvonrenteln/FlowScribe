@@ -207,6 +207,66 @@ describe("WaveformPlayer", () => {
     });
   });
 
+  it("skips region rebuilds when speaker regions are hidden", async () => {
+    const { rerender } = render(
+      <WaveformPlayer
+        {...baseProps}
+        audioUrl="audio.mp3"
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "Speaker 1",
+            start: 0,
+            end: 2,
+            text: "Hello",
+            words: [],
+            tags: [],
+          },
+        ]}
+        speakers={[
+          {
+            id: "spk-1",
+            name: "Speaker 1",
+            color: "hsl(200, 50%, 40%)",
+          },
+        ]}
+      />,
+    );
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    expect(regionsMock.instance.clearRegions).not.toHaveBeenCalled();
+
+    rerender(
+      <WaveformPlayer
+        {...baseProps}
+        audioUrl="audio.mp3"
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "Speaker 1",
+            start: 0,
+            end: 2,
+            text: "Hello again",
+            words: [],
+            tags: [],
+          },
+        ]}
+        speakers={[
+          {
+            id: "spk-1",
+            name: "Speaker 1",
+            color: "hsl(200, 50%, 40%)",
+          },
+        ]}
+      />,
+    );
+
+    expect(regionsMock.instance.clearRegions).not.toHaveBeenCalled();
+  });
+
   it("seeks to the provided currentTime after the audio is ready", async () => {
     render(<WaveformPlayer {...baseProps} audioUrl="audio.mp3" currentTime={42} />);
 

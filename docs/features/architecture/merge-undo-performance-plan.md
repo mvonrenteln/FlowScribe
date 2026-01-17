@@ -57,6 +57,7 @@ Reduce merge/undo input latency (INP) from seconds to sub-300ms by targeting the
 - Reused spellcheck results for unchanged segments to avoid full re-processing on merge/undo when word content is stable.
 - Skipped normalization work for search/tag filtering when those features are inactive to reduce per-update work.
 - Reused lexicon matches for unchanged segments to avoid recomputing similarity scans on merge/undo when word content is stable.
+- Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
 
 ## Follow-ups (Higher Effort)
 
