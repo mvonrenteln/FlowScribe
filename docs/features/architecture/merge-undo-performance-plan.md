@@ -55,6 +55,7 @@ Reduce merge/undo input latency (INP) from seconds to sub-300ms by targeting the
 - Added a `confidenceScoresVersion` state to avoid recomputing the auto-threshold on merge/split when scores do not change.
 - Auto-threshold computation now skips when a manual threshold is set.
 - Reused spellcheck results for unchanged segments to avoid full re-processing on merge/undo when word content is stable.
+- Skipped normalization work for search/tag filtering when those features are inactive to reduce per-update work.
 
 ## Follow-ups (Higher Effort)
 

@@ -84,6 +84,19 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     expect(result.current.filteredSegments[0].id).toBe("seg-unicode");
   });
 
+  it("handles enabling search after initial render", () => {
+    const { result } = renderHook(() => useFiltersAndLexicon(defaultProps));
+
+    expect(result.current.filteredSegments).toHaveLength(4);
+
+    act(() => {
+      result.current.setSearchQuery("bluebird");
+    });
+
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0]?.id).toBe("seg-punct");
+  });
+
   it("finds case-insensitive matches", () => {
     const { result } = renderHook(() => useFiltersAndLexicon(defaultProps));
 

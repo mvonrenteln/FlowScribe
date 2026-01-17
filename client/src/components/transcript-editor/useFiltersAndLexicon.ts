@@ -75,22 +75,27 @@ export function useFiltersAndLexicon({
   const [isRegexSearch, setIsRegexSearch] = useState(false);
   const segmentsRef = useRef(segments);
 
+  const needsSearch = searchQuery.trim().length > 0;
+  const needsTagFiltering = filterNoTags || filterTagIds.length > 0 || filterNotTagIds.length > 0;
+
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
     : undefined;
 
   const normalizedSegments = useMemo(
     () =>
-      segments.map((segment) => {
-        const wordsText = segment.words.map((word) => word.word).join(" ");
-        return {
-          id: segment.id,
-          textNormalized: normalizeForSearch(segment.text),
-          wordsText,
-          wordsNormalized: normalizeForSearch(wordsText),
-        };
-      }),
-    [segments],
+      needsSearch
+        ? segments.map((segment) => {
+            const wordsText = segment.words.map((word) => word.word).join(" ");
+            return {
+              id: segment.id,
+              textNormalized: normalizeForSearch(segment.text),
+              wordsText,
+              wordsNormalized: normalizeForSearch(wordsText),
+            };
+          })
+        : [],
+    [needsSearch, segments],
   );
 
   const normalizedSegmentsById = useMemo(
@@ -104,12 +109,15 @@ export function useFiltersAndLexicon({
 
   // Pre-compute tag sets for O(1) lookups during filtering
   const segmentTagSets = useMemo(() => {
+    if (!needsTagFiltering) {
+      return new Map<string, Set<string>>();
+    }
     const tagSets = new Map<string, Set<string>>();
     for (const segment of segments) {
       tagSets.set(segment.id, new Set(getSegmentTags(segment)));
     }
     return tagSets;
-  }, [segments]);
+  }, [needsTagFiltering, segments]);
 
   const shouldComputeAutoThreshold = manualConfidenceThreshold === null;
   const autoConfidenceThreshold = useMemo(() => {
