@@ -182,7 +182,12 @@ function TranscriptSegmentComponent({
         isActive && "bg-accent/50",
         !isSelected && !isActive && "hover-elevate",
       )}
-      onClick={handleSegmentClick}
+      onMouseDown={(event) => {
+        // Only trigger the single-click selection path for primary single clicks.
+        if (event.button === 0 && event.detail === 1) {
+          handleSegmentClick();
+        }
+      }}
       onDoubleClick={handleSegmentDoubleClick}
       onKeyDown={handleSelectKeyDown}
       data-testid={`segment-${segment.id}`}

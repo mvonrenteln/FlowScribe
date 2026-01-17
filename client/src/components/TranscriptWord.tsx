@@ -78,7 +78,9 @@ export const TranscriptWord = memo(
     const isSpellcheckMatch = Boolean(spellcheckMatch);
 
     const handleClick = (e: React.MouseEvent) => {
-      e.stopPropagation();
+      // Don't stop propagation here — allow the click to bubble to the
+      // parent `article` so the segment's selection handler runs. We still
+      // perform match-click behavior and the provided onClick logic.
       if (onMatchClick && findMatchIndex && wordRange) {
         const globalIndex = findMatchIndex(segmentId, wordRange.start);
         if (globalIndex !== -1) {

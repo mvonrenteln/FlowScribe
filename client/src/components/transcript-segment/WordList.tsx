@@ -75,7 +75,9 @@ export function WordList({
 
   const handleWordClick = useCallback(
     (word: Word, index: number, event: React.MouseEvent) => {
-      event.stopPropagation();
+      // Allow click to bubble to parent segment so the segment's onSelect
+      // (handled via the segment click timeout) can run. We still prevent
+      // default on mousedown to avoid text selection.
       handleWordAction(word, index, event.shiftKey);
     },
     [handleWordAction],
