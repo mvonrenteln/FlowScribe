@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { mark, time } from "@/lib/logging";
 import type { Segment } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
 import { isElementVisible } from "./visibility";
@@ -89,6 +90,7 @@ export function useScrollAndSelection({
   const lastTargetIdRef = useRef<string | null>(null);
   const lastTimeRef = useRef(currentTime);
   const lastIsPlayingRef = useRef(isPlaying);
+  const lastVisibilityCheckRef = useRef<number>(0);
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -127,8 +129,14 @@ export function useScrollAndSelection({
       }
 
       lastScrollRef.current = { id: segmentId, at: now };
+      mark("scroll-effect-start", { segmentId, behavior: options.behavior });
       requestAnimationFrame(() => {
-        targetElement.scrollIntoView({ block: options.block, behavior: options.behavior });
+        time(
+          "scroll-effect",
+          () => targetElement.scrollIntoView({ block: options.block, behavior: options.behavior }),
+          { segmentId, behavior: options.behavior },
+        );
+        mark("scroll-effect-end", { segmentId, behavior: options.behavior });
       });
     },
     [],
@@ -164,6 +172,19 @@ export function useScrollAndSelection({
       : isInteracting && selectedSegmentId
         ? selectedSegmentId
         : (targetSegment?.id ?? selectedSegmentId ?? null);
+
+    // Throttle heavy scroll/visibility checks during playback to at most ~4Hz.
+    // Still allow immediate scrolls for important events (seek / resume / target change).
+    const nowMs = Date.now();
+    const isWithinThrottleWindow = isPlaying && nowMs - lastVisibilityCheckRef.current < 250;
+    const isSameTarget = scrollTargetId !== null && scrollTargetId === lastTargetIdRef.current;
+    const canSkipHeavyWork =
+      isWithinThrottleWindow &&
+      !isSeeking &&
+      !justResumed &&
+      (scrollTargetId === null || isSameTarget);
+    if (canSkipHeavyWork) return;
+    lastVisibilityCheckRef.current = nowMs;
 
     const container = transcriptListRef.current;
 

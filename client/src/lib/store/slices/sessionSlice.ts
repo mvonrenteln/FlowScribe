@@ -51,6 +51,7 @@ export const createSessionSlice = (
   setAudioUrl: (url) => set({ audioUrl: url }),
   setAudioReference: (reference) => {
     const state = get();
+    const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const sessionKey =
       state.transcriptRef === null
         ? state.sessionKey
@@ -105,14 +106,17 @@ export const createSessionSlice = (
                 tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? state.currentTime,
+                confidenceScoresVersion,
               },
             ]
           : [],
       historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+      confidenceScoresVersion,
     });
   },
   setTranscriptReference: (reference) => {
     const state = get();
+    const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const sessionKey =
       state.audioRef === null ? state.sessionKey : buildSessionKey(state.audioRef, reference);
     const session = context.getSessionsCache()[sessionKey];
@@ -165,10 +169,12 @@ export const createSessionSlice = (
                 tags: session?.tags ?? state.tags,
                 selectedSegmentId,
                 currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
+                confidenceScoresVersion,
               },
             ]
           : [],
       historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+      confidenceScoresVersion,
     });
   },
   activateSession: (key) => {
@@ -180,6 +186,7 @@ export const createSessionSlice = (
         ? session.selectedSegmentId
         : (session.segments[0]?.id ?? null);
     const state = get();
+    const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const shouldClearAudio = !isSameFileReference(state.audioRef, session.audioRef);
     set({
       audioRef: session.audioRef,
@@ -201,12 +208,14 @@ export const createSessionSlice = (
           tags: session.tags ?? [],
           selectedSegmentId,
           currentTime: session.currentTime ?? 0,
+          confidenceScoresVersion,
         },
       ],
       historyIndex: 0,
       audioFile: shouldClearAudio ? null : state.audioFile,
       audioUrl: shouldClearAudio ? null : state.audioUrl,
       seekRequestTime: null,
+      confidenceScoresVersion,
     });
   },
   createRevision: (name, overwrite) => {
@@ -291,6 +300,7 @@ export const buildInitialHistory = (
     tags: TranscriptStore["tags"];
     selectedSegmentId: string | null;
     currentTime: number;
+    confidenceScoresVersion: number;
   } | null,
 ) => {
   if (session?.segments.length && session.speakers.length) {
@@ -302,6 +312,7 @@ export const buildInitialHistory = (
           tags: session.tags,
           selectedSegmentId: session.selectedSegmentId,
           currentTime: session.currentTime,
+          confidenceScoresVersion: session.confidenceScoresVersion,
         },
       ],
       historyIndex: 0,

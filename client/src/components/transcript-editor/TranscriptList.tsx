@@ -79,6 +79,27 @@ function TranscriptListComponent({
     return map;
   }, [pendingMergeSuggestions]);
 
+  // Render a sliding window of N segments centered on the active/selected/last segment
+  const DEV_SLICE_SIZE = 50;
+  let segmentsToRender = filteredSegments;
+  // Determine anchor: prefer activeSegmentId, then selectedSegmentId, then last visible segment
+  const anchorId =
+    (activeSegmentId as string | undefined) ??
+    (selectedSegmentId as string | undefined) ??
+    (filteredSegments.length > 0 ? filteredSegments[filteredSegments.length - 1].id : undefined);
+
+  const activeIndex = anchorId ? filteredSegments.findIndex((s) => s.id === anchorId) : -1;
+  if (activeIndex === -1) {
+    // fallback: last N segments so user stays near the end instead of jumping elsewhere
+    const start = Math.max(0, filteredSegments.length - DEV_SLICE_SIZE);
+    segmentsToRender = filteredSegments.slice(start, filteredSegments.length);
+  } else {
+    const half = Math.floor(DEV_SLICE_SIZE / 2);
+    const start = Math.max(0, activeIndex - half);
+    const end = Math.min(filteredSegments.length, start + DEV_SLICE_SIZE);
+    segmentsToRender = filteredSegments.slice(start, end);
+  }
+
   // Simple "virtualization": If there are many segments, we could limit rendering.
   // But first, let's ensure memoization of the list itself and the segments works.
 
@@ -91,8 +112,11 @@ function TranscriptListComponent({
             <p className="text-sm">{emptyState.description}</p>
           </div>
         ) : (
-          filteredSegments.map((segment, index) => {
-            const handlers = segmentHandlers[index];
+          segmentsToRender.map((segment, index) => {
+            // segmentHandlers corresponds to filteredSegments indices; when using a slice
+            // we need to resolve the original index for the handler lookup.
+            const originalIndex = filteredSegments.findIndex((s) => s.id === segment.id);
+            const handlers = segmentHandlers[originalIndex];
             if (!handlers) return null; // Safety check
 
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
@@ -127,6 +151,7 @@ function TranscriptListComponent({
                     editRequestId === segment.id ? onClearEditRequest : undefined
                   }
                   onSelect={handlers.onSelect}
+                  onSelectOnly={handlers.onSelectOnly}
                   onTextChange={handlers.onTextChange}
                   onSpeakerChange={handlers.onSpeakerChange}
                   onSplit={handlers.onSplit}

@@ -9,6 +9,7 @@ import { useScrollAndSelection } from "../useScrollAndSelection";
 const confidenceProps = {
   highlightLowConfidence: false,
   manualConfidenceThreshold: null,
+  confidenceScoresVersion: 0,
   setHighlightLowConfidence: vi.fn(),
   setManualConfidenceThreshold: vi.fn(),
 };

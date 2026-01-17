@@ -15,8 +15,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
    * Tags are session-local and referenced by id in `Segment.tags`.
    */
   addTag: (name) => {
-    const { tags, segments, history, historyIndex, selectedSegmentId, currentTime, speakers } =
-      get();
+    const {
+      tags,
+      segments,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      speakers,
+      confidenceScoresVersion,
+    } = get();
 
     const raw = name ?? "";
     // Reject explicit empty string and names that are only whitespace
@@ -38,6 +46,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags: newTags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       tags: newTags,
@@ -48,8 +57,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
   },
 
   removeTag: (tagId) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
 
     const newTags = tags.filter((t) => t.id !== tagId);
     const newSegments = segments.map((s) => ({
@@ -62,6 +79,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags: newTags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -76,8 +94,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
    * Returns true on success, false on validation failure or if tag not found.
    */
   renameTag: (tagId, newName) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const tag = tags.find((t) => t.id === tagId);
     if (!tag) return false;
 
@@ -99,6 +125,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags: newTags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       tags: newTags,
@@ -109,8 +136,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
   },
 
   updateTagColor: (tagId, color) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
     const tag = tags.find((t) => t.id === tagId);
     if (!tag) return;
 
@@ -121,6 +156,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags: newTags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       tags: newTags,
@@ -131,8 +167,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
 
   // Tag Assignment Operations
   assignTagToSegment: (segmentId, tagId) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
 
     const newSegments = segments.map((s: Segment) =>
       s.id === segmentId && !getSegmentTags(s).includes(tagId)
@@ -145,6 +189,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,
@@ -154,8 +199,16 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
   },
 
   removeTagFromSegment: (segmentId, tagId) => {
-    const { segments, speakers, tags, history, historyIndex, selectedSegmentId, currentTime } =
-      get();
+    const {
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
 
     const newSegments = segments.map((s: Segment) =>
       s.id === segmentId ? { ...s, tags: getSegmentTags(s).filter((id) => id !== tagId) } : s,
@@ -166,6 +219,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       tags,
       selectedSegmentId,
       currentTime,
+      confidenceScoresVersion,
     });
     set({
       segments: newSegments,

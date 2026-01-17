@@ -8,4 +8,39 @@ if (!root) {
   throw new Error("Root element not found");
 }
 
+if (import.meta.env.DEV) {
+  const IGNORED_MESSAGE = "Attempting to use a disconnected port object";
+
+  window.addEventListener(
+    "error",
+    (ev: ErrorEvent) => {
+      try {
+        const msg = ev?.message;
+        const file = ev?.filename ?? "";
+        if (
+          (typeof msg === "string" && msg.includes(IGNORED_MESSAGE)) ||
+          (typeof file === "string" &&
+            (file.includes("react_devtools_backend_compact.js") || file.includes("proxy.js")))
+        ) {
+          ev.preventDefault();
+        }
+      } catch (_e) {
+        // swallow any errors in the filter itself
+      }
+    },
+    true,
+  );
+
+  window.addEventListener("unhandledrejection", (ev: PromiseRejectionEvent) => {
+    try {
+      const reason = ev?.reason;
+      if (typeof reason === "string" && reason.includes(IGNORED_MESSAGE)) {
+        ev.preventDefault();
+      }
+    } catch (_e) {
+      // ignore
+    }
+  });
+}
+
 createRoot(root).render(<App />);

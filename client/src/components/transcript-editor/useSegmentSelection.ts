@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useTranscriptStore } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { useScrollAndSelection } from "./useScrollAndSelection";
 
 export interface SegmentHandlers {
   onSelect: () => void;
+  onSelectOnly?: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
   onSplit: (wordIndex: number) => void;
@@ -81,6 +82,14 @@ export const useSegmentSelection = ({
   });
 
   const handlerCacheRef = useRef<Map<string, SegmentHandlers>>(new Map());
+  const mergeHandlerCacheRef = useRef<Map<string, { prev: () => void; next: () => void }>>(
+    new Map(),
+  );
+  const filteredSegmentsRef = useRef(filteredSegments);
+  const filteredIndexByIdRef = useRef(new Map<string, number>());
+  const segmentIndexByIdRef = useRef(new Map<string, number>());
+  const mergeSegmentsRef = useRef(mergeSegments);
+  const setSelectedSegmentIdRef = useRef(setSelectedSegmentId);
 
   const getSelectedSegmentIndex = useCallback(() => {
     return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
@@ -158,15 +167,74 @@ export const useSegmentSelection = ({
     return activeSegment.words.findIndex((w) => currentTime >= w.start && currentTime <= w.end);
   }, [activeSegment, currentTime]);
 
+  useEffect(() => {
+    filteredSegmentsRef.current = filteredSegments;
+    filteredIndexByIdRef.current = new Map(
+      filteredSegments.map((segment, index) => [segment.id, index]),
+    );
+  }, [filteredSegments]);
+
+  useEffect(() => {
+    segmentIndexByIdRef.current = new Map(segments.map((segment, index) => [segment.id, index]));
+  }, [segments]);
+
+  useEffect(() => {
+    mergeSegmentsRef.current = mergeSegments;
+    setSelectedSegmentIdRef.current = setSelectedSegmentId;
+  }, [mergeSegments, setSelectedSegmentId]);
+
   const segmentHandlers = useMemo(() => {
+    // Defensive: ensure handlerCacheRef.current is initialized (HMR/dev can cause transient undefined)
+    if (!handlerCacheRef.current) handlerCacheRef.current = new Map<string, SegmentHandlers>();
     const currentIds = new Set(segments.map((s) => s.id));
     for (const id of Array.from(handlerCacheRef.current.keys())) {
       if (!currentIds.has(id)) {
         handlerCacheRef.current.delete(id);
       }
     }
+    for (const id of Array.from(mergeHandlerCacheRef.current.keys())) {
+      if (!currentIds.has(id)) {
+        mergeHandlerCacheRef.current.delete(id);
+      }
+    }
 
     const segmentIndexById = new Map(segments.map((segment, idx) => [segment.id, idx]));
+    const filteredIndexById = new Map(
+      filteredSegments.map((segment, index) => [segment.id, index]),
+    );
+    const getMergeHandlers = (segmentId: string) => {
+      let handlers = mergeHandlerCacheRef.current.get(segmentId);
+      if (!handlers) {
+        handlers = {
+          prev: () => {
+            const filteredIndex = filteredIndexByIdRef.current.get(segmentId);
+            if (filteredIndex === undefined || filteredIndex <= 0) return;
+            const previous = filteredSegmentsRef.current[filteredIndex - 1];
+            if (!previous) return;
+            const indexA = segmentIndexByIdRef.current.get(previous.id);
+            const indexB = segmentIndexByIdRef.current.get(segmentId);
+            if (indexA === undefined || indexB === undefined) return;
+            if (Math.abs(indexA - indexB) !== 1) return;
+            const mergedId = mergeSegmentsRef.current(previous.id, segmentId);
+            if (mergedId) setSelectedSegmentIdRef.current(mergedId);
+          },
+          next: () => {
+            const filteredIndex = filteredIndexByIdRef.current.get(segmentId);
+            if (filteredIndex === undefined) return;
+            const next = filteredSegmentsRef.current[filteredIndex + 1];
+            if (!next) return;
+            const indexA = segmentIndexByIdRef.current.get(segmentId);
+            const indexB = segmentIndexByIdRef.current.get(next.id);
+            if (indexA === undefined || indexB === undefined) return;
+            if (Math.abs(indexA - indexB) !== 1) return;
+            const mergedId = mergeSegmentsRef.current(segmentId, next.id);
+            if (mergedId) setSelectedSegmentIdRef.current(mergedId);
+          },
+        };
+        mergeHandlerCacheRef.current.set(segmentId, handlers);
+      }
+      return handlers;
+    };
 
     return filteredSegments.map((segment, index) => {
       let handlers = handlerCacheRef.current.get(segment.id) as SegmentHandlers | undefined;
@@ -190,6 +258,12 @@ export const useSegmentSelection = ({
               seekToTime(current.start, { source: "transcript", action: "segment_click" });
             }
           },
+          onSelectOnly: () => {
+            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            if (current) {
+              setSelectedSegmentId(current.id);
+            }
+          },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
@@ -202,23 +276,21 @@ export const useSegmentSelection = ({
         handlerCacheRef.current.set(segment.id, handlers);
       }
 
-      handlers.onMergeWithPrevious =
-        index > 0 && previousSegment && areAdjacent(previousSegment.id, segment.id)
-          ? () => {
-              const currentMergedId = mergeSegments(previousSegment.id, segment.id);
-              if (currentMergedId) setSelectedSegmentId(currentMergedId);
-            }
-          : undefined;
-
-      handlers.onMergeWithNext =
-        index < filteredSegments.length - 1 &&
+      const mergeHandlers = getMergeHandlers(segment.id);
+      const currentFilteredIndex = filteredIndexById.get(segment.id);
+      const canMergePrev =
+        currentFilteredIndex !== undefined &&
+        currentFilteredIndex > 0 &&
+        previousSegment &&
+        areAdjacent(previousSegment.id, segment.id);
+      const canMergeNext =
+        currentFilteredIndex !== undefined &&
+        currentFilteredIndex < filteredSegments.length - 1 &&
         nextSegment &&
-        areAdjacent(segment.id, nextSegment.id)
-          ? () => {
-              const currentMergedId = mergeSegments(segment.id, nextSegment.id);
-              if (currentMergedId) setSelectedSegmentId(currentMergedId);
-            }
-          : undefined;
+        areAdjacent(segment.id, nextSegment.id);
+
+      handlers.onMergeWithPrevious = canMergePrev ? mergeHandlers.prev : undefined;
+      handlers.onMergeWithNext = canMergeNext ? mergeHandlers.next : undefined;
 
       return handlers;
     });
@@ -228,7 +300,6 @@ export const useSegmentSelection = ({
     deleteSegment,
     filteredSegments,
     handleSplitSegment,
-    mergeSegments,
     segments,
     seekToTime,
     setSelectedSegmentId,

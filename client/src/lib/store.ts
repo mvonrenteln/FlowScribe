@@ -1,6 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
+import { mark } from "@/lib/logging";
 import {
   buildRecentSessions,
   canUseLocalStorage,
@@ -91,6 +92,7 @@ const initialHistoryState = buildInitialHistory(
         tags: activeSession.tags ?? [],
         selectedSegmentId: activeSession.selectedSegmentId,
         currentTime: activeSession.currentTime ?? 0,
+        confidenceScoresVersion: 0,
       }
     : null,
 );
@@ -131,6 +133,7 @@ const initialState: InitialStoreState = {
   // Confidence highlighting
   highlightLowConfidence: globalState?.highlightLowConfidence ?? true,
   manualConfidenceThreshold: globalState?.manualConfidenceThreshold ?? null,
+  confidenceScoresVersion: 0,
   // AI Revision state
   ...initialAIRevisionState,
   aiRevisionConfig: normalizeAIRevisionConfig(globalState?.aiRevisionConfig),
@@ -176,9 +179,26 @@ export const useTranscriptStore = create<TranscriptStore>()(
 );
 
 if (canUseLocalStorage()) {
+  let __storeSubscriptionCount = 0;
   useTranscriptStore.subscribe(
     (state) => state,
     (state) => {
+      __storeSubscriptionCount += 1;
+      if (__storeSubscriptionCount % 100 === 0) {
+        mark("store-subscription-bulk", { count: __storeSubscriptionCount });
+      }
+      // DEV-only: allow temporarily disabling persistence to run A/B perf tests.
+      // Set `window.__DEV_DISABLE_PERSISTENCE = true` in the browser console to disable.
+      if (import.meta.env.DEV) {
+        try {
+          // global flag checked on each subscription fire; default is false.
+          const maybeFlag = globalThis as unknown as { __DEV_DISABLE_PERSISTENCE?: unknown };
+          const devDisabled = maybeFlag.__DEV_DISABLE_PERSISTENCE === true;
+          if (devDisabled) return;
+        } catch (_e) {
+          // ignore safety errors in exotic environments
+        }
+      }
       if (!storeContext) return;
       const sessionKey = state.sessionKey;
       const sessionsCache = storeContext.getSessionsCache();

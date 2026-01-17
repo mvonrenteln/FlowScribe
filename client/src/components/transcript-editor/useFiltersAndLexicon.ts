@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSearchRegex, normalizeForSearch } from "@/lib/searchUtils";
 import type { LexiconEntry, Segment, Speaker } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
+import { computeAutoConfidenceThreshold } from "@/lib/transcript/lowConfidenceThreshold";
 import type { LexiconMatchMeta } from "./useLexiconMatches";
 import { useLexiconMatches } from "./useLexiconMatches";
 
@@ -17,6 +18,7 @@ interface UseFiltersAndLexiconOptions {
   // Confidence from store
   highlightLowConfidence: boolean;
   manualConfidenceThreshold: number | null;
+  confidenceScoresVersion: number;
   setHighlightLowConfidence: (enabled: boolean) => void;
   setManualConfidenceThreshold: (threshold: number | null) => void;
 }
@@ -56,6 +58,7 @@ export function useFiltersAndLexicon({
   spellcheckMatchesBySegment,
   highlightLowConfidence,
   manualConfidenceThreshold,
+  confidenceScoresVersion,
   setHighlightLowConfidence,
   setManualConfidenceThreshold,
 }: UseFiltersAndLexiconOptions) {
@@ -70,6 +73,10 @@ export function useFiltersAndLexicon({
   const [filterNoTags, setFilterNoTags] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isRegexSearch, setIsRegexSearch] = useState(false);
+  const segmentsRef = useRef(segments);
+
+  const needsSearch = searchQuery.trim().length > 0;
+  const needsTagFiltering = filterNoTags || filterTagIds.length > 0 || filterNotTagIds.length > 0;
 
   const activeSpeakerName = filterSpeakerId
     ? speakers.find((speaker) => speaker.id === filterSpeakerId)?.name
@@ -77,16 +84,18 @@ export function useFiltersAndLexicon({
 
   const normalizedSegments = useMemo(
     () =>
-      segments.map((segment) => {
-        const wordsText = segment.words.map((word) => word.word).join(" ");
-        return {
-          id: segment.id,
-          textNormalized: normalizeForSearch(segment.text),
-          wordsText,
-          wordsNormalized: normalizeForSearch(wordsText),
-        };
-      }),
-    [segments],
+      needsSearch
+        ? segments.map((segment) => {
+            const wordsText = segment.words.map((word) => word.word).join(" ");
+            return {
+              id: segment.id,
+              textNormalized: normalizeForSearch(segment.text),
+              wordsText,
+              wordsNormalized: normalizeForSearch(wordsText),
+            };
+          })
+        : [],
+    [needsSearch, segments],
   );
 
   const normalizedSegmentsById = useMemo(
@@ -94,26 +103,29 @@ export function useFiltersAndLexicon({
     [normalizedSegments],
   );
 
+  useEffect(() => {
+    segmentsRef.current = segments;
+  }, [segments]);
+
   // Pre-compute tag sets for O(1) lookups during filtering
   const segmentTagSets = useMemo(() => {
+    if (!needsTagFiltering) {
+      return new Map<string, Set<string>>();
+    }
     const tagSets = new Map<string, Set<string>>();
     for (const segment of segments) {
       tagSets.set(segment.id, new Set(getSegmentTags(segment)));
     }
     return tagSets;
-  }, [segments]);
+  }, [needsTagFiltering, segments]);
 
+  const shouldComputeAutoThreshold = manualConfidenceThreshold === null;
   const autoConfidenceThreshold = useMemo(() => {
-    const scores = segments
-      .flatMap((segment) => segment.words)
-      .map((word) => word.score)
-      .filter((score): score is number => typeof score === "number");
-    if (scores.length === 0) return null;
-    scores.sort((a, b) => a - b);
-    const index = Math.floor(scores.length * 0.1);
-    const percentile = scores[Math.min(index, scores.length - 1)];
-    return Math.min(0.4, percentile);
-  }, [segments]);
+    if (!shouldComputeAutoThreshold) return null;
+    // Confidence scores do not change on merge/split, so depend on the score version.
+    void confidenceScoresVersion;
+    return computeAutoConfidenceThreshold(segmentsRef.current);
+  }, [confidenceScoresVersion, shouldComputeAutoThreshold]);
 
   const lowConfidenceThreshold = manualConfidenceThreshold ?? autoConfidenceThreshold;
   const {

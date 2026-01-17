@@ -35,6 +35,7 @@ export const createBaseState = (): TranscriptStore => {
     spellcheckCustomDictionariesLoaded: false,
     aiSegmentMergeBatchLog: [],
     recentSessions: [],
+    confidenceScoresVersion: 0,
   };
 };
 

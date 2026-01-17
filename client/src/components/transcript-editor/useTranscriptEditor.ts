@@ -90,6 +90,7 @@ export const useTranscriptEditor = () => {
   const spellcheckCustomEnabled = useTranscriptStore((state) => state.spellcheckCustomEnabled);
   const highlightLowConfidence = useTranscriptStore((state) => state.highlightLowConfidence);
   const manualConfidenceThreshold = useTranscriptStore((state) => state.manualConfidenceThreshold);
+  const confidenceScoresVersion = useTranscriptStore((state) => state.confidenceScoresVersion);
   const setHighlightLowConfidence = useTranscriptStore((state) => state.setHighlightLowConfidence);
   const setManualConfidenceThreshold = useTranscriptStore(
     (state) => state.setManualConfidenceThreshold,
@@ -171,7 +172,7 @@ export const useTranscriptEditor = () => {
     setSpellcheckCustomEnabled,
   } = transcriptActions;
 
-  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady, isWaveReady } =
+  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady } =
     useTranscriptInitialization({
       audioFile,
       audioUrl,
@@ -235,8 +236,6 @@ export const useTranscriptEditor = () => {
     spellcheckMatchCount,
     spellcheckMatchLimitReached,
   } = useSpellcheck({
-    audioUrl,
-    isWaveReady,
     spellcheckEnabled,
     spellcheckLanguages,
     spellcheckCustomEnabled,
@@ -292,6 +291,7 @@ export const useTranscriptEditor = () => {
     spellcheckMatchesBySegment,
     highlightLowConfidence,
     manualConfidenceThreshold,
+    confidenceScoresVersion,
     setHighlightLowConfidence,
     setManualConfidenceThreshold,
   });

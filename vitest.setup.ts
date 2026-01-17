@@ -12,6 +12,59 @@ Object.defineProperty(Element.prototype, "scrollIntoView", {
   writable: true,
 });
 
+class MemoryStorage implements Storage {
+  private store = new Map<string, string>();
+
+  get length() {
+    return this.store.size;
+  }
+
+  clear() {
+    this.store.clear();
+  }
+
+  getItem(key: string) {
+    return this.store.has(key) ? (this.store.get(key) ?? null) : null;
+  }
+
+  key(index: number) {
+    return Array.from(this.store.keys())[index] ?? null;
+  }
+
+  removeItem(key: string) {
+    this.store.delete(key);
+  }
+
+  setItem(key: string, value: string) {
+    this.store.set(key, value);
+  }
+}
+
+const isStorageUsable = () => {
+  try {
+    if (!globalThis.localStorage) {
+      return false;
+    }
+    const testKey = "__storage_test__";
+    globalThis.localStorage.setItem(testKey, "1");
+    globalThis.localStorage.removeItem(testKey);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+if (!isStorageUsable()) {
+  Object.defineProperty(globalThis, "Storage", {
+    value: MemoryStorage,
+    configurable: true,
+  });
+  Object.defineProperty(globalThis, "localStorage", {
+    value: new MemoryStorage(),
+    configurable: true,
+  });
+}
+
 if (!globalThis.requestAnimationFrame) {
   globalThis.requestAnimationFrame = (callback: FrameRequestCallback) => {
     return window.setTimeout(() => callback(performance.now()), 0);

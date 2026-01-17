@@ -1,6 +1,8 @@
-import { describe, expect, it } from "vitest";
+import { renderHook } from "@testing-library/react";
+import { describe, expect, it, vi } from "vitest";
+import * as fuzzy from "@/lib/fuzzy";
 import type { Segment } from "@/lib/store";
-import { computeLexiconMatches } from "../useLexiconMatches";
+import { computeLexiconMatches, useLexiconMatches } from "../useLexiconMatches";
 
 describe("computeLexiconMatches", () => {
   const baseSegment: Segment = {
@@ -89,5 +91,51 @@ describe("computeLexiconMatches", () => {
     expect(result.lexiconMatchesBySegment.size).toBe(0);
     expect(result.lexiconMatchCount).toBe(0);
     expect(result.lexiconLowScoreMatchCount).toBe(0);
+  });
+});
+
+describe("useLexiconMatches", () => {
+  it("reuses matches for unchanged segments", () => {
+    const segmentA: Segment = {
+      id: "segment-a",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "alpha",
+      words: [{ word: "alpha", start: 0, end: 1 }],
+    };
+    const segmentB: Segment = {
+      id: "segment-b",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 1,
+      end: 2,
+      text: "beta",
+      words: [{ word: "beta", start: 1, end: 2 }],
+    };
+
+    const similaritySpy = vi.spyOn(fuzzy, "similarityScore");
+    const lexiconEntries = [{ term: "alpha", variants: [], falsePositives: [] }];
+
+    const { rerender } = renderHook(
+      ({ segments }) =>
+        useLexiconMatches({
+          segments,
+          lexiconEntries,
+          lexiconThreshold: 0.8,
+        }),
+      { initialProps: { segments: [segmentA, segmentB] } },
+    );
+
+    const initialCalls = similaritySpy.mock.calls.length;
+    expect(initialCalls).toBeGreaterThan(0);
+
+    similaritySpy.mockClear();
+    rerender({ segments: [segmentA, { ...segmentB }] });
+
+    expect(similaritySpy.mock.calls.length).toBeGreaterThan(0);
+    expect(similaritySpy.mock.calls.length).toBeLessThan(initialCalls);
+    similaritySpy.mockRestore();
   });
 });
