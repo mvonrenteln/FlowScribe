@@ -32,6 +32,7 @@ interface WordListProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  readonly onSelectOnly?: () => void;
 }
 
 export function WordList({
@@ -61,16 +62,21 @@ export function WordList({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  onSelectOnly,
 }: WordListProps) {
   const handleWordAction = useCallback(
     (word: Word, index: number, shiftKey: boolean) => {
       if (shiftKey) {
         setSelectedWordIndex(index);
       } else {
+        // First mark the segment as selected without triggering the
+        // segment-level seek that jumps to the segment start. Then perform
+        // the word-level seek to jump precisely to the clicked word.
+        onSelectOnly?.();
         onSeek(word.start, { source: "transcript", action: "word_click" });
       }
     },
-    [onSeek, setSelectedWordIndex],
+    [onSeek, setSelectedWordIndex, onSelectOnly],
   );
 
   const handleWordClick = useCallback(

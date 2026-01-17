@@ -151,6 +151,7 @@ function TranscriptListComponent({
                     editRequestId === segment.id ? onClearEditRequest : undefined
                   }
                   onSelect={handlers.onSelect}
+                  onSelectOnly={handlers.onSelectOnly}
                   onTextChange={handlers.onTextChange}
                   onSpeakerChange={handlers.onSpeakerChange}
                   onSplit={handlers.onSplit}

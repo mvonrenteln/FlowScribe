@@ -5,6 +5,7 @@ import { useScrollAndSelection } from "./useScrollAndSelection";
 
 export interface SegmentHandlers {
   onSelect: () => void;
+  onSelectOnly?: () => void;
   onTextChange: (text: string) => void;
   onSpeakerChange: (speaker: string) => void;
   onSplit: (wordIndex: number) => void;
@@ -190,6 +191,12 @@ export const useSegmentSelection = ({
             if (current) {
               setSelectedSegmentId(current.id);
               seekToTime(current.start, { source: "transcript", action: "segment_click" });
+            }
+          },
+          onSelectOnly: () => {
+            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            if (current) {
+              setSelectedSegmentId(current.id);
             }
           },
           onTextChange: (text: string) => updateSegmentText(segment.id, text),

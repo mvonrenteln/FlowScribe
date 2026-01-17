@@ -33,6 +33,7 @@ interface TranscriptSegmentProps {
   readonly editRequested?: boolean;
   readonly onEditRequestHandled?: () => void;
   readonly onSelect: () => void;
+  readonly onSelectOnly?: () => void;
   readonly onTextChange: (text: string) => void;
   readonly onSpeakerChange: (speaker: string) => void;
   readonly onSplit: (wordIndex: number) => void;
@@ -97,6 +98,7 @@ function TranscriptSegmentComponent({
   editRequested = false,
   onEditRequestHandled,
   onSelect,
+  onSelectOnly,
   onTextChange,
   onSpeakerChange,
   onSplit,
@@ -126,6 +128,9 @@ function TranscriptSegmentComponent({
   onAcceptSpeakerSuggestion,
   onRejectSpeakerSuggestion,
 }: TranscriptSegmentProps) {
+  // Ensure `onSelectOnly` is recognized as used by linters (it's forwarded to
+  // `WordList` below). This no-op reference prevents "unused parameter" warnings.
+  void onSelectOnly;
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   if (import.meta.env.DEV) {
     try {
