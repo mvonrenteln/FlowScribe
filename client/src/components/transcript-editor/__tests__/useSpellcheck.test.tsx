@@ -177,4 +177,78 @@ describe("useSpellcheck", () => {
       { timeout: 1000 },
     );
   });
+
+  it("reuses matches for unchanged segments", async () => {
+    const segmentA = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Wrd",
+      words: [{ word: "Wrd", start: 0, end: 1 }],
+    };
+    const segmentB = {
+      id: "segment-2",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 1,
+      end: 2,
+      text: "Wrd",
+      words: [{ word: "Wrd", start: 1, end: 2 }],
+    };
+    const segments = [segmentA, segmentB];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        audioUrl: null,
+        isWaveReady: true,
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(2);
+      },
+      { timeout: 1000 },
+    );
+
+    getSpellcheckMatchMock.mockClear();
+    rerender({
+      audioUrl: null,
+      isWaveReady: true,
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments: [segmentA, segmentB],
+      spellcheckIgnoreWords,
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(2);
+        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
 });

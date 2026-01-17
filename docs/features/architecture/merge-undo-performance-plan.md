@@ -54,6 +54,12 @@ Reduce merge/undo input latency (INP) from seconds to sub-300ms by targeting the
 - Added unit coverage for percentile selection, clamping behavior, and empty-score handling.
 - Added a `confidenceScoresVersion` state to avoid recomputing the auto-threshold on merge/split when scores do not change.
 - Auto-threshold computation now skips when a manual threshold is set.
+- Reused spellcheck results for unchanged segments to avoid full re-processing on merge/undo when word content is stable.
+
+## Follow-ups (Higher Effort)
+
+- Move spellcheck processing into a Worker to eliminate main-thread pressure when spellcheck is enabled.
+- Evaluate similar per-word caching for lexicon matching to reduce similarity-score scans on large transcripts.
 
 ## Execution Order
 
