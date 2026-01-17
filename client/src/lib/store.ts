@@ -56,6 +56,10 @@ import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
+  arePersistenceSelectionsEqual,
+  selectPersistenceState,
+} from "./store/utils/persistenceSelector";
+import {
   normalizeSpellcheckIgnoreWords,
   normalizeSpellcheckLanguages,
   resolveSpellcheckSelection,
@@ -181,7 +185,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
 if (canUseLocalStorage()) {
   let __storeSubscriptionCount = 0;
   useTranscriptStore.subscribe(
-    (state) => state,
+    selectPersistenceState,
     (state) => {
       __storeSubscriptionCount += 1;
       if (__storeSubscriptionCount % 100 === 0) {
@@ -268,7 +272,7 @@ if (canUseLocalStorage()) {
         storeContext.updateRecentSessions(storeContext.getSessionsCache());
       }
 
-      const nextGlobalPayload = buildGlobalStatePayload(state);
+      const nextGlobalPayload = buildGlobalStatePayload(useTranscriptStore.getState());
       const globalChanged =
         !lastGlobalPayload ||
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
@@ -298,6 +302,7 @@ if (canUseLocalStorage()) {
         lastGlobalPayload = nextGlobalPayload;
       }
     },
+    { equalityFn: arePersistenceSelectionsEqual },
   );
 }
 

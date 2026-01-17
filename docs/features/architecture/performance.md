@@ -130,56 +130,11 @@ The following measures are prioritized by impact and implementation effort. Each
 - Skipped normalization work when search/tag filters are inactive.
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
 - Stabilized merge handler identities to reduce transcript row re-renders during merge/undo.
+- Kept persistence from waking up on every tiny state change by watching only persistence-relevant fields and bucketing playback time updates.
 
-## Outstanding Tasks (concrete, actionable)
+## Test Guidance (for the persistence subscription change)
 
-The following items remain and should be scheduled with owners and acceptance criteria.
-
-1. Workerize spellcheck/lexicon processing
-   - Owner: TBD
-   - Acceptance: Spellcheck/lexicon work runs off main-thread; merge/undo latency target met on large fixtures.
-
-2. Per-word lexicon caching evaluation
-   - Owner: TBD
-   - Acceptance: Similarity scans reduced by >70% on large transcripts; memory usage bounded.
-
-3. Full batching API for store updates during merge/undo
-   - Owner: frontend core team
-   - Acceptance: Merge/undo produces a single store update event (or minimal set) and renders count is reduced significantly.
-
-4. Add perf harness and CI checks
-   - Owner: QA/CI
-   - Acceptance: Synthetic perf tests included in CI, with allowed regression thresholds.
-
-5. Audit and memoize render surface for transcript rows
-   - Owner: frontend UI
-   - Acceptance: Row re-render counts do not increase with transcript size for text-only merge/undo.
-
-6. Post-deploy monitoring and dashboards
-   - Owner: Observability
-   - Acceptance: Dashboards show INP for merge/undo across sessions; alerts for regressions.
-
-## Execution Plan / Next Steps
-
-Short-term (low-risk, high-reward):
-
-- Complete remaining unit tests and land the linear-time percentile change (already implemented).
-- Add conditional normalization gating to skip allocations when features are inactive.
-- Introduce per-segment content hashing and simple caching for spellcheck/lexicon results.
-
-Medium-term:
-
-- Implement batching API for store updates and stabilize handler identities across the component tree.
-- Add worker-based processing for heavy scanning tasks if CPU remains a bottleneck.
-
-Long-term:
-
-- Maintain perf harness and CI checks; iterate on per-word caching strategies and render-surface reductions as needed.
-
----
-
-If you want, I can now:
-
-- Commit this updated file to a branch and open a PR with the description and checklist.
-- Create individual GitHub issues for each Outstanding Task with templated acceptance criteria.
-- Implement one of the high-priority changes (e.g. add quickselect helper and tests) and run the verification loop (`npm run check && npm run lint:fix && npm test`).
+1. Start playback on a long transcript and scrub/seek rapidly.
+2. Verify persistence still updates session time after crossing the configured bucket threshold.
+3. Confirm selection changes and segment edits still persist without delay.
+4. Confirm UI input remains responsive during playback (no noticeable blocking on seek or controls).
