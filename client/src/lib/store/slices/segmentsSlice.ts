@@ -446,18 +446,25 @@ export const createSegmentsSlice = (
     } = get();
     const newSegments = segments.filter((s) => s.id !== id);
     if (newSegments.length === segments.length) return;
+    const nextSelectedSegmentId =
+      selectedSegmentId === id
+        ? (newSegments.find((segment) => segment.start > currentTime)?.id ??
+          newSegments[newSegments.length - 1]?.id ??
+          null)
+        : selectedSegmentId;
     const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
-      selectedSegmentId,
+      selectedSegmentId: nextSelectedSegmentId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
     set({
       segments: newSegments,
       confidenceScoresVersion: nextConfidenceScoresVersion,
+      selectedSegmentId: nextSelectedSegmentId,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });

@@ -207,6 +207,8 @@ Seek origins become explicit and can be differentiated in Store logic, tests, an
    When `currentTime` falls between segments, the UI selects the next available segment instead of leaving a stale selection.
 9. **Clamping happens in the Store.**
    All seeks are normalized to consistent bounds, keeping downstream logic deterministic.
+10. **Deleting the selected segment advances selection.**
+    When a selected segment is removed and `currentTime` is in a gap, selection advances to the next segment to avoid losing scroll anchoring.
 
 ---
 

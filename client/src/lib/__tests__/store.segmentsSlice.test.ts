@@ -250,6 +250,40 @@ describe("Segments slice", () => {
     expect(historyIndex).toBe(1);
   });
 
+  it("selects the next segment after deleting the selected segment in a gap", () => {
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      currentTime: 0.5,
+      selectedSegmentId: "seg-1",
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "SPEAKER_00",
+          tags: [],
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+        {
+          id: "seg-2",
+          speaker: "SPEAKER_01",
+          tags: [],
+          start: 2,
+          end: 3,
+          text: "Welt",
+          words: [{ word: "Welt", start: 2, end: 3 }],
+        },
+      ],
+    });
+
+    useTranscriptStore.getState().deleteSegment("seg-1");
+
+    const { selectedSegmentId, segments } = useTranscriptStore.getState();
+    expect(segments).toHaveLength(1);
+    expect(selectedSegmentId).toBe("seg-2");
+  });
+
   it("ignores delete requests for missing ids", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
     const before = useTranscriptStore.getState();
