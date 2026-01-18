@@ -112,7 +112,7 @@ function TranscriptListComponent({
             <p className="text-sm">{emptyState.description}</p>
           </div>
         ) : (
-          segmentsToRender.map((segment, index) => {
+          segmentsToRender.map((segment, _index) => {
             // segmentHandlers corresponds to filteredSegments indices; when using a slice
             // we need to resolve the original index for the handler lookup.
             const originalIndex = filteredSegments.findIndex((s) => s.id === segment.id);
@@ -122,7 +122,7 @@ function TranscriptListComponent({
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
             const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
-            const nextSegment = filteredSegments[index + 1];
+            const nextSegment = filteredSegments[originalIndex + 1];
             const mergeSuggestion = nextSegment
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;

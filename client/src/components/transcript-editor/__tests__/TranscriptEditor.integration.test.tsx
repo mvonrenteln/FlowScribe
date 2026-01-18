@@ -249,6 +249,52 @@ describe("TranscriptEditor integration", () => {
     });
   });
 
+  it("keeps inline merge suggestions visible when the list is sliced", async () => {
+    const segments = Array.from({ length: 60 }, (_, index) => {
+      const start = index;
+      return {
+        id: `segment-${index + 1}`,
+        speaker: "SPEAKER_00",
+        start,
+        end: start + 1,
+        text: `Segment ${index + 1}`,
+        words: [],
+        tags: [],
+      };
+    });
+
+    useTranscriptStore.setState({
+      segments,
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      selectedSegmentId: "segment-30",
+      currentTime: 29,
+      aiSegmentMergeSuggestions: [
+        {
+          id: "merge-30-31",
+          segmentIds: ["segment-30", "segment-31"],
+          confidence: "high",
+          confidenceScore: 0.9,
+          reason: "Continuation",
+          status: "pending",
+          mergedText: "Segment 30 Segment 31",
+          timeRange: { start: 29, end: 31 },
+          speaker: "SPEAKER_00",
+          timeGap: 0.1,
+        },
+      ],
+      aiSegmentMergeConfig: {
+        ...useTranscriptStore.getState().aiSegmentMergeConfig,
+        showInlineHints: true,
+      },
+    });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("merge-suggestion-merge-30-31")).toBeInTheDocument();
+    });
+  });
+
   it("updates selected segment after wave interaction while paused", async () => {
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
