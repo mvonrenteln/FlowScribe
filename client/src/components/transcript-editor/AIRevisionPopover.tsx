@@ -288,7 +288,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
               className={cn(
                 "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
                 "hover:bg-accent hover:text-accent-foreground",
-                "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+                "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
                 "text-left w-full",
               )}
               onClick={() => handleSelectPrompt(promptItem.id)}
@@ -349,7 +349,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
-          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "text-left w-full text-muted-foreground",
         )}
         onClick={() => setShowMore(true)}
@@ -368,7 +368,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
-          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "text-left w-full text-muted-foreground",
         )}
         onClick={() => setShowMore(false)}
@@ -384,7 +384,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
           className={cn(
             "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
             "hover:bg-accent hover:text-accent-foreground",
-            "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+            "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
             "text-left w-full",
           )}
           onClick={() => onSelect(promptItem.id)}
@@ -429,7 +429,7 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
-          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "text-left w-full text-muted-foreground",
         )}
         onClick={() => setOpen(true)}
@@ -447,7 +447,7 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
-          "focus:bg-accent focus:text-accent-foreground focus:outline-none",
+          "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "text-left w-full text-muted-foreground",
         )}
         onClick={() => setOpen(false)}

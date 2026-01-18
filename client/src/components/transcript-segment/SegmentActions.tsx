@@ -137,6 +137,7 @@ export function SegmentActions({
           >
             <Edit className="h-4 w-4 mr-2" />
             Edit text
+            <span className="menu-shortcut-badge ml-auto">E</span>
           </DropdownMenuItem>
           {onSplit && (
             <DropdownMenuItem
@@ -150,6 +151,7 @@ export function SegmentActions({
             >
               <Scissors className="h-4 w-4 mr-2" />
               Split at current word
+              <span className="menu-shortcut-badge ml-auto">S</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
@@ -162,6 +164,7 @@ export function SegmentActions({
           >
             <Check className="h-4 w-4 mr-2" />
             {isConfirmed ? "Confirmed" : "Confirm block"}
+            <span className="menu-shortcut-badge ml-auto">C</span>
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {onMergeWithPrevious && (
@@ -173,6 +176,7 @@ export function SegmentActions({
             >
               <Merge className="h-4 w-4 mr-2" />
               Merge with previous
+              <span className="menu-shortcut-badge ml-auto">P</span>
             </DropdownMenuItem>
           )}
           {onMergeWithNext && (
@@ -184,6 +188,7 @@ export function SegmentActions({
             >
               <Merge className="h-4 w-4 mr-2" />
               Merge with next
+              <span className="menu-shortcut-badge ml-auto">M</span>
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
@@ -196,6 +201,7 @@ export function SegmentActions({
           >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete segment
+            <span className="menu-shortcut-badge ml-auto">Del</span>
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
