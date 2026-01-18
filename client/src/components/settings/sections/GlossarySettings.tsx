@@ -7,7 +7,7 @@
  * - Term management (add, edit, delete, import, export)
  */
 
-import { Check, Download, Plus, Upload, X } from "lucide-react";
+import { Check, Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -39,11 +39,27 @@ export function GlossarySettings() {
   const [newVariants, setNewVariants] = useState("");
   const [newFalsePositives, setNewFalsePositives] = useState("");
   const [selectedTerm, setSelectedTerm] = useState<string | null>(null);
+  const [formMode, setFormMode] = useState<"add" | "edit" | null>(null);
+  const [searchQuery, setSearchQuery] = useState("");
   const importInputRef = useRef<HTMLInputElement>(null);
 
   const sortedEntries = [...lexiconEntries].sort((a, b) =>
     a.term.localeCompare(b.term, undefined, { sensitivity: "base" }),
   );
+
+  const normalizedQuery = searchQuery.trim().toLowerCase();
+  const filteredEntries = normalizedQuery
+    ? sortedEntries.filter((entry) => {
+        const inTerm = entry.term.toLowerCase().includes(normalizedQuery);
+        const inVariants = entry.variants.some((variant) =>
+          variant.toLowerCase().includes(normalizedQuery),
+        );
+        const inFalsePositives = entry.falsePositives.some((item) =>
+          item.toLowerCase().includes(normalizedQuery),
+        );
+        return inTerm || inVariants || inFalsePositives;
+      })
+    : sortedEntries;
 
   // Helpers
   const parseList = (value: string) =>
@@ -56,23 +72,33 @@ export function GlossarySettings() {
     value.replace(/^false positives?:/i, "").trim();
 
   // Handlers
-  const handleAdd = () => {
+  const handleSave = () => {
     if (!newTerm.trim()) return;
     const variants = parseList(newVariants);
     const falsePositives = parseList(newFalsePositives);
-    if (selectedTerm) {
+    if (formMode === "edit" && selectedTerm) {
       updateLexiconEntry(selectedTerm, newTerm.trim(), variants, falsePositives);
     } else {
       addLexiconEntry(newTerm.trim(), variants, falsePositives);
     }
-    resetForm();
+    closeForm();
   };
 
-  const resetForm = () => {
+  const resetFormFields = () => {
     setNewTerm("");
     setNewVariants("");
     setNewFalsePositives("");
     setSelectedTerm(null);
+  };
+
+  const openAddForm = () => {
+    resetFormFields();
+    setFormMode("add");
+  };
+
+  const closeForm = () => {
+    resetFormFields();
+    setFormMode(null);
   };
 
   const handleEdit = (entry: { term: string; variants: string[]; falsePositives: string[] }) => {
@@ -80,6 +106,7 @@ export function GlossarySettings() {
     setNewTerm(entry.term);
     setNewVariants(entry.variants.join(", "));
     setNewFalsePositives(entry.falsePositives.join(", "));
+    setFormMode("edit");
   };
 
   const handleImport = (file: File) => {
@@ -203,51 +230,16 @@ export function GlossarySettings() {
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          {/* Add/Edit Form */}
+          {/* Search */}
           <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Input
-                value={newTerm}
-                onChange={(e) => setNewTerm(e.target.value)}
-                onKeyDown={(e) => {
-                  if (e.key === "Enter") {
-                    e.preventDefault();
-                    handleAdd();
-                  }
-                }}
-                placeholder="Term..."
-                className="flex-1"
-              />
-              <Button onClick={handleAdd} disabled={!newTerm.trim()}>
-                {selectedTerm ? (
-                  <>
-                    <Check className="h-4 w-4 mr-1" />
-                    Save
-                  </>
-                ) : (
-                  <>
-                    <Plus className="h-4 w-4 mr-1" />
-                    Add
-                  </>
-                )}
-              </Button>
-              {selectedTerm && (
-                <Button variant="ghost" onClick={resetForm}>
-                  Cancel
-                </Button>
-              )}
-            </div>
+            <Label htmlFor="glossary-search" className="sr-only">
+              Search glossary
+            </Label>
             <Input
-              value={newVariants}
-              onChange={(e) => setNewVariants(e.target.value)}
-              placeholder="Variants (comma-separated, optional)"
-              className="text-sm"
-            />
-            <Input
-              value={newFalsePositives}
-              onChange={(e) => setNewFalsePositives(e.target.value)}
-              placeholder="False positives to ignore (comma-separated, optional)"
-              className="text-sm"
+              id="glossary-search"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search terms, variants, or false positives..."
             />
           </div>
 
@@ -258,23 +250,18 @@ export function GlossarySettings() {
                 <p className="text-sm text-muted-foreground text-center py-8">
                   No glossary terms yet
                 </p>
+              ) : filteredEntries.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No matching glossary terms
+                </p>
               ) : (
-                sortedEntries.map((entry) => (
+                filteredEntries.map((entry) => (
                   <div
                     key={entry.term}
-                    role="button"
-                    tabIndex={0}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer",
-                      selectedTerm === entry.term && "bg-accent",
+                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent",
+                      formMode === "edit" && selectedTerm === entry.term && "bg-accent",
                     )}
-                    onClick={() => handleEdit(entry)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter" || e.key === " ") {
-                        e.preventDefault();
-                        handleEdit(entry);
-                      }
-                    }}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{entry.term}</div>
@@ -284,21 +271,31 @@ export function GlossarySettings() {
                         </div>
                       )}
                     </div>
-                    <Button
-                      size="icon"
-                      variant="ghost"
-                      className="h-6 w-6 shrink-0"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        removeLexiconEntry(entry.term);
-                        if (selectedTerm === entry.term) {
-                          resetForm();
-                        }
-                      }}
-                      aria-label={`Remove ${entry.term}`}
-                    >
-                      <X className="h-3 w-3" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => handleEdit(entry)}
+                        aria-label={`Edit ${entry.term}`}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                      <Button
+                        size="icon"
+                        variant="ghost"
+                        className="h-6 w-6 shrink-0"
+                        onClick={() => {
+                          removeLexiconEntry(entry.term);
+                          if (selectedTerm === entry.term) {
+                            closeForm();
+                          }
+                        }}
+                        aria-label={`Delete ${entry.term}`}
+                      >
+                        <Trash2 className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 ))
               )}
@@ -335,6 +332,50 @@ export function GlossarySettings() {
           <p className="text-xs text-muted-foreground">
             Format: term | variants | false positives: exclusions (one per line)
           </p>
+
+          {/* Add/Edit Form */}
+          {formMode ? (
+            <div className="space-y-2">
+              <div className="flex items-center gap-2">
+                <Input
+                  value={newTerm}
+                  onChange={(e) => setNewTerm(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleSave();
+                    }
+                  }}
+                  placeholder="Term..."
+                  className="flex-1"
+                />
+                <Button onClick={handleSave} disabled={!newTerm.trim()}>
+                  <Check className="h-4 w-4 mr-1" />
+                  Save
+                </Button>
+                <Button variant="ghost" onClick={closeForm}>
+                  Cancel
+                </Button>
+              </div>
+              <Input
+                value={newVariants}
+                onChange={(e) => setNewVariants(e.target.value)}
+                placeholder="Variants (comma-separated, optional)"
+                className="text-sm"
+              />
+              <Input
+                value={newFalsePositives}
+                onChange={(e) => setNewFalsePositives(e.target.value)}
+                placeholder="False positives to ignore (comma-separated, optional)"
+                className="text-sm"
+              />
+            </div>
+          ) : (
+            <Button onClick={openAddForm} size="sm">
+              <Plus className="h-4 w-4 mr-1" />
+              Add term
+            </Button>
+          )}
         </CardContent>
       </Card>
     </div>

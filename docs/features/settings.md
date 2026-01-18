@@ -46,6 +46,10 @@ Planned enhancements for future versions:
 
 ### Glossary Workflow
 
+- Use the search field to filter by term, variants, or false positives.
+- Click Add term to open the form; edit with the pencil icon and delete with the trash icon.
+- The add/edit form stays hidden until you open it, and closes again on save or cancel.
+
 5. **Export regularly** to back up your configurations
 4. **Document your templates** with descriptive names
 3. **Test templates** on small batches first
@@ -605,4 +609,3 @@ The Settings panel uses a non-blocking drawer interface that slides in from the 
 FlowScribe provides a centralized Settings menu that gives you complete control over AI providers, appearance, language tools, and other application preferences. Access it via the gear icon in the toolbar or press **Cmd/Ctrl + ,**.
 
 ## Overview
-
