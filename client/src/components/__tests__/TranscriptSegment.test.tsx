@@ -22,6 +22,29 @@ const segment: Segment = {
   ],
 };
 const tags: Tag[] = [{ id: "tag-1", name: "Action", color: "#ef4444" }];
+const focusableSelector = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(",");
+
+const getFocusableElements = (container: HTMLElement) => {
+  const elements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+    (element) => {
+      if (element.tabIndex < 0) return false;
+      if (element.getAttribute("aria-hidden") === "true") return false;
+      return !element.hasAttribute("disabled");
+    },
+  );
+  if (container.tabIndex >= 0 && !container.hasAttribute("disabled")) {
+    elements.unshift(container);
+  }
+  return elements;
+};
 
 describe("TranscriptSegment", () => {
   it("keeps the tag container height stable when tags are present", () => {
@@ -204,6 +227,58 @@ describe("TranscriptSegment", () => {
 
     const word = screen.getByTestId("word-seg-1-0");
     expect(word).toHaveAttribute("tabindex", "-1");
+  });
+
+  it("cycles tab focus within the segment", () => {
+    const segmentTwo: Segment = { ...segment, id: "seg-2" };
+    render(
+      <div>
+        <TranscriptSegment
+          segment={segment}
+          speakers={speakers}
+          tags={[]}
+          isSelected={false}
+          isActive={false}
+          onSelect={vi.fn()}
+          onTextChange={vi.fn()}
+          onSpeakerChange={vi.fn()}
+          onSplit={vi.fn()}
+          onConfirm={vi.fn()}
+          onToggleBookmark={vi.fn()}
+          onDelete={vi.fn()}
+          onSeek={vi.fn()}
+        />
+        <TranscriptSegment
+          segment={segmentTwo}
+          speakers={speakers}
+          tags={[]}
+          isSelected={false}
+          isActive={false}
+          onSelect={vi.fn()}
+          onTextChange={vi.fn()}
+          onSpeakerChange={vi.fn()}
+          onSplit={vi.fn()}
+          onConfirm={vi.fn()}
+          onToggleBookmark={vi.fn()}
+          onDelete={vi.fn()}
+          onSeek={vi.fn()}
+        />
+      </div>,
+    );
+
+    const segmentOne = screen.getByTestId("segment-seg-1");
+    const focusableElements = getFocusableElements(segmentOne);
+    expect(focusableElements.length).toBeGreaterThan(1);
+
+    const lastElement = focusableElements[focusableElements.length - 1];
+    lastElement.focus();
+    fireEvent.keyDown(lastElement, { key: "Tab" });
+    expect(focusableElements[0]).toHaveFocus();
+    expect(screen.getByTestId("segment-seg-2")).not.toHaveFocus();
+
+    focusableElements[0].focus();
+    fireEvent.keyDown(focusableElements[0], { key: "Tab", shiftKey: true });
+    expect(focusableElements[focusableElements.length - 1]).toHaveFocus();
   });
 
   it("splits on selected word", async () => {

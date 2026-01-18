@@ -100,7 +100,7 @@ export function useSegmentEditing({
   );
 
   const handleSelectKeyDown = useCallback(
-    (event: React.KeyboardEvent<HTMLDivElement>) => {
+    (event: React.KeyboardEvent<HTMLElement>) => {
       if (isEditing) return;
       if (event.currentTarget !== event.target) return;
       if (event.key === " ") {

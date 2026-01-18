@@ -1,5 +1,5 @@
 import { Check, Sparkles, X } from "lucide-react";
-import { memo, useRef, useState } from "react";
+import { memo, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { mark } from "@/lib/logging";
@@ -78,6 +78,33 @@ interface TranscriptSegmentProps {
   readonly onRejectSpeakerSuggestion?: () => void;
 }
 
+const focusableSelector = [
+  "button:not([disabled])",
+  "[href]",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+  '[contenteditable="true"]',
+].join(",");
+
+/**
+ * Collect focusable elements within a segment to allow cycling Tab focus locally.
+ */
+function getFocusableElements(container: HTMLElement): HTMLElement[] {
+  const elements = Array.from(container.querySelectorAll<HTMLElement>(focusableSelector)).filter(
+    (element) => {
+      if (element.tabIndex < 0) return false;
+      if (element.getAttribute("aria-hidden") === "true") return false;
+      return !element.hasAttribute("disabled");
+    },
+  );
+  if (container.tabIndex >= 0 && !container.hasAttribute("disabled")) {
+    elements.unshift(container);
+  }
+  return elements;
+}
+
 function TranscriptSegmentComponent({
   segment,
   speakers,
@@ -131,6 +158,7 @@ function TranscriptSegmentComponent({
   // Ensure `onSelectOnly` is recognized as used by linters (it's forwarded to
   // `WordList` below). This no-op reference prevents "unused parameter" warnings.
   void onSelectOnly;
+  const segmentRef = useRef<HTMLElement>(null);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
   if (import.meta.env.DEV) {
     try {
@@ -178,9 +206,35 @@ function TranscriptSegmentComponent({
   const hasSelectionForSplit = selectedWordIndex !== null && selectedWordIndex > 0;
   const isConfirmed = segment.confirmed === true;
   const isBookmarked = segment.bookmarked === true;
+  const handleSegmentKeyDown = useCallback(
+    (event: React.KeyboardEvent<HTMLElement>) => {
+      if (event.key === "Tab") {
+        const container = segmentRef.current;
+        if (!container) return;
+        const focusableElements = getFocusableElements(container);
+        if (focusableElements.length === 0) return;
+        const activeElement = document.activeElement as HTMLElement | null;
+        const currentIndex = activeElement ? focusableElements.indexOf(activeElement) : -1;
+        const lastIndex = focusableElements.length - 1;
+        const nextIndex = event.shiftKey
+          ? currentIndex <= 0
+            ? lastIndex
+            : currentIndex - 1
+          : currentIndex === -1 || currentIndex === lastIndex
+            ? 0
+            : currentIndex + 1;
+        event.preventDefault();
+        focusableElements[nextIndex]?.focus();
+        return;
+      }
+      handleSelectKeyDown(event);
+    },
+    [handleSelectKeyDown],
+  );
 
   return (
     <article // NOSONAR
+      ref={segmentRef}
       className={cn(
         "group relative p-3 rounded-md border transition-colors cursor-pointer",
         isSelected && "ring-2 ring-ring",
@@ -194,7 +248,7 @@ function TranscriptSegmentComponent({
         }
       }}
       onDoubleClick={handleSegmentDoubleClick}
-      onKeyDown={handleSelectKeyDown}
+      onKeyDown={handleSegmentKeyDown}
       data-testid={`segment-${segment.id}`}
       data-segment-id={segment.id}
       aria-label={`Segment by ${segment.speaker}`}

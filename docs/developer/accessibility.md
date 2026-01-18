@@ -9,6 +9,10 @@
 
 - Tag remove/add buttons are revealed on hover and on keyboard focus within the tag row, so keyboard users can reach them without a mouse.
 
+## Segment focus loop
+
+- Tab/Shift+Tab cycles only within the focused segment to keep keyboard navigation scoped to a single block.
+
 ## Menu keyboard navigation
 
 - Arrow key segment navigation is suspended while focus is inside dropdown menus or the AI revision popover.
