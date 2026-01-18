@@ -45,11 +45,11 @@ describe("TranscriptSegment", () => {
       />,
     );
 
-    expect(screen.getByTestId("segment-header-seg-1")).toHaveClass("min-h-8", "py-0.5");
-    expect(screen.getByTestId("segment-tags-seg-1")).toHaveClass("min-h-8");
+    expect(screen.getByTestId("segment-header-seg-1")).toHaveClass("segment-header-row");
+    expect(screen.getByTestId("segment-tags-seg-1")).toHaveClass("segment-tag-row");
     const tagBadge = screen.getByText("Action").closest("div");
     expect(tagBadge).not.toBeNull();
-    expect(tagBadge).toHaveClass("h-8");
+    expect(tagBadge).toHaveClass("segment-tag-badge");
   });
 
   it("renders word tokens and seeks on click", async () => {

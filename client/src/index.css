@@ -292,6 +292,25 @@
     white-space: pre;
   }
 
+  .segment-header-row {
+    min-height: 2rem;
+    padding-top: 0.125rem;
+    padding-bottom: 0.125rem;
+  }
+
+  .segment-tag-row {
+    min-height: 2rem;
+  }
+
+  .segment-tag-badge {
+    height: 2rem;
+  }
+
+  .segment-tag-button {
+    height: 2rem;
+    width: 2rem;
+  }
+
   /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
    * buttons/badges can remove the automatic brightness adjustment on interactions
    * and program their own. */

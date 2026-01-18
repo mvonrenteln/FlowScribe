@@ -64,7 +64,7 @@ export function SegmentHeader({
   }, [segment.tags?.length]); // Recheck when tag count changes
   return (
     <div
-      className="relative flex flex-wrap items-center gap-2 mb-2 min-h-8 py-0.5 overflow-visible"
+      className="segment-header-row relative flex flex-wrap items-center gap-2 mb-2 overflow-visible"
       data-testid={`segment-header-${segment.id}`}
     >
       <DropdownMenu>
@@ -112,7 +112,7 @@ export function SegmentHeader({
       {/* Tag list - inline with optional hover-to-expand for overflow */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag management */}
       <div
-        className="ml-auto mr-2 relative min-h-8 flex items-center"
+        className="segment-tag-row ml-auto mr-2 relative flex items-center"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
         role="presentation"
@@ -134,7 +134,7 @@ export function SegmentHeader({
                     <Badge
                       key={tagId}
                       variant="secondary"
-                      className="h-8 text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group/tag"
+                      className="segment-tag-badge text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group/tag"
                       style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
                       onMouseEnter={() => setHoveredTagId(tagId)}
                       onMouseLeave={() => setHoveredTagId(null)}
@@ -165,7 +165,7 @@ export function SegmentHeader({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`h-8 w-8 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
+                      className={`segment-tag-button flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
                       data-testid={`button-add-tag-${segment.id}`}
                       onPointerDown={(e) => {
                         e.stopPropagation();
@@ -213,7 +213,7 @@ export function SegmentHeader({
                     <Badge
                       key={`overlay-${tagId}`}
                       variant="secondary"
-                      className="h-8 text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0"
+                      className="segment-tag-badge text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0"
                       style={{ borderLeftWidth: "3px", borderLeftColor: tag.color }}
                       onMouseEnter={() => setHoveredTagId(tagId)}
                       onMouseLeave={() => setHoveredTagId(null)}
@@ -242,7 +242,7 @@ export function SegmentHeader({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 flex-shrink-0"
+                        className="segment-tag-button flex-shrink-0"
                         data-testid={`button-add-tag-overlay-${segment.id}`}
                         onPointerDown={(e) => {
                           e.stopPropagation();
@@ -286,7 +286,7 @@ export function SegmentHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className={`h-8 text-xs gap-1.5 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
+                  className={`segment-tag-button w-auto px-2 text-xs gap-1.5 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
                   data-testid={`button-add-first-tag-${segment.id}`}
                 >
                   <Plus className="h-3 w-3" />
