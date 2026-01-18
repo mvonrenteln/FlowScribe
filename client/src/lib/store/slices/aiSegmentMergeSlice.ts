@@ -87,6 +87,7 @@ interface MergeApplyResult {
 const buildMergedSegment = (first: Segment, second: Segment) => ({
   id: generateId(),
   speaker: first.speaker,
+  tags: Array.from(new Set([...(first.tags ?? []), ...(second.tags ?? [])])),
   start: first.start,
   end: second.end,
   text: `${first.text} ${second.text}`,
@@ -109,7 +110,7 @@ const applyMergeToSegments = (
   const [first, second] =
     index1 < index2 ? [segments[index1], segments[index2]] : [segments[index2], segments[index1]];
 
-  const mergedBase = { ...buildMergedSegment(first, second), tags: first.tags ?? [] };
+  const mergedBase = buildMergedSegment(first, second);
   const mergedText =
     applySmoothing && suggestion.smoothedText ? suggestion.smoothedText : suggestion.mergedText;
   const scoresChanged = mergedText.trim() !== mergedBase.text;

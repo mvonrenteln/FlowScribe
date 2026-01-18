@@ -127,6 +127,51 @@ describe("aiSegmentMergeSlice", () => {
     );
   });
 
+  it("merges tags from both segments when accepting a suggestion", () => {
+    const segmentsWithTags: Segment[] = [
+      { ...baseSegments[0], tags: ["tag-a"] },
+      { ...baseSegments[1], tags: ["tag-b", "tag-a"] },
+      baseSegments[2],
+      baseSegments[3],
+      baseSegments[4],
+    ];
+
+    seedStore({
+      segments: segmentsWithTags,
+      history: [
+        {
+          segments: segmentsWithTags,
+          speakers: [],
+          selectedSegmentId: "seg-5",
+          currentTime: 0,
+          confidenceScoresVersion: 0,
+        },
+      ],
+      aiSegmentMergeSuggestions: [
+        {
+          id: "merge-tags",
+          segmentIds: ["seg-1", "seg-2"],
+          confidence: "high",
+          confidenceScore: 0.95,
+          reason: "Continuation",
+          status: "pending",
+          mergedText: "First Second",
+          timeRange: { start: 0, end: 2 },
+          speaker: "SPEAKER_00",
+          timeGap: 0.1,
+        },
+      ],
+    });
+
+    act(() => {
+      useTranscriptStore.getState().acceptMergeSuggestion("merge-tags", { applySmoothing: false });
+    });
+
+    const state = useTranscriptStore.getState();
+    const merged = state.segments.find((segment) => segment.text === "First Second");
+    expect(merged?.tags).toEqual(["tag-a", "tag-b"]);
+  });
+
   it("accepts all high confidence suggestions in a single history entry", () => {
     seedStore({
       aiSegmentMergeSuggestions: [

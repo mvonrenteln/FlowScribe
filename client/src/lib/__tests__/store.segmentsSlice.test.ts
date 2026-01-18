@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
-import { resetStore, sampleSegments } from "./storeTestUtils";
+import { createBaseState, resetStore, sampleSegments } from "./storeTestUtils";
 
 describe("Segments slice", () => {
   beforeEach(() => {
@@ -167,6 +167,46 @@ describe("Segments slice", () => {
     const reverseId = useTranscriptStore.getState().mergeSegments("seg-2", "seg-1");
     expect(reverseId).not.toBeNull();
     expect(useTranscriptStore.getState().segments).toHaveLength(1);
+  });
+
+  it("merges tags from both segments when merging manually", () => {
+    const segmentsWithTags = [
+      { ...sampleSegments[0], tags: ["tag-1"] },
+      { ...sampleSegments[1], tags: ["tag-2", "tag-1"] },
+    ];
+
+    useTranscriptStore.setState({
+      ...createBaseState(),
+      segments: segmentsWithTags,
+      speakers: [],
+      tags: [
+        { id: "tag-1", name: "Tag 1", color: "#111111" },
+        { id: "tag-2", name: "Tag 2", color: "#222222" },
+      ],
+      selectedSegmentId: "seg-1",
+      currentTime: 0,
+      history: [
+        {
+          segments: segmentsWithTags,
+          speakers: [],
+          tags: [
+            { id: "tag-1", name: "Tag 1", color: "#111111" },
+            { id: "tag-2", name: "Tag 2", color: "#222222" },
+          ],
+          selectedSegmentId: "seg-1",
+          currentTime: 0,
+          confidenceScoresVersion: 0,
+        },
+      ],
+      historyIndex: 0,
+    });
+
+    const mergedId = useTranscriptStore.getState().mergeSegments("seg-1", "seg-2");
+    const { segments, historyIndex } = useTranscriptStore.getState();
+    const merged = segments.find((segment) => segment.id === mergedId);
+
+    expect(merged?.tags).toEqual(["tag-1", "tag-2"]);
+    expect(historyIndex).toBe(1);
   });
 
   it("avoids invalid merges", () => {

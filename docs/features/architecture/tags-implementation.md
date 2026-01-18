@@ -55,6 +55,11 @@ export interface PersistedSession {
 
 ## Store API
 
+### Merge Behavior
+
+- Manual segment merges and AI merge suggestions combine tags from both segments into the new segment.
+- Merge acceptance records a single history entry for the merged segment state.
+
 ### Tag CRUD
 
 ```typescript
