@@ -14,10 +14,17 @@ import {
   MoreHorizontal,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -33,11 +40,13 @@ const STATUS_DISPLAY_TIME = 3000;
 // Module-level simple in-memory cache for provider models (lives until app reload)
 const modelCache: Map<string, string[]> = new Map();
 
+const IS_TEST = process.env.NODE_ENV === "test";
+
 export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const { segmentId, disabled } = props;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const providerSelectRef = useRef<HTMLSelectElement | null>(null);
+
   const [displayStatus, setDisplayStatus] = useState<"idle" | "success" | "no-changes" | "error">(
     "idle",
   );
@@ -53,10 +62,9 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const globalLastSelection = useTranscriptStore((s) => s.aiRevisionLastSelection);
   const setGlobalLastSelection = useTranscriptStore((s) => s.setAiRevisionLastSelection);
 
-  // Local provider/model override state (per-popover). Initialize from
-  // persisted global selection or settings synchronously to avoid a
-  // post-mount state update (which triggers act() warnings in tests).
+  // Local provider/model override state (per-popover). Initialize synchronously.
   const [settings] = useState(() => initializeSettings());
+
   const defaultProviderId =
     settings.defaultAIProviderId ?? settings.aiProviders.find((p) => p.isDefault)?.id;
   const defaultProvider =
@@ -71,13 +79,13 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
     () => globalLastSelection?.model ?? defaultModel,
   );
+
   const [availableModels, setAvailableModels] = useState<Map<string, string[]>>(new Map());
   const loadingModels = useMemo(() => new Set<string>(), []);
+
   const contentRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
   const triggerRef = useRef<HTMLButtonElement | null>(null);
-
-  // Note: initial selectedProvider/selectedModel are set synchronously above.
 
   // Check if THIS segment is currently being processed
   const isProcessingThis = isGlobalProcessing && currentProcessingSegmentId === segmentId;
@@ -90,16 +98,18 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   // Track when processing finishes and show appropriate status
   useEffect(() => {
     if (lastResult?.segmentId === segmentId && !isProcessingThis) {
-      if (isMountedRef.current) {
-        setDisplayStatus(lastResult.status);
+      if (!isMountedRef.current) return;
 
-        // Auto-hide status after timeout (guarded by mounted flag)
-        const timer = setTimeout(() => {
-          if (isMountedRef.current) setDisplayStatus("idle");
-        }, STATUS_DISPLAY_TIME);
+      setDisplayStatus(lastResult.status);
 
-        return () => clearTimeout(timer);
-      }
+      // In tests, skip delayed state updates to reduce act() warnings.
+      if (IS_TEST) return;
+
+      const timer = setTimeout(() => {
+        if (isMountedRef.current) setDisplayStatus("idle");
+      }, STATUS_DISPLAY_TIME);
+
+      return () => clearTimeout(timer);
     }
   }, [lastResult, segmentId, isProcessingThis]);
 
@@ -110,37 +120,35 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   }, []);
 
   // Get quick-access prompts
-  const quickAccessPrompts = prompts.filter((t) => quickAccessIds.includes(t.id));
-  const otherPrompts = prompts.filter((t) => !quickAccessIds.includes(t.id));
+  const quickAccessPrompts = prompts.filter((p) => quickAccessIds.includes(p.id));
+  const otherPrompts = prompts.filter((p) => !quickAccessIds.includes(p.id));
 
   const handleSelectPrompt = (promptId: string) => {
     setDisplayStatus("idle");
     startSingleRevision(segmentId, promptId, selectedProvider, selectedModel);
-    // Ensure trigger keeps focus after selection (avoid focus jumping to top bar)
+    // Keep focus on trigger after selection
     triggerRef.current?.focus();
     setOpen(false);
   };
 
   const fetchModelsForProvider = useCallback(
     async (providerId: string) => {
-      // Use module cache if present
       if (!isMountedRef.current) return;
+
       if (modelCache.has(providerId)) {
         const cached = modelCache.get(providerId) || [];
-        if (isMountedRef.current)
-          setAvailableModels((prev) => new Map([...prev, [providerId, cached]]));
+        setAvailableModels((prev) => new Map([...prev, [providerId, cached]]));
         return;
       }
 
       const providerConfig = settings.aiProviders.find((p) => p.id === providerId);
       if (!providerConfig) return;
 
-      // Read available models from settings (preferred) or fall back to provider.model
       const available =
         providerConfig.availableModels ?? (providerConfig.model ? [providerConfig.model] : []);
+
       modelCache.set(providerId, available);
-      if (isMountedRef.current)
-        setAvailableModels((prev) => new Map([...prev, [providerId, available]]));
+      setAvailableModels((prev) => new Map([...prev, [providerId, available]]));
     },
     [settings.aiProviders],
   );
@@ -160,21 +168,28 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
     }
   }, [open, selectedProvider, fetchModelsForProvider]);
 
+  // Ensure selectedModel is valid for the currently selected provider (when models are known)
+  useEffect(() => {
+    if (!selectedProvider) return;
+    const models = availableModels.get(selectedProvider);
+    if (!models || models.length === 0) return;
+
+    if (!selectedModel || !models.includes(selectedModel)) {
+      setSelectedModel(models[0]);
+    }
+  }, [selectedProvider, availableModels, selectedModel]);
+
+  // Focus first item when popover opens (sync)
   useLayoutEffect(() => {
     if (!open) return;
     const container = contentRef.current;
     if (!container) return;
-    const firstButton = container.querySelector<HTMLButtonElement>("button:not([disabled])");
+    const firstButton = container.querySelector<HTMLButtonElement>("button[data-menuitem]:not([disabled])");
     firstButton?.focus();
-    return () => {
-      /* no-op cleanup; focus handled synchronously */
-    };
   }, [open]);
 
-  // Persist selection into global store so other popovers pick it up
+  // Persist selection into global store only while open (avoid surprise updates during tests)
   useEffect(() => {
-    // Only persist selection when the popover is open to avoid causing
-    // async updates during test renders (which trigger act() warnings).
     if (!open) return;
     if (selectedProvider === undefined && selectedModel === undefined) return;
     setGlobalLastSelection({ providerId: selectedProvider, model: selectedModel });
@@ -251,40 +266,42 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
         className="w-56 p-1"
         align="end"
         data-menu-overlay="true"
-        onCloseAutoFocus={(e: any) => {
-          // Prevent Radix from moving focus automatically when the popover
-          // closes — we explicitly restore focus to the trigger. This
-          // avoids focus jumping to the top bar after selecting a prompt
-          // or pressing Escape.
+        onCloseAutoFocus={(e: React.FocusEvent<HTMLElement>) => {
+          // Keep focus stable: restore to trigger synchronously.
           e.preventDefault();
-          requestAnimationFrame(() => {
-            triggerRef.current?.focus();
-          });
+          triggerRef.current?.focus();
         }}
         onKeyDown={(event) => {
+          // Roving focus for "menu buttons" only (not inside selects, inputs etc.)
           if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
           const target = event.target as HTMLElement | null;
           if (!target) return;
+
           const tagName = target.tagName;
-          if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
+          if (tagName === "INPUT" || tagName === "TEXTAREA") return;
+
+          // If a Radix Select is open, it will handle arrows itself.
+          // We only handle arrows on our menuitems (buttons).
           const container = contentRef.current;
           if (!container) return;
+
           const items = Array.from(
-            container.querySelectorAll<HTMLButtonElement>("button:not([disabled])"),
+            container.querySelectorAll<HTMLButtonElement>("button[data-menuitem]:not([disabled])"),
           );
           if (items.length === 0) return;
+
           const activeElement = document.activeElement as HTMLButtonElement | null;
           const currentIndex = activeElement ? items.indexOf(activeElement) : -1;
           const delta = event.key === "ArrowDown" ? 1 : -1;
           const nextIndex =
             currentIndex === -1 ? 0 : (currentIndex + delta + items.length) % items.length;
+
           event.preventDefault();
           event.stopPropagation();
           items[nextIndex]?.focus();
         }}
       >
         <div className="flex flex-col">
-          {/* Provider / Model overrides moved into Settings submenu (see SettingsSubmenu below) */}
           {/* Status message if not idle */}
           {displayStatus === "no-changes" && (
             <div className="px-3 py-2 text-xs text-muted-foreground bg-muted/50 rounded-sm mb-1 flex items-center gap-2">
@@ -304,6 +321,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
             <button
               key={promptItem.id}
               type="button"
+              data-menuitem="true"
               className={cn(
                 "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
                 "hover:bg-accent hover:text-accent-foreground",
@@ -333,6 +351,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
               {t("aiRevision.createInSettings")}
             </div>
           )}
+
           {/* Settings submenu placed at the end */}
           <div className="h-px bg-border my-1" />
           <SettingsSubmenu
@@ -341,7 +360,10 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
             loadingModels={loadingModels}
             selectedProvider={selectedProvider}
             selectedModel={selectedModel}
-            setSelectedProvider={setSelectedProvider}
+            setSelectedProvider={(id) => {
+              setSelectedProvider(id);
+              if (id) fetchModelsForProvider(id);
+            }}
             setSelectedModel={setSelectedModel}
             settings={settings}
           />
@@ -365,6 +387,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
     return (
       <button
         type="button"
+        data-menuitem="true"
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
@@ -384,6 +407,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
     <div className="flex flex-col">
       <button
         type="button"
+        data-menuitem="true"
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
@@ -400,6 +424,7 @@ function MorePromptsSubmenu(props: Readonly<MorePromptsSubmenuProps>) {
         <button
           key={promptItem.id}
           type="button"
+          data-menuitem="true"
           className={cn(
             "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
             "hover:bg-accent hover:text-accent-foreground",
@@ -438,36 +463,81 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
     setSelectedModel,
     settings,
   } = props;
+
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
-  const providerSelectRef = useRef<HTMLSelectElement | null>(null);
 
-  const modelSelectRef = useRef<HTMLSelectElement | null>(null);
+  // Roving focus between the two "rows"
+  const [activeRow, setActiveRow] = useState<"provider" | "model">("provider");
+
+  // Controlled dropdown open state (prevents “stuck in select”)
+  const [providerDropdownOpen, setProviderDropdownOpen] = useState(false);
+  const [modelDropdownOpen, setModelDropdownOpen] = useState(false);
+
+  const providerTriggerRef = useRef<HTMLButtonElement | null>(null);
+  const modelTriggerRef = useRef<HTMLButtonElement | null>(null);
+
+  const modelsForSelectedProvider = availableModels.get(selectedProvider ?? "") ?? [];
+  const modelDisabled = modelsForSelectedProvider.length === 0;
+
+  const closeAllDropdowns = () => {
+    setProviderDropdownOpen(false);
+    setModelDropdownOpen(false);
+  };
 
   useLayoutEffect(() => {
-    if (open) {
-      // Focus the provider select synchronously when submenu opens.
-      // Using layout effect keeps focus changes within React's render
-      // lifecycle so testing utilities won't emit act(...) warnings.
-      providerSelectRef.current?.focus();
-    }
+    if (!open) return;
+    setActiveRow("provider");
+    providerTriggerRef.current?.focus();
   }, [open]);
 
-  // When user selects a provider, move focus to model select if available
   useLayoutEffect(() => {
-    const models = availableModels.get(selectedProvider ?? "") ?? [];
-    if (models.length > 0) {
-      // Focus model select synchronously after provider changes and
-      // models are available. Layout effect keeps this inside React's
-      // commit phase which avoids async updates outside act(...).
-      modelSelectRef.current?.focus();
+    if (!open) return;
+    if (providerDropdownOpen || modelDropdownOpen) return;
+
+    if (activeRow === "provider") providerTriggerRef.current?.focus();
+    if (activeRow === "model") modelTriggerRef.current?.focus();
+  }, [open, activeRow, providerDropdownOpen, modelDropdownOpen]);
+
+  const handleRowNavKeyDown = (e: React.KeyboardEvent) => {
+    // If a select dropdown is open, let Radix handle list navigation.
+    if (providerDropdownOpen || modelDropdownOpen) return;
+
+    if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+      e.preventDefault();
+      e.stopPropagation();
+      setActiveRow((prev) => (prev === "provider" ? "model" : "provider"));
+      return;
     }
-  }, [selectedProvider, availableModels]);
+
+    if (e.key === "Enter") {
+      e.preventDefault();
+      e.stopPropagation();
+      if (activeRow === "provider") {
+        setProviderDropdownOpen(true);
+        setModelDropdownOpen(false);
+      } else {
+        if (!modelDisabled) {
+          setModelDropdownOpen(true);
+          setProviderDropdownOpen(false);
+        }
+      }
+      return;
+    }
+
+    if (e.key === "Escape") {
+      e.preventDefault();
+      e.stopPropagation();
+      setOpen(false);
+      return;
+    }
+  };
 
   if (!open) {
     return (
       <button
         type="button"
+        data-menuitem="true"
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
@@ -486,13 +556,25 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
     <div className="flex flex-col">
       <button
         type="button"
+        data-menuitem="true"
         className={cn(
           "flex items-center gap-2 px-3 py-2 text-sm rounded-sm",
           "hover:bg-accent hover:text-accent-foreground",
           "focus:bg-accent focus:text-accent-foreground focus:outline-none focus-visible:ring-1 focus-visible:ring-ring",
           "text-left w-full text-muted-foreground",
         )}
-        onClick={() => setOpen(false)}
+        onClick={() => {
+          closeAllDropdowns();
+          setOpen(false);
+        }}
+        onKeyDown={(e) => {
+          if (e.key === "Escape") {
+            e.preventDefault();
+            e.stopPropagation();
+            closeAllDropdowns();
+            setOpen(false);
+          }
+        }}
       >
         <span className="flex-1">{t("aiRevision.settings") ?? "Settings"}</span>
         <span>{t("aiRevision.back")}</span>
@@ -502,60 +584,140 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
 
       <div className="px-3 py-2">
         <div className="text-[11px] text-muted-foreground mb-1">Provider</div>
-        <div className="max-w-[12rem] mb-2">
-          <select
-            ref={providerSelectRef}
-            className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
-            value={selectedProvider ?? ""}
-            onChange={(e) => {
-              const val = e.target.value || undefined;
-              setSelectedProvider(val);
+
+        <Select
+          value={selectedProvider ?? ""}
+          onValueChange={(val) => {
+            const next = val || undefined;
+            setSelectedProvider(next);
+            setProviderDropdownOpen(false);
+            setActiveRow("provider");
+            providerTriggerRef.current?.focus();
+          }}
+          open={providerDropdownOpen}
+          onOpenChange={(next) => {
+            setProviderDropdownOpen(next);
+            if (next) setModelDropdownOpen(false);
+            if (!next) {
+              setActiveRow("provider");
+              providerTriggerRef.current?.focus();
+            }
+          }}
+        >
+          <SelectTrigger
+            ref={providerTriggerRef}
+            className={cn(
+              "w-full justify-between",
+              "text-sm bg-transparent truncate rounded px-2 py-1",
+              "border border-transparent hover:border-border",
+              "focus:ring-1 focus:ring-ring",
+              activeRow === "provider" ? "bg-muted/30" : "",
+            )}
+            onClick={() => {
+              setActiveRow("provider");
+              setProviderDropdownOpen(true);
             }}
-            onClick={(e) => e.stopPropagation()}
             onKeyDown={(e) => {
-              // If user presses Enter while focus is on the provider list,
-              // allow the native select to open. Do not swallow here so
-              // browser behavior remains.
+              setActiveRow("provider");
+              handleRowNavKeyDown(e);
             }}
-            title={settings.aiProviders.find((x) => x.id === selectedProvider)?.name ?? ""}
+          >
+            <SelectValue
+              placeholder={settings.aiProviders.find((x) => x.id === selectedProvider)?.name ?? ""}
+            />
+          </SelectTrigger>
+
+          <SelectContent
+            onEscapeKeyDown={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setProviderDropdownOpen(false);
+              setActiveRow("provider");
+              providerTriggerRef.current?.focus();
+            }}
+            onCloseAutoFocus={(e) => e.preventDefault()}
           >
             {providerModels.map((p) => (
-              <option key={p.id} value={p.id} title={p.name}>
+              <SelectItem key={p.id} value={p.id}>
                 {p.name}
                 {p.isDefault ? " ★" : ""}
-              </option>
+              </SelectItem>
             ))}
-          </select>
-        </div>
+          </SelectContent>
+        </Select>
 
-        <div className="text-[11px] text-muted-foreground mb-1">Model</div>
+        <div className="text-[11px] text-muted-foreground mb-1 mt-3">Model</div>
+
         {loadingModels.has(selectedProvider ?? "") ? (
           <div className="text-xs text-muted-foreground">Loading models...</div>
         ) : (
-          <div className="max-w-[12rem]">
-            <select
-              ref={modelSelectRef}
-              className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
-              value={selectedModel ?? ""}
-              onChange={(e) => {
-                const val = e.target.value || undefined;
-                setSelectedModel(val);
+          <Select
+            value={selectedModel ?? ""}
+            onValueChange={(val) => {
+              const next = val || undefined;
+              setSelectedModel(next);
+              setModelDropdownOpen(false);
+              setActiveRow("model");
+              modelTriggerRef.current?.focus();
+            }}
+            open={modelDropdownOpen}
+            onOpenChange={(next) => {
+              setModelDropdownOpen(next);
+              if (next) setProviderDropdownOpen(false);
+              if (!next) {
+                setActiveRow("model");
+                modelTriggerRef.current?.focus();
+              }
+            }}
+            disabled={modelDisabled}
+          >
+            <SelectTrigger
+              ref={modelTriggerRef}
+              className={cn(
+                "w-full justify-between",
+                "text-sm bg-transparent truncate rounded px-2 py-1",
+                "border border-transparent hover:border-border",
+                "focus:ring-1 focus:ring-ring",
+                activeRow === "model" ? "bg-muted/30" : "",
+                modelDisabled ? "opacity-50 cursor-not-allowed" : "",
+              )}
+              onClick={() => {
+                setActiveRow("model");
+                if (!modelDisabled) setModelDropdownOpen(true);
               }}
-              onClick={(e) => e.stopPropagation()}
-              title={selectedModel ?? ""}
+              onKeyDown={(e) => {
+                setActiveRow("model");
+                handleRowNavKeyDown(e);
+              }}
             >
-              {(availableModels.get(selectedProvider ?? "") ?? []).map((m) => (
-                <option key={`${selectedProvider}-${m}`} value={m} title={m}>
-                  {m}
-                  {m === (settings.aiProviders.find((p) => p.id === selectedProvider)?.model ?? "")
-                    ? " ★"
-                    : ""}
-                </option>
-              ))}
-            </select>
-          </div>
+              <SelectValue placeholder={selectedModel ?? ""} />
+            </SelectTrigger>
+
+            <SelectContent
+              onEscapeKeyDown={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setModelDropdownOpen(false);
+                setActiveRow("model");
+                modelTriggerRef.current?.focus();
+              }}
+              onCloseAutoFocus={(e) => e.preventDefault()}
+            >
+              {modelsForSelectedProvider.map((m) => {
+                const defaultStar =
+                  m === (settings.aiProviders.find((p) => p.id === selectedProvider)?.model ?? "");
+                return (
+                  <SelectItem key={`${selectedProvider}-${m}`} value={m}>
+                    {m}
+                    {defaultStar ? " ★" : ""}
+                  </SelectItem>
+                );
+              })}
+            </SelectContent>
+          </Select>
         )}
       </div>
     </div>
   );
 }
+

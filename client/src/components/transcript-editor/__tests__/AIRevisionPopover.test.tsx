@@ -36,7 +36,7 @@ describe("AIRevisionPopover", () => {
 
     await user.click(trigger as HTMLButtonElement);
 
-    const firstPrompt = await screen.findByRole("button", {
+    const _firstPrompt = await screen.findByRole("button", {
       name: initialState.aiRevisionConfig.prompts[0].name,
     });
     const secondPrompt = screen.getByRole("button", {
@@ -44,7 +44,7 @@ describe("AIRevisionPopover", () => {
     });
 
     await waitFor(() => {
-      expect(firstPrompt).toHaveFocus();
+      expect(_firstPrompt).toHaveFocus();
     });
 
     await user.keyboard("{ArrowDown}");
@@ -62,7 +62,7 @@ describe("AIRevisionPopover", () => {
 
     await user.click(trigger as HTMLButtonElement);
 
-    const firstPrompt = await screen.findByRole("button", {
+    const _firstPrompt = await screen.findByRole("button", {
       name: initialState.aiRevisionConfig.prompts[0].name,
     });
 
