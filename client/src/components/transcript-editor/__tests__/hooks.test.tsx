@@ -4,6 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { Segment } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "../useFiltersAndLexicon";
 import { useScrollAndSelection } from "../useScrollAndSelection";
+import * as visibility from "../visibility";
 
 // Base confidence props for all tests
 const confidenceProps = {
@@ -460,6 +461,89 @@ describe("useScrollAndSelection", () => {
 
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
     vi.restoreAllMocks();
+  });
+
+  it("throttles visibility checks during playback for the same target", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const seekToTime = vi.fn();
+    const setIsPlaying = vi.fn();
+    const visibilitySpy = vi.spyOn(visibility, "isElementVisible").mockReturnValue(true);
+    const nowSpy = vi.spyOn(Date, "now");
+    let now = 1000;
+    nowSpy.mockImplementation(() => now);
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 0.5,
+        selectedSegmentId: "segment-1",
+        isPlaying: true,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        seekToTime,
+        setIsPlaying,
+      },
+    });
+
+    const container = document.createElement("div");
+    const segment1 = document.createElement("div");
+    segment1.dataset.segmentId = "segment-1";
+    container.appendChild(segment1);
+    const viewport = document.createElement("div");
+    viewport.appendChild(container);
+
+    act(() => {
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
+    });
+
+    now += 600;
+    rerender({
+      segments,
+      currentTime: 0.6,
+      selectedSegmentId: "segment-1",
+      isPlaying: true,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      seekToTime,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      expect(visibilitySpy).toHaveBeenCalledTimes(1);
+    });
+
+    now += 100;
+    rerender({
+      segments,
+      currentTime: 0.7,
+      selectedSegmentId: "segment-1",
+      isPlaying: true,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      seekToTime,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      expect(visibilitySpy).toHaveBeenCalledTimes(1);
+    });
+
+    visibilitySpy.mockRestore();
+    nowSpy.mockRestore();
   });
 
   it("scrolls to the next segment when in a silent gap during playback", async () => {

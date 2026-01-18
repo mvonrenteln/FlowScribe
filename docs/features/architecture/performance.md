@@ -129,6 +129,8 @@ The following measures are prioritized by impact and implementation effort. Each
 - Cached and reused spellcheck/lexicon results for unchanged segments during merge/undo.
 - Skipped normalization work when search/tag filters are inactive.
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
+- Skipped WaveSurfer region rebuilds when segment timing and speaker metadata are unchanged.
 - Stabilized merge handler identities to reduce transcript row re-renders during merge/undo.
+- Throttled scroll visibility checks during playback to avoid repeated DOM measurements.
 - Kept persistence from waking up on every tiny state change by watching only persistence-relevant fields and bucketing playback time updates.
 - Moved persistence JSON serialization to a worker so long sessions do not block the main thread during playback or rapid seeking.

@@ -53,6 +53,7 @@ export function WaveformPlayer({
   const initialSeekAppliedRef = useRef(false);
   const regionSegmentsRef = useRef<Segment[]>(segments);
   const lastShowSpeakerRegionsRef = useRef(showSpeakerRegions);
+  const regionSignatureRef = useRef<string | null>(null);
   const seekRequestTime = useTranscriptStore((state) => state.seekRequestTime);
   const clearSeekRequest = useTranscriptStore((state) => state.clearSeekRequest);
 
@@ -305,9 +306,17 @@ export function WaveformPlayer({
         regions.clearRegions();
       }
       lastShowSpeakerRegionsRef.current = false;
+      regionSignatureRef.current = null;
       return;
     }
 
+    const nextSignature = regionSegments
+      .map((segment) => `${segment.id}:${segment.start}:${segment.end}:${segment.speaker}`)
+      .join("|");
+    if (lastShowSpeakerRegionsRef.current && regionSignatureRef.current === nextSignature) {
+      return;
+    }
+    regionSignatureRef.current = nextSignature;
     lastShowSpeakerRegionsRef.current = true;
     regions.clearRegions();
 

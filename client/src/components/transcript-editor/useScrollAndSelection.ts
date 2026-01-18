@@ -91,6 +91,9 @@ export function useScrollAndSelection({
   const lastTimeRef = useRef(currentTime);
   const lastIsPlayingRef = useRef(isPlaying);
   const lastVisibilityCheckRef = useRef<number>(0);
+  const lastVisibilityResultRef = useRef<{ id: string; isVisible: boolean; at: number } | null>(
+    null,
+  );
 
   useEffect(() => {
     const handleInteraction = () => {
@@ -176,7 +179,9 @@ export function useScrollAndSelection({
     // Throttle heavy scroll/visibility checks during playback to at most ~4Hz.
     // Still allow immediate scrolls for important events (seek / resume / target change).
     const nowMs = Date.now();
-    const isWithinThrottleWindow = isPlaying && nowMs - lastVisibilityCheckRef.current < 250;
+    const visibilityThrottleMs = 500;
+    const isWithinThrottleWindow =
+      isPlaying && nowMs - lastVisibilityCheckRef.current < visibilityThrottleMs;
     const isSameTarget = scrollTargetId !== null && scrollTargetId === lastTargetIdRef.current;
     const canSkipHeavyWork =
       isWithinThrottleWindow &&
@@ -222,6 +227,21 @@ export function useScrollAndSelection({
       lastTargetElementRef.current = resolvedTarget ?? null;
     }
 
+    if (scrollTargetId && lastVisibilityResultRef.current?.id !== scrollTargetId) {
+      lastVisibilityResultRef.current = null;
+    }
+
+    const getVisibility = () => {
+      if (!resolvedTarget || !container) return false;
+      const cached = lastVisibilityResultRef.current;
+      if (isPlaying && cached && cached.id === scrollTargetId && nowMs - cached.at < 500) {
+        return cached.isVisible;
+      }
+      const isVisible = isElementVisible(resolvedTarget, container);
+      lastVisibilityResultRef.current = { id: scrollTargetId, isVisible, at: nowMs };
+      return isVisible;
+    };
+
     if (isSeeking) {
       // Always scroll on manual seek to re-center
       shouldScroll = true;
@@ -234,13 +254,13 @@ export function useScrollAndSelection({
       shouldScroll = true;
     } else if (isPlaying) {
       // During playback of the same segment, only scroll if it's no longer visible (snap back)
-      if (resolvedTarget && !isElementVisible(resolvedTarget, container)) {
+      if (!getVisibility()) {
         shouldScroll = true;
       }
     } else if (!isInteracting && !isPlaying) {
       // If we are paused and not interacting, ensure the target is visible.
       // This handles initial load, "snap back" after pausing, or stale selections.
-      if (resolvedTarget && !isElementVisible(resolvedTarget, container)) {
+      if (!getVisibility()) {
         shouldScroll = true;
       }
     }
