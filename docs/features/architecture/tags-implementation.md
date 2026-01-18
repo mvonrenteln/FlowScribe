@@ -97,6 +97,7 @@ export interface TagsSlice {
 ### Validation Rules
 
 **`addTag` and `renameTag` return `false` if:**
+
 - Name is empty after trimming
 - Name is whitespace-only
 - Name (case-insensitive) already exists in session
@@ -173,6 +174,7 @@ Click "No Tags"     showNoTags: true         Untagged only
 - Each tag badge has an ✕ button to remove from segment
 - "+ Add" button: open tag picker dropdown
 - Inline visual feedback on filter state
+- Tag header row, tag container, and tag badges keep consistent vertical padding/height to avoid segment frame shifts when tags are toggled (e.g., T+1 shortcuts). Tag buttons/badges align to a shared 32px height.
 
 ### Export Dialog
 

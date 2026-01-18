@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TranscriptSegment } from "@/components/TranscriptSegment";
-import type { Segment, Speaker } from "@/lib/store";
+import type { Segment, Speaker, Tag } from "@/lib/store";
 
 const speakers: Speaker[] = [
   { id: "s1", name: "SPEAKER_00", color: "hsl(217, 91%, 48%)" },
@@ -21,8 +21,37 @@ const segment: Segment = {
     { word: "Welt", start: 1, end: 2 },
   ],
 };
+const tags: Tag[] = [{ id: "tag-1", name: "Action", color: "#ef4444" }];
 
 describe("TranscriptSegment", () => {
+  it("keeps the tag container height stable when tags are present", () => {
+    const taggedSegment: Segment = { ...segment, tags: ["tag-1"] };
+    render(
+      <TranscriptSegment
+        tags={tags}
+        segment={taggedSegment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        onAddTag={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByTestId("segment-header-seg-1")).toHaveClass("min-h-8", "py-0.5");
+    expect(screen.getByTestId("segment-tags-seg-1")).toHaveClass("min-h-8");
+    const tagBadge = screen.getByText("Action").closest("div");
+    expect(tagBadge).not.toBeNull();
+    expect(tagBadge).toHaveClass("h-8");
+  });
+
   it("renders word tokens and seeks on click", async () => {
     const onSeek = vi.fn();
     const onSelect = vi.fn();
