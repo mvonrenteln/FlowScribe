@@ -1,5 +1,5 @@
 import { Plus, User, X } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -41,6 +41,13 @@ export function SegmentHeader({
   const [hasOverflow, setHasOverflow] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
+  const restoreSegmentFocus = useCallback(() => {
+    const segmentElement = document.querySelector(
+      `[data-segment-id="${segment.id}"]`,
+    ) as HTMLElement | null;
+    if (!segmentElement) return;
+    requestAnimationFrame(() => segmentElement.focus());
+  }, [segment.id]);
 
   // Check if tags overflow - recheck when tags change
   // biome-ignore lint/correctness/useExhaustiveDependencies: Need to recalculate when tags are added/removed
@@ -88,7 +95,10 @@ export function SegmentHeader({
           {speakers.map((speaker) => (
             <DropdownMenuItem
               key={speaker.id}
-              onClick={() => onSpeakerChange(speaker.name)}
+              onSelect={() => {
+                onSpeakerChange(speaker.name);
+                restoreSegmentFocus();
+              }}
               data-testid={`menu-speaker-${speaker.name}`}
             >
               <div
@@ -194,7 +204,10 @@ export function SegmentHeader({
                         <DropdownMenuItem
                           key={tag.id}
                           className="py-1.5 text-xs"
-                          onClick={() => onAddTag(tag.id)}
+                          onSelect={() => {
+                            onAddTag(tag.id);
+                            restoreSegmentFocus();
+                          }}
                           data-testid={`menu-add-tag-${tag.id}`}
                         >
                           <div
@@ -274,7 +287,10 @@ export function SegmentHeader({
                           <DropdownMenuItem
                             key={tag.id}
                             className="py-1.5 text-xs"
-                            onClick={() => onAddTag(tag.id)}
+                            onSelect={() => {
+                              onAddTag(tag.id);
+                              restoreSegmentFocus();
+                            }}
                             data-testid={`menu-add-tag-${tag.id}`}
                           >
                             <div
@@ -315,7 +331,10 @@ export function SegmentHeader({
                   <DropdownMenuItem
                     key={tag.id}
                     className="py-1.5 text-xs"
-                    onClick={() => onAddTag(tag.id)}
+                    onSelect={() => {
+                      onAddTag(tag.id);
+                      restoreSegmentFocus();
+                    }}
                     data-testid={`menu-add-tag-${tag.id}`}
                   >
                     <div

@@ -52,6 +52,39 @@ describe("TranscriptSegment", () => {
     expect(tagBadge).toHaveClass("segment-tag-badge");
   });
 
+  it("returns focus to the segment after selecting a tag from the menu", async () => {
+    const onAddTag = vi.fn();
+    render(
+      <TranscriptSegment
+        tags={tags}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        onAddTag={onAddTag}
+      />,
+    );
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    const addButton = screen.getByTestId("button-add-first-tag-seg-1");
+
+    await userEvent.click(addButton);
+    await userEvent.click(screen.getByText("Action"));
+
+    expect(onAddTag).toHaveBeenCalledWith("tag-1");
+    await waitFor(() => {
+      expect(segmentCard).toHaveFocus();
+    });
+  });
+
   it("reveals tag controls on focus", async () => {
     const taggedSegment: Segment = { ...segment, tags: ["tag-1"] };
     render(

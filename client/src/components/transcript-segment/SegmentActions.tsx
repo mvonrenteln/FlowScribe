@@ -9,6 +9,7 @@ import {
   Scissors,
   Trash2,
 } from "lucide-react";
+import { useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -58,6 +59,14 @@ export function SegmentActions({
   onStartEdit,
   onClearSelection,
 }: SegmentActionsProps) {
+  const restoreSegmentFocus = useCallback(() => {
+    const segmentElement = document.querySelector(
+      `[data-segment-id="${segmentId}"]`,
+    ) as HTMLElement | null;
+    if (!segmentElement) return;
+    requestAnimationFrame(() => segmentElement.focus());
+  }, [segmentId]);
+
   return (
     <div className="flex items-center gap-1">
       {showConfirmAction && (
@@ -120,16 +129,22 @@ export function SegmentActions({
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
-          <DropdownMenuItem onClick={onStartEdit}>
+          <DropdownMenuItem
+            onSelect={() => {
+              onStartEdit();
+              restoreSegmentFocus();
+            }}
+          >
             <Edit className="h-4 w-4 mr-2" />
             Edit text
           </DropdownMenuItem>
           {onSplit && (
             <DropdownMenuItem
-              onClick={() => {
+              onSelect={() => {
                 if (!canSplitAtCurrentWord) return;
                 onSplit(resolvedSplitWordIndex);
                 onClearSelection();
+                restoreSegmentFocus();
               }}
               disabled={!canSplitAtCurrentWord}
             >
@@ -138,9 +153,10 @@ export function SegmentActions({
             </DropdownMenuItem>
           )}
           <DropdownMenuItem
-            onClick={() => {
+            onSelect={() => {
               if (isConfirmed) return;
               onConfirm();
+              restoreSegmentFocus();
             }}
             disabled={isConfirmed}
           >
@@ -149,19 +165,35 @@ export function SegmentActions({
           </DropdownMenuItem>
           <DropdownMenuSeparator />
           {onMergeWithPrevious && (
-            <DropdownMenuItem onClick={onMergeWithPrevious}>
+            <DropdownMenuItem
+              onSelect={() => {
+                onMergeWithPrevious();
+                restoreSegmentFocus();
+              }}
+            >
               <Merge className="h-4 w-4 mr-2" />
               Merge with previous
             </DropdownMenuItem>
           )}
           {onMergeWithNext && (
-            <DropdownMenuItem onClick={onMergeWithNext}>
+            <DropdownMenuItem
+              onSelect={() => {
+                onMergeWithNext();
+                restoreSegmentFocus();
+              }}
+            >
               <Merge className="h-4 w-4 mr-2" />
               Merge with next
             </DropdownMenuItem>
           )}
           <DropdownMenuSeparator />
-          <DropdownMenuItem onClick={onDelete} className="text-destructive">
+          <DropdownMenuItem
+            onSelect={() => {
+              onDelete();
+              restoreSegmentFocus();
+            }}
+            className="text-destructive"
+          >
             <Trash2 className="h-4 w-4 mr-2" />
             Delete segment
           </DropdownMenuItem>
