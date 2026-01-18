@@ -39,6 +39,7 @@ export function SegmentHeader({
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+  const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
 
   // Check if tags overflow - recheck when tags change
@@ -112,9 +113,19 @@ export function SegmentHeader({
       {/* Tag list - inline with optional hover-to-expand for overflow */}
       {/* biome-ignore lint/a11y/noStaticElementInteractions: Hover-based UI for tag management */}
       <div
+        ref={tagRowRef}
         className="segment-tag-row ml-auto mr-2 relative flex items-center"
         onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
+        onMouseLeave={() => {
+          if (tagRowRef.current?.contains(document.activeElement)) return;
+          setIsHovered(false);
+        }}
+        onFocusCapture={() => setIsHovered(true)}
+        onBlurCapture={(event) => {
+          const nextFocused = event.relatedTarget as Node | null;
+          if (nextFocused && event.currentTarget.contains(nextFocused)) return;
+          setIsHovered(false);
+        }}
         role="presentation"
         data-testid={`segment-tags-${segment.id}`}
       >
@@ -147,6 +158,8 @@ export function SegmentHeader({
                             e.stopPropagation();
                             onRemoveTag(tagId);
                           }}
+                          onFocus={() => setHoveredTagId(tagId)}
+                          onBlur={() => setHoveredTagId(null)}
                           className={`transition-opacity ${hoveredTagId === tagId ? "opacity-100" : "opacity-0"} w-3`}
                           aria-label={`Remove tag ${tag.name}`}
                         >
@@ -227,6 +240,8 @@ export function SegmentHeader({
                             e.stopPropagation();
                             onRemoveTag(tagId);
                           }}
+                          onFocus={() => setHoveredTagId(tagId)}
+                          onBlur={() => setHoveredTagId(null)}
                           className={`transition-opacity ${hoveredTagId === tagId ? "opacity-100" : "opacity-0"} w-3`}
                           aria-label={`Remove tag ${tag.name}`}
                         >

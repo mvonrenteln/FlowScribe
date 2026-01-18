@@ -251,6 +251,7 @@ export const TranscriptWord = memo(
     const wordButton = (
       <button
         type="button"
+        tabIndex={-1}
         onClick={handleClick}
         onKeyDown={onKeyDown}
         className={cn(

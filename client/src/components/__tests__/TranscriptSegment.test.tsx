@@ -52,6 +52,45 @@ describe("TranscriptSegment", () => {
     expect(tagBadge).toHaveClass("segment-tag-badge");
   });
 
+  it("reveals tag controls on focus", async () => {
+    const taggedSegment: Segment = { ...segment, tags: ["tag-1"] };
+    render(
+      <TranscriptSegment
+        tags={tags}
+        segment={taggedSegment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        onAddTag={vi.fn()}
+        onRemoveTag={vi.fn()}
+      />,
+    );
+
+    const addButton = screen.getByTestId("button-add-tag-seg-1");
+    expect(addButton).toHaveClass("opacity-0");
+
+    fireEvent.focus(addButton);
+    await waitFor(() => {
+      expect(addButton).toHaveClass("opacity-100");
+    });
+
+    const removeButton = screen.getByLabelText("Remove tag Action");
+    expect(removeButton).toHaveClass("opacity-0");
+
+    fireEvent.focus(removeButton);
+    await waitFor(() => {
+      expect(removeButton).toHaveClass("opacity-100");
+    });
+  });
+
   it("renders word tokens and seeks on click", async () => {
     const onSeek = vi.fn();
     const onSelect = vi.fn();
@@ -82,6 +121,29 @@ describe("TranscriptSegment", () => {
     expect(onSeek).toHaveBeenCalledWith(0, { source: "transcript", action: "word_click" });
     expect(screen.getByText("Hallo")).toBeInTheDocument();
     expect(screen.getByText("Welt")).toBeInTheDocument();
+  });
+
+  it("removes word tokens from the tab order", () => {
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        tags={[]}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const word = screen.getByTestId("word-seg-1-0");
+    expect(word).toHaveAttribute("tabindex", "-1");
   });
 
   it("splits on selected word", async () => {
