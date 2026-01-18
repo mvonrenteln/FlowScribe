@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -52,38 +52,30 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const globalLastSelection = useTranscriptStore((s) => s.aiRevisionLastSelection);
   const setGlobalLastSelection = useTranscriptStore((s) => s.setAiRevisionLastSelection);
 
-  // Local provider/model override state (per-popover)
+  // Local provider/model override state (per-popover). Initialize from
+  // persisted global selection or settings synchronously to avoid a
+  // post-mount state update (which triggers act() warnings in tests).
   const [settings] = useState(() => initializeSettings());
-  const [selectedProvider, setSelectedProvider] = useState<string | undefined>(undefined);
-  const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
+  const defaultProviderId =
+    settings.defaultAIProviderId ?? settings.aiProviders.find((p) => p.isDefault)?.id;
+  const defaultProvider =
+    settings.aiProviders.find((p) => p.id === defaultProviderId) ?? settings.aiProviders[0];
+  const defaultModel = defaultProvider
+    ? (defaultProvider.model ?? defaultProvider.availableModels?.[0])
+    : undefined;
+
+  const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
+    () => globalLastSelection?.providerId ?? defaultProvider?.id,
+  );
+  const [selectedModel, setSelectedModel] = useState<string | undefined>(
+    () => globalLastSelection?.model ?? defaultModel,
+  );
   const [availableModels, setAvailableModels] = useState<Map<string, string[]>>(new Map());
   const loadingModels = useMemo(() => new Set<string>(), []);
   const contentRef = useRef<HTMLDivElement>(null);
+  const isMountedRef = useRef(true);
 
-  // Initialize selectedProvider/Model from global store selection if present
-  useEffect(() => {
-    if (globalLastSelection?.providerId) {
-      setSelectedProvider(globalLastSelection.providerId);
-      if (globalLastSelection.model) setSelectedModel(globalLastSelection.model);
-      return;
-    }
-
-    // No saved selection — use settings default provider and model
-    const defaultProviderId =
-      settings.defaultAIProviderId ?? settings.aiProviders.find((p) => p.isDefault)?.id;
-    const defaultProvider =
-      settings.aiProviders.find((p) => p.id === defaultProviderId) ?? settings.aiProviders[0];
-    if (defaultProvider) {
-      setSelectedProvider(defaultProvider.id);
-      const defaultModel = defaultProvider.model ?? defaultProvider.availableModels?.[0];
-      if (defaultModel) setSelectedModel(defaultModel);
-    }
-  }, [
-    globalLastSelection,
-    settings.aiProviders.find,
-    settings.aiProviders[0],
-    settings.defaultAIProviderId,
-  ]);
+  // Note: initial selectedProvider/selectedModel are set synchronously above.
 
   // Check if THIS segment is currently being processed
   const isProcessingThis = isGlobalProcessing && currentProcessingSegmentId === segmentId;
@@ -96,16 +88,24 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   // Track when processing finishes and show appropriate status
   useEffect(() => {
     if (lastResult?.segmentId === segmentId && !isProcessingThis) {
-      setDisplayStatus(lastResult.status);
+      if (isMountedRef.current) {
+        setDisplayStatus(lastResult.status);
 
-      // Auto-hide status after timeout
-      const timer = setTimeout(() => {
-        setDisplayStatus("idle");
-      }, STATUS_DISPLAY_TIME);
+        // Auto-hide status after timeout (guarded by mounted flag)
+        const timer = setTimeout(() => {
+          if (isMountedRef.current) setDisplayStatus("idle");
+        }, STATUS_DISPLAY_TIME);
 
-      return () => clearTimeout(timer);
+        return () => clearTimeout(timer);
+      }
     }
   }, [lastResult, segmentId, isProcessingThis]);
+
+  useEffect(() => {
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
 
   // Get quick-access prompts
   const quickAccessPrompts = prompts.filter((t) => quickAccessIds.includes(t.id));
@@ -120,9 +120,11 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const fetchModelsForProvider = useCallback(
     async (providerId: string) => {
       // Use module cache if present
+      if (!isMountedRef.current) return;
       if (modelCache.has(providerId)) {
         const cached = modelCache.get(providerId) || [];
-        setAvailableModels((prev) => new Map([...prev, [providerId, cached]]));
+        if (isMountedRef.current)
+          setAvailableModels((prev) => new Map([...prev, [providerId, cached]]));
         return;
       }
 
@@ -133,7 +135,8 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
       const available =
         providerConfig.availableModels ?? (providerConfig.model ? [providerConfig.model] : []);
       modelCache.set(providerId, available);
-      setAvailableModels((prev) => new Map([...prev, [providerId, available]]));
+      if (isMountedRef.current)
+        setAvailableModels((prev) => new Map([...prev, [providerId, available]]));
     },
     [settings.aiProviders],
   );
@@ -153,24 +156,25 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
     }
   }, [open, selectedProvider, fetchModelsForProvider]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!open) return;
     const container = contentRef.current;
     if (!container) return;
-    const focusFirst = () => {
-      const firstButton = container.querySelector<HTMLButtonElement>("button:not([disabled])");
-      firstButton?.focus();
+    const firstButton = container.querySelector<HTMLButtonElement>("button:not([disabled])");
+    firstButton?.focus();
+    return () => {
+      /* no-op cleanup; focus handled synchronously */
     };
-    const frame = requestAnimationFrame(focusFirst);
-    return () => cancelAnimationFrame(frame);
   }, [open]);
 
   // Persist selection into global store so other popovers pick it up
   useEffect(() => {
-    // Avoid overwriting persisted selection on mount when local state is still undefined
+    // Only persist selection when the popover is open to avoid causing
+    // async updates during test renders (which trigger act() warnings).
+    if (!open) return;
     if (selectedProvider === undefined && selectedModel === undefined) return;
     setGlobalLastSelection({ providerId: selectedProvider, model: selectedModel });
-  }, [selectedProvider, selectedModel, setGlobalLastSelection]);
+  }, [open, selectedProvider, selectedModel, setGlobalLastSelection]);
 
   // Determine icon and styling based on current status
   const getStatusDisplay = () => {
@@ -490,7 +494,6 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
               value={selectedModel ?? ""}
               onChange={(e) => {
                 const val = e.target.value || undefined;
-                setSelectedModel(val);
                 setSelectedModel(val);
               }}
               onClick={(e) => e.stopPropagation()}
