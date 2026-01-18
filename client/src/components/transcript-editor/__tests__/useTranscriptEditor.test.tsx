@@ -178,4 +178,63 @@ describe("useTranscriptEditor", () => {
 
     expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
   });
+
+  it("clears active filters when switching sessions", async () => {
+    act(() => {
+      useTranscriptStore.setState({
+        sessionKey: "session-1",
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            tags: ["tag-1"],
+            start: 0,
+            end: 1,
+            text: "Hallo Welt",
+            words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            bookmarked: true,
+          },
+        ],
+        speakers: [{ id: "speaker-1", name: "SPEAKER_00", color: "red" }],
+        tags: [{ id: "tag-1", name: "Important", color: "blue" }],
+      });
+    });
+
+    const { result } = renderHook(() => useTranscriptEditor());
+    await waitFor(() => {
+      expect(result.current.filterPanelProps).toBeTruthy();
+    });
+
+    act(() => {
+      result.current.filterPanelProps.onSpeakerSelect("speaker-1");
+      result.current.filterPanelProps.onToggleLowConfidenceFilter();
+      result.current.filterPanelProps.onToggleBookmarkFilter();
+      result.current.filterPanelProps.onSearchQueryChange("Hallo");
+      result.current.filterPanelProps.onTagSelect("tag-1");
+      result.current.filterPanelProps.onToggleNoTagsFilter();
+      result.current.filterPanelProps.onToggleRegexSearch();
+    });
+
+    expect(result.current.filterPanelProps.selectedSpeakerId).toBe("speaker-1");
+    expect(result.current.filterPanelProps.lowConfidenceFilterActive).toBe(true);
+    expect(result.current.filterPanelProps.bookmarkFilterActive).toBe(true);
+    expect(result.current.filterPanelProps.searchQuery).toBe("Hallo");
+    expect(result.current.filterPanelProps.selectedTagIds).toEqual(["tag-1"]);
+    expect(result.current.filterPanelProps.noTagsFilterActive).toBe(true);
+    expect(result.current.filterPanelProps.isRegexSearch).toBe(true);
+
+    act(() => {
+      useTranscriptStore.setState({ sessionKey: "session-2" });
+    });
+
+    await waitFor(() => {
+      expect(result.current.filterPanelProps.selectedSpeakerId).toBeUndefined();
+      expect(result.current.filterPanelProps.lowConfidenceFilterActive).toBe(false);
+      expect(result.current.filterPanelProps.bookmarkFilterActive).toBe(false);
+      expect(result.current.filterPanelProps.searchQuery).toBe("");
+      expect(result.current.filterPanelProps.selectedTagIds).toEqual([]);
+      expect(result.current.filterPanelProps.noTagsFilterActive).toBe(false);
+      expect(result.current.filterPanelProps.isRegexSearch).toBe(false);
+    });
+  });
 });

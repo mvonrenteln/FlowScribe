@@ -18,3 +18,9 @@ To associate a transcript with the new audio, load it explicitly using
 `loadTranscript(...)` or `setTranscriptReference(...)` after the audio upload.
 If the transcript is intentionally the same file, re-upload it to reattach it
 to the new audio.
+
+## Filter state on session changes
+
+When the session key changes (loading a different file or switching revisions),
+the transcript editor resets all active filters and search state so the next
+session starts unfiltered.

@@ -296,6 +296,11 @@ export const useTranscriptEditor = () => {
     setManualConfidenceThreshold,
   });
 
+  useEffect(() => {
+    if (!sessionKey) return;
+    clearFilters();
+  }, [clearFilters, sessionKey]);
+
   // Tag select handler - optimized for performance
   const handleTagSelect = useCallback(
     (tagId: string) => {
