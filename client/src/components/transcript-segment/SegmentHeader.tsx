@@ -174,12 +174,13 @@ export function SegmentHeader({
                       <Plus className="h-3 w-3" />
                     </Button>
                   </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="max-h-64 overflow-auto">
+                  <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
                     {tags
                       .filter((tag) => !segment.tags?.includes(tag.id))
                       .map((tag) => (
                         <DropdownMenuItem
                           key={tag.id}
+                          className="py-1.5 text-xs"
                           onClick={() => onAddTag(tag.id)}
                           data-testid={`menu-add-tag-${tag.id}`}
                         >
@@ -251,12 +252,13 @@ export function SegmentHeader({
                         <Plus className="h-3 w-3" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="max-h-64 overflow-auto">
+                    <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
                       {tags
                         .filter((tag) => !segment.tags?.includes(tag.id))
                         .map((tag) => (
                           <DropdownMenuItem
                             key={tag.id}
+                            className="py-1.5 text-xs"
                             onClick={() => onAddTag(tag.id)}
                             data-testid={`menu-add-tag-${tag.id}`}
                           >
@@ -293,10 +295,11 @@ export function SegmentHeader({
                   <span>Add Tag</span>
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-64 overflow-auto">
+              <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
                 {tags.map((tag) => (
                   <DropdownMenuItem
                     key={tag.id}
+                    className="py-1.5 text-xs"
                     onClick={() => onAddTag(tag.id)}
                     data-testid={`menu-add-tag-${tag.id}`}
                   >

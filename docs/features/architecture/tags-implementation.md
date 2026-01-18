@@ -174,7 +174,7 @@ Click "No Tags"     showNoTags: true         Untagged only
 - Each tag badge has an ✕ button to remove from segment
 - "+ Add" button: open tag picker dropdown
 - Inline visual feedback on filter state
-- Tag header row, tag container, and tag badges keep consistent vertical padding/height via shared CSS utility classes in `client/src/index.css` to avoid segment frame shifts when tags are toggled (e.g., T+1 shortcuts). Tag buttons/badges align to a shared 32px height.
+- Tag header row, tag container, and tag badges keep consistent vertical padding/height via shared CSS utility classes in `client/src/index.css` to avoid segment frame shifts when tags are toggled (e.g., T+1 shortcuts). Tag buttons/badges align to a shared 24px height.
 
 ### Export Dialog
 

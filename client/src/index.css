@@ -303,12 +303,14 @@
   }
 
   .segment-tag-badge {
-    height: 2rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
   }
 
   .segment-tag-button {
-    height: 2rem;
-    width: 2rem;
+    height: 1.5rem;
+    min-height: 1.5rem;
+    width: 1.5rem;
   }
 
   /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of
