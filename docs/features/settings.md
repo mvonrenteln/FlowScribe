@@ -400,10 +400,10 @@ Manage your term glossary with fuzzy matching and smart highlighting.
 
 #### Ignored Words
 
-- Useful for multilingual transcripts
-- Words valid in either selected language are accepted
-- Select one or both languages
-**Multiple Languages**
+- Select one language at a time
+- Click another language to switch
+- Useful for transcripts with a primary language
+**Language Switching**
 
 - **English (en)**: English language rules and dictionary
 - **German (de)**: German language rules and dictionary

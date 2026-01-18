@@ -88,11 +88,8 @@ export function SpellcheckSettings() {
 
   const handleToggleLanguage = (langCode: "de" | "en") => {
     const current = spellcheckLanguages ?? [];
-    if (current.includes(langCode)) {
-      setSpellcheckLanguages(current.filter((l) => l !== langCode));
-    } else {
-      setSpellcheckLanguages([...current, langCode]);
-    }
+    if (current.length === 1 && current[0] === langCode) return;
+    setSpellcheckLanguages([langCode]);
   };
 
   const handleImportWords = (file: File) => {
@@ -238,7 +235,7 @@ export function SpellcheckSettings() {
             <p className="text-xs text-muted-foreground">
               {spellcheckCustomEnabled
                 ? "Built-in languages are disabled when custom dictionaries are active."
-                : "Click to toggle. At least one language should be active."}
+                : "Click to switch. Only one language can be active at a time."}
             </p>
           </div>
         </CardContent>

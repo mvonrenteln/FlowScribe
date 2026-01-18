@@ -32,11 +32,11 @@ export const resolveSpellcheckSelection = (
   if (customEnabled) {
     return { languages: [], customEnabled: true };
   }
-  if (languages.includes("de")) {
-    return { languages: ["de"], customEnabled: false };
-  }
-  if (languages.includes("en")) {
-    return { languages: ["en"], customEnabled: false };
+  if (languages.length > 0) {
+    const preferred = languages[languages.length - 1];
+    if (preferred) {
+      return { languages: [preferred], customEnabled: false };
+    }
   }
   return { languages: ["de"], customEnabled: false };
 };

@@ -30,13 +30,13 @@ describe("Spellcheck slice", () => {
     expect(useTranscriptStore.getState().spellcheckIgnoreWords).toEqual([]);
   });
 
-  it("keeps spellcheck modes mutually exclusive", () => {
+  it("keeps built-in languages exclusive", () => {
     const { setSpellcheckLanguages } = useTranscriptStore.getState();
 
-    setSpellcheckLanguages(["en", "de"]);
+    setSpellcheckLanguages(["de", "en"]);
 
     const { spellcheckLanguages, spellcheckCustomEnabled } = useTranscriptStore.getState();
-    expect(spellcheckLanguages).toEqual(["de"]);
+    expect(spellcheckLanguages).toEqual(["en"]);
     expect(spellcheckCustomEnabled).toBe(false);
   });
 
