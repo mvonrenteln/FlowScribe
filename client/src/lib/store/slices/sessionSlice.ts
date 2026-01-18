@@ -51,13 +51,13 @@ export const createSessionSlice = (
   setAudioUrl: (url) => set({ audioUrl: url }),
   setAudioReference: (reference) => {
     const state = get();
+    const audioChanged = !isSameFileReference(state.audioRef, reference);
+    const shouldResetTranscript = audioChanged && reference !== null;
+    const nextTranscriptRef = shouldResetTranscript ? null : state.transcriptRef;
     const confidenceScoresVersion = state.confidenceScoresVersion + 1;
-    const sessionKey =
-      state.transcriptRef === null
-        ? state.sessionKey
-        : buildSessionKey(reference, state.transcriptRef);
+    const sessionKey = buildSessionKey(reference, nextTranscriptRef);
     const session = context.getSessionsCache()[sessionKey];
-    const shouldPromoteCurrent = !session && state.segments.length > 0;
+    const shouldPromoteCurrent = !session && state.segments.length > 0 && !shouldResetTranscript;
     const persistedSegments = session ? normalizeSegments(session.segments) : undefined;
     const persistedHistorySegments = session ? normalizeSegments(session.segments) : undefined;
     if (shouldPromoteCurrent) {
@@ -70,12 +70,18 @@ export const createSessionSlice = (
         },
       });
     }
-    const sessionKind = getSessionKind(session, state.sessionKind);
+    const sessionKind = getSessionKind(
+      session,
+      shouldResetTranscript ? "current" : state.sessionKind,
+    );
     const sessionLabel = getSessionLabel(
       session,
-      state.sessionLabel ?? state.transcriptRef?.name ?? null,
+      shouldResetTranscript ? null : (state.sessionLabel ?? state.transcriptRef?.name ?? null),
     );
-    const baseSessionKey = getBaseSessionKey(session, state.baseSessionKey);
+    const baseSessionKey = getBaseSessionKey(
+      session,
+      shouldResetTranscript ? null : state.baseSessionKey,
+    );
     const selectedSegmentId =
       session?.selectedSegmentId &&
       session.segments.some((segment) => segment.id === session.selectedSegmentId)
@@ -83,34 +89,56 @@ export const createSessionSlice = (
         : shouldPromoteCurrent
           ? state.selectedSegmentId
           : (session?.segments[0]?.id ?? null);
+    const nextSegments = shouldResetTranscript
+      ? []
+      : (persistedSegments ?? (shouldPromoteCurrent ? state.segments : []));
+    const nextSpeakers = shouldResetTranscript
+      ? []
+      : (session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []));
+    const nextTags = shouldResetTranscript
+      ? []
+      : (session?.tags ?? (shouldPromoteCurrent ? state.tags : []));
+    const nextSelectedSegmentId = shouldResetTranscript ? null : selectedSegmentId;
+    const nextCurrentTime = shouldResetTranscript
+      ? 0
+      : (session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0));
+    const nextIsWhisperXFormat = shouldResetTranscript
+      ? false
+      : (session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false));
+    const nextHistory = shouldResetTranscript
+      ? []
+      : session?.segments?.length || shouldPromoteCurrent
+        ? [
+            {
+              segments: persistedHistorySegments ?? session?.segments ?? state.segments,
+              speakers: session?.speakers ?? state.speakers,
+              tags: session?.tags ?? state.tags,
+              selectedSegmentId,
+              currentTime: session?.currentTime ?? state.currentTime,
+              confidenceScoresVersion,
+            },
+          ]
+        : [];
+    const nextHistoryIndex = shouldResetTranscript
+      ? -1
+      : session?.segments.length || shouldPromoteCurrent
+        ? 0
+        : -1;
     set({
       audioRef: reference,
-      transcriptRef: state.transcriptRef,
+      transcriptRef: nextTranscriptRef,
       sessionKey,
       sessionKind,
       sessionLabel,
       baseSessionKey,
-      segments: persistedSegments ?? (shouldPromoteCurrent ? state.segments : []),
-      speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
-      tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
-      selectedSegmentId,
-      currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
-      isWhisperXFormat:
-        session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
-      history:
-        session?.segments?.length || shouldPromoteCurrent
-          ? [
-              {
-                segments: persistedHistorySegments ?? session?.segments ?? state.segments,
-                speakers: session?.speakers ?? state.speakers,
-                tags: session?.tags ?? state.tags,
-                selectedSegmentId,
-                currentTime: session?.currentTime ?? state.currentTime,
-                confidenceScoresVersion,
-              },
-            ]
-          : [],
-      historyIndex: session?.segments.length || shouldPromoteCurrent ? 0 : -1,
+      segments: nextSegments,
+      speakers: nextSpeakers,
+      tags: nextTags,
+      selectedSegmentId: nextSelectedSegmentId,
+      currentTime: nextCurrentTime,
+      isWhisperXFormat: nextIsWhisperXFormat,
+      history: nextHistory,
+      historyIndex: nextHistoryIndex,
       confidenceScoresVersion,
     });
   },

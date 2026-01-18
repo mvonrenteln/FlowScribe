@@ -122,9 +122,10 @@ describe("useTranscriptStore persistence", () => {
     expect(state.isWhisperXFormat).toBe(true);
   });
 
-  it("promotes the current session when assigning a new audio reference", async () => {
+  it("clears transcript state when assigning a new audio reference", async () => {
     const store = await loadStore();
     store.setState({
+      transcriptRef: makeRef("transcript-1"),
       segments: [makeSegment("seg-1")],
       speakers: [makeSpeaker("speaker-1")],
       selectedSegmentId: "seg-1",
@@ -136,8 +137,12 @@ describe("useTranscriptStore persistence", () => {
 
     const state = store.getState();
     expect(state.audioRef).toEqual(audioRef);
-    expect(state.segments).toHaveLength(1);
-    expect(state.historyIndex).toBe(0);
+    expect(state.transcriptRef).toBeNull();
+    expect(state.segments).toHaveLength(0);
+    expect(state.speakers).toHaveLength(0);
+    expect(state.tags).toHaveLength(0);
+    expect(state.historyIndex).toBe(-1);
+    expect(state.sessionKey).toBe(buildSessionKey(audioRef, null));
   });
 
   it("repairs invalid session selection when reapplying the same audio reference", async () => {

@@ -212,7 +212,14 @@ export interface ConfidenceSlice {
 export interface SessionSlice {
   setAudioFile: (file: File | null) => void;
   setAudioUrl: (url: string | null) => void;
+  /**
+   * Updates the current audio reference. When switching to a new audio file,
+   * the transcript-related state is reset until a transcript is loaded again.
+   */
   setAudioReference: (reference: FileReference | null) => void;
+  /**
+   * Updates the transcript reference and loads the corresponding session when available.
+   */
   setTranscriptReference: (reference: FileReference | null) => void;
   activateSession: (key: string) => void;
   createRevision: (name: string, overwrite?: boolean) => string | null;
