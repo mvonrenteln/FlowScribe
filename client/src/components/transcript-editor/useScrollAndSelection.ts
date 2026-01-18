@@ -71,10 +71,18 @@ export function useScrollAndSelection({
   // Sync selection during playback or when time changes manually
   useEffect(() => {
     if (isTranscriptEditing()) return;
-    if (!activeSegment || !isActiveSegmentVisible) return;
+    if (activeSegment && isActiveSegmentVisible) {
+      if (activeSegment.id !== selectedSegmentId) {
+        setSelectedSegmentId(activeSegment.id);
+      }
+      return;
+    }
 
-    if (activeSegment.id !== selectedSegmentId) {
-      setSelectedSegmentId(activeSegment.id);
+    if (!activeSegment) {
+      const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
+      if (nextSegment && nextSegment.id !== selectedSegmentId) {
+        setSelectedSegmentId(nextSegment.id);
+      }
     }
   }, [
     activeSegment,
@@ -82,6 +90,8 @@ export function useScrollAndSelection({
     isTranscriptEditing,
     selectedSegmentId,
     setSelectedSegmentId,
+    currentTime,
+    filteredSegments,
   ]);
 
   const lastInteractionTimeRef = useRef(0);

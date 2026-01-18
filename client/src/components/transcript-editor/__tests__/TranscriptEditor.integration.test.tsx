@@ -298,6 +298,45 @@ describe("TranscriptEditor integration", () => {
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
 
+  it("selects the next segment when wave interaction lands in a gap while paused", async () => {
+    useTranscriptStore.setState({
+      audioUrl: "audio.mp3",
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+          tags: [],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 2,
+          end: 3,
+          text: "Servus",
+          words: [{ word: "Servus", start: 2, end: 3 }],
+          tags: [],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      selectedSegmentId: "segment-1",
+      currentTime: 0.5,
+      isPlaying: false,
+    });
+
+    render(<TranscriptEditor />);
+
+    act(() => {
+      waveSurferMock.handlers.get("interaction")?.(1.5);
+    });
+
+    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+    expect(screen.getByTestId("segment-segment-2")).toHaveAttribute("aria-current", "true");
+  });
+
   it("scrolls to the next segment when using arrow navigation while paused", async () => {
     const scrollIntoView = vi.fn();
     const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;

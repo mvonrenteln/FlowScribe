@@ -203,7 +203,9 @@ Seek origins become explicit and can be differentiated in Store logic, tests, an
    Active segment/word highlighting are derived state and never generate seek requests.
 7. **Selection sync reacts to time changes regardless of play state.**
    `currentTime` is a valid navigation reference even while paused (e.g. waveform seek).
-8. **Clamping happens in the Store.**
+8. **Gaps map to the next visible segment for selection sync.**
+   When `currentTime` falls between segments, the UI selects the next available segment instead of leaving a stale selection.
+9. **Clamping happens in the Store.**
    All seeks are normalized to consistent bounds, keeping downstream logic deterministic.
 
 ---
