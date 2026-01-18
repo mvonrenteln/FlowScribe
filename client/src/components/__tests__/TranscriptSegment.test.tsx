@@ -123,6 +123,33 @@ describe("TranscriptSegment", () => {
     expect(screen.getByText("Welt")).toBeInTheDocument();
   });
 
+  it("selects the segment on Enter when focused", () => {
+    const onSelect = vi.fn();
+    render(
+      <TranscriptSegment
+        segment={segment}
+        speakers={speakers}
+        tags={[]}
+        isSelected={false}
+        isActive={false}
+        onSelect={onSelect}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    segmentCard.focus();
+    fireEvent.keyDown(segmentCard, { key: "Enter" });
+
+    expect(onSelect).toHaveBeenCalled();
+  });
+
   it("removes word tokens from the tab order", () => {
     render(
       <TranscriptSegment

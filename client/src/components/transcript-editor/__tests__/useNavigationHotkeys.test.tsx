@@ -142,6 +142,18 @@ describe("useNavigationHotkeys", () => {
     expect(hotkeyHandlers.has("enter")).toBe(false);
   });
 
+  it("ignores arrow navigation while a menu item is focused", () => {
+    renderHook(() => useNavigationHotkeys(baseOptions));
+    const menuItem = document.createElement("div");
+    menuItem.setAttribute("role", "menuitem");
+    document.body.appendChild(menuItem);
+
+    menuItem.dispatchEvent(new KeyboardEvent("keydown", { key: "ArrowDown", bubbles: true }));
+
+    expect(selectNextSegment).not.toHaveBeenCalled();
+    document.body.removeChild(menuItem);
+  });
+
   it("ignores hotkeys while editing", () => {
     renderHook(() =>
       useNavigationHotkeys({

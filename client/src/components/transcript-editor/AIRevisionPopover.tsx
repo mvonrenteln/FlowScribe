@@ -14,7 +14,7 @@ import {
   MoreHorizontal,
   Sparkles,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -58,6 +58,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const [selectedModel, setSelectedModel] = useState<string | undefined>(undefined);
   const [availableModels, setAvailableModels] = useState<Map<string, string[]>>(new Map());
   const loadingModels = useMemo(() => new Set<string>(), []);
+  const contentRef = useRef<HTMLDivElement>(null);
 
   // Initialize selectedProvider/Model from global store selection if present
   useEffect(() => {
@@ -152,6 +153,18 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
     }
   }, [open, selectedProvider, fetchModelsForProvider]);
 
+  useEffect(() => {
+    if (!open) return;
+    const container = contentRef.current;
+    if (!container) return;
+    const focusFirst = () => {
+      const firstButton = container.querySelector<HTMLButtonElement>("button:not([disabled])");
+      firstButton?.focus();
+    };
+    const frame = requestAnimationFrame(focusFirst);
+    return () => cancelAnimationFrame(frame);
+  }, [open]);
+
   // Persist selection into global store so other popovers pick it up
   useEffect(() => {
     // Avoid overwriting persisted selection on mount when local state is still undefined
@@ -224,7 +237,33 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-56 p-1" align="end">
+      <PopoverContent
+        ref={contentRef}
+        className="w-56 p-1"
+        align="end"
+        data-menu-overlay="true"
+        onKeyDown={(event) => {
+          if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+          const target = event.target as HTMLElement | null;
+          if (!target) return;
+          const tagName = target.tagName;
+          if (tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT") return;
+          const container = contentRef.current;
+          if (!container) return;
+          const items = Array.from(
+            container.querySelectorAll<HTMLButtonElement>("button:not([disabled])"),
+          );
+          if (items.length === 0) return;
+          const activeElement = document.activeElement as HTMLButtonElement | null;
+          const currentIndex = activeElement ? items.indexOf(activeElement) : -1;
+          const delta = event.key === "ArrowDown" ? 1 : -1;
+          const nextIndex =
+            currentIndex === -1 ? 0 : (currentIndex + delta + items.length) % items.length;
+          event.preventDefault();
+          event.stopPropagation();
+          items[nextIndex]?.focus();
+        }}
+      >
         <div className="flex flex-col">
           {/* Provider / Model overrides moved into Settings submenu (see SettingsSubmenu below) */}
           {/* Status message if not idle */}

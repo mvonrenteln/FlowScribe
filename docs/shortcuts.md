@@ -15,7 +15,6 @@ These shortcuts are global unless you are editing text. In edit mode, only Enter
 ## Navigation
 
 - `Up` / `Down` — Move selection up/down the transcript
-- `1..9` — Assign speaker by number
 - `Escape` — Clear selection and speaker filter
 
 ## Editing
@@ -27,11 +26,12 @@ These shortcuts are global unless you are editing text. In edit mode, only Enter
 - `Delete` — Delete selected segment
 - `C` — Confirm selected segment
 - `B` — Bookmark selected segment
-- `T` + `1..0` — Toggle tag #1–#10 on selected segment(s)
+- `1..9` — Assign speaker by number
+- `T` + `1..0` / `Alt + 1..0` — Toggle tag #1–#10 on selected segment(s)
 
 ## Undo / Redo
 
-- `Cmd/Ctrl + Z` — Undo
+- `Z` — Undo
 - `Cmd/Ctrl + Shift + Z` — Redo
 
 ## Panels

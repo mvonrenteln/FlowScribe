@@ -366,11 +366,16 @@ export function useNavigationHotkeys({
     const handleGlobalArrowNav = (event: KeyboardEvent) => {
       if (isTranscriptEditing()) return;
       if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
-      const target = event.target as HTMLElement | null;
-      if (target) {
+      const target = event.target;
+      if (target instanceof Element) {
         const tagName = target.tagName;
         const isFormElement = tagName === "INPUT" || tagName === "TEXTAREA" || tagName === "SELECT";
-        if (isFormElement || target.isContentEditable) return;
+        if (isFormElement || (target as HTMLElement).isContentEditable) return;
+        const inMenu =
+          target.closest(
+            '[role="menu"],[role="menuitem"],[role="menuitemcheckbox"],[role="menuitemradio"]',
+          ) !== null;
+        if (inMenu || target.closest('[data-menu-overlay="true"]')) return;
       }
 
       // Always prevent default and use arrow keys for segment navigation
