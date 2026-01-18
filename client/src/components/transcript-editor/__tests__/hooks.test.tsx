@@ -234,6 +234,48 @@ describe("useFiltersAndLexicon", () => {
     });
     expect(emptyState.title).toMatch(/No spelling issues/i);
   });
+
+  it("filters segments by low confidence scores", () => {
+    const segments: Segment[] = [
+      {
+        id: "segment-low",
+        speaker: "SPEAKER_00",
+        start: 0,
+        end: 1,
+        text: "low score",
+        words: [{ word: "low", start: 0, end: 1, score: 0.4 }],
+        tags: [],
+      },
+      {
+        id: "segment-high",
+        speaker: "SPEAKER_00",
+        start: 2,
+        end: 3,
+        text: "high score",
+        words: [{ word: "high", start: 2, end: 3, score: 0.9 }],
+        tags: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useFiltersAndLexicon({
+        segments,
+        speakers: [],
+        lexiconEntries: [],
+        lexiconThreshold: 0.8,
+        lexiconHighlightUnderline: false,
+        lexiconHighlightBackground: false,
+        spellcheckEnabled: false,
+        spellcheckMatchesBySegment: new Map(),
+        ...confidenceProps,
+        manualConfidenceThreshold: 0.5,
+      }),
+    );
+
+    act(() => result.current.setFilterLowConfidence(true));
+    expect(result.current.filteredSegments).toHaveLength(1);
+    expect(result.current.filteredSegments[0]?.id).toBe("segment-low");
+  });
 });
 
 describe("useScrollAndSelection", () => {

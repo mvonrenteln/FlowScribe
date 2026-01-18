@@ -103,6 +103,20 @@ export function useFiltersAndLexicon({
     [normalizedSegments],
   );
 
+  const searchCriteria = useMemo(() => {
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) {
+      return {
+        normalizedQuery: "",
+        regex: null as RegExp | null,
+      };
+    }
+    return {
+      normalizedQuery: normalizeForSearch(trimmedQuery),
+      regex: createSearchRegex(trimmedQuery, isRegexSearch),
+    };
+  }, [searchQuery, isRegexSearch]);
+
   useEffect(() => {
     segmentsRef.current = segments;
   }, [segments]);
@@ -152,9 +166,41 @@ export function useFiltersAndLexicon({
   const showSpellcheckMatches =
     (spellcheckEnabled || filterSpellcheck) && !(filterLexicon || filterLexiconLowScore);
 
+  const lowConfidenceSegmentIds = useMemo(() => {
+    if (!filterLowConfidence || lowConfidenceThreshold === null) {
+      return null;
+    }
+    const lowConfidenceIds = new Set<string>();
+    for (const segment of segments) {
+      const hasLowScore = segment.words.some(
+        (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
+      );
+      if (hasLowScore) {
+        lowConfidenceIds.add(segment.id);
+      }
+    }
+    return lowConfidenceIds;
+  }, [filterLowConfidence, lowConfidenceThreshold, segments]);
+
+  const lexiconLowScoreSegmentIds = useMemo(() => {
+    if (!filterLexiconLowScore) return null;
+    const lowScoreIds = new Set<string>();
+    for (const [segmentId, matches] of lexiconMatchesBySegment.entries()) {
+      const hasLowMatch = Array.from(matches.values()).some((match) => match.score < 1);
+      if (hasLowMatch) {
+        lowScoreIds.add(segmentId);
+      }
+    }
+    return lowScoreIds;
+  }, [filterLexiconLowScore, lexiconMatchesBySegment]);
+
+  const spellcheckSegmentIds = useMemo(() => {
+    if (!filterSpellcheck) return null;
+    return new Set(spellcheckMatchesBySegment.keys());
+  }, [filterSpellcheck, spellcheckMatchesBySegment]);
+
   const filteredSegments = useMemo(() => {
-    const regex = createSearchRegex(searchQuery, isRegexSearch);
-    const searchNormalized = normalizeForSearch(searchQuery);
+    const { regex, normalizedQuery } = searchCriteria;
 
     return segments.filter((segment) => {
       const normalizedSegment = normalizedSegmentsById.get(segment.id);
@@ -162,11 +208,7 @@ export function useFiltersAndLexicon({
         return false;
       }
       if (filterLowConfidence) {
-        if (lowConfidenceThreshold === null) return false;
-        const hasLowScore = segment.words.some(
-          (word) => typeof word.score === "number" && word.score <= lowConfidenceThreshold,
-        );
-        if (!hasLowScore) return false;
+        if (!lowConfidenceSegmentIds || !lowConfidenceSegmentIds.has(segment.id)) return false;
       }
       if (filterBookmarked && !segment.bookmarked) {
         return false;
@@ -175,13 +217,12 @@ export function useFiltersAndLexicon({
         if (!lexiconMatchesBySegment.has(segment.id)) return false;
       }
       if (filterLexiconLowScore) {
-        const matches = lexiconMatchesBySegment.get(segment.id);
-        if (!matches) return false;
-        const hasLowMatch = Array.from(matches.values()).some((match) => match.score < 1);
-        if (!hasLowMatch) return false;
+        if (!lexiconLowScoreSegmentIds || !lexiconLowScoreSegmentIds.has(segment.id)) {
+          return false;
+        }
       }
       if (filterSpellcheck) {
-        if (!spellcheckMatchesBySegment.has(segment.id)) return false;
+        if (!spellcheckSegmentIds || !spellcheckSegmentIds.has(segment.id)) return false;
       }
       // Tag filtering with pre-computed sets for O(1) lookups
       const segmentTags = segmentTagSets.get(segment.id);
@@ -201,7 +242,7 @@ export function useFiltersAndLexicon({
         if (hasExcludedTag) return false;
       }
 
-      if (searchNormalized) {
+      if (normalizedQuery) {
         if (isRegexSearch) {
           if (regex) {
             regex.lastIndex = 0;
@@ -220,13 +261,13 @@ export function useFiltersAndLexicon({
           // Normal normalized text search
           const textNormalized =
             normalizedSegment?.textNormalized ?? normalizeForSearch(segment.text);
-          if (textNormalized.includes(searchNormalized)) return true;
+          if (textNormalized.includes(normalizedQuery)) return true;
 
           // Check words reconstruction fallback
           const wordsTextNormalized =
             normalizedSegment?.wordsNormalized ??
             normalizeForSearch(segment.words.map((w) => w.word).join(" "));
-          if (!wordsTextNormalized.includes(searchNormalized)) {
+          if (!wordsTextNormalized.includes(normalizedQuery)) {
             return false;
           }
         }
@@ -245,12 +286,13 @@ export function useFiltersAndLexicon({
     filterNotTagIds,
     filterNoTags,
     lexiconMatchesBySegment,
-    lowConfidenceThreshold,
+    lowConfidenceSegmentIds,
     normalizedSegmentsById,
     segments,
     segmentTagSets,
-    spellcheckMatchesBySegment,
-    searchQuery,
+    searchCriteria,
+    spellcheckSegmentIds,
+    lexiconLowScoreSegmentIds,
     isRegexSearch,
   ]);
 

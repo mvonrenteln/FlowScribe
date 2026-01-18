@@ -35,57 +35,53 @@ Each item is evaluated and prioritized with the following criteria:
 
 ### P2 — Important, but can follow the above
 
-4) Optimize filtered segment computation  
-**Impact:** Medium | **Effort:** Small-Medium | **Risk:** Low  
-**Description:** Reduce re-computation frequency and cost for filtering logic. This includes stabilizing dependencies, memoization boundaries, and incremental filtering where possible.
-
-5) Stabilize handler identities and memoize transcript rows  
+4) Stabilize handler identities and memoize transcript rows  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Medium  
 **Description:** Ensure per-row props remain stable so list items do not re-render unnecessarily. This reduces reconciliation work during selection, playback, and merge/undo flows.
 
-6) Replace layout thrash with observer-based visibility  
+5) Replace layout thrash with observer-based visibility  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Low  
 **Description:** Use `IntersectionObserver` / `ResizeObserver` instead of repeated `getBoundingClientRect` and `scrollIntoView` checks. This reduces forced reflows and long tasks.
 
-7) Define UX policy when target segment is filtered out  
+6) Define UX policy when target segment is filtered out  
 **Impact:** Medium | **Effort:** Small-Medium | **Risk:** Low  
 **Description:** Provide a consistent user-facing outcome for navigation to hidden segments (e.g., toast or optional filter reset). This prevents “no-op” navigation in virtualized flows.
 
-8) ID hygiene for split/merge/delete  
+7) ID hygiene for split/merge/delete  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Medium  
 **Description:** Ensure selection and navigation never point at deleted or replaced IDs. After structural edits, resolve selection to a valid neighboring segment and trigger scroll reliably.
 
-9) Word-level rendering efficiency  
+8) Word-level rendering efficiency  
 **Impact:** Medium | **Effort:** Small-Medium | **Risk:** Low  
 **Description:** Ensure only the active segment updates during playback and reduce per-frame word index search cost. This is a targeted micro-optimization for long segments.
 
 ### P3 — Longer-term or diagnostic work
 
-10) Workerize spellcheck and lexicon processing  
+9) Workerize spellcheck and lexicon processing  
 **Impact:** Medium-High | **Effort:** Large | **Risk:** High  
 **Description:** Move heavy lexicon/spellcheck computation off the main thread. Requires messaging, cancellation, and cache invalidation strategy.
 
-11) Evaluate per-word lexicon caching strategy  
+10) Evaluate per-word lexicon caching strategy  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Medium  
 **Description:** Introduce fine-grained caching for lexicon similarity scans to reduce repeated work. Must remain bounded in memory and accurate after edits.
 
-12) Performance instrumentation and profiling harness  
+11) Performance instrumentation and profiling harness  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Low  
 **Description:** Add a dev-only performance monitor, render counters, and a repeatable profiling checklist to validate improvements and locate regressions.
 
-13) Automated performance tests in CI  
+12) Automated performance tests in CI  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Medium  
 **Description:** Add synthetic fixtures and timing checks to detect regressions in merge/undo and playback navigation. Keep thresholds stable and avoid flakiness.
 
-14) Post-deploy monitoring and dashboards  
+13) Post-deploy monitoring and dashboards  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Low  
 **Description:** Track interaction latency (e.g., INP) for merge/undo, seek, and playback in production and alert on regressions.
 
-15) Enable sourcemaps for profiling analysis  
+14) Enable sourcemaps for profiling analysis  
 **Impact:** Low | **Effort:** Small | **Risk:** Low  
 **Description:** Enable sourcemaps in builds when deeper profiling is needed to map bundles back to sources.
 
-16) Batch DOM writes and reduce inline style churn  
+15) Batch DOM writes and reduce inline style churn  
 **Impact:** Medium | **Effort:** Medium | **Risk:** Low  
 **Description:** Group DOM writes and prefer CSS class toggles over inline style updates to avoid layout thrash during waveform or transcript updates.
 
