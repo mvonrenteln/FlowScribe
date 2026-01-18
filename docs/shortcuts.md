@@ -11,7 +11,6 @@ These shortcuts are global unless you are editing text. In edit mode, only Enter
 - `Right` — Seek forward 1s
 - `Home` — Jump to start
 - `End` — Jump to end
-- `Enter` — Play from selected segment start
 
 ## Navigation
 

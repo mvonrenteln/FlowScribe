@@ -25,8 +25,6 @@ interface UseNavigationHotkeysOptions {
   confirmSegment: (id: string) => void;
   deleteSegment: (id: string) => void;
   setEditRequestId: (id: string) => void;
-  seekToTime: (time: number, meta: SeekMeta) => void;
-  setIsPlaying: (value: boolean) => void;
   handleSplitAtCurrentWord: () => void;
   canUndo: () => boolean;
   canRedo: () => boolean;
@@ -66,8 +64,6 @@ export function useNavigationHotkeys({
   confirmSegment,
   deleteSegment,
   setEditRequestId,
-  seekToTime,
-  setIsPlaying,
   handleSplitAtCurrentWord,
   canUndo,
   canRedo,
@@ -201,19 +197,6 @@ export function useNavigationHotkeys({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [canUndo, isTranscriptEditing, undo]);
-
-  useHotkeys(
-    "enter",
-    () => {
-      if (isTranscriptEditing()) return;
-      if (!selectedSegmentId) return;
-      const segment = segments.find((s) => s.id === selectedSegmentId);
-      if (!segment) return;
-      seekToTime(segment.start, { source: "hotkey", action: "jump" });
-      setIsPlaying(true);
-    },
-    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
-  );
 
   useHotkeys(
     "e",

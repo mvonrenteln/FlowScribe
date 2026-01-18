@@ -19,7 +19,6 @@ const shortcuts = {
   Navigation: [
     { keys: ["↑"], description: "Previous segment" },
     { keys: ["↓"], description: "Next segment" },
-    { keys: ["Enter"], description: "Play from selected segment" },
     { keys: ["Escape"], description: "Deselect segment / Cancel edit" },
   ],
   Editing: [

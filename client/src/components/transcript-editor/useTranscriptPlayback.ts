@@ -132,8 +132,6 @@ export const useTranscriptPlayback = ({
     confirmSegment,
     deleteSegment,
     setEditRequestId: (id) => setEditRequestId(id),
-    seekToTime,
-    setIsPlaying,
     handleSplitAtCurrentWord,
     canUndo,
     canRedo,

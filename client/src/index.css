@@ -310,7 +310,11 @@
   .segment-tag-button {
     height: 1.5rem;
     min-height: 1.5rem;
+  }
+
+  .segment-tag-button--icon {
     width: 1.5rem;
+    min-width: 1.5rem;
   }
 
   /* .no-default-hover-elevate/no-default-active-elevate is an escape hatch so consumers of

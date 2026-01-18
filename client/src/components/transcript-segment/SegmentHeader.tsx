@@ -178,7 +178,7 @@ export function SegmentHeader({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className={`segment-tag-button flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
+                      className={`segment-tag-button segment-tag-button--icon flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
                       data-testid={`button-add-tag-${segment.id}`}
                       onPointerDown={(e) => {
                         e.stopPropagation();
@@ -258,7 +258,7 @@ export function SegmentHeader({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="segment-tag-button flex-shrink-0"
+                        className="segment-tag-button segment-tag-button--icon flex-shrink-0"
                         data-testid={`button-add-tag-overlay-${segment.id}`}
                         onPointerDown={(e) => {
                           e.stopPropagation();
@@ -303,7 +303,7 @@ export function SegmentHeader({
                 <Button
                   variant="outline"
                   size="sm"
-                  className={`segment-tag-button w-auto px-2 text-xs gap-1.5 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
+                  className={`segment-tag-button px-2 text-xs gap-1.5 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
                   data-testid={`button-add-first-tag-${segment.id}`}
                 >
                   <Plus className="h-3 w-3" />
