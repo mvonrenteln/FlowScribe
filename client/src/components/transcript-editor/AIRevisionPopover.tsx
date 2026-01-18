@@ -37,6 +37,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const { segmentId, disabled } = props;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const providerSelectRef = useRef<HTMLSelectElement | null>(null);
   const [displayStatus, setDisplayStatus] = useState<"idle" | "success" | "no-changes" | "error">(
     "idle",
   );
@@ -74,6 +75,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const loadingModels = useMemo(() => new Set<string>(), []);
   const contentRef = useRef<HTMLDivElement>(null);
   const isMountedRef = useRef(true);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
 
   // Note: initial selectedProvider/selectedModel are set synchronously above.
 
@@ -114,6 +116,8 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
   const handleSelectPrompt = (promptId: string) => {
     setDisplayStatus("idle");
     startSingleRevision(segmentId, promptId, selectedProvider, selectedModel);
+    // Ensure trigger keeps focus after selection (avoid focus jumping to top bar)
+    triggerRef.current?.focus();
     setOpen(false);
   };
 
@@ -228,6 +232,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
+          ref={triggerRef}
           variant="ghost"
           size="icon"
           className={cn("h-7 w-7 transition-all duration-200", statusDisplay.className)}
@@ -246,6 +251,16 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
         className="w-56 p-1"
         align="end"
         data-menu-overlay="true"
+        onCloseAutoFocus={(e: any) => {
+          // Prevent Radix from moving focus automatically when the popover
+          // closes — we explicitly restore focus to the trigger. This
+          // avoids focus jumping to the top bar after selecting a prompt
+          // or pressing Escape.
+          e.preventDefault();
+          requestAnimationFrame(() => {
+            triggerRef.current?.focus();
+          });
+        }}
         onKeyDown={(event) => {
           if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
           const target = event.target as HTMLElement | null;
@@ -425,6 +440,29 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
   } = props;
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
+  const providerSelectRef = useRef<HTMLSelectElement | null>(null);
+
+  const modelSelectRef = useRef<HTMLSelectElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (open) {
+      // Focus the provider select synchronously when submenu opens.
+      // Using layout effect keeps focus changes within React's render
+      // lifecycle so testing utilities won't emit act(...) warnings.
+      providerSelectRef.current?.focus();
+    }
+  }, [open]);
+
+  // When user selects a provider, move focus to model select if available
+  useLayoutEffect(() => {
+    const models = availableModels.get(selectedProvider ?? "") ?? [];
+    if (models.length > 0) {
+      // Focus model select synchronously after provider changes and
+      // models are available. Layout effect keeps this inside React's
+      // commit phase which avoids async updates outside act(...).
+      modelSelectRef.current?.focus();
+    }
+  }, [selectedProvider, availableModels]);
 
   if (!open) {
     return (
@@ -466,6 +504,7 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
         <div className="text-[11px] text-muted-foreground mb-1">Provider</div>
         <div className="max-w-[12rem] mb-2">
           <select
+            ref={providerSelectRef}
             className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
             value={selectedProvider ?? ""}
             onChange={(e) => {
@@ -473,6 +512,11 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
               setSelectedProvider(val);
             }}
             onClick={(e) => e.stopPropagation()}
+            onKeyDown={(e) => {
+              // If user presses Enter while focus is on the provider list,
+              // allow the native select to open. Do not swallow here so
+              // browser behavior remains.
+            }}
             title={settings.aiProviders.find((x) => x.id === selectedProvider)?.name ?? ""}
           >
             {providerModels.map((p) => (
@@ -490,6 +534,7 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
         ) : (
           <div className="max-w-[12rem]">
             <select
+              ref={modelSelectRef}
               className="w-full text-sm bg-transparent truncate rounded px-2 py-1 border border-transparent hover:border-border"
               value={selectedModel ?? ""}
               onChange={(e) => {

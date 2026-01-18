@@ -53,4 +53,33 @@ describe("AIRevisionPopover", () => {
       expect(secondPrompt).toHaveFocus();
     });
   });
+
+  it("keeps focus on trigger after selecting a prompt or pressing Escape", async () => {
+    const user = userEvent.setup();
+    const { container } = render(<AIRevisionPopover segmentId="segment-1" />);
+    const trigger = container.querySelector("button[aria-label]");
+    expect(trigger).toBeTruthy();
+
+    await user.click(trigger as HTMLButtonElement);
+
+    const firstPrompt = await screen.findByRole("button", {
+      name: initialState.aiRevisionConfig.prompts[0].name,
+    });
+
+    // Activate with Enter
+    await user.keyboard("{Enter}");
+
+    // After selection, the trigger should regain focus
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+
+    // Re-open and press Escape — focus should stay on trigger
+    await user.click(trigger as HTMLButtonElement);
+    await user.keyboard("{Escape}");
+
+    await waitFor(() => {
+      expect(trigger).toHaveFocus();
+    });
+  });
 });
