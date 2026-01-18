@@ -14,7 +14,8 @@ import {
   MoreHorizontal,
   Sparkles,
 } from "lucide-react";
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import type React from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
@@ -184,7 +185,9 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
     if (!open) return;
     const container = contentRef.current;
     if (!container) return;
-    const firstButton = container.querySelector<HTMLButtonElement>("button[data-menuitem]:not([disabled])");
+    const firstButton = container.querySelector<HTMLButtonElement>(
+      "button[data-menuitem]:not([disabled])",
+    );
     firstButton?.focus();
   }, [open]);
 
@@ -266,7 +269,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
         className="w-56 p-1"
         align="end"
         data-menu-overlay="true"
-        onCloseAutoFocus={(e: React.FocusEvent<HTMLElement>) => {
+        onCloseAutoFocus={(e) => {
           // Keep focus stable: restore to trigger synchronously.
           e.preventDefault();
           triggerRef.current?.focus();
@@ -493,8 +496,10 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
 
   useLayoutEffect(() => {
     if (!open) return;
+    // Don't auto-focus when dropdowns are open to avoid interfering with Radix behavior
     if (providerDropdownOpen || modelDropdownOpen) return;
 
+    // Focus the active row when navigating between rows
     if (activeRow === "provider") providerTriggerRef.current?.focus();
     if (activeRow === "model") modelTriggerRef.current?.focus();
   }, [open, activeRow, providerDropdownOpen, modelDropdownOpen]);
@@ -514,12 +519,14 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
       e.preventDefault();
       e.stopPropagation();
       if (activeRow === "provider") {
-        setProviderDropdownOpen(true);
+        // Close model dropdown if open, then open provider dropdown
         setModelDropdownOpen(false);
+        setProviderDropdownOpen(true);
       } else {
         if (!modelDisabled) {
-          setModelDropdownOpen(true);
+          // Close provider dropdown if open, then open model dropdown
           setProviderDropdownOpen(false);
+          setModelDropdownOpen(true);
         }
       }
       return;
@@ -528,6 +535,7 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
     if (e.key === "Escape") {
       e.preventDefault();
       e.stopPropagation();
+      closeAllDropdowns();
       setOpen(false);
       return;
     }
@@ -597,10 +605,14 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
           open={providerDropdownOpen}
           onOpenChange={(next) => {
             setProviderDropdownOpen(next);
-            if (next) setModelDropdownOpen(false);
-            if (!next) {
+            if (next) {
+              // Close model dropdown when opening provider dropdown
+              setModelDropdownOpen(false);
+            } else {
+              // When closing provider dropdown, focus remains on provider trigger
               setActiveRow("provider");
-              providerTriggerRef.current?.focus();
+              // Defer focus to next tick to ensure DOM is ready
+              setTimeout(() => providerTriggerRef.current?.focus(), 0);
             }
           }}
         >
@@ -615,10 +627,20 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
             )}
             onClick={() => {
               setActiveRow("provider");
+              // Close model dropdown if open, then open provider dropdown
+              setModelDropdownOpen(false);
               setProviderDropdownOpen(true);
             }}
             onKeyDown={(e) => {
               setActiveRow("provider");
+              // Handle Enter key specifically to ensure dropdown opens correctly
+              if (e.key === "Enter") {
+                e.preventDefault();
+                e.stopPropagation();
+                setModelDropdownOpen(false);
+                setProviderDropdownOpen(true);
+                return;
+              }
               handleRowNavKeyDown(e);
             }}
           >
@@ -633,9 +655,9 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
               e.stopPropagation();
               setProviderDropdownOpen(false);
               setActiveRow("provider");
-              providerTriggerRef.current?.focus();
+              // Let Radix handle focus restoration where possible; if needed, restore focus asynchronously
+              setTimeout(() => providerTriggerRef.current?.focus(), 0);
             }}
-            onCloseAutoFocus={(e) => e.preventDefault()}
           >
             {providerModels.map((p) => (
               <SelectItem key={p.id} value={p.id}>
@@ -663,10 +685,14 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
             open={modelDropdownOpen}
             onOpenChange={(next) => {
               setModelDropdownOpen(next);
-              if (next) setProviderDropdownOpen(false);
-              if (!next) {
+              if (next) {
+                // Close provider dropdown when opening model dropdown
+                setProviderDropdownOpen(false);
+              } else {
+                // When closing model dropdown, focus remains on model trigger
                 setActiveRow("model");
-                modelTriggerRef.current?.focus();
+                // Defer focus to next tick to ensure DOM is ready
+                setTimeout(() => modelTriggerRef.current?.focus(), 0);
               }
             }}
             disabled={modelDisabled}
@@ -683,10 +709,24 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
               )}
               onClick={() => {
                 setActiveRow("model");
-                if (!modelDisabled) setModelDropdownOpen(true);
+                if (!modelDisabled) {
+                  // Close provider dropdown if open, then open model dropdown
+                  setProviderDropdownOpen(false);
+                  setModelDropdownOpen(true);
+                }
               }}
               onKeyDown={(e) => {
                 setActiveRow("model");
+                // Handle Enter key specifically to ensure dropdown opens correctly
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  if (!modelDisabled) {
+                    setProviderDropdownOpen(false);
+                    setModelDropdownOpen(true);
+                  }
+                  return;
+                }
                 handleRowNavKeyDown(e);
               }}
             >
@@ -699,9 +739,9 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
                 e.stopPropagation();
                 setModelDropdownOpen(false);
                 setActiveRow("model");
-                modelTriggerRef.current?.focus();
+                // Let Radix handle focus restoration where possible; restore focus asynchronously as fallback
+                setTimeout(() => modelTriggerRef.current?.focus(), 0);
               }}
-              onCloseAutoFocus={(e) => e.preventDefault()}
             >
               {modelsForSelectedProvider.map((m) => {
                 const defaultStar =
@@ -720,4 +760,3 @@ function SettingsSubmenu(props: Readonly<SettingsSubmenuProps>) {
     </div>
   );
 }
-

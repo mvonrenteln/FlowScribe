@@ -7,16 +7,16 @@ import { useTranscriptStore } from "@/lib/store";
 // Helper to suppress act warnings for async operations
 const flushPromises = () => new Promise((resolve) => setTimeout(resolve, 0));
 
-describe("AIRevisionPopover", () => {
+describe("SettingsSubmenu nested selects", () => {
   const initialState = useTranscriptStore.getState();
 
   beforeEach(() => {
-    const [firstPrompt, secondPrompt] = initialState.aiRevisionConfig.prompts;
+    const [firstPrompt] = initialState.aiRevisionConfig.prompts;
     useTranscriptStore.setState({
       aiRevisionConfig: {
         ...initialState.aiRevisionConfig,
-        prompts: [firstPrompt, secondPrompt],
-        quickAccessPromptIds: [firstPrompt.id, secondPrompt.id],
+        prompts: [firstPrompt],
+        quickAccessPromptIds: [firstPrompt.id],
       },
       aiRevisionSuggestions: [],
       aiRevisionIsProcessing: false,
@@ -31,7 +31,7 @@ describe("AIRevisionPopover", () => {
     useTranscriptStore.setState(initialState, true);
   });
 
-  it("focuses the first prompt and supports arrow navigation", async () => {
+  it("opens provider then model select and uses Escape to back out to triggers and then to popover trigger", async () => {
     const user = userEvent.setup();
     const { container } = render(<AIRevisionPopover segmentId="segment-1" />);
     const trigger = container.querySelector("button[aria-label]");
@@ -41,91 +41,76 @@ describe("AIRevisionPopover", () => {
       await user.click(trigger as HTMLButtonElement);
     });
 
-    // Wait for popover to fully open and animations to complete
     await act(async () => {
       await flushPromises();
     });
 
-    const _firstPrompt = await screen.findByRole("button", {
-      name: initialState.aiRevisionConfig.prompts[0].name,
-    });
-    const secondPrompt = screen.getByRole("button", {
-      name: initialState.aiRevisionConfig.prompts[1].name,
-    });
-
-    await waitFor(() => {
-      expect(_firstPrompt).toHaveFocus();
-    });
-
+    // Open Settings
+    const settingsButton = await screen.findByRole("button", { name: /Settings|Settings/i });
     await act(async () => {
-      await user.keyboard("{ArrowDown}");
+      await user.click(settingsButton);
     });
 
-    // Wait for focus change to complete
     await act(async () => {
       await flushPromises();
     });
 
-    await waitFor(() => {
-      expect(secondPrompt).toHaveFocus();
-    });
-  });
+    const providerLabel = screen.getByText(/Provider/i);
+    const modelLabel = screen.getByText(/Model/i);
+    const providerTrigger = providerLabel.parentElement?.querySelector("button");
+    const modelTrigger = modelLabel.parentElement?.querySelector("button");
+    expect(providerTrigger).toBeTruthy();
+    expect(modelTrigger).toBeTruthy();
 
-  it("keeps focus on trigger after selecting a prompt or pressing Escape", async () => {
-    const user = userEvent.setup();
-    const { container } = render(<AIRevisionPopover segmentId="segment-1" />);
-    const trigger = container.querySelector("button[aria-label]");
-    expect(trigger).toBeTruthy();
-
-    await act(async () => {
-      await user.click(trigger as HTMLButtonElement);
-    });
-
-    // Wait for popover to fully open
-    await act(async () => {
-      await flushPromises();
-    });
-
-    const _firstPrompt = await screen.findByRole("button", {
-      name: initialState.aiRevisionConfig.prompts[0].name,
-    });
-
-    // Activate with Enter
+    // Open provider dropdown
+    providerTrigger && providerTrigger.focus();
+    await waitFor(() => expect(providerTrigger).toHaveFocus());
     await act(async () => {
       await user.keyboard("{Enter}");
     });
 
-    // Wait for popover to close and focus to return
     await act(async () => {
       await flushPromises();
     });
 
-    // After selection, the trigger should regain focus
-    await waitFor(() => {
-      expect(trigger).toHaveFocus();
-    });
-
-    // Re-open and press Escape — focus should stay on trigger
-    await act(async () => {
-      await user.click(trigger as HTMLButtonElement);
-    });
-
-    // Wait for popover to fully open again
-    await act(async () => {
-      await flushPromises();
-    });
-
+    // Close provider dropdown with Escape -> providerTrigger should have focus
     await act(async () => {
       await user.keyboard("{Escape}");
     });
+    await act(async () => {
+      await flushPromises();
+    });
+    await waitFor(() => expect(providerTrigger).toHaveFocus());
 
-    // Wait for popover to close and focus to return
+    // Move to model trigger
+    modelTrigger && modelTrigger.focus();
+    await waitFor(() => expect(modelTrigger).toHaveFocus());
+
+    // Open model dropdown
+    await act(async () => {
+      await user.keyboard("{Enter}");
+    });
     await act(async () => {
       await flushPromises();
     });
 
-    await waitFor(() => {
-      expect(trigger).toHaveFocus();
+    // Close model dropdown with Escape -> modelTrigger should have focus
+    await act(async () => {
+      await user.keyboard("{Escape}");
     });
+    await act(async () => {
+      await flushPromises();
+    });
+    await waitFor(() => expect(modelTrigger).toHaveFocus());
+
+    // Press Escape again to close settings submenu -> popover trigger should have focus
+    await act(async () => {
+      await user.keyboard("{Escape}");
+    });
+    await act(async () => {
+      await flushPromises();
+    });
+
+    await waitFor(() => expect(trigger).toHaveFocus());
   });
 });
