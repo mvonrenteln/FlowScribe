@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { useTranscriptStore } from "@/lib/store";
+import { SPEAKER_COLORS } from "@/lib/store/constants";
 import { createTestSegment } from "@/test/testSegmentHelper";
 
 describe("tagsSlice", () => {
@@ -237,8 +238,9 @@ describe("tagsSlice", () => {
     });
 
     it("cycles through available colors", () => {
-      // Add enough tags to cycle through all colors
-      for (let i = 0; i < 15; i++) {
+      // Add enough tags to exceed the available colors so colors must repeat
+      const count = SPEAKER_COLORS.length + 1;
+      for (let i = 0; i < count; i++) {
         useTranscriptStore.getState().addTag(`Tag${i}`);
       }
 
@@ -247,8 +249,8 @@ describe("tagsSlice", () => {
       const uniqueColors = new Set(colors);
 
       // Should have repeating colors if more tags than available colors
-      expect(colors.length).toBe(15);
-      expect(uniqueColors.size).toBeLessThan(15);
+      expect(colors.length).toBe(count);
+      expect(uniqueColors.size).toBeLessThan(count);
     });
   });
 
