@@ -34,17 +34,17 @@ const sessionsState = {
 const globalState = { lexiconEntries: [], spellcheckEnabled: false };
 
 describe("createStorageScheduler (worker serialization)", () => {
-  const OriginalWorker = globalThis.Worker;
-
   beforeEach(() => {
     vi.useFakeTimers();
     window.localStorage.clear();
     MockWorker.instances = [];
-    globalThis.Worker = MockWorker as unknown as typeof Worker;
+    // Use vitest's global stub to reliably replace Worker in all environments
+    vi.stubGlobal("Worker", MockWorker as unknown as typeof Worker);
   });
 
   afterEach(() => {
-    globalThis.Worker = OriginalWorker;
+    // Restore any global stubs
+    vi.unstubAllGlobals();
     vi.clearAllTimers();
     vi.useRealTimers();
   });
