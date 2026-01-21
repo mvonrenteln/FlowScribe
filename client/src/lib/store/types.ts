@@ -273,6 +273,7 @@ export interface SpeakersSlice {
   renameSpeaker: (oldName: string, newName: string) => void;
   addSpeaker: (name: string) => void;
   mergeSpeakers: (fromName: string, toName: string) => void;
+  updateSpeakerColor: (speakerName: string, color: string) => void;
 }
 
 export interface TagsSlice {

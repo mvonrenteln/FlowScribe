@@ -43,8 +43,9 @@ describe("SpeakerSidebar", () => {
       />,
     );
 
-    await userEvent.click(screen.getByTestId("button-edit-s1"));
-    const input = screen.getByTestId("input-rename-s1");
+    await userEvent.click(screen.getByTestId("button-speaker-options-s1"));
+    await userEvent.click(screen.getByTestId("menu-rename-speaker-s1"));
+    const input = await screen.findByTestId("input-rename-s1");
     await userEvent.clear(input);
     await userEvent.type(input, "Moderator{enter}");
 
@@ -72,8 +73,10 @@ describe("SpeakerSidebar", () => {
 
     expect(onAddSpeaker).toHaveBeenCalledWith("Gast");
 
-    await userEvent.click(screen.getByTestId("button-merge-s1"));
-    await userEvent.click(screen.getByTestId("menu-merge-s1-into-s2"));
+    await userEvent.click(screen.getByTestId("button-speaker-options-s1"));
+    await userEvent.click(screen.getByText("Merge into..."));
+    const mergeItem = await screen.findByTestId("menu-merge-s1-into-s2");
+    await userEvent.click(mergeItem);
 
     expect(onMergeSpeakers).toHaveBeenCalledWith("SPEAKER_00", "SPEAKER_01");
   });
@@ -144,8 +147,9 @@ describe("SpeakerSidebar", () => {
       />,
     );
 
-    await userEvent.click(screen.getByTestId("button-edit-s1"));
-    const input = screen.getByTestId("input-rename-s1");
+    await userEvent.click(screen.getByTestId("button-speaker-options-s1"));
+    await userEvent.click(screen.getByTestId("menu-rename-speaker-s1"));
+    const input = await screen.findByTestId("input-rename-s1");
     await userEvent.clear(input);
     await userEvent.type(input, "Host{escape}");
 

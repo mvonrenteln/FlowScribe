@@ -53,6 +53,34 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
     });
   },
 
+  updateSpeakerColor: (speakerName, color) => {
+    const {
+      segments,
+      speakers,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+    const speaker = speakers.find((s) => s.name === speakerName);
+    if (!speaker) return;
+    const newSpeakers = speakers.map((s) => (s.name === speakerName ? { ...s, color } : s));
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers: newSpeakers,
+      selectedSegmentId,
+      currentTime,
+      tags: get().tags,
+      confidenceScoresVersion,
+    });
+    set({
+      speakers: newSpeakers,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
   addSpeaker: (name) => {
     const {
       speakers,

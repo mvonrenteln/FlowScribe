@@ -213,9 +213,10 @@ describe("FilterPanel", () => {
       "Servus",
     );
 
-    await userEvent.click(screen.getByTestId(`button-edit-${speaker.id}`));
+    await userEvent.click(screen.getByTestId(`button-speaker-options-${speaker.id}`));
+    await userEvent.click(screen.getByTestId(`menu-rename-speaker-${speaker.id}`));
 
-    const renameInput = screen.getByTestId(`input-rename-${speaker.id}`);
+    const renameInput = await screen.findByTestId(`input-rename-${speaker.id}`);
     await userEvent.clear(renameInput);
     await userEvent.type(renameInput, "GAST{enter}");
 

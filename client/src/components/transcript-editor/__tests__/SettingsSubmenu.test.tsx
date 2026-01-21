@@ -61,7 +61,7 @@ describe("SettingsSubmenu keyboard flow", () => {
     expect(providerTrigger).toBeTruthy();
 
     // Focus provider trigger
-    providerTrigger && providerTrigger.focus();
+    providerTrigger?.focus();
     await waitFor(() => expect(providerTrigger).toHaveFocus());
 
     // Press Enter to open provider dropdown

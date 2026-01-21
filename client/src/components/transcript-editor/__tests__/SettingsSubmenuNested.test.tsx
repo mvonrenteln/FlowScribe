@@ -63,7 +63,7 @@ describe("SettingsSubmenu nested selects", () => {
     expect(modelTrigger).toBeTruthy();
 
     // Open provider dropdown
-    providerTrigger && providerTrigger.focus();
+    providerTrigger?.focus();
     await waitFor(() => expect(providerTrigger).toHaveFocus());
     await act(async () => {
       await user.keyboard("{Enter}");
@@ -83,7 +83,7 @@ describe("SettingsSubmenu nested selects", () => {
     await waitFor(() => expect(providerTrigger).toHaveFocus());
 
     // Move to model trigger
-    modelTrigger && modelTrigger.focus();
+    modelTrigger?.focus();
     await waitFor(() => expect(modelTrigger).toHaveFocus());
 
     // Open model dropdown

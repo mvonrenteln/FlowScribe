@@ -3,6 +3,8 @@ import {
   CircleDashed,
   Edit2,
   Merge,
+  MoreVertical,
+  Paintbrush,
   Plus,
   Tag as TagIcon,
   Trash2,
@@ -16,12 +18,18 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSub,
+  DropdownMenuSubContent,
+  DropdownMenuSubTrigger,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import type { Segment, Speaker, Tag } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
+import { SPEAKER_COLORS } from "@/lib/store/constants";
 import { cn } from "@/lib/utils";
 import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
 
@@ -35,6 +43,7 @@ interface SpeakerSidebarProps {
   onSpeakerSelect?: (speakerId: string) => void;
   onClearFilter?: () => void;
   selectedSpeakerId?: string;
+  onDeleteSpeaker?: (speakerName: string) => void;
   // Tag operations
   onAddTag?: (name: string) => boolean | undefined;
   onRenameTag?: (tagId: string, newName: string) => boolean | undefined;
@@ -85,6 +94,7 @@ export function SpeakerSidebar({
   onSpeakerSelect,
   onClearFilter,
   selectedSpeakerId,
+  onDeleteSpeaker,
   onAddTag,
   onRenameTag,
   onDeleteTag,
@@ -430,44 +440,122 @@ export function SpeakerSidebar({
                         {index + 1}
                       </span>
                       <span className="text-sm font-medium truncate">{speaker.name}</span>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6 invisible group-hover:visible"
-                            onClick={(e) => e.stopPropagation()}
-                            data-testid={`button-merge-${speaker.id}`}
-                          >
-                            <Merge className="h-3 w-3" />
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          {speakers
-                            .filter((s) => s.name !== speaker.name)
-                            .map((target) => (
-                              <DropdownMenuItem
-                                key={target.id}
-                                onClick={() => onMergeSpeakers?.(speaker.name, target.name)}
-                                data-testid={`menu-merge-${speaker.id}-into-${target.id}`}
-                              >
-                                Merge into {target.name}
-                              </DropdownMenuItem>
-                            ))}
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 invisible group-hover:visible"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleStartEdit(speaker);
-                        }}
-                        data-testid={`button-edit-${speaker.id}`}
-                      >
-                        <Edit2 className="h-3 w-3" />
-                      </Button>
+
+                      {/* Unified overflow menu for speaker actions (right aligned, end of element) */}
+                      <div className="ml-2">
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6 invisible group-hover:visible"
+                              onClick={(e) => e.stopPropagation()}
+                              data-testid={`button-speaker-options-${speaker.id}`}
+                              aria-label={`Options for ${speaker.name}`}
+                            >
+                              <MoreVertical className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuItem
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleStartEdit(speaker);
+                              }}
+                              data-testid={`menu-rename-speaker-${speaker.id}`}
+                            >
+                              <Edit2 className="h-3 w-3 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <Merge className="h-3 w-3 mr-2" />
+                                Merge into...
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent>
+                                {speakers
+                                  .filter((s) => s.name !== speaker.name)
+                                  .map((target) => (
+                                    <DropdownMenuItem
+                                      key={`merge-${target.id}`}
+                                      onClick={() => onMergeSpeakers?.(speaker.name, target.name)}
+                                      data-testid={`menu-merge-${speaker.id}-into-${target.id}`}
+                                    >
+                                      {target.name}
+                                    </DropdownMenuItem>
+                                  ))}
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+
+                            <DropdownMenuSub>
+                              <DropdownMenuSubTrigger>
+                                <Paintbrush className="h-3 w-3 mr-2" />
+                                Change Color
+                              </DropdownMenuSubTrigger>
+                              <DropdownMenuSubContent className="min-w-[10rem]">
+                                <div className="p-2">
+                                  <div className="text-xs font-medium text-muted-foreground mb-1">
+                                    Colors
+                                  </div>
+                                  <div className="flex gap-1 flex-wrap max-w-[220px]" role="list">
+                                    {SPEAKER_COLORS.map((c) => (
+                                      <DropdownMenuItem
+                                        key={`spkcol-${c}`}
+                                        onClick={() =>
+                                          useTranscriptStore
+                                            .getState()
+                                            .updateSpeakerColor(speaker.name, c)
+                                        }
+                                        className="h-6 w-6 p-0"
+                                        style={{ backgroundColor: c }}
+                                        role="listitem"
+                                        aria-label={`Set speaker color ${c}`}
+                                      >
+                                        {speaker.color === c && (
+                                          <Check className="h-3 w-3 text-white m-1" />
+                                        )}
+                                      </DropdownMenuItem>
+                                    ))}
+                                  </div>
+                                </div>
+                              </DropdownMenuSubContent>
+                            </DropdownMenuSub>
+
+                            <TooltipProvider>
+                              <Tooltip>
+                                <TooltipTrigger asChild>
+                                  <div>
+                                    <DropdownMenuItem
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        onDeleteSpeaker?.(speaker.name);
+                                      }}
+                                      className="text-destructive"
+                                      data-testid={`menu-delete-speaker-${speaker.id}`}
+                                      disabled={getSegmentCount(speaker.name) > 0}
+                                    >
+                                      <Trash2 className="h-3 w-3 mr-2" />
+                                      Delete
+                                    </DropdownMenuItem>
+                                  </div>
+                                </TooltipTrigger>
+                                <TooltipContent className="max-w-[14rem]">
+                                  <div>
+                                    Speakers can only be deleted when they have no text assigned.
+                                  </div>
+                                  <div>
+                                    You can reassign their text to other speakers until the speaker
+                                    is empty.
+                                  </div>
+                                  <div>
+                                    Or, merge the speaker into another if they are inseparable.
+                                  </div>
+                                </TooltipContent>
+                              </Tooltip>
+                            </TooltipProvider>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     </div>
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <span>{getSegmentCount(speaker.name)} segments</span>
@@ -639,18 +727,6 @@ export function SpeakerSidebar({
                         </span>
                         {isNotFilter && <XCircle className="h-4 w-4 text-destructive" />}
                         <div className="invisible group-hover:visible flex gap-1">
-                          <Button
-                            size="icon"
-                            variant="ghost"
-                            className="h-6 w-6"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleStartTagEdit(tag);
-                            }}
-                            data-testid={`button-edit-tag-${tag.id}`}
-                          >
-                            <Edit2 className="h-3 w-3" />
-                          </Button>
                           <DropdownMenu>
                             <DropdownMenuTrigger asChild>
                               <Button
@@ -658,22 +734,64 @@ export function SpeakerSidebar({
                                 variant="ghost"
                                 className="h-6 w-6"
                                 onClick={(e) => e.stopPropagation()}
-                                data-testid={`button-delete-tag-${tag.id}`}
+                                data-testid={`button-tag-options-${tag.id}`}
+                                aria-label={`Options for ${tag.name}`}
                               >
-                                <Trash2 className="h-3 w-3" />
+                                <MoreVertical className="h-3 w-3" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
                               <DropdownMenuItem
                                 onClick={(e) => {
                                   e.stopPropagation();
+                                  handleStartTagEdit(tag);
+                                }}
+                                data-testid={`menu-rename-tag-${tag.id}`}
+                              >
+                                <Edit2 className="h-3 w-3 mr-2" />
+                                Rename
+                              </DropdownMenuItem>
+                              <DropdownMenuSub>
+                                <DropdownMenuSubTrigger>
+                                  <Paintbrush className="h-3 w-3 mr-2" />
+                                  Change Color
+                                </DropdownMenuSubTrigger>
+                                <DropdownMenuSubContent className="min-w-[10rem]">
+                                  <div className="p-2">
+                                    <div className="text-xs font-medium text-muted-foreground mb-1">
+                                      Colors
+                                    </div>
+                                    <div className="flex gap-1 flex-wrap max-w-[220px]" role="list">
+                                      {SPEAKER_COLORS.map((c) => (
+                                        <DropdownMenuItem
+                                          key={`tagcol-${c}`}
+                                          onClick={() =>
+                                            useTranscriptStore.getState().updateTagColor(tag.id, c)
+                                          }
+                                          className="h-6 w-6 p-0"
+                                          style={{ backgroundColor: c }}
+                                          role="listitem"
+                                          aria-label={`Set tag color ${c}`}
+                                        >
+                                          {tag.color === c && (
+                                            <Check className="h-3 w-3 text-white m-1" />
+                                          )}
+                                        </DropdownMenuItem>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </DropdownMenuSubContent>
+                              </DropdownMenuSub>
+                              <DropdownMenuItem
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   onDeleteTag?.(tag.id);
                                 }}
-                                className="text-destructive focus:text-destructive"
+                                className="text-destructive focus:text-destructive mt-2"
                                 data-testid={`confirm-delete-tag-${tag.id}`}
                               >
                                 <Trash2 className="h-3 w-3 mr-2" />
-                                Tag löschen
+                                Delete
                               </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
