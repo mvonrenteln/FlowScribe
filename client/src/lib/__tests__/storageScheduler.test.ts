@@ -38,20 +38,17 @@ describe("createStorageScheduler (worker serialization)", () => {
     vi.useFakeTimers();
     window.localStorage.clear();
     MockWorker.instances = [];
-    // Use vitest's global stub to reliably replace Worker in all environments
-    vi.stubGlobal("Worker", MockWorker as unknown as typeof Worker);
   });
 
   afterEach(() => {
-    // Restore any global stubs
-    vi.unstubAllGlobals();
     vi.clearAllTimers();
+    vi.restoreAllMocks();
     vi.useRealTimers();
   });
 
   it("writes persisted state after worker serialization", () => {
-    const setItemSpy = vi.spyOn(window.localStorage, "setItem");
-    const schedule = createStorageScheduler(0);
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const schedule = createStorageScheduler(0, () => new MockWorker());
 
     schedule(sessionsState, globalState);
     vi.runAllTimers();
@@ -72,8 +69,8 @@ describe("createStorageScheduler (worker serialization)", () => {
   });
 
   it("ignores stale worker responses when a newer job is scheduled", () => {
-    const setItemSpy = vi.spyOn(window.localStorage, "setItem");
-    const schedule = createStorageScheduler(0);
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const schedule = createStorageScheduler(0, () => new MockWorker());
 
     schedule(sessionsState, globalState);
     vi.runAllTimers();
