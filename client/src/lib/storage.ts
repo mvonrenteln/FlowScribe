@@ -20,12 +20,22 @@ type PersistenceWorkerResponse = {
   error?: string;
 };
 
-const createPersistenceWorker = (): Worker | null => {
+type PersistenceWorkerLike = {
+  addEventListener: (
+    type: "message",
+    handler: (event: MessageEvent<PersistenceWorkerResponse>) => void,
+  ) => void;
+  postMessage: (payload: PersistenceWorkerRequest) => void;
+};
+
+type PersistenceWorkerFactory = () => PersistenceWorkerLike | null;
+
+const createPersistenceWorker = (): PersistenceWorkerLike | null => {
   if (typeof Worker === "undefined") return null;
   try {
     return new Worker(new URL("./workers/persistenceWorker.ts", import.meta.url), {
       type: "module",
-    });
+    }) as PersistenceWorkerLike;
   } catch {
     return null;
   }
@@ -113,16 +123,19 @@ export const buildRecentSessions = (sessions: Record<string, PersistedSession>) 
  * Schedules persistence writes and offloads JSON serialization to a worker
  * when available to avoid blocking the main thread.
  */
-export const createStorageScheduler = (throttleMs: number) => {
+export const createStorageScheduler = (
+  throttleMs: number,
+  persistenceWorkerFactory: PersistenceWorkerFactory = createPersistenceWorker,
+) => {
   let persistTimeout: ReturnType<typeof setTimeout> | null = null;
   let pendingSessions: PersistedSessionsState | null = null;
   let pendingGlobal: PersistedGlobalState | null = null;
-  let worker: Worker | null = null;
+  let worker: PersistenceWorkerLike | null = null;
   let latestJobId = 0;
 
   const ensureWorker = () => {
     if (worker) return worker;
-    worker = createPersistenceWorker();
+    worker = persistenceWorkerFactory();
     if (!worker) return null;
     worker.addEventListener("message", (event: MessageEvent<PersistenceWorkerResponse>) => {
       const { jobId, sessionsJson, globalJson, error } = event.data || {};
