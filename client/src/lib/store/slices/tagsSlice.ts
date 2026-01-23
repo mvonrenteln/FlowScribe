@@ -23,6 +23,8 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       selectedSegmentId,
       currentTime,
       speakers,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
 
@@ -44,7 +46,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags: newTags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -61,9 +65,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -77,7 +83,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments: newSegments,
       speakers,
       tags: newTags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -98,9 +106,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -123,7 +133,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags: newTags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -140,9 +152,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -154,7 +168,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags: newTags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -171,9 +187,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -187,7 +205,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -203,9 +223,11 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -217,7 +239,9 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });

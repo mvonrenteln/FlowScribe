@@ -130,7 +130,10 @@ const resetStore = () => {
     baseSessionKey: null,
     segments: [],
     speakers: [],
+    tags: [],
+    chapters: [],
     selectedSegmentId: null,
+    selectedChapterId: null,
     currentTime: 0,
     isPlaying: false,
     duration: 0,
@@ -197,6 +200,44 @@ describe("TranscriptEditor integration", () => {
       expect(screen.getByText("Hallo")).toBeInTheDocument();
       expect(screen.getByText("Welt")).toBeInTheDocument();
     });
+  });
+
+  it("opens the chapter edit menu when starting a chapter", async () => {
+    const user = userEvent.setup();
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 2,
+          text: "Hallo Welt",
+          words: [
+            { word: "Hallo", start: 0, end: 1 },
+            { word: "Welt", start: 1, end: 2 },
+          ],
+          tags: [],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+    });
+
+    render(<TranscriptEditor />);
+
+    await user.click(screen.getByTestId("button-segment-menu-segment-1"));
+    await user.click(screen.getByText("Start Chapter Here"));
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().chapters).toHaveLength(1);
+      expect(useTranscriptStore.getState().selectedChapterId).not.toBeNull();
+      expect((window as { __chapterEditTarget?: unknown }).__chapterEditTarget).toBeDefined();
+    });
+
+    expect(screen.getByText("New Chapter")).toBeInTheDocument();
+
+    const titleInput = await screen.findByLabelText("Title");
+    expect(titleInput).toBeVisible();
+    expect(titleInput).toHaveValue("New Chapter");
   });
 
   it("renders inline merge suggestions between segments", async () => {

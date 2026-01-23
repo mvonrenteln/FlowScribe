@@ -1,5 +1,6 @@
 import type { MergeBatchLogEntry } from "@/lib/ai/features/segmentMerge/types";
 import type { FileReference } from "@/lib/fileReference";
+import type { Chapter, ChapterUpdate } from "@/types/chapter";
 
 export interface SearchMatch {
   segmentId: string;
@@ -59,7 +60,9 @@ export interface HistoryState {
   segments: Segment[];
   speakers: Speaker[];
   tags: Tag[];
+  chapters: Chapter[];
   selectedSegmentId: string | null;
+  selectedChapterId: string | null;
   currentTime: number;
   confidenceScoresVersion: number;
 }
@@ -70,7 +73,9 @@ export interface PersistedSession {
   segments: Segment[];
   speakers: Speaker[];
   tags: Tag[];
+  chapters?: Chapter[];
   selectedSegmentId: string | null;
+  selectedChapterId?: string | null;
   currentTime: number;
   isWhisperXFormat: boolean;
   updatedAt?: number;
@@ -127,7 +132,9 @@ export interface InitialStoreState {
   segments: Segment[];
   speakers: Speaker[];
   tags: Tag[];
+  chapters: Chapter[];
   selectedSegmentId: string | null;
+  selectedChapterId: string | null;
   currentTime: number;
   isPlaying: boolean;
   duration: number;
@@ -196,6 +203,7 @@ export type TranscriptStore = InitialStoreState &
   SegmentsSlice &
   SpeakersSlice &
   TagsSlice &
+  ChapterSlice &
   LexiconSlice &
   SpellcheckSlice &
   AISpeakerSlice &
@@ -303,6 +311,18 @@ export interface TagsSlice {
   selectSegmentsByTagId: (tagId: string) => Segment[];
   selectTagsForSegment: (segmentId: string) => Tag[];
   selectUntaggedSegments: () => Segment[];
+}
+
+export interface ChapterSlice {
+  startChapter: (title: string, startSegmentId: string, tags?: string[]) => string | undefined;
+  updateChapter: (id: string, updates: ChapterUpdate) => void;
+  deleteChapter: (id: string) => void;
+  selectChapter: (id: string | null) => void;
+  clearChapters: () => void;
+  selectAllChapters: () => Chapter[];
+  selectChapterById: (id: string) => Chapter | undefined;
+  selectChapterForSegment: (segmentId: string) => Chapter | undefined;
+  selectSegmentsInChapter: (chapterId: string) => Segment[];
 }
 
 export interface LexiconSlice {

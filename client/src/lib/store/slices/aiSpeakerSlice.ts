@@ -279,6 +279,8 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     const suggestion = aiSpeakerSuggestions.find((s) => s.segmentId === segmentId);
@@ -314,8 +316,10 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       segments: updatedSegments,
       speakers: updatedSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
 
@@ -338,6 +342,8 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
 
@@ -390,8 +396,10 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       segments: updatedSegments,
       speakers: updatedSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
 

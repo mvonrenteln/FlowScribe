@@ -64,7 +64,10 @@ const seedStore = (overrides: Partial<TranscriptStore> = {}) => {
       {
         segments: baseSegments,
         speakers: [],
+        tags: baseState.tags,
+        chapters: baseState.chapters,
         selectedSegmentId: "seg-5",
+        selectedChapterId: baseState.selectedChapterId,
         currentTime: 0,
         confidenceScoresVersion: 0,
       },
@@ -142,7 +145,10 @@ describe("aiSegmentMergeSlice", () => {
         {
           segments: segmentsWithTags,
           speakers: [],
+          tags: [],
+          chapters: [],
           selectedSegmentId: "seg-5",
+          selectedChapterId: null,
           currentTime: 0,
           confidenceScoresVersion: 0,
         },

@@ -34,6 +34,8 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   canRedo: false,
   onShowShortcuts: vi.fn(),
   onShowExport: vi.fn(),
+  chaptersOutlineOpen: false,
+  onToggleChaptersOutline: vi.fn(),
   highlightLowConfidence: false,
   onToggleHighlightLowConfidence: vi.fn(),
   confidencePopoverOpen: false,

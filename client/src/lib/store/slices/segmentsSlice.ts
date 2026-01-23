@@ -82,7 +82,9 @@ export const createSegmentsSlice = (
         segments: session.segments,
         speakers: session.speakers,
         tags: session.tags ?? [],
+        chapters: session.chapters ?? [],
         selectedSegmentId: selectedFromSession,
+        selectedChapterId: session.selectedChapterId ?? null,
         currentTime: session.currentTime ?? 0,
         isWhisperXFormat: session.isWhisperXFormat ?? false,
         history: [
@@ -90,7 +92,9 @@ export const createSegmentsSlice = (
             segments: session.segments,
             speakers: session.speakers,
             tags: session.tags ?? [],
+            chapters: session.chapters ?? [],
             selectedSegmentId: selectedFromSession,
+            selectedChapterId: session.selectedChapterId ?? null,
             currentTime: session.currentTime ?? 0,
             confidenceScoresVersion,
           },
@@ -109,14 +113,18 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags: importedTags,
+      chapters: [],
       selectedSegmentId,
+      selectedChapterId: null,
       isWhisperXFormat: data.isWhisperXFormat || false,
       history: [
         {
           segments,
           speakers,
           tags: importedTags,
+          chapters: [],
           selectedSegmentId,
+          selectedChapterId: null,
           currentTime: 0,
           confidenceScoresVersion,
         },
@@ -159,9 +167,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -189,7 +199,9 @@ export const createSegmentsSlice = (
       segments: currentSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
@@ -206,9 +218,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -219,7 +233,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -235,9 +251,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -252,7 +270,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
@@ -269,9 +289,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -284,7 +306,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -296,7 +320,16 @@ export const createSegmentsSlice = (
   },
 
   splitSegment: (id, wordIndex) => {
-    const { segments, speakers, tags, history, historyIndex, confidenceScoresVersion } = get();
+    const {
+      segments,
+      speakers,
+      tags,
+      chapters,
+      history,
+      historyIndex,
+      selectedChapterId,
+      confidenceScoresVersion,
+    } = get();
     const segmentIndex = segments.findIndex((s) => s.id === id);
     if (segmentIndex === -1) return;
 
@@ -337,7 +370,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId: secondSegment.id,
+      selectedChapterId,
       currentTime: secondSegment.start,
       confidenceScoresVersion,
     });
@@ -356,9 +391,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       currentTime,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     const index1 = segments.findIndex((s) => s.id === id1);
@@ -391,7 +428,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId: merged.id,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -409,9 +448,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -422,7 +463,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -438,9 +481,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -457,7 +502,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId: nextSelectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });

@@ -1,6 +1,7 @@
 import { Fragment, useMemo } from "react";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { useTranscriptStore } from "@/lib/store";
+import { buildSegmentIndexMap, sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { ChapterHeader } from "../ChapterHeader";
 import { TranscriptSegment } from "../TranscriptSegment";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
@@ -11,6 +12,8 @@ function TranscriptListComponent({
   containerRef,
   filteredSegments,
   speakers,
+  chapters,
+  selectedChapterId,
   activeSegmentId,
   selectedSegmentId,
   activeWordIndex,
@@ -37,9 +40,16 @@ function TranscriptListComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  onStartChapterAtSegment,
+  onSelectChapter,
+  onUpdateChapter,
+  onDeleteChapter,
+  chapterEditTarget,
+  onCloseChapterEditMenu,
 }: TranscriptListProps) {
   // Get tags and tag operations from store
   const tags = useTranscriptStore((s) => s.tags);
+  const allSegments = useTranscriptStore((s) => s.segments);
   const removeTagFromSegment = useTranscriptStore((s) => s.removeTagFromSegment);
   const assignTagToSegment = useTranscriptStore((s) => s.assignTagToSegment);
 
@@ -79,6 +89,16 @@ function TranscriptListComponent({
     return map;
   }, [pendingMergeSuggestions]);
 
+  const segmentIndexById = useMemo(() => buildSegmentIndexMap(allSegments), [allSegments]);
+
+  const chapterByStartId = useMemo(() => {
+    const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
+    return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
+  }, [chapters, segmentIndexById]);
+  const chapterById = useMemo(() => {
+    return new Map(chapters.map((chapter) => [chapter.id, chapter]));
+  }, [chapters]);
+
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = filteredSegments;
@@ -104,8 +124,8 @@ function TranscriptListComponent({
   // But first, let's ensure memoization of the list itself and the segments works.
 
   return (
-    <ScrollArea className="flex-1">
-      <div ref={containerRef} className="max-w-4xl mx-auto p-4 space-y-2">
+    <div ref={containerRef} className="flex-1 min-h-0 overflow-y-auto">
+      <div className="max-w-4xl mx-auto p-4 space-y-2">
         {filteredSegments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-lg font-medium mb-2">{emptyState.title}</p>
@@ -126,9 +146,32 @@ function TranscriptListComponent({
             const mergeSuggestion = nextSegment
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;
+            const chapter = chapterByStartId.get(segment.id);
+            const isChapterEditTarget = chapter
+              ? chapterEditTarget?.chapterId === chapter.id
+              : false;
+            const isEditTarget = chapterEditTarget?.anchorSegmentId === segment.id;
+            const showSegmentEdit = isEditTarget;
+            const editChapter = showSegmentEdit
+              ? (chapterById.get(chapterEditTarget.chapterId) ?? chapter)
+              : undefined;
 
             return (
               <Fragment key={segment.id}>
+                {chapter && (
+                  <ChapterHeader
+                    chapter={chapter}
+                    tags={tags}
+                    isSelected={chapter.id === selectedChapterId}
+                    onOpen={() => onSelectChapter?.(chapter.id)}
+                    onUpdateChapter={onUpdateChapter}
+                    onDeleteChapter={onDeleteChapter}
+                    editOpen={isChapterEditTarget}
+                    onEditOpenChange={(open) => {
+                      if (!open) onCloseChapterEditMenu?.({ allowImmediateClose: false });
+                    }}
+                  />
+                )}
                 <TranscriptSegment
                   segment={segment}
                   speakers={speakers}
@@ -166,6 +209,14 @@ function TranscriptListComponent({
                   onMergeWithNext={handlers.onMergeWithNext}
                   onDelete={handlers.onDelete}
                   onSeek={onSeek}
+                  onStartChapterHere={onStartChapterAtSegment}
+                  chapterEditChapter={editChapter}
+                  chapterEditOpen={Boolean(editChapter && showSegmentEdit)}
+                  onChapterEditOpenChange={(open) => {
+                    if (!open) onCloseChapterEditMenu?.({ allowImmediateClose: false });
+                  }}
+                  onUpdateChapter={onUpdateChapter}
+                  onDeleteChapter={onDeleteChapter}
                   searchQuery={searchQuery}
                   isRegexSearch={isRegexSearch}
                   replaceQuery={replaceQuery}
@@ -220,7 +271,7 @@ function TranscriptListComponent({
           })
         )}
       </div>
-    </ScrollArea>
+    </div>
   );
 }
 

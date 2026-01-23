@@ -627,6 +627,33 @@ describe("TranscriptSegment", () => {
     expect(onSplit).toHaveBeenCalledWith(1);
   });
 
+  it("starts a chapter from the segment menu", async () => {
+    const onStartChapterHere = vi.fn();
+    render(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        onStartChapterHere={onStartChapterHere}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-segment-menu-seg-1"));
+    await userEvent.click(screen.getByText("Start Chapter Here"));
+
+    expect(onStartChapterHere).toHaveBeenCalledWith("seg-1");
+  });
+
   it("does not split at the current word when the segment is inactive", async () => {
     const onSplit = vi.fn();
     render(

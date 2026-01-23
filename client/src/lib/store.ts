@@ -9,6 +9,7 @@ import {
   readGlobalState,
   readSessionsState,
 } from "@/lib/storage";
+import type { Chapter, ChapterUpdate } from "@/types/chapter";
 import {
   PAUSED_TIME_PERSIST_STEP,
   PERSIST_THROTTLE_MS,
@@ -26,6 +27,7 @@ import {
   initialAISegmentMergeState,
 } from "./store/slices/aiSegmentMergeSlice";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
+import { createChapterSlice } from "./store/slices/chapterSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
@@ -82,6 +84,7 @@ const activeSession = rawActiveSession
       ...rawActiveSession,
       segments: normalizeSegments(rawActiveSession.segments),
       tags: rawActiveSession.tags ?? [],
+      chapters: rawActiveSession.chapters ?? [],
     }
   : null;
 const activeSessionKey =
@@ -94,7 +97,9 @@ const initialHistoryState = buildInitialHistory(
         segments: activeSession.segments,
         speakers: activeSession.speakers,
         tags: activeSession.tags ?? [],
+        chapters: activeSession.chapters ?? [],
         selectedSegmentId: activeSession.selectedSegmentId,
+        selectedChapterId: activeSession.selectedChapterId ?? null,
         currentTime: activeSession.currentTime ?? 0,
         confidenceScoresVersion: 0,
       }
@@ -114,7 +119,9 @@ const initialState: InitialStoreState = {
   segments: activeSession?.segments ?? [],
   speakers: activeSession?.speakers ?? [],
   tags: activeSession?.tags ?? [],
+  chapters: activeSession?.chapters ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
+  selectedChapterId: activeSession?.selectedChapterId ?? null,
   currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
@@ -170,6 +177,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createSegmentsSlice(set, get, storeContext),
       ...createSpeakersSlice(set, get),
       ...createTagsSlice(set, get),
+      ...createChapterSlice(set, get),
       ...createLexiconSlice(set, get),
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
@@ -213,11 +221,14 @@ if (canUseLocalStorage()) {
         previous.segments !== state.segments ||
         previous.speakers !== state.speakers ||
         previous.tags !== state.tags ||
+        previous.chapters !== state.chapters ||
         !isSameFileReference(previous.audioRef, state.audioRef) ||
         !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
         previous.isWhisperXFormat !== state.isWhisperXFormat;
       const shouldUpdateSelected =
-        !previous || previous.selectedSegmentId !== state.selectedSegmentId;
+        !previous ||
+        previous.selectedSegmentId !== state.selectedSegmentId ||
+        previous.selectedChapterId !== state.selectedChapterId;
       const timeDelta = previous ? Math.abs(state.currentTime - previous.currentTime) : Infinity;
       const timeThreshold = state.isPlaying ? PLAYING_TIME_PERSIST_STEP : PAUSED_TIME_PERSIST_STEP;
       const shouldUpdateTime = !previous || timeDelta >= timeThreshold;
@@ -231,7 +242,9 @@ if (canUseLocalStorage()) {
           segments: state.segments,
           speakers: state.speakers,
           tags: state.tags,
+          chapters: state.chapters,
           selectedSegmentId: state.selectedSegmentId,
+          selectedChapterId: state.selectedChapterId,
           currentTime: state.currentTime,
           isWhisperXFormat: state.isWhisperXFormat,
           updatedAt: Date.now(),
@@ -245,6 +258,7 @@ if (canUseLocalStorage()) {
           nextEntry.segments = state.segments;
           nextEntry.speakers = state.speakers;
           nextEntry.tags = state.tags;
+          nextEntry.chapters = state.chapters;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
           // Only update timestamp if content changed, not just on activation
           if (baseChanged || !previous) {
@@ -256,6 +270,7 @@ if (canUseLocalStorage()) {
         }
         if (shouldUpdateSelected || !previous) {
           nextEntry.selectedSegmentId = state.selectedSegmentId;
+          nextEntry.selectedChapterId = state.selectedChapterId;
         }
         if (shouldUpdateTime || !previous) {
           nextEntry.currentTime = state.currentTime;
@@ -401,6 +416,8 @@ export const selectAISpeakerState = (state: TranscriptStore) => ({
 });
 
 export type {
+  Chapter,
+  ChapterUpdate,
   AISpeakerConfig,
   AISpeakerSuggestion,
   FileReference,

@@ -1,4 +1,5 @@
 import { AICommandPanel } from "./AICommandPanel/AICommandPanel";
+import { ChaptersOutlinePanel } from "./ChaptersOutlinePanel";
 import { EditorDialogs } from "./transcript-editor/EditorDialogs";
 import { FilterPanel } from "./transcript-editor/FilterPanel";
 import { PlaybackPane } from "./transcript-editor/PlaybackPane";
@@ -15,6 +16,7 @@ export function TranscriptEditor() {
     transcriptListProps,
     dialogProps,
     aiCommandPanelProps,
+    chaptersOutlinePanelProps,
   } = useTranscriptEditor();
 
   return (
@@ -22,9 +24,12 @@ export function TranscriptEditor() {
       <Toolbar {...toolbarProps} />
       <div className="flex flex-1 overflow-hidden">
         <FilterPanel open={sidebarOpen} {...filterPanelProps} />
-        <main className="flex-1 flex flex-col overflow-hidden">
+        <main className="relative flex flex-1 min-h-0 flex-col overflow-hidden">
           <PlaybackPane {...playbackPaneProps} />
-          <TranscriptList {...transcriptListProps} />
+          <div className="relative flex-1 min-h-0 flex flex-col">
+            <ChaptersOutlinePanel {...chaptersOutlinePanelProps} />
+            <TranscriptList {...transcriptListProps} />
+          </div>
         </main>
         <AICommandPanel {...aiCommandPanelProps} />
       </div>

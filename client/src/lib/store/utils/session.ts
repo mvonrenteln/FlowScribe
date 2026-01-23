@@ -15,4 +15,7 @@ export const cloneSessionForRevision = (session: PersistedSession): PersistedSes
   ...session,
   segments: cloneSegments(session.segments),
   speakers: cloneSpeakers(session.speakers),
+  chapters: session.chapters
+    ? session.chapters.map((chapter) => ({ ...chapter }))
+    : session.chapters,
 });

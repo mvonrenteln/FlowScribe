@@ -32,6 +32,7 @@ interface UseTranscriptPlaybackParams {
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
+  onToggleChaptersOutline: () => void;
   onShowGlossary: () => void;
   onRunDefaultAIRevision: () => void;
   onOpenAIRevisionMenu: () => void;
@@ -71,6 +72,7 @@ export const useTranscriptPlayback = ({
   onShowExport,
   onShowShortcuts,
   onShowSettings,
+  onToggleChaptersOutline,
   onRunDefaultAIRevision,
   onOpenAIRevisionMenu,
   onOpenAISegmentMerge,
@@ -142,6 +144,7 @@ export const useTranscriptPlayback = ({
     onShowExport,
     onShowShortcuts,
     onShowSettings,
+    onToggleChaptersOutline,
     onRunDefaultAIRevision,
     onOpenAIRevisionMenu,
     onOpenAISegmentMerge,

@@ -26,7 +26,10 @@ describe("revisions stay isolated", () => {
         {
           segments: baseSegments,
           speakers: baseSpeakers,
+          tags: [],
+          chapters: [],
           selectedSegmentId: "seg-1",
+          selectedChapterId: null,
           currentTime: 0,
           confidenceScoresVersion: 0,
         },

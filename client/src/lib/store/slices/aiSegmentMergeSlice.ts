@@ -303,8 +303,10 @@ export const createAISegmentMergeSlice = (
       segments: mergeResult.segments,
       speakers: state.speakers,
       selectedSegmentId: nextSelectedSegmentId,
+      selectedChapterId: state.selectedChapterId,
       currentTime: state.currentTime,
       tags: state.tags,
+      chapters: state.chapters,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
 
@@ -400,8 +402,10 @@ export const createAISegmentMergeSlice = (
         segments: workingSegments,
         speakers: state.speakers,
         selectedSegmentId: finalSelectedSegmentId,
+        selectedChapterId: state.selectedChapterId,
         currentTime: state.currentTime,
         tags: state.tags,
+        chapters: state.chapters,
         confidenceScoresVersion: nextConfidenceScoresVersion,
       });
 

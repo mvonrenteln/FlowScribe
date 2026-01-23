@@ -22,7 +22,10 @@ const resetStore = () => {
     baseSessionKey: null,
     segments: [],
     speakers: [],
+    tags: [],
+    chapters: [],
     selectedSegmentId: null,
+    selectedChapterId: null,
     currentTime: 0,
     isPlaying: false,
     duration: 0,
@@ -235,6 +238,79 @@ describe("useTranscriptEditor", () => {
       expect(result.current.filterPanelProps.selectedTagIds).toEqual([]);
       expect(result.current.filterPanelProps.noTagsFilterActive).toBe(false);
       expect(result.current.filterPanelProps.isRegexSearch).toBe(false);
+    });
+  });
+
+  it("opens chapter editing state after starting a chapter", async () => {
+    act(() => {
+      useTranscriptStore.setState({
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            tags: [],
+            start: 0,
+            end: 1,
+            text: "Hallo Welt",
+            words: [{ word: "Hallo", start: 0, end: 0.5 }],
+          },
+        ],
+        speakers: [{ id: "speaker-1", name: "SPEAKER_00", color: "red" }],
+      });
+    });
+
+    const { result } = renderHook(() => useTranscriptEditor());
+    await waitFor(() => {
+      expect(result.current.transcriptListProps?.onStartChapterAtSegment).toBeDefined();
+    });
+
+    act(() => {
+      result.current.transcriptListProps.onStartChapterAtSegment?.("segment-1");
+    });
+
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().chapters).toHaveLength(1);
+      expect(result.current.transcriptListProps.chapterEditTarget).toEqual({
+        chapterId: useTranscriptStore.getState().chapters[0]?.id,
+        anchorSegmentId: "segment-1",
+      });
+    });
+  });
+
+  it("does not immediately reopen the chapter editor after the user closes it", async () => {
+    act(() => {
+      useTranscriptStore.setState({
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            tags: [],
+            start: 0,
+            end: 1,
+            text: "Hallo Welt",
+            words: [{ word: "Hallo", start: 0, end: 0.5 }],
+          },
+        ],
+        speakers: [{ id: "speaker-1", name: "SPEAKER_00", color: "red" }],
+      });
+    });
+
+    const { result } = renderHook(() => useTranscriptEditor());
+
+    act(() => {
+      result.current.transcriptListProps.onStartChapterAtSegment?.("segment-1");
+    });
+
+    await waitFor(() => {
+      expect(result.current.transcriptListProps.chapterEditTarget).not.toBeNull();
+    });
+
+    act(() => {
+      result.current.transcriptListProps.onCloseChapterEditMenu?.();
+    });
+
+    await waitFor(() => {
+      expect(result.current.transcriptListProps.chapterEditTarget).toBeNull();
     });
   });
 });

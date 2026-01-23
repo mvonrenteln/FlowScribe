@@ -62,6 +62,8 @@ export function Toolbar({
   canRedo,
   onShowShortcuts,
   onShowExport,
+  chaptersOutlineOpen,
+  onToggleChaptersOutline,
   aiCommandPanelOpen,
   onToggleAICommandPanel,
   highlightLowConfidence,
@@ -410,6 +412,23 @@ export function Toolbar({
                 </Button>
               </TooltipTrigger>
               <TooltipContent>AI Command Panel</TooltipContent>
+            </Tooltip>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  onClick={onToggleChaptersOutline}
+                  aria-label="Chapters"
+                  aria-pressed={chaptersOutlineOpen}
+                  data-testid="button-chapters"
+                  className="px-2 gap-2"
+                >
+                  <BookOpenText className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden sm:inline">Chapters</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>Chapters</TooltipContent>
             </Tooltip>
           </div>
         </div>
