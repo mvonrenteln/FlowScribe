@@ -1,355 +1,226 @@
-# Chapters Feature – User Guide
-*Last Updated: January 1, 2026*
+# AI Chapter Detection
 
----
+*Last Updated: January 23, 2026*
 
 ## Overview
 
-The **Chapters Feature** helps you organize long transcripts into logical sections. Create chapters manually or let AI detect them automatically. Either way, chapters make navigation, editing, and exporting much easier.
+**AI Chapter Detection** structures your transcript into coherent chapters. The AI analyzes batches of ~50–200 segments, identifies topic boundaries, and proposes chapters with a title, optional `summary`, and optional `tags`. You can accept or reject suggestions, and you can always create/edit chapters manually.
 
-> 💡 **Manual-First Design:** You can create, edit, and manage chapters entirely without AI. The AI enhancement is optional and builds on the manual feature.
+The goal is to support navigation, per-chapter processing, and structured exports.
 
----
-
-## Part A: Manual Chapters ✅
-
-### What You Can Do
-
-- **Create chapters** at any point in the transcript
-- **Edit chapter metadata:** title, summary, key points
-- **Adjust boundaries:** move chapter start/end times
-- **Navigate:** jump to any chapter instantly
-- **Export:** YouTube chapters, Markdown, JSON
-
-### Creating a Chapter
-
-**Method 1: Context Menu**
-1. Right-click on any segment
-2. Select "Create Chapter Here"
-3. Enter chapter title
-
-**Method 2: Timeline**
-1. Click the "+" button in the chapter timeline
-2. Drag to position
-3. Enter chapter title
-
-**Method 3: Keyboard**
-1. Position cursor at desired segment
-2. Press **Alt+Shift+C** (or **Option+Shift+C** on Mac)
-3. Enter chapter title
-
-### Editing Chapters
-
-Click any chapter to edit:
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Edit Chapter                                                │
-├─────────────────────────────────────────────────────────────┤
-│ Title:                                                      │
-│ [Introduction to Machine Learning________________]         │
-│                                                             │
-│ Summary: (optional)                                         │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ Overview of ML fundamentals and why it matters...      │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ Key Points: (optional, one per line)                       │
-│ ┌─────────────────────────────────────────────────────────┐ │
-│ │ What is machine learning                               │ │
-│ │ Supervised vs unsupervised                             │ │
-│ │ Real-world applications                                │ │
-│ └─────────────────────────────────────────────────────────┘ │
-│                                                             │
-│ Time Range:                                                 │
-│ Start: [00:00:00] End: [00:10:15]                         │
-│                                                             │
-│ [Delete Chapter] [Cancel] [Save]                          │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Chapter Timeline View
-
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Chapters (4)                                   [+ Add] [⚙] │
-├─────────────────────────────────────────────────────────────┤
-│                                                             │
-│ 00:00 ████████████████ 1. Introduction                     │
-│ 10:15 ████████████████████ 2. Core Concepts                │
-│ 25:30 ████████████████████████ 3. Practical Examples      │
-│ 45:00 ████████████ 4. Q&A and Wrap-up                     │
-│                                                             │
-│ Click chapter to edit • Drag edges to adjust              │
-└─────────────────────────────────────────────────────────────┘
-```
-
-### Inline Chapter Markers
-
-Chapters appear as dividers in the transcript:
-
-```
-═══════════════════════════════════════════════════════════════
-📖 CHAPTER 2: Core Concepts
-10:15 - 25:30 • 68 segments
-[Jump to Start] [Edit] [⋮]
-═══════════════════════════════════════════════════════════════
-
-[10:15.00] Host                                         [⋮]
-Now let's dive into the core concepts of machine learning.
-```
-
-### Chapter Navigation
-
-- **Chapter List Panel:** Click any chapter to jump to it
-- **Keyboard:** Press **[** for previous chapter, **]** for next
-- **Jump Dialog:** Press **Ctrl+J** to open chapter selector
-- **Minimap:** Chapters shown as colored regions
-
-### Export Formats
-
-**YouTube Chapters:**
-```
-0:00 Introduction
-10:15 Core Concepts
-25:30 Practical Examples
-45:00 Q&A and Wrap-up
-```
-
-**Markdown:**
-```markdown
-## Table of Contents
-
-### Chapter 1: Introduction (0:00 - 10:15)
-Overview of ML fundamentals...
-
-**Key Points:**
-- What is machine learning
-- Why it matters
-```
-
-**JSON:**
-```json
-{
-  "chapters": [
-    {
-      "title": "Introduction",
-      "startTime": 0.0,
-      "endTime": 615.0,
-      "summary": "...",
-      "keyPoints": ["..."]
-    }
-  ]
-}
-```
-
-### Keyboard Shortcuts (Manual Chapters)
-
-| Shortcut | Action |
-|----------|--------|
-| **Alt+Shift+C** | Create chapter at cursor |
-| **[** | Jump to previous chapter |
-| **]** | Jump to next chapter |
-| **Ctrl+J** | Open chapter jump dialog |
-| **E** (in chapter panel) | Edit selected chapter |
-| **Delete** (in chapter panel) | Delete selected chapter |
+**Manual-first:** Chapters must work fully without AI. AI is an optional accelerator.
 
 ---
 
-## Part B: AI Chapter Detection 🔄
+## Chapter Meta Information (Final)
 
-### Overview
+This section defines the stable semantics and UX behavior of chapter meta information.
 
-AI Chapter Detection automatically identifies logical sections in your transcript based on:
+### Meta fields
 
-- Topic shifts
-- Speaker changes
-- Content structure
-- Semantic coherence
+Each chapter supports the following meta fields:
 
-> ⚠️ **Requires:** Manual chapter feature as foundation. AI suggestions use the same chapter data structure and become manual chapters once accepted.
+#### `summary` (optional)
 
-### Using AI Detection
+- **Purpose:** A single concise sentence describing what happens in this chapter.
+- **Semantics:** Content-focused; no instructions; no meta commentary.
+- **Primary use:** Passed as continuity context to subsequent AI batch runs.
+- **Constraint:** One sentence (enforced by guidance; no strict validation initially).
+- **Visibility:** Hidden by default; shown only when the chapter header is expanded.
 
-**Step 1: Open AI Panel**
-- Click "AI Detect Chapters" button, or
-- Press **Alt+C** (or **Option+C** on Mac)
+#### `notes` (optional)
 
-**Step 2: Configure Options**
+- **Purpose:** Flexible editorial metadata describing how this chapter should be understood or treated.
+- **Intended uses:** Narrative intent, reminders/TODOs, interpretation hints, and other open-ended editorial remarks.
+- **Design principle:** Intentionally open-ended; not split into smaller typed fields.
+- **Visibility:** Hidden by default; shown only when the chapter header is expanded.
+- **AI usage:** Excluded from AI context by default; can be explicitly included via a configuration toggle.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ AI Chapter Detection                                        │
-├─────────────────────────────────────────────────────────────┤
-│ Analyze transcript to identify chapter boundaries.          │
-│                                                             │
-│ Granularity:                                                │
-│ ○ Coarse (3-5 chapters per hour)                           │
-│ ● Medium (6-10 chapters per hour)                          │
-│ ○ Fine (10+ chapters per hour)                             │
-│                                                             │
-│ Options:                                                    │
-│ ☑ Generate summaries for each chapter                      │
-│ ☑ Extract key points                                        │
-│ ☐ Keep existing chapters (merge mode)                      │
-│                                                             │
-│ Provider: [OpenAI          ▼]                              │
-│ Model:    [gpt-4           ▼]                              │
-│                                                             │
-│ [    ✨ Detect Chapters    ]                              │
-└─────────────────────────────────────────────────────────────┘
-```
+#### `tags` (optional)
 
-**Step 3: Review AI Suggestions**
+- Short categorical labels (e.g. `KEEP`).
+- Displayed as compact badges in the collapsed chapter header.
+- Kept visually low-prominence to avoid timeline clutter.
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│ Detected Chapters (7)                    [Accept All]      │
-├─────────────────────────────────────────────────────────────┤
-│ ☑ 1. Introduction (00:00 - 10:15)                         │
-│   "Overview of today's topic..."                           │
-│                                                             │
-│ ☑ 2. Core Concepts (10:15 - 25:30)                        │
-│   "Deep dive into fundamentals..."                         │
-│   [Edit] [Reject]                                          │
-│                                                             │
-│ ☑ 3. Practical Examples (25:30 - 45:00)                   │
-│   ...                                                       │
-│                                                             │
-│ [Cancel] [Accept Selected]                                 │
-└─────────────────────────────────────────────────────────────┘
+### UX: Collapsible chapter header (canonical)
+
+**Principles:**
+- The timeline shows structure, not metadata.
+- Meta information is discoverable, not persistent.
+- Expanded state is intentional, not accidental.
+
+**Collapsed (default):**
+- Visible: chapter title, `tags` badges.
+- Hidden: `summary`, `notes`, and all extended metadata.
+
+**Expanded:**
+- Shows: `summary` first, then `notes` (if present).
+- No modals or extra navigation layers.
+- Works consistently on desktop and mobile.
+
+**Implementation note:** Use Radix `Collapsible`. Expansion is explicit (click/keyboard); no hover-only affordances. Local UI state is sufficient initially (no persistence required).
+
+### AI context configuration (default)
+
+```ts
+contextChapterCount = 2;
+includeEditorNotes = false;
 ```
 
-**Step 4: Accept and Edit**
-- Accepted chapters become regular manual chapters
-- Edit titles, summaries, boundaries as needed
-- Add or remove chapters manually
+**Behavior:**
+- When running an AI batch starting at segment *N*, include `summary` from the previous **2** chapters as chronological context.
+- `notes` are never included unless `includeEditorNotes` is explicitly enabled.
 
-### Granularity Options
-
-| Level | Chapters/Hour | Best For |
-|-------|---------------|----------|
-| **Coarse** | 3-5 | High-level overview, short content |
-| **Medium** | 6-10 | Balanced navigation, podcasts |
-| **Fine** | 10+ | Detailed breakdown, lectures, tutorials |
-
-### Keyboard Shortcuts (AI Detection)
-
-| Shortcut | Action |
-|----------|--------|
-| **Alt+C** | Open AI chapter detection panel |
-| **Enter** | Accept all suggestions |
-| **Space** | Toggle current suggestion |
-| **E** | Edit current suggestion |
-| **Escape** | Cancel/close panel |
+**Non-goals (this iteration):**
+- Automatic or AI-assisted summary generation
+- Per-chapter context overrides
+- Structured/typed notes
+- Validation beyond basic guidance
 
 ---
 
-## Best Practices
+## Part A: Manual Chapter Management
 
-### For Manual Chapters
+You can add, edit, and delete chapters at any time — independent of AI.
 
-1. **Start with outline:** If you know the structure, create chapters first
-2. **Use meaningful titles:** Keep titles short but descriptive (3-6 words)
-3. **Add summaries later:** Titles first, summaries when reviewing
-4. **Check boundaries:** Ensure chapters start at natural breaks
+### Add a chapter
 
-### For AI Detection
+1. **Click a segment** in the transcript view
+2. **Open the segment context menu** (right click or ⋮ button)
+3. **Select “Start Chapter Here”**
+4. **Name the chapter** and optionally add `tags`
+5. ✅ The chapter starts at this segment
 
-1. **Clean transcript first:** Fix major errors before detection
-2. **Start with Medium:** Adjust granularity based on results
-3. **Review all:** AI is a starting point, not final
-4. **Edit titles:** AI titles may be generic, personalize them
-5. **Combine approaches:** AI detect, then manual refinement
+### Edit a chapter
 
-### General Tips
+1. **Focus a chapter header** in the transcript timeline.
+2. **Click the Edit button** (pencil; visible only when the header is focused) to open the chapter edit menu.
+3. **Edit:**
+   - Title
+   - Summary (optional; one sentence)
+   - Notes (optional)
+   - Tags (optional)
+4. ✅ Changes are saved immediately (with Undo/Redo)
 
-- **Long content needs chapters:** Anything > 20 minutes benefits
-- **Export early:** Verify chapters make sense by previewing exports
-- **Consistent style:** Use similar title formats throughout
+**Also:** When you choose **“Start Chapter Here”** from a segment menu, the chapter edit menu opens anchored to that segment.
 
----
+### Delete a chapter
 
-## Troubleshooting
+- **In the chapter edit menu:** Click **Delete Chapter**
+- ⚠️ This deletes only the chapter; segments remain unchanged
+- ↩️ Undo to revert
 
-### AI Detects Too Many Chapters
-- Switch to "Coarse" granularity
-- Increase minimum chapter duration in settings
-- Merge closely related chapters manually
+### Floating Chapter Outline Panel
 
-### AI Detects Too Few Chapters
-- Switch to "Fine" granularity
-- Check if transcript has clear topic shifts
-- Add manual chapters where AI missed
+The **Chapter Outline Panel** next to the transcript editor:
 
-### Chapters Don't Align with Content
-- Adjust chapter boundaries by dragging in timeline
-- AI uses text content, not audio analysis
-- Manual fine-tuning is expected
+```
+┌──────────────────────┐
+│  Chapters  [✕]       │
+├──────────────────────┤
+│ • Chapter 1         │
+│    Intro to ML       │
+│                      │
+│ • Chapter 2         │
+│    Core Concepts     │
+└──────────────────────┘
+```
 
-### Export Shows Wrong Times
-- Check that chapter start times match segment times
-- Verify no overlapping chapters
-- Round times to nearest second for YouTube
+**Features:**
+- Lists all chapters
+- Click a chapter → scrolls to its start segment and highlights it
+- Highlights the current chapter
+- Minimal surface for orientation (no task completion UI)
+- Non-modal: no backdrop, no blur, no focus trap
+- Stays open until toggled or Esc
 
----
-
-## Privacy & Data
-
-### What's Sent to AI
-- Transcript text (for analysis)
-- Metadata: timestamps, segment count
-- Configuration: granularity setting
-
-### What Stays Local
-- Audio files (never sent)
-- Your edits to chapter metadata
-- Export files
-
-### Privacy Option
-Use Ollama for fully local AI processing.
+**Keyboard:**
+- Toggle Chapter Outline Panel (Outline / TOC):
+  - macOS: `Cmd+Shift+O`
+  - Windows/Linux: `Ctrl+Shift+O`
 
 ---
 
-## Examples
+## Part B: AI Chapter Detection
 
-### Example 1: Podcast Episode
+The AI analyzes large batches (50–200 segments) and proposes a complete chapter structure.
 
-**Before:** 85 minutes of continuous transcript
+### Workflow
 
-**After (AI Detected, Medium):**
-1. 🎬 Cold Open (0:00 - 1:30)
-2. 👋 Introduction (1:30 - 5:15)
-3. 🎯 Main Topic: AI in Healthcare (5:15 - 32:00)
-4. 💬 Interview with Dr. Smith (32:00 - 58:30)
-5. 🤔 Discussion & Analysis (58:30 - 72:15)
-6. 📧 Listener Questions (72:15 - 80:00)
-7. 👋 Wrap-up & Next Week (80:00 - 85:00)
-
-### Example 2: Technical Lecture
-
-**Manually Created:**
-1. Course Overview
-2. Previous Lecture Review
-3. New Topic: Sorting Algorithms
-4. Bubble Sort Deep Dive
-5. Quick Sort vs Merge Sort
-6. Performance Comparison
-7. Practice Problems
-8. Homework Assignment
+1. **Open the AI Command Panel** → **New tab: “Chapters”**  
+   (UX must match other batch features; see `docs/features/architecture/ai-command-panel.md`)
+2. **Configure (standard panel structure):**
+   - **Scope** (standard): segment count + filters
+   - **AI Configuration** (standard): provider/model + batch size
+   - **Feature Settings:** prompt template, min/max chapter length, tags
+3. Click **“Start Detection”**
+4. ⏳ The AI processes the transcript sequentially in batches
+5. **Review results:**
+   - **Panel:** summary (confidence groups) + navigation  
+   - **Transcript:** suggestions inline with accept/reject per chapter  
+   - **Accept All** applies suggestions as one atomic undo step
 
 ---
 
-## What's Next?
+## Creation actions and shortcuts
 
-Planned improvements:
-- Chapter templates (recurring chapter structures)
-- Thumbnail extraction for chapters
-- Chapter search and filtering
-- Nested chapters (sub-sections)
-- Chapter-based transcript selection
+- **“Start Chapter Here”:** segment context menu entry (no shortcut).
+  - Anchors the chapter edit popover on the chosen segment.
+  - Optional future access via Command Palette (later).
+  - Rationale: keeps the flow inline with editing the new chapter immediately.
+
+### How it works (behind the scenes)
+
+- **Batch processing:** The transcript is split into batches of 50–200 segments
+- **Overlap logic:** At the end of each batch, the previous chapter content is included so the model can decide whether:
+  - “This chapter continues until segment X”
+  - or “A new chapter starts at segment Y”
+- **Response:** JSON chapters: `[{title, summary?, tags?, segmentSimpleIds[]}]` + optional `startSimpleId/endSimpleId` for a range
+- **Mapping:** The AI only sees synthetic SimpleIDs (1..n) per batch; mapping to real segment IDs happens client-side via shared ai/core utilities
+- **Validation:** Chapter boundaries are validated; invalid responses are handled via recovery strategies
+
+### Configuration
+
+**In the AI Command Panel:**
+- **Provider/model:** Same selection as other AI features
+- **Prompt template:** Managed like text revision (Settings → AI Prompts; persisted)
+  - Variables: `maxBatchSize`, `minChapterLength`, `maxChapterLength`, `tagsAvailable`
+- **Tags:** The system shows available tags; the AI may suggest `tags` (kept visually low-prominence in the timeline)
 
 ---
 
-*For technical details, see [Architecture](architecture/ai-features-unified.md).*
+## Part C: Export & Beyond
 
+### Text export
+
+- Chapters are inserted as **headings before segment groups**
+- Format: `# Chapter 1: Title` (Markdown-style)
+- Options: include/exclude `summary`, `notes`, and `tags` (defaults should keep output readable)
+
+### JSON export
+
+- **Option 1:** Chapters as **metadata on the first segment** of each chapter
+- **Option 2:** **Separate top-level structure** `"chapters": [...]`
+- User selects this in export settings (“Chapter metadata structure”)
+
+### Future features
+
+If later features like “chapter summaries” or “book generation” are added:
+- Each chapter can be summarized individually
+- The AI receives: chapter title, `summary`, `tags`, and segment texts; `notes` remain excluded by default
+
+---
+
+## Invariants & Notes
+
+✅ **Summary and notes are semantically distinct**  
+✅ **Meta information is hidden by default** (Collapsible header)  
+✅ **Timeline clarity beats metadata visibility**  
+✅ **AI context inclusion is minimal and explicit** (`contextChapterCount = 2`, `includeEditorNotes = false`)  
+✅ **Manual-first:** Always possible to add/edit/delete chapters manually  
+✅ **No overlap:** Chapter ranges must not overlap (validated)  
+✅ **Undo/redo:** All chapter changes (manual + AI acceptance) are undoable  
+✅ **Accept All is atomic:** Applying AI results is a single undoable action  
+⚠️ **Manual vs. AI:** If manual chapters conflict with AI suggestions, the user decides during acceptance; no silent overwrites  
+⚠️ **Coexistence:** Manual chapters and AI suggestions/acceptances can exist together in the same transcript  
+⚠️ **No persistence for AI suggestions:** AI suggestions and batch progress are ephemeral (in-memory only); only accepted chapters are saved
