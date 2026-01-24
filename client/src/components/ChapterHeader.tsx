@@ -242,7 +242,7 @@ export function ChapterHeader({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="mt-0.5 p-0.5 rounded hover:bg-muted/10 focus-visible:ring-0 focus:ring-0 focus:outline-none"
+            className="mt-0.5 p-0.5 rounded hover:bg-muted/10 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
             aria-label={expanded ? "Collapse chapter" : "Expand chapter"}
           >
               <ChevronDown
@@ -335,7 +335,7 @@ export function ChapterHeader({
                 </span>
 
                 {/* Right-aligned tag row + options menu (tags directly left of menu) */}
-                <div className="ml-auto flex items-center gap-2">
+                <div className="ml-auto flex items-center gap-2 min-h-6">
                   {/* Tag list - copied behavior from SegmentHeader to match UX */}
                   <div
                     ref={tagRowRef}
@@ -355,7 +355,7 @@ export function ChapterHeader({
                       <div className="flex items-center gap-1.5">
                         <div
                           ref={tagContainerRef}
-                          className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden"
+                          className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           {chapterTagInfo.map((info) => (
                             <Badge
