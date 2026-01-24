@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand";
 import { buildSessionKey } from "@/lib/fileReference";
+import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
@@ -17,18 +18,22 @@ type ChapterReplacement =
       end?: string;
     };
 
+/**
+ * Remap chapter segment ids after segment operations (split/merge/delete)
+ * and filter out chapters that no longer reference valid segments.
+ */
 function remapAndFilterChapters(
-  chapters: any[],
+  chapters: Chapter[] | undefined | null,
   replacements: Record<string, ChapterReplacement>,
   validSegments: Segment[],
-) {
-  if (!chapters) return [];
+): Chapter[] {
+  if (!chapters || chapters.length === 0) return [];
   const validIds = new Set(validSegments.map((s) => s.id));
   return chapters
     .map((ch) => {
       if (!ch) return ch;
       let changed = false;
-      const next = { ...ch } as any;
+      const next: Chapter = { ...ch };
       for (const [oldId, rep] of Object.entries(replacements)) {
         if (next.startSegmentId === oldId) {
           if (typeof rep === "string") next.startSegmentId = rep;
@@ -43,7 +48,10 @@ function remapAndFilterChapters(
       }
       return changed ? next : ch;
     })
-    .filter((ch) => ch && validIds.has(ch.startSegmentId) && validIds.has(ch.endSegmentId));
+    .filter(
+      (ch): ch is Chapter =>
+        Boolean(ch) && validIds.has(ch.startSegmentId) && validIds.has(ch.endSegmentId),
+    );
 }
 
 export const createSegmentsSlice = (

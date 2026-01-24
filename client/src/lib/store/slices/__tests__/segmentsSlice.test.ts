@@ -132,4 +132,58 @@ describe("segmentsSlice chapter updates", () => {
     expect(c.startSegmentId).toBe("s2");
     expect(c.endSegmentId).toBe("s2");
   });
+
+  it("remaps chapter end to previous segment when deleting the last segment", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const s2: Segment = { id: "s2", start: 1, end: 2, words: [{ word: "b", start: 1, end: 2 }] };
+    const s3: Segment = { id: "s3", start: 2, end: 3, words: [{ word: "c", start: 2, end: 3 }] };
+    // chapter spans from s1 to s3; deleting s3 should keep the chapter and set end->s2
+    const chapters = [{ id: "c1", startSegmentId: "s1", endSegmentId: "s3" }];
+
+    const store = makeStore([s1, s2, s3], chapters);
+    store.slice.deleteSegment("s3");
+
+    const state = store.getState();
+    const c = state.chapters.find((ch: Chapter) => ch.id === "c1");
+    expect(c).toBeDefined();
+    expect(c.endSegmentId).toBe("s2");
+    expect(c.startSegmentId).toBe("s1");
+  });
+
+  it("no-ops when attempting to delete a non-existent segment id", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const chapters = [{ id: "c1", startSegmentId: "s1", endSegmentId: "s1" }];
+    const store = makeStore([s1], chapters);
+
+    store.slice.deleteSegment("does-not-exist");
+
+    const state = store.getState();
+    expect(state.segments.length).toBe(1);
+    expect(state.chapters.length).toBe(1);
+    expect(state.chapters[0].startSegmentId).toBe("s1");
+  });
+
+  it("no-ops when splitting at invalid index", () => {
+    const s1: Segment = {
+      id: "s1",
+      start: 0,
+      end: 4,
+      words: [
+        { word: "hello", start: 0, end: 1 },
+        { word: "world", start: 2, end: 4 },
+      ],
+    };
+    const chapters = [{ id: "c1", startSegmentId: "s1", endSegmentId: "s1", title: "A" }];
+    const store = makeStore([s1], chapters);
+
+    // invalid indices: 0 and >= words.length
+    store.slice.splitSegment("s1", 0);
+    store.slice.splitSegment("s1", 2);
+
+    const state = store.getState();
+    // nothing changed
+    expect(state.segments.length).toBe(1);
+    expect(state.chapters.length).toBe(1);
+    expect(state.chapters[0].startSegmentId).toBe("s1");
+  });
 });
