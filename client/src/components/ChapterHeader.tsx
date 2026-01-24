@@ -45,6 +45,26 @@ export function ChapterHeader({
   const ignoreNextTitleBlurRef = useRef(false);
   const [isHovered, setIsHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+  const tagRowRef = useRef<HTMLDivElement>(null);
+  const tagContainerRef = useRef<HTMLDivElement>(null);
+  // Check if tags overflow - recheck when tags change
+  useEffect(() => {
+    const checkOverflow = () => {
+      if (tagContainerRef.current) {
+        const { scrollWidth, clientWidth } = tagContainerRef.current;
+        const overflow = scrollWidth > clientWidth + 1; // +1 for rounding
+        setHasOverflow(overflow);
+      }
+    };
+
+    const timer = setTimeout(checkOverflow, 0);
+    window.addEventListener("resize", checkOverflow);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", checkOverflow);
+    };
+  }, [chapter.tags?.length]);
 
   const [summaryDraft, setSummaryDraft] = useState(chapter.summary ?? "");
   const [isSummaryEditing, setIsSummaryEditing] = useState(false);
@@ -301,7 +321,7 @@ export function ChapterHeader({
             </div>
           ) : (
             <div className="flex flex-col gap-1">
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 w-full">
                 <span
                   role="button"
                   tabIndex={0}
@@ -310,118 +330,175 @@ export function ChapterHeader({
                 >
                   {chapter.title}
                 </span>
-                {/* Options menu - visible on hover */}
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(event) => event.stopPropagation()}
-                      aria-label="Chapter options"
-                      data-testid={`button-chapter-options-${chapter.id}`}
-                    >
-                      <MoreVertical className="h-4 w-4" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="text-xs">
-                    <DropdownMenuItem
-                      className="py-1.5 text-xs"
-                      onSelect={() => {
-                        startTitleEdit();
-                      }}
-                      data-testid={`menu-edit-chapter-${chapter.id}`}
-                    >
-                      <Edit2 className="h-3 w-3 mr-2" />
-                      Edit title
-                    </DropdownMenuItem>
-                    <DropdownMenuItem
-                      className="py-1.5 text-xs text-destructive"
-                      onSelect={() => onDeleteChapter(chapter.id)}
-                      data-testid={`menu-delete-chapter-${chapter.id}`}
-                    >
-                      <Trash2 className="h-3 w-3 mr-2" />
-                      Delete chapter
-                    </DropdownMenuItem>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-              {/* Tags section with hover behavior like segments */}
-              {(chapterTagInfo.length > 0 || isHovered) && (
-                <div
-                  className="mt-1 flex items-center gap-1.5"
-                  onMouseEnter={() => setIsHovered(true)}
-                  onMouseLeave={() => setIsHovered(false)}
-                  data-testid={`chapter-tags-${chapter.id}`}
-                  role="group"
-                  aria-label="Chapter tags"
-                >
-                  {chapterTagInfo.map((info) => (
-                    <Badge
-                      key={info.id}
-                      variant="secondary"
-                      className="text-[10px] px-2 py-0.5 flex items-center gap-1.5 group/tag"
-                      style={
-                        info.color
-                          ? { borderLeftWidth: "3px", borderLeftColor: info.color }
-                          : undefined
-                      }
-                      onMouseEnter={() => setHoveredTagId(info.id)}
-                      onMouseLeave={() => setHoveredTagId(null)}
-                    >
-                      <span className="truncate">{info.name}</span>
-                      <button
-                        type="button"
-                        onClick={(event) => {
-                          event.stopPropagation();
-                          handleRemoveTag(info.id);
-                        }}
-                        onFocus={() => setHoveredTagId(info.id)}
-                        onBlur={() => setHoveredTagId(null)}
-                        className={`transition-opacity ${hoveredTagId === info.id ? "opacity-100" : "opacity-0"} w-3`}
-                        aria-label={`Remove tag ${info.name}`}
-                      >
-                        <X className="h-3 w-3" />
-                      </button>
-                    </Badge>
-                  ))}
-                  {/* Add Tag Button */}
+
+                {/* Right-aligned tag row + options menu (tags directly left of menu) */}
+                <div className="ml-auto flex items-center gap-2">
+                  {/* Tag list - copied behavior from SegmentHeader to match UX */}
+                  <div
+                    ref={tagRowRef}
+                    className="relative flex items-center"
+                    onMouseEnter={() => setIsHovered(true)}
+                    onMouseLeave={() => setIsHovered(false)}
+                    onFocusCapture={() => setIsHovered(true)}
+                    onBlurCapture={(event) => {
+                      const nextFocused = event.relatedTarget as Node | null;
+                      if (nextFocused && event.currentTarget.contains(nextFocused)) return;
+                      setIsHovered(false);
+                    }}
+                    role="presentation"
+                    data-testid={`chapter-tags-${chapter.id}`}
+                  >
+                    {chapterTagInfo.length > 0 ? (
+                      <div className="flex items-center gap-1.5">
+                        <div
+                          ref={tagContainerRef}
+                          className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden"
+                        >
+                          {chapterTagInfo.map((info) => (
+                            <Badge
+                              key={info.id}
+                              variant="secondary"
+                              className="text-xs px-2 py-0.5 flex items-center gap-1.5 flex-shrink-0 group/tag"
+                              style={
+                                info.color
+                                  ? { borderLeftWidth: "3px", borderLeftColor: info.color }
+                                  : undefined
+                              }
+                              onMouseEnter={() => setHoveredTagId(info.id)}
+                              onMouseLeave={() => setHoveredTagId(null)}
+                            >
+                              <span className="truncate">{info.name}</span>
+                              <button
+                                type="button"
+                                onClick={(event) => {
+                                  event.stopPropagation();
+                                  handleRemoveTag(info.id);
+                                }}
+                                onFocus={() => setHoveredTagId(info.id)}
+                                onBlur={() => setHoveredTagId(null)}
+                                className={`transition-opacity ${hoveredTagId === info.id ? "opacity-100" : "opacity-0"} w-3`}
+                                aria-label={`Remove tag ${info.name}`}
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            </Badge>
+                          ))}
+                        </div>
+
+                        {/* Add Tag Button */}
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              disabled={availableTags.length === 0}
+                              data-testid={`button-add-tag-${chapter.id}`}
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              <Plus className="h-3 w-3" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
+                            {availableTags.map((tag) => (
+                              <DropdownMenuItem
+                                key={tag.id}
+                                className="py-1.5 text-xs"
+                                onSelect={() => handleAddTag(tag.id)}
+                                data-testid={`menu-add-tag-${tag.id}`}
+                              >
+                                <div
+                                  className="w-2 h-2 rounded-full mr-2"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                {tag.name}
+                              </DropdownMenuItem>
+                            ))}
+                            {availableTags.length === 0 && (
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                No tags available
+                              </div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
+                    ) : (
+                      (
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                              data-testid={`button-add-first-tag-${chapter.id}`}
+                            >
+                              <Plus className="h-3 w-3" />
+                              <span>Add Tag</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
+                            {tags.map((tag) => (
+                              <DropdownMenuItem
+                                key={tag.id}
+                                className="py-1.5 text-xs"
+                                onSelect={() => handleAddTag(tag.id)}
+                                data-testid={`menu-add-tag-${tag.id}`}
+                              >
+                                <div
+                                  className="w-2 h-2 rounded-full mr-2"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                {tag.name}
+                              </DropdownMenuItem>
+                            ))}
+                            {tags.length === 0 && (
+                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                                Keine Tags verfügbar
+                              </div>
+                            )}
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      )
+                    )}
+                  </div>
+
+                  {/* Options menu - aligned to the far right */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-6 w-6 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
-                        disabled={availableTags.length === 0}
-                        data-testid={`button-add-tag-${chapter.id}`}
-                        onClick={(e) => e.stopPropagation()}
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={(event) => event.stopPropagation()}
+                        aria-label="Chapter options"
+                        data-testid={`button-chapter-options-${chapter.id}`}
                       >
-                        <Plus className="h-3 w-3" />
+                        <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
-                      {availableTags.map((tag) => (
-                        <DropdownMenuItem
-                          key={tag.id}
-                          className="py-1.5 text-xs"
-                          onSelect={() => handleAddTag(tag.id)}
-                        >
-                          <div
-                            className="w-2 h-2 rounded-full mr-2"
-                            style={{ backgroundColor: tag.color }}
-                          />
-                          {tag.name}
-                        </DropdownMenuItem>
-                      ))}
-                      {availableTags.length === 0 && (
-                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                          No tags available
-                        </div>
-                      )}
+                    <DropdownMenuContent align="end" className="text-xs">
+                      <DropdownMenuItem
+                        className="py-1.5 text-xs"
+                        onSelect={() => {
+                          startTitleEdit();
+                        }}
+                        data-testid={`menu-edit-chapter-${chapter.id}`}
+                      >
+                        <Edit2 className="h-3 w-3 mr-2" />
+                        Edit title
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
+                        className="py-1.5 text-xs text-destructive"
+                        onSelect={() => onDeleteChapter(chapter.id)}
+                        data-testid={`menu-delete-chapter-${chapter.id}`}
+                      >
+                        <Trash2 className="h-3 w-3 mr-2" />
+                        Delete chapter
+                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </div>
-              )}
+              </div>
             </div>
           )}
         </div>

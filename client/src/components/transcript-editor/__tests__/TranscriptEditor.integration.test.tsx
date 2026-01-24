@@ -298,7 +298,7 @@ describe("TranscriptEditor integration", () => {
       const actionButton = await screen.findByTestId(`button-chapter-options-${chapterId}`);
       await user.click(actionButton);
 
-      const renameItem = await screen.findByTestId(`menu-rename-chapter-${chapterId}`);
+      const renameItem = await screen.findByTestId(`menu-edit-chapter-${chapterId}`);
       await user.click(renameItem);
 
       const titleInput = await screen.findByLabelText("Chapter title");
