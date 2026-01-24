@@ -524,11 +524,7 @@ export const useTranscriptEditor = () => {
             ).__chapterEditTarget = { chapterId: resolvedId, anchorSegmentId: segmentId };
           }
         };
-        if (typeof queueMicrotask === "function") {
-          queueMicrotask(openEditor);
-        } else {
-          setTimeout(openEditor, 0);
-        }
+        setTimeout(openEditor, 0);
         pendingChapterAnchorRef.current = null;
       }
     },
@@ -628,7 +624,7 @@ export const useTranscriptEditor = () => {
       currentTime,
       isPlaying,
       playbackRate: playback.playbackRate,
-      showSpeakerRegions: isWhisperXFormat,
+      showSpeakerRegions: isWhisperXFormat || speakers.length > 0,
       onTimeUpdate: updatePlaybackTime,
       onPlayPause: setIsPlaying,
       onDurationChange: setDuration,

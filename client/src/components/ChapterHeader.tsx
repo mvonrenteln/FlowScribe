@@ -1,10 +1,8 @@
 import { ChevronDown, Pencil } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import type { Chapter, ChapterUpdate, Tag } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { ChapterEditMenu } from "./ChapterEditMenu";
@@ -35,7 +33,6 @@ export function ChapterHeader({
 }: ChapterHeaderProps) {
   const [expanded, setExpanded] = useState(false);
   const [internalEditOpen, setInternalEditOpen] = useState(false);
-  const [titleDraft, setTitleDraft] = useState(chapter.title);
   const resolvedEditOpen = editOpen ?? internalEditOpen;
   const handleEditOpenChange = onEditOpenChange ?? setInternalEditOpen;
   const tagLookup = useMemo(() => new Map(tags.map((tag) => [tag.id, tag])), [tags]);
@@ -43,16 +40,6 @@ export function ChapterHeader({
     () => (chapter.tags ?? []).map((id) => tagLookup.get(id)?.name ?? id),
     [chapter.tags, tagLookup],
   );
-
-  useEffect(() => {
-    setTitleDraft(chapter.title);
-  }, [chapter.title]);
-
-  const handleTitleCommit = () => {
-    const nextTitle = titleDraft.trim();
-    if (!nextTitle || nextTitle === chapter.title) return;
-    onUpdateChapter(chapter.id, { title: nextTitle });
-  };
 
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded}>
@@ -113,35 +100,6 @@ export function ChapterHeader({
           }
         />
       </div>
-      {resolvedEditOpen && (
-        <div className="mt-2 space-y-2 rounded-md border bg-card/40 p-3">
-          <div className="flex items-center justify-between">
-            <Label htmlFor={`chapter-inline-title-${chapter.id}`}>Chapter title</Label>
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={() => handleEditOpenChange(false)}
-              aria-label={`Close chapter editor for ${chapter.title}`}
-            >
-              Close
-            </Button>
-          </div>
-          <Input
-            id={`chapter-inline-title-${chapter.id}`}
-            value={titleDraft}
-            onChange={(event) => setTitleDraft(event.target.value)}
-            onBlur={handleTitleCommit}
-            onKeyDown={(event) => {
-              if (event.key === "Enter") {
-                event.preventDefault();
-                handleTitleCommit();
-              }
-            }}
-            aria-label="Chapter title"
-            className="w-full"
-          />
-        </div>
-      )}
       <CollapsibleContent>
         <div className="pl-7 pb-4 space-y-2 text-sm">
           {chapter.summary && (

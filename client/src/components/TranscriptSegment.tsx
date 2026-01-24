@@ -3,10 +3,9 @@ import { memo, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { mark } from "@/lib/logging";
-import type { Chapter, ChapterUpdate, SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
+import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
 import { cn } from "@/lib/utils";
-import { ChapterEditMenu } from "./ChapterEditMenu";
 import { SegmentDiffView } from "./transcript-editor/SegmentDiffView";
 import { SegmentActions } from "./transcript-segment/SegmentActions";
 import { SegmentHeader } from "./transcript-segment/SegmentHeader";
@@ -50,11 +49,6 @@ interface TranscriptSegmentProps {
   readonly onMergeWithNext?: () => void;
   readonly onDelete: () => void;
   readonly onStartChapterHere?: (segmentId: string) => void;
-  readonly chapterEditChapter?: Chapter;
-  readonly chapterEditOpen?: boolean;
-  readonly onChapterEditOpenChange?: (open: boolean) => void;
-  readonly onUpdateChapter?: (id: string, updates: ChapterUpdate) => void;
-  readonly onDeleteChapter?: (id: string) => void;
   readonly onSeek: (time: number, meta: SeekMeta) => void;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
@@ -148,11 +142,6 @@ function TranscriptSegmentComponent({
   onMergeWithNext,
   onDelete,
   onStartChapterHere,
-  chapterEditChapter,
-  chapterEditOpen,
-  onChapterEditOpenChange,
-  onUpdateChapter,
-  onDeleteChapter,
   onSeek,
   searchQuery,
   isRegexSearch,
@@ -187,7 +176,6 @@ function TranscriptSegmentComponent({
   }
   const [spellcheckExpandedIndex, setSpellcheckExpandedIndex] = useState<number | null>(null);
   const textDisplayRef = useRef<HTMLDivElement>(null);
-  const chapterEditAnchorRef = useRef<HTMLSpanElement>(null);
 
   const {
     draftText,
@@ -447,20 +435,6 @@ function TranscriptSegmentComponent({
           onStartEdit={handleStartEdit}
           onClearSelection={() => setSelectedWordIndex(null)}
         />
-        {chapterEditChapter && onUpdateChapter && onDeleteChapter && (
-          <ChapterEditMenu
-            chapter={chapterEditChapter}
-            tags={tags}
-            onUpdateChapter={onUpdateChapter}
-            onDeleteChapter={onDeleteChapter}
-            open={chapterEditOpen}
-            onOpenChange={onChapterEditOpenChange}
-            anchorRef={chapterEditAnchorRef}
-            anchorClassName="absolute right-3 top-3"
-            align="end"
-            side="bottom"
-          />
-        )}
       </div>
     </article>
   );
@@ -499,11 +473,6 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onMergeWithNext === next.onMergeWithNext &&
     prev.onDelete === next.onDelete &&
     prev.onStartChapterHere === next.onStartChapterHere &&
-    prev.chapterEditChapter === next.chapterEditChapter &&
-    prev.chapterEditOpen === next.chapterEditOpen &&
-    prev.onChapterEditOpenChange === next.onChapterEditOpenChange &&
-    prev.onUpdateChapter === next.onUpdateChapter &&
-    prev.onDeleteChapter === next.onDeleteChapter &&
     prev.onSeek === next.onSeek &&
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&

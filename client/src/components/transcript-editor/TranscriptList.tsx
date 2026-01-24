@@ -95,9 +95,6 @@ function TranscriptListComponent({
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
     return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
   }, [chapters, segmentIndexById]);
-  const chapterById = useMemo(() => {
-    return new Map(chapters.map((chapter) => [chapter.id, chapter]));
-  }, [chapters]);
 
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
@@ -150,12 +147,6 @@ function TranscriptListComponent({
             const isChapterEditTarget = chapter
               ? chapterEditTarget?.chapterId === chapter.id
               : false;
-            const isEditTarget = chapterEditTarget?.anchorSegmentId === segment.id;
-            const showSegmentEdit = isEditTarget;
-            const editChapter = showSegmentEdit
-              ? (chapterById.get(chapterEditTarget.chapterId) ?? chapter)
-              : undefined;
-
             return (
               <Fragment key={segment.id}>
                 {chapter && (
@@ -210,13 +201,6 @@ function TranscriptListComponent({
                   onDelete={handlers.onDelete}
                   onSeek={onSeek}
                   onStartChapterHere={onStartChapterAtSegment}
-                  chapterEditChapter={editChapter}
-                  chapterEditOpen={Boolean(editChapter && showSegmentEdit)}
-                  onChapterEditOpenChange={(open) => {
-                    if (!open) onCloseChapterEditMenu?.({ allowImmediateClose: false });
-                  }}
-                  onUpdateChapter={onUpdateChapter}
-                  onDeleteChapter={onDeleteChapter}
                   searchQuery={searchQuery}
                   isRegexSearch={isRegexSearch}
                   replaceQuery={replaceQuery}
