@@ -43,12 +43,13 @@ export function ChapterHeader({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const focusFrameRef = useRef<number | null>(null);
   const ignoreNextTitleBlurRef = useRef(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [_isHovered, setIsHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
-  const [hasOverflow, setHasOverflow] = useState(false);
+  const [_hasOverflow, setHasOverflow] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
   // Check if tags overflow - recheck when tags change
+  // eslint-disable-next-line react-hooks/exhaustive-deps, lint/correctness/useExhaustiveDependencies
   useEffect(() => {
     const checkOverflow = () => {
       if (tagContainerRef.current) {
@@ -64,7 +65,7 @@ export function ChapterHeader({
       clearTimeout(timer);
       window.removeEventListener("resize", checkOverflow);
     };
-  }, [chapter.tags?.length]);
+  }, []);
 
   const [summaryDraft, setSummaryDraft] = useState(chapter.summary ?? "");
   const [isSummaryEditing, setIsSummaryEditing] = useState(false);
@@ -345,7 +346,7 @@ export function ChapterHeader({
                       if (nextFocused && event.currentTarget.contains(nextFocused)) return;
                       setIsHovered(false);
                     }}
-                    role="presentation"
+                    role="group"
                     data-testid={`chapter-tags-${chapter.id}`}
                   >
                     {chapterTagInfo.length > 0 ? (
@@ -399,7 +400,10 @@ export function ChapterHeader({
                               <Plus className="h-3 w-3" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
+                          <DropdownMenuContent
+                            align="end"
+                            className="max-h-64 overflow-auto p-1 text-xs"
+                          >
                             {availableTags.map((tag) => (
                               <DropdownMenuItem
                                 key={tag.id}
@@ -423,42 +427,43 @@ export function ChapterHeader({
                         </DropdownMenu>
                       </div>
                     ) : (
-                      (
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
-                              data-testid={`button-add-first-tag-${chapter.id}`}
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            data-testid={`button-add-first-tag-${chapter.id}`}
+                          >
+                            <Plus className="h-3 w-3" />
+                            <span>Add Tag</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent
+                          align="end"
+                          className="max-h-64 overflow-auto p-1 text-xs"
+                        >
+                          {tags.map((tag) => (
+                            <DropdownMenuItem
+                              key={tag.id}
+                              className="py-1.5 text-xs"
+                              onSelect={() => handleAddTag(tag.id)}
+                              data-testid={`menu-add-tag-${tag.id}`}
                             >
-                              <Plus className="h-3 w-3" />
-                              <span>Add Tag</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
-                            {tags.map((tag) => (
-                              <DropdownMenuItem
-                                key={tag.id}
-                                className="py-1.5 text-xs"
-                                onSelect={() => handleAddTag(tag.id)}
-                                data-testid={`menu-add-tag-${tag.id}`}
-                              >
-                                <div
-                                  className="w-2 h-2 rounded-full mr-2"
-                                  style={{ backgroundColor: tag.color }}
-                                />
-                                {tag.name}
-                              </DropdownMenuItem>
-                            ))}
-                            {tags.length === 0 && (
-                              <div className="px-2 py-1.5 text-xs text-muted-foreground">
-                                Keine Tags verfügbar
-                              </div>
-                            )}
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      )
+                              <div
+                                className="w-2 h-2 rounded-full mr-2"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              {tag.name}
+                            </DropdownMenuItem>
+                          ))}
+                          {tags.length === 0 && (
+                            <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                              Keine Tags verfügbar
+                            </div>
+                          )}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
                     )}
                   </div>
 

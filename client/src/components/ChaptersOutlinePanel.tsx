@@ -43,11 +43,10 @@ export function ChaptersOutlinePanel({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onOpenChange, open]);
 
-  const renderRange = (chapter: Chapter) => {
-    const startIndex = indexById.get(chapter.startSegmentId);
-    const endIndex = indexById.get(chapter.endSegmentId);
-    if (startIndex === undefined || endIndex === undefined) return "Range unavailable";
-    return `Segments ${startIndex + 1}–${endIndex + 1}`;
+  const renderSummary = (chapter: Chapter) => {
+    const summary = (chapter as any).summary;
+    if (!summary) return "";
+    return String(summary);
   };
 
   if (!open) return null;
@@ -58,18 +57,19 @@ export function ChaptersOutlinePanel({
       aria-label="Chapter outline panel"
       data-testid="chapters-outline-panel"
     >
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <h3 className="text-sm font-semibold text-foreground">Chapters</h3>
+      <div className="group flex items-center justify-between border-b px-3 py-2">
+        <h3 className="text-xs font-semibold uppercase text-muted-foreground">Chapters</h3>
         <Button
           size="icon"
           variant="ghost"
           onClick={() => onOpenChange(false)}
           aria-label="Close chapters outline"
+          className="opacity-0 group-hover:opacity-100 transition-opacity text-muted-foreground"
         >
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <ScrollArea className="max-h-[60vh]">
+      <ScrollArea className="h-[60vh] no-scrollbar">
         <div className="space-y-1 p-2">
           {sortedChapters.length === 0 && (
             <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
@@ -87,7 +87,9 @@ export function ChaptersOutlinePanel({
               )}
             >
               <div className="text-xs font-semibold truncate">{chapter.title}</div>
-              <div className="text-[11px] text-muted-foreground">{renderRange(chapter)}</div>
+              {(chapter as any).summary ? (
+                <div className="text-[11px] text-muted-foreground truncate">{renderSummary(chapter)}</div>
+              ) : null}
             </button>
           ))}
         </div>
