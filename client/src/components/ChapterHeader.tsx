@@ -43,6 +43,8 @@ export function ChapterHeader({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const focusFrameRef = useRef<number | null>(null);
   const ignoreNextTitleBlurRef = useRef(false);
+  const ignoreNextSummaryBlurRef = useRef(false);
+  const ignoreNextNotesBlurRef = useRef(false);
   const [_isHovered, setIsHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [_hasOverflow, setHasOverflow] = useState(false);
@@ -115,20 +117,27 @@ export function ChapterHeader({
     }
   }, [isTitleEditing, scheduleTitleFocus]);
 
-  // Set the transcriptEditing flag while editing title to prevent scroll/selection interference
+  // Manage the transcriptEditing dataset flag while any field is in edit mode
+  const previousTranscriptEditingValueRef = useRef<string | undefined>(undefined);
   useEffect(() => {
-    if (!isTitleEditing) return;
+    const anyEditing = isTitleEditing || isSummaryEditing || isNotesEditing;
     const body = document.body;
-    const previousValue = body.dataset.transcriptEditing;
-    body.dataset.transcriptEditing = "true";
-    return () => {
-      if (previousValue === undefined) {
-        delete body.dataset.transcriptEditing;
-      } else {
-        body.dataset.transcriptEditing = previousValue;
+    if (anyEditing) {
+      if (previousTranscriptEditingValueRef.current === undefined) {
+        previousTranscriptEditingValueRef.current = body.dataset.transcriptEditing;
       }
-    };
-  }, [isTitleEditing]);
+      body.dataset.transcriptEditing = "true";
+      return;
+    }
+
+    // cleanup: restore previous value
+    if (previousTranscriptEditingValueRef.current === undefined) {
+      delete body.dataset.transcriptEditing;
+    } else {
+      body.dataset.transcriptEditing = previousTranscriptEditingValueRef.current;
+    }
+    previousTranscriptEditingValueRef.current = undefined;
+  }, [isTitleEditing, isSummaryEditing, isNotesEditing]);
 
   // When autoFocus is true (e.g., after creating a new chapter), start editing immediately
   // This should work even if isTranscriptEditing is currently false
@@ -201,12 +210,22 @@ export function ChapterHeader({
     setIsSummaryEditing(false);
   };
 
+  const handleSummaryCancel = () => {
+    setSummaryDraft(chapter.summary ?? "");
+    setIsSummaryEditing(false);
+  };
+
   const handleNotesCommit = () => {
     const nextNotes = notesDraft.trim();
     const nextValue = nextNotes === "" ? undefined : nextNotes;
     if (nextValue !== chapter.notes) {
       onUpdateChapter(chapter.id, { notes: nextValue });
     }
+    setIsNotesEditing(false);
+  };
+
+  const handleNotesCancel = () => {
+    setNotesDraft(chapter.notes ?? "");
     setIsNotesEditing(false);
   };
 
@@ -225,6 +244,18 @@ export function ChapterHeader({
     event.stopPropagation();
     startTitleEdit();
   };
+
+  const startSummaryEdit = useCallback(() => {
+    setExpanded(true);
+    setIsSummaryEditing(true);
+    ignoreNextSummaryBlurRef.current = true;
+  }, []);
+
+  const startNotesEdit = useCallback(() => {
+    setExpanded(true);
+    setIsNotesEditing(true);
+    ignoreNextNotesBlurRef.current = true;
+  }, []);
 
   const handleHeaderClick = () => {
     onOpen();
@@ -531,14 +562,68 @@ export function ChapterHeader({
               )}
             </div>
             {isSummaryEditing ? (
-              <Textarea
-                ref={summaryRef}
-                value={summaryDraft}
-                onChange={(event) => setSummaryDraft(event.target.value)}
-                onBlur={handleSummaryCommit}
-                rows={2}
-                aria-label="Chapter summary"
-              />
+              <div
+                className="flex items-start gap-2"
+                onClick={(e) => e.stopPropagation()}
+                role="group"
+                aria-label="Edit chapter summary"
+              >
+                <Textarea
+                  ref={summaryRef}
+                  value={summaryDraft}
+                  onChange={(event) => setSummaryDraft(event.target.value)}
+                  onBlur={() => {
+                    if (ignoreNextSummaryBlurRef.current) {
+                      ignoreNextSummaryBlurRef.current = false;
+                      requestAnimationFrame(() => summaryRef.current?.focus());
+                      return;
+                    }
+                    handleSummaryCommit();
+                  }}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleSummaryCommit();
+                      return;
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      handleSummaryCancel();
+                    }
+                  }}
+                  rows={2}
+                  aria-label="Chapter summary"
+                />
+                <div className="flex flex-col gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={() => (ignoreNextSummaryBlurRef.current = true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSummaryCommit();
+                    }}
+                    aria-label="Save summary"
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={() => (ignoreNextSummaryBlurRef.current = true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSummaryCancel();
+                    }}
+                    aria-label="Cancel edit"
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div
                 className={cn(
@@ -552,6 +637,12 @@ export function ChapterHeader({
                 onClick={() => {
                   if (!isTranscriptEditing) return;
                   setIsSummaryEditing(true);
+                  requestAnimationFrame(() => summaryRef.current?.focus());
+                }}
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  startSummaryEdit();
                   requestAnimationFrame(() => summaryRef.current?.focus());
                 }}
                 onKeyDown={(event) => {
@@ -585,14 +676,68 @@ export function ChapterHeader({
               )}
             </div>
             {isNotesEditing ? (
-              <Textarea
-                ref={notesRef}
-                value={notesDraft}
-                onChange={(event) => setNotesDraft(event.target.value)}
-                onBlur={handleNotesCommit}
-                rows={3}
-                aria-label="Chapter notes"
-              />
+              <div
+                className="flex items-start gap-2"
+                onClick={(e) => e.stopPropagation()}
+                role="group"
+                aria-label="Edit chapter notes"
+              >
+                <Textarea
+                  ref={notesRef}
+                  value={notesDraft}
+                  onChange={(event) => setNotesDraft(event.target.value)}
+                  onBlur={() => {
+                    if (ignoreNextNotesBlurRef.current) {
+                      ignoreNextNotesBlurRef.current = false;
+                      requestAnimationFrame(() => notesRef.current?.focus());
+                      return;
+                    }
+                    handleNotesCommit();
+                  }}
+                  onKeyDown={(event) => {
+                    event.stopPropagation();
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      handleNotesCommit();
+                      return;
+                    }
+                    if (event.key === "Escape") {
+                      event.preventDefault();
+                      handleNotesCancel();
+                    }
+                  }}
+                  rows={3}
+                  aria-label="Chapter notes"
+                />
+                <div className="flex flex-col gap-1">
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={() => (ignoreNextNotesBlurRef.current = true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNotesCommit();
+                    }}
+                    aria-label="Save notes"
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <Check className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    onMouseDown={() => (ignoreNextNotesBlurRef.current = true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleNotesCancel();
+                    }}
+                    aria-label="Cancel edit"
+                    className="h-8 w-8 shrink-0"
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              </div>
             ) : (
               <div
                 className={cn(
@@ -606,6 +751,12 @@ export function ChapterHeader({
                 onClick={() => {
                   if (!isTranscriptEditing) return;
                   setIsNotesEditing(true);
+                  requestAnimationFrame(() => notesRef.current?.focus());
+                }}
+                onDoubleClick={(event) => {
+                  event.preventDefault();
+                  event.stopPropagation();
+                  startNotesEdit();
                   requestAnimationFrame(() => notesRef.current?.focus());
                 }}
                 onKeyDown={(event) => {
