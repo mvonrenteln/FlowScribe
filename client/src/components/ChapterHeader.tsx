@@ -1,4 +1,4 @@
-import { ChevronDown, Edit2, MoreHorizontal, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Edit2, MoreVertical, Plus, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -43,6 +43,8 @@ export function ChapterHeader({
   const titleInputRef = useRef<HTMLInputElement>(null);
   const focusFrameRef = useRef<number | null>(null);
   const ignoreNextTitleBlurRef = useRef(false);
+  const [isHovered, setIsHovered] = useState(false);
+  const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
 
   const [summaryDraft, setSummaryDraft] = useState(chapter.summary ?? "");
   const [isSummaryEditing, setIsSummaryEditing] = useState(false);
@@ -197,10 +199,6 @@ export function ChapterHeader({
     onUpdateChapter(chapter.id, { tags: nextTags.length ? nextTags : undefined });
   };
 
-  const handleManualRenameSelect = () => {
-    requestAnimationFrame(() => startTitleEdit());
-  };
-
   const handleTitleDoubleClick = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
@@ -236,8 +234,9 @@ export function ChapterHeader({
         {/* Title area - separate from collapsible trigger */}
         <div
           className="flex-1 min-w-0 cursor-pointer"
-          onClick={handleHeaderClick}
+          onClick={isTitleEditing ? undefined : handleHeaderClick}
           onKeyDown={(event) => {
+            if (isTitleEditing) return;
             if (event.key === "Enter" || event.key === " ") {
               event.preventDefault();
               handleHeaderClick();
@@ -247,28 +246,59 @@ export function ChapterHeader({
           tabIndex={0}
         >
           {isTitleEditing ? (
-            <Input
-              ref={titleInputRef}
-              id={`chapter-title-${chapter.id}`}
-              value={titleDraft}
-              onChange={(event) => setTitleDraft(event.target.value)}
-              onBlur={handleTitleBlur}
-              onClick={(event) => event.stopPropagation()}
-              onKeyDown={(event) => {
-                event.stopPropagation();
-                if (event.key === "Enter") {
-                  event.preventDefault();
+            <div
+              className="flex items-center gap-2"
+              onClick={(e) => e.stopPropagation()}
+              onKeyDown={(e) => e.stopPropagation()}
+              role="group"
+              aria-label="Edit chapter title"
+            >
+              <Input
+                ref={titleInputRef}
+                id={`chapter-title-${chapter.id}`}
+                value={titleDraft}
+                onChange={(event) => setTitleDraft(event.target.value)}
+                onBlur={handleTitleBlur}
+                onKeyDown={(event) => {
+                  event.stopPropagation();
+                  if (event.key === "Enter") {
+                    event.preventDefault();
+                    commitTitle();
+                    return;
+                  }
+                  if (event.key === "Escape") {
+                    event.preventDefault();
+                    handleTitleCancel();
+                  }
+                }}
+                className="text-lg font-semibold leading-tight tracking-tight flex-1"
+                aria-label="Chapter title"
+              />
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
                   commitTitle();
-                  return;
-                }
-                if (event.key === "Escape") {
-                  event.preventDefault();
+                }}
+                aria-label="Save chapter title"
+                className="h-8 w-8 shrink-0"
+              >
+                <Check className="h-4 w-4" />
+              </Button>
+              <Button
+                size="icon"
+                variant="ghost"
+                onClick={(e) => {
+                  e.stopPropagation();
                   handleTitleCancel();
-                }
-              }}
-              className="text-lg font-semibold leading-tight tracking-tight"
-              aria-label="Chapter title"
-            />
+                }}
+                aria-label="Cancel edit"
+                className="h-8 w-8 shrink-0"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
           ) : (
             <div className="flex flex-col gap-1">
               <div className="flex items-center gap-2">
@@ -280,123 +310,121 @@ export function ChapterHeader({
                 >
                   {chapter.title}
                 </span>
-                {/* Edit button - visible on hover */}
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(event) => {
-                    event.stopPropagation();
-                    startTitleEdit();
-                  }}
-                  aria-label="Edit chapter title"
-                  data-testid={`button-edit-chapter-title-${chapter.id}`}
-                >
-                  <Edit2 className="h-3 w-3" />
-                </Button>
+                {/* Options menu - visible on hover */}
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(event) => event.stopPropagation()}
+                      aria-label="Chapter options"
+                      data-testid={`button-chapter-options-${chapter.id}`}
+                    >
+                      <MoreVertical className="h-4 w-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="text-xs">
+                    <DropdownMenuItem
+                      className="py-1.5 text-xs"
+                      onSelect={() => {
+                        startTitleEdit();
+                      }}
+                      data-testid={`menu-edit-chapter-${chapter.id}`}
+                    >
+                      <Edit2 className="h-3 w-3 mr-2" />
+                      Edit title
+                    </DropdownMenuItem>
+                    <DropdownMenuItem
+                      className="py-1.5 text-xs text-destructive"
+                      onSelect={() => onDeleteChapter(chapter.id)}
+                      data-testid={`menu-delete-chapter-${chapter.id}`}
+                    >
+                      <Trash2 className="h-3 w-3 mr-2" />
+                      Delete chapter
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              {chapterTagInfo.length > 0 && (
-                <div className="mt-1 flex flex-wrap gap-1 text-muted-foreground">
+              {/* Tags section with hover behavior like segments */}
+              {(chapterTagInfo.length > 0 || isHovered) && (
+                <div
+                  className="mt-1 flex items-center gap-1.5"
+                  onMouseEnter={() => setIsHovered(true)}
+                  onMouseLeave={() => setIsHovered(false)}
+                  data-testid={`chapter-tags-${chapter.id}`}
+                  role="group"
+                  aria-label="Chapter tags"
+                >
                   {chapterTagInfo.map((info) => (
                     <Badge
                       key={info.id}
                       variant="secondary"
-                      className="text-[10px] px-2 py-0.5 flex items-center gap-1"
+                      className="text-[10px] px-2 py-0.5 flex items-center gap-1.5 group/tag"
                       style={
                         info.color
                           ? { borderLeftWidth: "3px", borderLeftColor: info.color }
                           : undefined
                       }
+                      onMouseEnter={() => setHoveredTagId(info.id)}
+                      onMouseLeave={() => setHoveredTagId(null)}
                     >
                       <span className="truncate">{info.name}</span>
-                      {isTranscriptEditing && (
-                        <button
-                          type="button"
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            handleRemoveTag(info.id);
-                          }}
-                          aria-label={`Remove tag ${info.name}`}
-                          className="h-3 w-3 rounded-full text-muted-foreground transition-opacity hover:text-destructive"
-                        >
-                          <X className="h-3 w-3" />
-                        </button>
-                      )}
+                      <button
+                        type="button"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleRemoveTag(info.id);
+                        }}
+                        onFocus={() => setHoveredTagId(info.id)}
+                        onBlur={() => setHoveredTagId(null)}
+                        className={`transition-opacity ${hoveredTagId === info.id ? "opacity-100" : "opacity-0"} w-3`}
+                        aria-label={`Remove tag ${info.name}`}
+                      >
+                        <X className="h-3 w-3" />
+                      </button>
                     </Badge>
                   ))}
+                  {/* Add Tag Button */}
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className={`h-6 w-6 flex-shrink-0 transition-opacity ${isHovered ? "opacity-100" : "opacity-0"}`}
+                        disabled={availableTags.length === 0}
+                        data-testid={`button-add-tag-${chapter.id}`}
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Plus className="h-3 w-3" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
+                      {availableTags.map((tag) => (
+                        <DropdownMenuItem
+                          key={tag.id}
+                          className="py-1.5 text-xs"
+                          onSelect={() => handleAddTag(tag.id)}
+                        >
+                          <div
+                            className="w-2 h-2 rounded-full mr-2"
+                            style={{ backgroundColor: tag.color }}
+                          />
+                          {tag.name}
+                        </DropdownMenuItem>
+                      ))}
+                      {availableTags.length === 0 && (
+                        <div className="px-2 py-1.5 text-xs text-muted-foreground">
+                          No tags available
+                        </div>
+                      )}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
                 </div>
               )}
             </div>
           )}
         </div>
-
-        {/* Actions - always visible when isTranscriptEditing */}
-        {isTranscriptEditing && (
-          <div className="flex items-center gap-1.5">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Add chapter tag"
-                  disabled={availableTags.length === 0}
-                >
-                  <Plus className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="max-h-64 overflow-auto p-1 text-xs">
-                {availableTags.map((tag) => (
-                  <DropdownMenuItem
-                    key={tag.id}
-                    className="py-1.5 text-xs"
-                    onSelect={() => handleAddTag(tag.id)}
-                  >
-                    <div
-                      className="w-2 h-2 rounded-full mr-2"
-                      style={{ backgroundColor: tag.color }}
-                    />
-                    {tag.name}
-                  </DropdownMenuItem>
-                ))}
-                {availableTags.length === 0 && (
-                  <div className="px-2 py-1.5 text-xs text-muted-foreground">No tags available</div>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  aria-label="Chapter options"
-                  className="h-6 w-6 text-muted-foreground"
-                  data-testid={`button-chapter-options-${chapter.id}`}
-                >
-                  <MoreHorizontal className="h-3 w-3" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="text-xs">
-                <DropdownMenuItem
-                  className="py-1.5 text-xs"
-                  onSelect={handleManualRenameSelect}
-                  data-testid={`menu-rename-chapter-${chapter.id}`}
-                >
-                  <Edit2 className="h-3 w-3 mr-2" />
-                  Rename chapter
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="text-destructive"
-              onClick={() => onDeleteChapter(chapter.id)}
-              aria-label={`Delete chapter ${chapter.title}`}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
       </div>
       <CollapsibleContent>
         <div className="pl-7 pb-4 space-y-3 text-sm">
