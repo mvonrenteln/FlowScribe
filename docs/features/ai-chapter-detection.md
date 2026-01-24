@@ -81,38 +81,38 @@ includeEditorNotes = false;
 
 ## Part A: Manual Chapter Management
 
-You can add, edit, and delete chapters at any time — independent of AI.
+Manual chapters are structural markers that require an intentional action; the UI stays quiet until you explicitly request a change.
 
-### Add a chapter
+### Chapter creation: Start Chapter Here
 
-1. **Click a segment** in the transcript view
-2. **Open the segment context menu** (right click or ⋮ button)
-3. **Select “Start Chapter Here”**
-4. **Name the chapter** and optionally add `tags`
-5. ✅ The chapter starts at this segment
+1. **Open a segment’s context menu** (right click or ⋮ while in edit mode).
+2. **Choose “Start Chapter Here.”** The app inserts a chapter marker right before the selected segment.
+3. **“New Chapter” appears above the segment** with the placeholder title already selected.
+4. **The header takes focus** so you can immediately type a title without touching a modal or extra menu.
+5. ✅ The chapter exists instantly; you’re already inline editing it.
 
-### Edit a chapter
+### Inline chapter editing (Edit Mode only)
 
-1. **Focus a chapter header** in the transcript timeline.
-2. **Click the Edit button** (pencil; visible only when the header is focused) to open the chapter edit menu.
-3. **Edit:**
-   - Title
-   - Summary (optional; one sentence)
-   - Notes (optional)
-   - Tags (optional)
-4. ✅ Changes are saved immediately (with Undo/Redo)
+- **Edit Mode gate:** Title, summary, notes, and tag changes are only enabled while `document.body.dataset.transcriptEditing === "true"`; this keeps navigation, playback, and selection stable while you type.
+- **Title:** Click the title to edit it in place. Enter or blur commits (whitespace is trimmed) and Esc cancels. There is no separate edit button or popover.
+- **Summary & notes:** Expand the collapsible header to view metadata. In edit mode, clicking either block turns it into a textarea that saves on blur; Esc cancels. Collapse the header to hide the extra text when you’re reading.
+- **Selection:** Clicking the header still selects the chapter so you keep playback/scroll in sync.
 
-**Also:** When you choose **“Start Chapter Here”** from a segment menu, the chapter edit menu opens anchored to that segment.
+### Chapter deletion
 
-### Delete a chapter
+- A delete icon appears directly on the chapter header while you remain in edit mode.
+- Clicking it removes only the chapter marker; segments remain where they are and Undo restores the boundary.
+- There is no modal confirmation – deletion is a structural command, not text editing.
 
-- **In the chapter edit menu:** Click **Delete Chapter**
-- ⚠️ This deletes only the chapter; segments remain unchanged
-- ↩️ Undo to revert
+### Chapter tags
+
+- Tags live on the header and are rendered as quiet chips (still visible when collapsed and expanded).
+- In edit mode, a tiny `+` button sits next to the chips. It opens a local tag selector/popover that mirrors the section tag picker so the behavior stays familiar.
+- While editing, each chip exposes a remove control; in reading mode the chips stay muted and don’t steal space.
 
 ### Floating Chapter Outline Panel
 
-The **Chapter Outline Panel** next to the transcript editor:
+The **Chapter Outline Panel** beside the transcript editor continues to provide orientation without edit controls:
 
 ```
 ┌──────────────────────┐

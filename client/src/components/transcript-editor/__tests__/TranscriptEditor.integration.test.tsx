@@ -173,6 +173,8 @@ describe("TranscriptEditor integration", () => {
   beforeEach(() => {
     resetStore();
     waveSurferMock.handlers.clear();
+    // Clean up any leftover transcriptEditing flag from previous tests
+    delete document.body.dataset.transcriptEditing;
   });
 
   it("renders segments from the store", async () => {
@@ -202,7 +204,7 @@ describe("TranscriptEditor integration", () => {
     });
   });
 
-  it("opens the chapter edit menu when starting a chapter", async () => {
+  it("starts inline chapter editing when starting a chapter", async () => {
     const user = userEvent.setup();
     useTranscriptStore.setState({
       segments: [
@@ -222,22 +224,91 @@ describe("TranscriptEditor integration", () => {
       speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
     });
 
-    render(<TranscriptEditor />);
+    document.body.dataset.transcriptEditing = "true";
+    try {
+      render(<TranscriptEditor />);
 
-    await user.click(screen.getByTestId("button-segment-menu-segment-1"));
-    await user.click(screen.getByText("Start Chapter Here"));
+      await user.click(screen.getByTestId("button-segment-menu-segment-1"));
+      await user.click(screen.getByText("Start Chapter Here"));
 
-    await waitFor(() => {
-      expect(useTranscriptStore.getState().chapters).toHaveLength(1);
-      expect(useTranscriptStore.getState().selectedChapterId).not.toBeNull();
-      expect((window as { __chapterEditTarget?: unknown }).__chapterEditTarget).toBeDefined();
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().chapters).toHaveLength(1);
+        expect(useTranscriptStore.getState().selectedChapterId).not.toBeNull();
+      });
+
+      const createdChapterId = useTranscriptStore.getState().selectedChapterId;
+      expect(createdChapterId).not.toBeNull();
+      await screen.findByTestId(`chapter-header-${createdChapterId}`);
+
+      const titleInput = await screen.findByLabelText("Chapter title");
+      expect(titleInput).toHaveValue("New Chapter");
+      await waitFor(() => {
+        expect(titleInput).toHaveFocus();
+      });
+
+      await user.clear(titleInput);
+      await user.type(titleInput, "Narrative Intro");
+      await user.keyboard("{Enter}");
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().chapters[0]?.title).toBe("Narrative Intro");
+      });
+    } finally {
+      delete document.body.dataset.transcriptEditing;
+    }
+  });
+
+  it("opens the chapter rename menu to edit existing titles", async () => {
+    const user = userEvent.setup();
+    const chapterId = "chapter-rename";
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "First segment",
+          words: [],
+          tags: [],
+        },
+      ],
+      chapters: [
+        {
+          id: chapterId,
+          title: "Initial Chapter",
+          summary: undefined,
+          notes: undefined,
+          tags: undefined,
+          startSegmentId: "segment-1",
+          endSegmentId: "segment-1",
+          segmentCount: 1,
+          createdAt: Date.now(),
+          source: "manual",
+        },
+      ],
+      selectedChapterId: chapterId,
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
     });
 
-    expect(screen.getByText("New Chapter")).toBeInTheDocument();
+    document.body.dataset.transcriptEditing = "true";
+    try {
+      render(<TranscriptEditor />);
 
-    const titleInput = await screen.findByLabelText("Title");
-    expect(titleInput).toBeVisible();
-    expect(titleInput).toHaveValue("New Chapter");
+      const actionButton = await screen.findByTestId(`button-chapter-options-${chapterId}`);
+      await user.click(actionButton);
+
+      const renameItem = await screen.findByTestId(`menu-rename-chapter-${chapterId}`);
+      await user.click(renameItem);
+
+      const titleInput = await screen.findByLabelText("Chapter title");
+      expect(titleInput).toHaveValue("Initial Chapter");
+      await waitFor(() => {
+        expect(titleInput).toHaveFocus();
+      });
+    } finally {
+      delete document.body.dataset.transcriptEditing;
+    }
   });
 
   it("renders inline merge suggestions between segments", async () => {

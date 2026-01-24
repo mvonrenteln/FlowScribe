@@ -51,36 +51,23 @@
     - [ ] Rationale: `O` = “Outline” (common in editors)
   - [ ] Tests: user interactions, store dispatch
 
-- [ ] **2.2 Create ChapterEditMenu Component**
-  - [ ] Create `client/src/components/ChapterEditMenu.tsx`
-  - [ ] Popover anchored to chapter header or segment
-  - [ ] Fields: title, summary, notes, tags
-  - [ ] Delete action
-  - [ ] No focus trap, no backdrop
-  - [ ] Tests: edit flows, delete
-
-- [ ] **2.3 Create ChapterHeader Component**
-  - [ ] Create `client/src/components/ChapterHeader.tsx`
-  - [ ] Use Radix `Collapsible` (canonical chapter header UX)
-  - [ ] Collapsed: chapter title + tags badges (no meta text)
-  - [ ] Expanded: `summary` first, then `notes`
-  - [ ] Click → focus chapter in store
-  - [ ] Edit icon (visible on focus) → opens ChapterEditMenu
-  - [ ] Tests: rendering, click handlers
-
-- [ ] **2.4 Segment Menu Integration**
-  - [ ] Add "Start Chapter Here" to segment context menu
-  - [ ] Do not add a dedicated shortcut (too infrequent); optional future Command Palette entry
-  - [ ] Triggers `chapterSlice.startChapter()` with segment ID
-  - [ ] Auto-opens ChapterEditMenu anchored to the segment
-  - [ ] Tests: menu rendering, action dispatch
-
-- [ ] **2.5 TranscriptEditor Integration**
-  - [ ] Update `client/src/components/TranscriptEditor.tsx`
-  - [ ] Render `ChapterHeader` before segment if segment starts chapter
-  - [ ] Render `ChaptersOutlinePanel` as non-modal overlay
-  - [ ] Handle outline panel toggle state (UI store or local)
-  - [ ] Tests: chapter rendering, outline toggle
+- [ ] **2.2 Simplify Chapter Header UX**
+  - [ ] Keep `ChapterHeader` but move all editing inline (title, summary, notes, tags)
+  - [ ] Title becomes an `<Input>` when focused; Enter/blur commits, Esc cancels
+  - [ ] Summary and notes expand inline (textarea) only in edit mode
+  - [ ] Delete action is a compact button directly on the header (edit mode only)
+  - [ ] Tags are chips with inline remove controls and a local `+` trigger that opens the segment-style tag selector
+  - [ ] Tests: inline editing, deletion, inline tag management
+- [ ] **2.3 Segment Menu Integration**
+  - [ ] “Start Chapter Here” stays inside the segment context menu
+  - [ ] Action inserts a chapter header, then instantly requests inline title focus with the placeholder selected
+  - [ ] No popovers: focus is handled via `ChapterHeader` props (e.g., `autoFocus`)
+  - [ ] Tests: creation + auto-focus behavior, edit-mode gating via `document.body.dataset.transcriptEditing`
+- [ ] **2.4 TranscriptEditor Integration**
+  - [ ] Continue rendering headers before the segments that start them
+  - [ ] Replace `chapterEditTarget` popover state with a minimal inline focus request prop
+  - [ ] Outline panel toggle/state history remains untouched
+  - [ ] Tests: chapter rendering + inline focus behavior
 
 ---
 
@@ -101,7 +88,7 @@
 
 - [ ] **3.3 Tag System Integration**
   - [ ] Verify `Chapter.tags` stores existing `Tag.id` values
-  - [ ] ChapterEditMenu shows available tags in multi-select
+  - [ ] Inline ChapterHeader tag UI mirrors segment tag picker (chips with remove + local `+` selector)
   - [ ] UI displays tags as compact badges in collapsed ChapterHeader
   - [ ] Test: assign/change tags
 

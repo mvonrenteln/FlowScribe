@@ -44,8 +44,9 @@ function TranscriptListComponent({
   onSelectChapter,
   onUpdateChapter,
   onDeleteChapter,
-  chapterEditTarget,
-  onCloseChapterEditMenu,
+  chapterFocusRequest,
+  onChapterFocusRequestHandled,
+  isTranscriptEditing,
 }: TranscriptListProps) {
   // Get tags and tag operations from store
   const tags = useTranscriptStore((s) => s.tags);
@@ -144,9 +145,7 @@ function TranscriptListComponent({
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;
             const chapter = chapterByStartId.get(segment.id);
-            const isChapterEditTarget = chapter
-              ? chapterEditTarget?.chapterId === chapter.id
-              : false;
+            const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
             return (
               <Fragment key={segment.id}>
                 {chapter && (
@@ -157,10 +156,9 @@ function TranscriptListComponent({
                     onOpen={() => onSelectChapter?.(chapter.id)}
                     onUpdateChapter={onUpdateChapter}
                     onDeleteChapter={onDeleteChapter}
-                    editOpen={isChapterEditTarget}
-                    onEditOpenChange={(open) => {
-                      if (!open) onCloseChapterEditMenu?.({ allowImmediateClose: false });
-                    }}
+                    isTranscriptEditing={isTranscriptEditing}
+                    autoFocus={isChapterFocusTarget}
+                    onAutoFocusHandled={onChapterFocusRequestHandled}
                   />
                 )}
                 <TranscriptSegment

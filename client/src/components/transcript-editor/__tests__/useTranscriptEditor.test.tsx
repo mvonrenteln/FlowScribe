@@ -241,7 +241,7 @@ describe("useTranscriptEditor", () => {
     });
   });
 
-  it("opens chapter editing state after starting a chapter", async () => {
+  it("requests inline chapter focus after starting a chapter", async () => {
     act(() => {
       useTranscriptStore.setState({
         segments: [
@@ -270,14 +270,13 @@ describe("useTranscriptEditor", () => {
 
     await waitFor(() => {
       expect(useTranscriptStore.getState().chapters).toHaveLength(1);
-      expect(result.current.transcriptListProps.chapterEditTarget).toEqual({
-        chapterId: useTranscriptStore.getState().chapters[0]?.id,
-        anchorSegmentId: "segment-1",
-      });
+      expect(result.current.transcriptListProps.chapterFocusRequest).toBe(
+        useTranscriptStore.getState().chapters[0]?.id,
+      );
     });
   });
 
-  it("does not immediately reopen the chapter editor after the user closes it", async () => {
+  it("clears the chapter focus request once the header handles it", async () => {
     act(() => {
       useTranscriptStore.setState({
         segments: [
@@ -302,15 +301,15 @@ describe("useTranscriptEditor", () => {
     });
 
     await waitFor(() => {
-      expect(result.current.transcriptListProps.chapterEditTarget).not.toBeNull();
+      expect(result.current.transcriptListProps.chapterFocusRequest).not.toBeNull();
     });
 
     act(() => {
-      result.current.transcriptListProps.onCloseChapterEditMenu?.();
+      result.current.transcriptListProps.onChapterFocusRequestHandled?.();
     });
 
     await waitFor(() => {
-      expect(result.current.transcriptListProps.chapterEditTarget).toBeNull();
+      expect(result.current.transcriptListProps.chapterFocusRequest).toBeNull();
     });
   });
 });

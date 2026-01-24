@@ -293,28 +293,9 @@ interface ChaptersOutlinePanelProps {
   - macOS: `Cmd+Shift+O`
   - Windows/Linux: `Ctrl+Shift+O`
 
-### 4.2 ChapterEditMenu
+### 4.2 ChapterHeader
 
-**Location:** Anchored popover on chapter header or segment (Start Chapter Here)
-
-**Props:**
-```typescript
-interface ChapterEditMenuProps {
-  chapter: Chapter;
-  tags: Tag[];
-  onUpdateChapter: (id: string, updates: ChapterUpdate) => void;
-  onDeleteChapter: (id: string) => void;
-}
-```
-
-**Renders:**
-- Title, summary, notes, tags
-- Delete action
-- Non-modal popover, no focus trap, no backdrop
-
-### 4.3 ChapterHeader
-
-**Location:** Inline in TranscriptEditor, between segments
+**Location:** Inline between segments in the transcript list (just like before, between the segment that starts the chapter and the next segment).
 
 **Props:**
 ```typescript
@@ -322,27 +303,25 @@ interface ChapterHeaderProps {
   chapter: Chapter;
   tags: Tag[];
   isSelected: boolean;
-  onSelect: () => void;  // Select chapter in store
+  onOpen: () => void; // Selects chapter
   onUpdateChapter: (id: string, updates: ChapterUpdate) => void;
   onDeleteChapter: (id: string) => void;
+  /** Auto-focus requests originate from Start Chapter Here */
+  autoFocus?: boolean;
+  onAutoFocusHandled?: () => void;
 }
 ```
 
-**Renders:**
-```
-─────────────────────────────────────
-📖 Chapter 2: Core Concepts
-[KEEP] [TODO]
-(Collapsed) Title + tags only
-(Expanded) Summary (first), notes (second)
-─────────────────────────────────────
-```
+**Behavior:**
+- The header renders as a Radix `Collapsible`. Collapsed state shows only the title + tag chips, while expanded state reveals `summary` first and `notes` second, in a low-visibility panel.
+- Title editing happens inline: click the title while `document.body.dataset.transcriptEditing === "true"` or when a focus request is issued (e.g., after Start Chapter Here). An `<Input>` replaces the label; Enter/blur commits with trimmed text, Esc cancels.
+- Summary and notes each become inline `<Textarea>` editors when clicked (also limited to Edit Mode). The textareas auto-save on blur/Enter and keep metadata hidden when collapsed.
+- Tags render as compact `<Badge>` chips. While in edit mode, chips expose a remove control and a `+` trigger opens a local dropdown selector (mirroring the segment tag picker) to add tags.
+- A delete icon (ghost button with `Trash2`) is visible only while editing, letting you drop the chapter without a confirmation modal; the rest of the content remains untouched.
+- Auto-focus requests satisfy the `autoFocus` prop: the header switches to title edit state, selects the placeholder, and then calls `onAutoFocusHandled` to clear the request. This keeps “Start Chapter Here” behavior immediate and modal-free.
 
-Click on chapter header → Select chapter in store
-
-Edit button → Opens ChapterEditMenu (visible only on focus)
-
-**Canonical behavior:** The chapter header is a Collapsible (Radix `Collapsible`). Meta (`summary`/`notes`) is hidden by default to keep the timeline readable.
+**Canonical behavior:**
+- Chapters stay visually quiet: metadata is tucked behind the collapsible, edit controls appear only when Edit Mode is activated, and structural actions (create/delete/tag) happen through explicit buttons next to the header.
 
 ### 4.3 ChapterDetectionPanel
 
@@ -382,14 +361,9 @@ Right-click segment:
 ```typescript
 onStartNewChapter = () => {
   const segmentId = this.props.segment.id;
-  store.chapter.startChapter(
-    "New Chapter",  // Default title (user edits in menu)
-    segmentId
-  );
-  // Open ChapterEditMenu anchored to the segment
-  const chapterId = store.getState().selectedChapterId;
+  const chapterId = store.chapter.startChapter("New Chapter", segmentId);
   if (chapterId) {
-    ui.openChapterEditMenu({ chapterId, anchorSegmentId: segmentId });
+    ui.requestChapterInlineFocus(chapterId); // header focuses inline title + selects placeholder
   }
 };
 ```
@@ -634,7 +608,7 @@ const chapterValidationRules: ValidationRule<ChapterSuggestion>[] = [
 ## 10. Implementation Sequence
 
 1. Define types & store slices (chapterSlice + aiChapterDetectionSlice)
-2. Create Chapter management UI (ChaptersOutlinePanel, ChapterEditMenu, ChapterHeader, segment menu integration)
+2. Create Chapter management UI (ChaptersOutlinePanel, inline ChapterHeader, segment menu integration)
 3. Implement manual chapter CRUD
 4. Create ChapterDetectionPanel UI (configuration section)
 5. Implement batch utility functions (slicing, mapping, overlap)

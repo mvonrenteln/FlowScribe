@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
@@ -104,11 +104,6 @@ export const useTranscriptEditor = () => {
   const updateChapter = useTranscriptStore((state) => state.updateChapter);
   const deleteChapter = useTranscriptStore((state) => state.deleteChapter);
   const selectChapter = useTranscriptStore((state) => state.selectChapter);
-  // Remember the last chapter edit popover the user dismissed to avoid auto-reopening it.
-  const dismissedChapterEditIdRef = useRef<string | null>(null);
-  const suppressChapterEditCloseRef = useRef(false);
-  const suppressChapterEditCloseTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-
   const {
     sidebarOpen,
     toggleSidebar,
@@ -139,8 +134,6 @@ export const useTranscriptEditor = () => {
     editRequestId,
     setEditRequestId,
     handleClearEditRequest,
-    chapterEditTarget,
-    setChapterEditTarget,
   } = useTranscriptUIState();
 
   const {
@@ -200,7 +193,6 @@ export const useTranscriptEditor = () => {
   const canRedoChecked = canRedo();
   const canCreateRevision = segments.length > 0;
   const waveSegmentsRef = useRef<typeof segments>(segments);
-  const pendingChapterAnchorRef = useRef<string | null>(null);
 
   const waveformSegments = useMemo(() => {
     const prev = waveSegmentsRef.current;
@@ -242,6 +234,7 @@ export const useTranscriptEditor = () => {
     () => document.body?.dataset.transcriptEditing === "true",
     [],
   );
+  const isTranscriptEditingActive = isTranscriptEditing();
 
   const {
     effectiveSpellcheckLanguages,
@@ -500,101 +493,22 @@ export const useTranscriptEditor = () => {
     [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments],
   );
 
+  const [pendingChapterFocusId, setPendingChapterFocusId] = useState<string | null>(null);
+
   const handleStartChapterAtSegment = useCallback(
     (segmentId: string) => {
-      // User explicitly requested a new chapter: clear any dismissed guard.
-      dismissedChapterEditIdRef.current = null;
-      pendingChapterAnchorRef.current = segmentId;
       const createdId = startChapter("New Chapter", segmentId);
       const resolvedId = createdId ?? useTranscriptStore.getState().selectedChapterId;
       if (resolvedId) {
-        const openEditor = () => {
-          suppressChapterEditCloseRef.current = true;
-          if (suppressChapterEditCloseTimeoutRef.current) {
-            clearTimeout(suppressChapterEditCloseTimeoutRef.current);
-          }
-          suppressChapterEditCloseTimeoutRef.current = setTimeout(() => {
-            suppressChapterEditCloseRef.current = false;
-            suppressChapterEditCloseTimeoutRef.current = null;
-          }, 200);
-          setChapterEditTarget({ chapterId: resolvedId, anchorSegmentId: segmentId });
-          if (typeof window !== "undefined") {
-            (
-              window as unknown as { __chapterEditTarget?: typeof chapterEditTarget }
-            ).__chapterEditTarget = { chapterId: resolvedId, anchorSegmentId: segmentId };
-          }
-        };
-        setTimeout(openEditor, 0);
-        pendingChapterAnchorRef.current = null;
+        setPendingChapterFocusId(resolvedId);
       }
     },
-    [setChapterEditTarget, startChapter],
+    [startChapter],
   );
 
-  const handleCloseChapterEditMenu = useCallback(
-    (options?: { allowImmediateClose?: boolean }) => {
-      const allowImmediateClose = options?.allowImmediateClose ?? true;
-      if (!allowImmediateClose && suppressChapterEditCloseRef.current) return;
-      if (chapterEditTarget) {
-        dismissedChapterEditIdRef.current = chapterEditTarget.chapterId;
-      }
-      setChapterEditTarget(null);
-    },
-    [chapterEditTarget, setChapterEditTarget],
-  );
-
-  useEffect(() => {
-    return () => {
-      if (suppressChapterEditCloseTimeoutRef.current) {
-        clearTimeout(suppressChapterEditCloseTimeoutRef.current);
-      }
-    };
+  const handleChapterFocusRequestHandled = useCallback(() => {
+    setPendingChapterFocusId(null);
   }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    if ((import.meta.env.DEV || import.meta.env.MODE === "test") && chapterEditTarget) {
-      // Expose for tests to assert chapter edit targeting without reaching into component internals.
-      (
-        window as unknown as { __chapterEditTarget?: typeof chapterEditTarget }
-      ).__chapterEditTarget = chapterEditTarget;
-    }
-  }, [chapterEditTarget]);
-
-  useEffect(() => {
-    if (
-      chapterEditTarget ||
-      !pendingChapterAnchorRef.current ||
-      !selectedChapterId ||
-      segments.length === 0
-    ) {
-      return;
-    }
-    setChapterEditTarget({
-      chapterId: selectedChapterId,
-      anchorSegmentId: pendingChapterAnchorRef.current,
-    });
-    pendingChapterAnchorRef.current = null;
-  }, [chapterEditTarget, selectedChapterId, segments.length, setChapterEditTarget]);
-
-  useEffect(() => {
-    if (chapterEditTarget || !selectedChapterId) return;
-    // If the user just dismissed this chapter's editor, don't reopen automatically.
-    if (dismissedChapterEditIdRef.current === selectedChapterId) return;
-    const startSegmentId = chapters.find(
-      (chapter) => chapter.id === selectedChapterId,
-    )?.startSegmentId;
-    if (startSegmentId) {
-      setChapterEditTarget({ chapterId: selectedChapterId, anchorSegmentId: startSegmentId });
-    }
-  }, [chapterEditTarget, chapters, selectedChapterId, setChapterEditTarget]);
-
-  useEffect(() => {
-    // Changing the selected chapter resets the dismissal guard so the new chapter can open.
-    if (selectedChapterId !== dismissedChapterEditIdRef.current) {
-      dismissedChapterEditIdRef.current = null;
-    }
-  }, [selectedChapterId]);
 
   const handleSelectChapter = useCallback(
     (chapterId: string) => {
@@ -649,115 +563,61 @@ export const useTranscriptEditor = () => {
     ],
   );
 
-  const toolbarProps = useMemo(
-    () => ({
-      sidebarOpen,
-      onToggleSidebar: toggleSidebar,
-      onAudioUpload: handleAudioUpload,
-      onTranscriptUpload: handleTranscriptUpload,
-      audioFileName: audioFile?.name,
-      transcriptFileName: transcriptRef?.name,
-      transcriptLoaded: segments.length > 0,
-      sessionKind,
-      sessionLabel,
-      activeSessionKey: sessionKey,
-      recentSessions,
-      onActivateSession: activateSession,
-      onDeleteSession: transcriptActions.deleteSession,
-      onShowRevisionDialog: () => setShowRevisionDialog(true),
-      canCreateRevision,
-      onUndo: undo,
-      onRedo: redo,
-      canUndo: canUndoChecked,
-      canRedo: canRedoChecked,
-      onShowShortcuts: () => setShowShortcuts(true),
-      onShowExport: () => setShowExport(true),
-      aiCommandPanelOpen: showAICommandPanel,
-      onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
-      chaptersOutlineOpen: showChaptersOutline,
-      onToggleChaptersOutline: () => setShowChaptersOutline((current) => !current),
-      highlightLowConfidence,
-      onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
-      confidencePopoverOpen,
-      onConfidencePopoverChange: setConfidencePopoverOpen,
-      lowConfidenceThreshold,
-      onManualConfidenceChange: (value: number) => {
-        setManualConfidenceThreshold(value);
-        setHighlightLowConfidence(true);
-      },
-      onResetConfidenceThreshold: () => setManualConfidenceThreshold(null),
-      spellcheckPopoverOpen,
-      onSpellcheckPopoverChange: setSpellcheckPopoverOpen,
-      spellcheckEnabled,
-      onToggleSpellcheck: () => setSpellcheckEnabled(!spellcheckEnabled),
-      spellcheckLanguages,
-      onSpellcheckLanguageChange: (languages: SpellcheckLanguage[]) =>
-        setSpellcheckLanguages(languages),
-      spellcheckCustomEnabled,
-      onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
-      onShowCustomDictionaries: () => setShowSettings(true),
-      spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
-      onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
-      spellcheckDebugEnabled,
-      effectiveSpellcheckLanguages,
-      spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
-      spellcheckHighlightActive: showSpellcheckMatches,
-      glossaryHighlightActive: showLexiconMatches,
-      onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
-    }),
-    [
-      sidebarOpen,
-      activateSession,
-      audioFile?.name,
-      canRedoChecked,
-      canUndoChecked,
-      effectiveSpellcheckLanguages,
-      handleAudioUpload,
-      handleTranscriptUpload,
-      highlightLowConfidence,
-      lowConfidenceThreshold,
-      recentSessions,
-      redo,
-      segments.length,
-      setHighlightLowConfidence,
-      setManualConfidenceThreshold,
-      setSpellcheckCustomEnabled,
-      setSpellcheckEnabled,
-      setSpellcheckLanguages,
-      spellcheckCustomDictionaries.length,
-      spellcheckCustomEnabled,
-      spellcheckDebugEnabled,
-      spellcheckEnabled,
-      spellcheckLanguages,
-      spellcheckers,
-      transcriptRef?.name,
-      undo,
-      toggleSidebar,
-      setShowRevisionDialog,
-      setShowShortcuts,
-      setShowExport,
-      confidencePopoverOpen,
-      setConfidencePopoverOpen,
-      spellcheckPopoverOpen,
-      setSpellcheckPopoverOpen,
-      setShowSettings,
-      setShowSpellcheckDialog,
-      showAICommandPanel,
-      setShowAICommandPanel,
-      showChaptersOutline,
-      setShowChaptersOutline,
-      showLexiconMatches,
-      showSpellcheckMatches,
-      sessionKey,
-      sessionKind,
-      sessionLabel,
-      canCreateRevision,
-      transcriptActions.deleteSession,
-      toggleHighlightLowConfidence,
-      lexiconHighlightUnderline,
-      setLexiconHighlightUnderline,
-    ],
-  );
+  const toolbarProps = {
+    sidebarOpen,
+    onToggleSidebar: toggleSidebar,
+    onAudioUpload: handleAudioUpload,
+    onTranscriptUpload: handleTranscriptUpload,
+    audioFileName: audioFile?.name,
+    transcriptFileName: transcriptRef?.name,
+    transcriptLoaded: segments.length > 0,
+    sessionKind,
+    sessionLabel,
+    activeSessionKey: sessionKey,
+    recentSessions,
+    onActivateSession: activateSession,
+    onDeleteSession: transcriptActions.deleteSession,
+    onShowRevisionDialog: () => setShowRevisionDialog(true),
+    canCreateRevision,
+    onUndo: undo,
+    onRedo: redo,
+    canUndo: canUndoChecked,
+    canRedo: canRedoChecked,
+    onShowShortcuts: () => setShowShortcuts(true),
+    onShowExport: () => setShowExport(true),
+    aiCommandPanelOpen: showAICommandPanel,
+    onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
+    chaptersOutlineOpen: showChaptersOutline,
+    onToggleChaptersOutline: () => setShowChaptersOutline((current) => !current),
+    highlightLowConfidence,
+    onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
+    confidencePopoverOpen,
+    onConfidencePopoverChange: setConfidencePopoverOpen,
+    lowConfidenceThreshold,
+    onManualConfidenceChange: (value: number) => {
+      setManualConfidenceThreshold(value);
+      setHighlightLowConfidence(true);
+    },
+    onResetConfidenceThreshold: () => setManualConfidenceThreshold(null),
+    spellcheckPopoverOpen,
+    onSpellcheckPopoverChange: setSpellcheckPopoverOpen,
+    spellcheckEnabled,
+    onToggleSpellcheck: () => setSpellcheckEnabled(!spellcheckEnabled),
+    spellcheckLanguages,
+    onSpellcheckLanguageChange: (languages: SpellcheckLanguage[]) =>
+      setSpellcheckLanguages(languages),
+    spellcheckCustomEnabled,
+    onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
+    onShowCustomDictionaries: () => setShowSettings(true),
+    spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
+    onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
+    spellcheckDebugEnabled,
+    effectiveSpellcheckLanguages,
+    spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
+    spellcheckHighlightActive: showSpellcheckMatches,
+    glossaryHighlightActive: showLexiconMatches,
+    onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
+  };
 
   const filterPanelProps = useMemo(
     () => ({
@@ -902,8 +762,9 @@ export const useTranscriptEditor = () => {
       onSelectChapter: handleSelectChapter,
       onUpdateChapter: updateChapter,
       onDeleteChapter: deleteChapter,
-      chapterEditTarget,
-      onCloseChapterEditMenu: handleCloseChapterEditMenu,
+      chapterFocusRequest: pendingChapterFocusId,
+      onChapterFocusRequestHandled: handleChapterFocusRequestHandled,
+      isTranscriptEditing: isTranscriptEditingActive,
       allMatches,
     }),
     [
@@ -911,40 +772,41 @@ export const useTranscriptEditor = () => {
       activeWordIndex,
       addLexiconEntry,
       addSpellcheckIgnoreWord,
+      allMatches,
       chapters,
-      chapterEditTarget,
       deleteChapter,
       effectiveLexiconHighlightBackground,
       effectiveLexiconHighlightUnderline,
+      editRequestId,
       emptyState,
       filteredSegments,
-      highlightLowConfidence,
+      findMatchIndex,
+      handleChapterFocusRequestHandled,
+      handleClearEditRequest,
+      handleSelectChapter,
+      handleStartChapterAtSegment,
+      isRegexSearch,
+      isTranscriptEditingActive,
       lexiconMatchesBySegment,
       lowConfidenceThreshold,
-      selectedSegmentId,
+      onMatchClick,
+      pendingChapterFocusId,
+      playback.handleSeekInternal,
+      replaceCurrent,
+      replaceQuery,
+      searchQuery,
       segmentHandlers,
       showLexiconMatches,
       showSpellcheckMatches,
-      speakers,
       spellcheckMatchesBySegment,
+      highlightLowConfidence,
       splitWordIndex,
-      transcriptListRef,
-      playback.handleSeekInternal,
+      speakers,
       selectedChapterId,
-      searchQuery,
-      isRegexSearch,
-      currentMatch,
-      replaceQuery,
-      replaceCurrent,
-      onMatchClick,
-      findMatchIndex,
-      allMatches,
-      editRequestId,
-      handleClearEditRequest,
-      handleStartChapterAtSegment,
-      handleSelectChapter,
-      handleCloseChapterEditMenu,
+      selectedSegmentId,
+      transcriptListRef,
       updateChapter,
+      currentMatch,
     ],
   );
 
