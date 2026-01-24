@@ -10,6 +10,42 @@ import { addToHistory } from "./historySlice";
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
+type ChapterReplacement =
+  | string
+  | {
+      start?: string;
+      end?: string;
+    };
+
+function remapAndFilterChapters(
+  chapters: any[],
+  replacements: Record<string, ChapterReplacement>,
+  validSegments: Segment[],
+) {
+  if (!chapters) return [];
+  const validIds = new Set(validSegments.map((s) => s.id));
+  return chapters
+    .map((ch) => {
+      if (!ch) return ch;
+      let changed = false;
+      const next = { ...ch } as any;
+      for (const [oldId, rep] of Object.entries(replacements)) {
+        if (next.startSegmentId === oldId) {
+          if (typeof rep === "string") next.startSegmentId = rep;
+          else if (rep.start) next.startSegmentId = rep.start;
+          changed = true;
+        }
+        if (next.endSegmentId === oldId) {
+          if (typeof rep === "string") next.endSegmentId = rep;
+          else if (rep.end) next.endSegmentId = rep.end;
+          changed = true;
+        }
+      }
+      return changed ? next : ch;
+    })
+    .filter((ch) => ch && validIds.has(ch.startSegmentId) && validIds.has(ch.endSegmentId));
+}
+
 export const createSegmentsSlice = (
   set: StoreSetter,
   get: StoreGetter,
@@ -366,11 +402,17 @@ export const createSegmentsSlice = (
       ...segments.slice(segmentIndex + 1),
     ];
 
+    const updatedChapters = remapAndFilterChapters(
+      chapters,
+      { [id]: { start: firstSegment.id, end: secondSegment.id } },
+      newSegments,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
-      chapters,
+      chapters: updatedChapters,
       selectedSegmentId: secondSegment.id,
       selectedChapterId,
       currentTime: secondSegment.start,
@@ -378,6 +420,7 @@ export const createSegmentsSlice = (
     });
     set({
       segments: newSegments,
+      chapters: updatedChapters,
       selectedSegmentId: secondSegment.id,
       currentTime: secondSegment.start,
       seekRequestTime: secondSegment.start,
@@ -424,11 +467,17 @@ export const createSegmentsSlice = (
       ...segments.slice(Math.max(index1, index2) + 1),
     ];
 
+    const updatedChapters = remapAndFilterChapters(
+      chapters,
+      { [first.id]: merged.id, [second.id]: merged.id },
+      newSegments,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
-      chapters,
+      chapters: updatedChapters,
       selectedSegmentId: merged.id,
       selectedChapterId,
       currentTime,
@@ -437,6 +486,7 @@ export const createSegmentsSlice = (
     set({
       segments: newSegments,
       selectedSegmentId: merged.id,
+      chapters: updatedChapters,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
@@ -498,11 +548,16 @@ export const createSegmentsSlice = (
           null)
         : selectedSegmentId;
     const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
+    // Remove chapters that referenced the deleted segment id.
+    const updatedChapters = chapters.filter(
+      (ch) => ch && ch.startSegmentId !== id && ch.endSegmentId !== id,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
-      chapters,
+      chapters: updatedChapters,
       selectedSegmentId: nextSelectedSegmentId,
       selectedChapterId,
       currentTime,
@@ -510,6 +565,7 @@ export const createSegmentsSlice = (
     });
     set({
       segments: newSegments,
+      chapters: updatedChapters,
       confidenceScoresVersion: nextConfidenceScoresVersion,
       selectedSegmentId: nextSelectedSegmentId,
       history: nextHistory.history,

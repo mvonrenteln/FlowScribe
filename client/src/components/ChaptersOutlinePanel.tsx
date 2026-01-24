@@ -44,7 +44,7 @@ export function ChaptersOutlinePanel({
   }, [onOpenChange, open]);
 
   const renderSummary = (chapter: Chapter) => {
-    const summary = (chapter as any).summary;
+    const summary = chapter.summary;
     if (!summary) return "";
     return String(summary);
   };
@@ -87,8 +87,10 @@ export function ChaptersOutlinePanel({
               )}
             >
               <div className="text-xs font-semibold truncate">{chapter.title}</div>
-              {(chapter as any).summary ? (
-                <div className="text-[11px] text-muted-foreground truncate">{renderSummary(chapter)}</div>
+              {chapter.summary ? (
+                <div className="text-[11px] text-muted-foreground truncate">
+                  {renderSummary(chapter)}
+                </div>
               ) : null}
             </button>
           ))}

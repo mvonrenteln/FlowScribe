@@ -29,7 +29,7 @@ interface ChapterHeaderProps {
 export function ChapterHeader({
   chapter,
   tags,
-  isSelected,
+  // isSelected is intentionally unused here
   onOpen,
   onUpdateChapter,
   onDeleteChapter,
@@ -264,9 +264,7 @@ export function ChapterHeader({
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded}>
       <div
-        className={cn(
-          "group relative mt-6 mb-2 flex items-start gap-3 py-3",
-        )}
+        className={cn("group relative mt-6 mb-2 flex items-start gap-3 py-3")}
         data-testid={`chapter-header-${chapter.id}`}
       >
         {/* Chevron toggle - only this triggers expand/collapse */}
@@ -276,9 +274,9 @@ export function ChapterHeader({
             className="mt-0.5 p-0.5 rounded hover:bg-muted/10 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
             aria-label={expanded ? "Collapse chapter" : "Expand chapter"}
           >
-              <ChevronDown
-                className={cn("h-4 w-4 shrink-0 transition-transform", expanded && "rotate-180")}
-              />
+            <ChevronDown
+              className={cn("h-4 w-4 shrink-0 transition-transform", expanded && "rotate-180")}
+            />
           </button>
         </CollapsibleTrigger>
 
@@ -565,6 +563,7 @@ export function ChapterHeader({
               <div
                 className="flex items-start gap-2"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 role="group"
                 aria-label="Edit chapter summary"
               >
@@ -599,7 +598,9 @@ export function ChapterHeader({
                   <Button
                     size="icon"
                     variant="ghost"
-                    onMouseDown={() => (ignoreNextSummaryBlurRef.current = true)}
+                    onMouseDown={() => {
+                      ignoreNextSummaryBlurRef.current = true;
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSummaryCommit();
@@ -612,7 +613,9 @@ export function ChapterHeader({
                   <Button
                     size="icon"
                     variant="ghost"
-                    onMouseDown={() => (ignoreNextSummaryBlurRef.current = true)}
+                    onMouseDown={() => {
+                      ignoreNextSummaryBlurRef.current = true;
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleSummaryCancel();
@@ -679,6 +682,7 @@ export function ChapterHeader({
               <div
                 className="flex items-start gap-2"
                 onClick={(e) => e.stopPropagation()}
+                onKeyDown={(e) => e.stopPropagation()}
                 role="group"
                 aria-label="Edit chapter notes"
               >
@@ -713,7 +717,9 @@ export function ChapterHeader({
                   <Button
                     size="icon"
                     variant="ghost"
-                    onMouseDown={() => (ignoreNextNotesBlurRef.current = true)}
+                    onMouseDown={() => {
+                      ignoreNextNotesBlurRef.current = true;
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleNotesCommit();
@@ -726,7 +732,9 @@ export function ChapterHeader({
                   <Button
                     size="icon"
                     variant="ghost"
-                    onMouseDown={() => (ignoreNextNotesBlurRef.current = true)}
+                    onMouseDown={() => {
+                      ignoreNextNotesBlurRef.current = true;
+                    }}
                     onClick={(e) => {
                       e.stopPropagation();
                       handleNotesCancel();
