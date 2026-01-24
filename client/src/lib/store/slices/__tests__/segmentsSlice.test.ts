@@ -115,4 +115,21 @@ describe("segmentsSlice chapter updates", () => {
     // other chapter should remain
     expect(state.chapters.find((c: Chapter) => c.id === "c2")).toBeDefined();
   });
+
+  it("keeps chapter when deleting its first segment and remaps start to next segment", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const s2: Segment = { id: "s2", start: 1, end: 2, words: [{ word: "b", start: 1, end: 2 }] };
+    const s3: Segment = { id: "s3", start: 2, end: 3, words: [{ word: "c", start: 2, end: 3 }] };
+    // chapter spans from s1 to s2; deleting s1 should keep the chapter with start->s2
+    const chapters = [{ id: "c1", startSegmentId: "s1", endSegmentId: "s2" }];
+
+    const store = makeStore([s1, s2, s3], chapters);
+    store.slice.deleteSegment("s1");
+
+    const state = store.getState();
+    const c = state.chapters.find((ch: Chapter) => ch.id === "c1");
+    expect(c).toBeDefined();
+    expect(c.startSegmentId).toBe("s2");
+    expect(c.endSegmentId).toBe("s2");
+  });
 });

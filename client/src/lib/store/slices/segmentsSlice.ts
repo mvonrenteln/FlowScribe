@@ -548,9 +548,29 @@ export const createSegmentsSlice = (
           null)
         : selectedSegmentId;
     const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
-    // Remove chapters that referenced the deleted segment id.
-    const updatedChapters = chapters.filter(
-      (ch) => ch && ch.startSegmentId !== id && ch.endSegmentId !== id,
+    // Compute replacements for chapters that referenced the deleted id:
+    // - startSegmentId -> next segment at the deleted index (becomes first)
+    // - endSegmentId -> previous segment before the deleted index
+    const deletedIndex = segments.findIndex((s) => s.id === id);
+    const startReplacement = newSegments[deletedIndex];
+    const endReplacement = newSegments[deletedIndex - 1];
+
+    // Remove chapters that only referenced the deleted segment (single-segment
+    // chapters) before attempting remap, since remapping would create
+    // inverted or empty ranges.
+    const chaptersToRemap = (chapters || []).filter(
+      (ch) => !(ch && ch.startSegmentId === id && ch.endSegmentId === id),
+    );
+
+    const updatedChapters = remapAndFilterChapters(
+      chaptersToRemap,
+      {
+        [id]: {
+          start: startReplacement?.id,
+          end: endReplacement?.id,
+        },
+      },
+      newSegments,
     );
 
     const nextHistory = addToHistory(history, historyIndex, {
