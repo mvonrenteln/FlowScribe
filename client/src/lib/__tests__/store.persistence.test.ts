@@ -216,4 +216,50 @@ describe("useTranscriptStore persistence", () => {
     expect(store.getState().audioFile).toBeNull();
     expect(store.getState().audioUrl).toBeNull();
   });
+
+  it("restores chapters, selectedChapterId and currentTime from session cache", async () => {
+    const transcriptRef = makeRef("transcript-chapters");
+    const sessionKey = buildSessionKey(null, transcriptRef);
+    const sessions = {
+      [sessionKey]: {
+        audioRef: null,
+        transcriptRef,
+        segments: [makeSegment("stored-seg")],
+        speakers: [makeSpeaker("stored-speaker")],
+        selectedSegmentId: "stored-seg",
+        selectedChapterId: "stored-chapter",
+        chapters: [
+          {
+            id: "stored-chapter",
+            title: "Stored",
+            startSegmentId: "stored-seg",
+            endSegmentId: "stored-seg",
+            segmentCount: 1,
+            createdAt: 1,
+            source: "ai",
+          },
+        ],
+        currentTime: 7,
+        isWhisperXFormat: true,
+        updatedAt: 42,
+      },
+    };
+    window.localStorage.setItem(
+      SESSIONS_STORAGE_KEY,
+      JSON.stringify({ sessions, activeSessionKey: sessionKey }),
+    );
+
+    const store = await loadStore();
+    store.getState().loadTranscript({
+      segments: [makeSegment("incoming-seg")],
+      reference: transcriptRef,
+      isWhisperXFormat: false,
+    });
+
+    const state = store.getState();
+    expect(state.chapters).toHaveLength(1);
+    expect(state.chapters[0]?.id).toBe("stored-chapter");
+    expect(state.selectedChapterId).toBe("stored-chapter");
+    expect(state.currentTime).toBe(7);
+  });
 });
