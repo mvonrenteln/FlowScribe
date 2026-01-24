@@ -235,7 +235,6 @@ export function ChapterHeader({
       <div
         className={cn(
           "group relative mt-6 mb-2 flex items-start gap-3 py-3",
-          isSelected && "text-primary",
         )}
         data-testid={`chapter-header-${chapter.id}`}
       >
@@ -243,12 +242,12 @@ export function ChapterHeader({
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="mt-0.5 p-0.5 hover:bg-accent rounded"
+            className="mt-0.5 p-0.5 rounded hover:bg-muted/10 focus-visible:ring-0 focus:ring-0 focus:outline-none"
             aria-label={expanded ? "Collapse chapter" : "Expand chapter"}
           >
-            <ChevronDown
-              className={cn("h-4 w-4 shrink-0 transition-transform", expanded && "rotate-180")}
-            />
+              <ChevronDown
+                className={cn("h-4 w-4 shrink-0 transition-transform", expanded && "rotate-180")}
+              />
           </button>
         </CollapsibleTrigger>
 
@@ -292,7 +291,7 @@ export function ChapterHeader({
                     handleTitleCancel();
                   }
                 }}
-                className="text-lg font-semibold leading-tight tracking-tight flex-1"
+                className="text-base font-medium text-foreground leading-tight tracking-tight flex-1"
                 aria-label="Chapter title"
               />
               <Button
@@ -303,7 +302,7 @@ export function ChapterHeader({
                   commitTitle();
                 }}
                 aria-label="Save chapter title"
-                className="h-8 w-8 shrink-0"
+                className="h-8 w-8 shrink-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
               >
                 <Check className="h-4 w-4" />
               </Button>
@@ -315,21 +314,24 @@ export function ChapterHeader({
                   handleTitleCancel();
                 }}
                 aria-label="Cancel edit"
-                className="h-8 w-8 shrink-0"
+                className="h-8 w-8 shrink-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
               >
                 <X className="h-4 w-4" />
               </Button>
             </div>
           ) : (
-            <div className="flex flex-col gap-1">
+            <div className="flex flex-col gap-1 pb-1 border-b border-border/10">
               <div className="flex items-center gap-2 w-full">
                 <span
                   role="button"
                   tabIndex={0}
-                  className="text-lg font-semibold leading-tight tracking-tight truncate"
+                  className={cn(
+                    "text-base font-medium leading-tight tracking-tight truncate text-foreground",
+                    !chapter.title && "text-muted-foreground italic",
+                  )}
                   onDoubleClick={handleTitleDoubleClick}
                 >
-                  {chapter.title}
+                  {chapter.title || "New Chapter"}
                 </span>
 
                 {/* Right-aligned tag row + options menu (tags directly left of menu) */}
@@ -392,7 +394,7 @@ export function ChapterHeader({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                              className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
                               disabled={availableTags.length === 0}
                               data-testid={`button-add-tag-${chapter.id}`}
                               onClick={(e) => e.stopPropagation()}
@@ -432,7 +434,7 @@ export function ChapterHeader({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity"
+                            className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
                             data-testid={`button-add-first-tag-${chapter.id}`}
                           >
                             <Plus className="h-3 w-3" />
@@ -473,7 +475,7 @@ export function ChapterHeader({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
                         onClick={(event) => event.stopPropagation()}
                         aria-label="Chapter options"
                         data-testid={`button-chapter-options-${chapter.id}`}
@@ -517,7 +519,7 @@ export function ChapterHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
                   onClick={() => {
                     setIsSummaryEditing(true);
                     requestAnimationFrame(() => summaryRef.current?.focus());
@@ -571,7 +573,7 @@ export function ChapterHeader({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-6 w-6 p-0"
+                  className="h-6 w-6 p-0 focus-visible:ring-0 focus:ring-0 focus:outline-none"
                   onClick={() => {
                     setIsNotesEditing(true);
                     requestAnimationFrame(() => notesRef.current?.focus());
