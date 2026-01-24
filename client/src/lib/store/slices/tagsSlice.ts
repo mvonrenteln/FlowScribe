@@ -79,11 +79,15 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
       ...s,
       tags: (s.tags ?? []).filter((id) => id !== tagId),
     }));
+    const newChapters = chapters.map((ch) => ({
+      ...ch,
+      tags: (ch.tags ?? []).filter((id) => id !== tagId),
+    }));
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags: newTags,
-      chapters,
+      chapters: newChapters,
       selectedSegmentId,
       selectedChapterId,
       currentTime,
@@ -92,6 +96,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     set({
       segments: newSegments,
       tags: newTags,
+      chapters: newChapters,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
