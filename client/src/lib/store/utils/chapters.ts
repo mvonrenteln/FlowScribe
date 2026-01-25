@@ -7,6 +7,18 @@ import type { Segment } from "../types";
 export const buildSegmentIndexMap = (segments: Segment[]) =>
   new Map(segments.map((segment, index) => [segment.id, index]));
 
+// Memoized variant keyed by the segments array identity to avoid rebuilding
+// the Map in hot render paths. Uses a WeakMap so cached entries don't
+// prevent GC for discarded segment arrays.
+const _segmentMapCache = new WeakMap<Segment[], Map<string, number>>();
+export const memoizedBuildSegmentIndexMap = (segments: Segment[]) => {
+  const cached = _segmentMapCache.get(segments);
+  if (cached) return cached;
+  const next = buildSegmentIndexMap(segments);
+  _segmentMapCache.set(segments, next);
+  return next;
+};
+
 /**
  * Returns the segment index range for a chapter or null if invalid.
  */

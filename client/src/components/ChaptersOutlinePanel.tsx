@@ -3,7 +3,7 @@ import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chapter, Segment } from "@/lib/store";
-import { buildSegmentIndexMap, sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { memoizedBuildSegmentIndexMap, sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { cn } from "@/lib/utils";
 
 interface ChaptersOutlinePanelProps {
@@ -26,7 +26,7 @@ export function ChaptersOutlinePanel({
   selectedChapterId,
   onJumpToChapter,
 }: ChaptersOutlinePanelProps) {
-  const indexById = useMemo(() => buildSegmentIndexMap(segments), [segments]);
+  const indexById = useMemo(() => memoizedBuildSegmentIndexMap(segments), [segments]);
   const sortedChapters = useMemo(
     () => sortChaptersByStart(chapters, indexById),
     [chapters, indexById],

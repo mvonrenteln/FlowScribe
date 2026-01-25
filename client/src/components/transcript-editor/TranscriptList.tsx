@@ -1,6 +1,6 @@
 import { Fragment, useMemo } from "react";
 import { useTranscriptStore } from "@/lib/store";
-import { buildSegmentIndexMap, sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { memoizedBuildSegmentIndexMap, sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { ChapterHeader } from "../ChapterHeader";
 import { TranscriptSegment } from "../TranscriptSegment";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
@@ -90,7 +90,7 @@ function TranscriptListComponent({
     return map;
   }, [pendingMergeSuggestions]);
 
-  const segmentIndexById = useMemo(() => buildSegmentIndexMap(allSegments), [allSegments]);
+  const segmentIndexById = useMemo(() => memoizedBuildSegmentIndexMap(allSegments), [allSegments]);
 
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
