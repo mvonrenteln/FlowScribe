@@ -1,8 +1,8 @@
 import type { StoreApi } from "zustand";
+import { getSegmentIndexById } from "@/lib/store";
 import type { Chapter } from "@/types/chapter";
 import type { ChapterSlice, TranscriptStore } from "../types";
 import {
-  buildSegmentIndexMap,
   getChapterRangeIndices,
   hasOverlappingChapters,
   normalizeChapterCounts,
@@ -32,7 +32,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     } = get();
 
     if (!segments.length) return undefined;
-    const indexById = buildSegmentIndexMap(segments);
+    const indexById = getSegmentIndexById();
     const startIndex = indexById.get(startSegmentId);
     if (startIndex === undefined) return undefined;
 
@@ -136,7 +136,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
           }
         : chapter,
     );
-    const indexById = buildSegmentIndexMap(segments);
+    const indexById = getSegmentIndexById();
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     if (hasOverlappingChapters(normalized, indexById)) return;
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -173,7 +173,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
       confidenceScoresVersion,
     } = get();
     if (!chapters.some((chapter) => chapter.id === id)) return;
-    const indexById = buildSegmentIndexMap(segments);
+    const indexById = getSegmentIndexById();
     const nextChapters = chapters.filter((chapter) => chapter.id !== id);
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -235,7 +235,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
   selectChapterForSegment: (segmentId) => {
     const { chapters, segments } = get();
-    const indexById = buildSegmentIndexMap(segments);
+    const indexById = getSegmentIndexById();
     const segmentIndex = indexById.get(segmentId);
     if (segmentIndex === undefined) return undefined;
     return chapters.find((chapter) => {
@@ -249,7 +249,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const { chapters, segments } = get();
     const chapter = chapters.find((item) => item.id === chapterId);
     if (!chapter) return [];
-    const indexById = buildSegmentIndexMap(segments);
+    const indexById = getSegmentIndexById();
     const range = getChapterRangeIndices(chapter, indexById);
     if (!range) return [];
     return segments.slice(range.startIndex, range.endIndex + 1);

@@ -55,6 +55,7 @@ import type {
 } from "./store/types";
 import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfig";
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
+import { memoizedBuildSegmentIndexMap } from "./store/utils/chapters";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
@@ -74,6 +75,14 @@ const resolvedSpellcheckSelection = resolveSpellcheckSelection(
   normalizeSpellcheckLanguages(globalState?.spellcheckLanguages),
   Boolean(globalState?.spellcheckCustomEnabled),
 );
+
+// Store-level selector for the segment index map. Components can use this
+// to avoid independently rebuilding the map when they read `segments`.
+export const useSegmentIndexById = () =>
+  useTranscriptStore((s) => memoizedBuildSegmentIndexMap(s.segments));
+
+export const getSegmentIndexById = () =>
+  memoizedBuildSegmentIndexMap(useTranscriptStore.getState().segments);
 
 const rawActiveSession =
   sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
