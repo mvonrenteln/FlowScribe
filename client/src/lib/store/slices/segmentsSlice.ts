@@ -6,6 +6,7 @@ import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
 import { generateId } from "../utils/id";
+import { indexById } from "@/lib/arrayUtils";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
 import { addToHistory } from "./historySlice";
 
@@ -221,10 +222,11 @@ export const createSegmentsSlice = (
       confidenceScoresVersion,
     } = get();
     const currentSegments = [...segments];
+    const currentIndexById = indexById(currentSegments);
     let changed = false;
 
     for (const update of updates) {
-      const segmentIndex = currentSegments.findIndex((s) => s.id === update.id);
+      const segmentIndex = currentIndexById.get(update.id) ?? -1;
       if (segmentIndex === -1) continue;
 
       const segment = currentSegments[segmentIndex];
