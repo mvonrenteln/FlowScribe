@@ -8,6 +8,7 @@
 
 import {
   AlertCircle,
+  BookOpen,
   Check,
   ChevronDown,
   ChevronUp,
@@ -32,6 +33,10 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import {
+  CHAPTER_DETECTION_SYSTEM_PROMPT as DEFAULT_CHAPTER_DETECTION_SYSTEM_PROMPT,
+  CHAPTER_DETECTION_USER_PROMPT_TEMPLATE as DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
+} from "@/lib/ai/features/chapterDetection";
 import {
   SPEAKER_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
   SPEAKER_USER_PROMPT_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
@@ -87,6 +92,19 @@ const PLACEHOLDER_HELP = {
     { placeholder: "{{maxTimeGap}}", description: "Maximum time gap in seconds" },
     { placeholder: "{{enableSmoothing}}", description: "Whether smoothing is enabled" },
   ],
+  "chapter-detect": [
+    { placeholder: "{{batchIndex}}", description: "Current batch number (1-based)" },
+    { placeholder: "{{totalBatches}}", description: "Total number of batches" },
+    { placeholder: "{{batchSize}}", description: "Batch segment count" },
+    { placeholder: "{{minChapterLength}}", description: "Minimum segments per chapter" },
+    { placeholder: "{{maxChapterLength}}", description: "Maximum segments per chapter" },
+    { placeholder: "{{tagsAvailable}}", description: "Allowed tag IDs for suggestions" },
+    { placeholder: "{{segments}}", description: "Segments in this batch (SimpleID formatted)" },
+    {
+      placeholder: "{{previousChapter}}",
+      description: "Previous batch chapter context (optional)",
+    },
+  ],
 } as const;
 
 // ==================== Prompt Form ====================
@@ -107,13 +125,17 @@ const getEmptyForm = (type: PromptType): PromptFormData => ({
       ? DEFAULT_SYSTEM_PROMPT
       : type === "text"
         ? DEFAULT_TEXT_SYSTEM_PROMPT
-        : DEFAULT_SEGMENT_MERGE_SYSTEM_PROMPT,
+        : type === "segment-merge"
+          ? DEFAULT_SEGMENT_MERGE_SYSTEM_PROMPT
+          : DEFAULT_CHAPTER_DETECTION_SYSTEM_PROMPT,
   userPromptTemplate:
     type === "speaker"
       ? DEFAULT_USER_PROMPT_TEMPLATE
       : type === "text"
         ? DEFAULT_TEXT_USER_PROMPT
-        : DEFAULT_SEGMENT_MERGE_USER_PROMPT,
+        : type === "segment-merge"
+          ? DEFAULT_SEGMENT_MERGE_USER_PROMPT
+          : DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
   quickAccess: false,
 });
 
@@ -425,6 +447,18 @@ export function AITemplateSettings() {
   const deleteSegmentMergePrompt = useTranscriptStore((s) => s.deleteSegmentMergePrompt);
   const setActiveSegmentMergePrompt = useTranscriptStore((s) => s.setActiveSegmentMergePrompt);
 
+  // Chapter detection prompts
+  const chapterDetectionPrompts = useTranscriptStore((s) => s.aiChapterDetectionConfig.prompts);
+  const activeChapterDetectionPromptId = useTranscriptStore(
+    (s) => s.aiChapterDetectionConfig.activePromptId,
+  );
+  const addChapterDetectionPrompt = useTranscriptStore((s) => s.addChapterDetectionPrompt);
+  const updateChapterDetectionPrompt = useTranscriptStore((s) => s.updateChapterDetectionPrompt);
+  const deleteChapterDetectionPrompt = useTranscriptStore((s) => s.deleteChapterDetectionPrompt);
+  const setActiveChapterDetectionPrompt = useTranscriptStore(
+    (s) => s.setActiveChapterDetectionPrompt,
+  );
+
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
@@ -435,13 +469,17 @@ export function AITemplateSettings() {
       ? speakerPrompts
       : activeTab === "text"
         ? textPrompts
-        : segmentMergePrompts;
+        : activeTab === "segment-merge"
+          ? segmentMergePrompts
+          : chapterDetectionPrompts;
   const activePromptId =
     activeTab === "speaker"
       ? activeSpeakerPromptId
       : activeTab === "text"
         ? activeTextPromptId
-        : activeSegmentMergePromptId;
+        : activeTab === "segment-merge"
+          ? activeSegmentMergePromptId
+          : activeChapterDetectionPromptId;
 
   const handleAddPrompt = useCallback(
     (data: PromptFormData) => {
@@ -458,12 +496,14 @@ export function AITemplateSettings() {
         addSpeakerPrompt(promptData);
       } else if (data.type === "text") {
         addTextPrompt(promptData);
-      } else {
+      } else if (data.type === "segment-merge") {
         addSegmentMergePrompt(promptData);
+      } else {
+        addChapterDetectionPrompt(promptData);
       }
       setShowAddForm(false);
     },
-    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt],
+    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
   );
 
   const handleEditPrompt = useCallback(
@@ -479,12 +519,20 @@ export function AITemplateSettings() {
         updateSpeakerPrompt(id, updates);
       } else if (activeTab === "text") {
         updateTextPrompt(id, updates);
-      } else {
+      } else if (activeTab === "segment-merge") {
         updateSegmentMergePrompt(id, updates);
+      } else {
+        updateChapterDetectionPrompt(id, updates);
       }
       setEditingId(null);
     },
-    [activeTab, updateSpeakerPrompt, updateTextPrompt, updateSegmentMergePrompt],
+    [
+      activeTab,
+      updateSpeakerPrompt,
+      updateTextPrompt,
+      updateSegmentMergePrompt,
+      updateChapterDetectionPrompt,
+    ],
   );
 
   const handleDeletePrompt = useCallback(
@@ -493,11 +541,19 @@ export function AITemplateSettings() {
         deleteSpeakerPrompt(id);
       } else if (activeTab === "text") {
         deleteTextPrompt(id);
-      } else {
+      } else if (activeTab === "segment-merge") {
         deleteSegmentMergePrompt(id);
+      } else {
+        deleteChapterDetectionPrompt(id);
       }
     },
-    [activeTab, deleteSpeakerPrompt, deleteTextPrompt, deleteSegmentMergePrompt],
+    [
+      activeTab,
+      deleteSpeakerPrompt,
+      deleteTextPrompt,
+      deleteSegmentMergePrompt,
+      deleteChapterDetectionPrompt,
+    ],
   );
 
   const handleSetActivePrompt = useCallback(
@@ -506,11 +562,19 @@ export function AITemplateSettings() {
         setActiveSpeakerPrompt(id);
       } else if (activeTab === "text") {
         setActiveTextPrompt(id);
-      } else {
+      } else if (activeTab === "segment-merge") {
         setActiveSegmentMergePrompt(id);
+      } else {
+        setActiveChapterDetectionPrompt(id);
       }
     },
-    [activeTab, setActiveSpeakerPrompt, setActiveTextPrompt, setActiveSegmentMergePrompt],
+    [
+      activeTab,
+      setActiveSpeakerPrompt,
+      setActiveTextPrompt,
+      setActiveSegmentMergePrompt,
+      setActiveChapterDetectionPrompt,
+    ],
   );
 
   const handleDuplicate = useCallback(
@@ -526,11 +590,15 @@ export function AITemplateSettings() {
 
       if (promptItem.type === "speaker") {
         addSpeakerPrompt(promptData);
-      } else {
+      } else if (promptItem.type === "text") {
         addTextPrompt(promptData);
+      } else if (promptItem.type === "segment-merge") {
+        addSegmentMergePrompt(promptData);
+      } else {
+        addChapterDetectionPrompt(promptData);
       }
     },
-    [addSpeakerPrompt, addTextPrompt],
+    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
   );
 
   const handleToggleQuickAccess = useCallback(
@@ -543,7 +611,12 @@ export function AITemplateSettings() {
   );
 
   const handleExport = useCallback(() => {
-    const allPrompts = [...speakerPrompts, ...textPrompts];
+    const allPrompts = [
+      ...speakerPrompts,
+      ...textPrompts,
+      ...segmentMergePrompts,
+      ...chapterDetectionPrompts,
+    ];
     const exportData = {
       version: 1,
       prompts: allPrompts.map((p) => ({
@@ -567,7 +640,7 @@ export function AITemplateSettings() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-  }, [speakerPrompts, textPrompts]);
+  }, [speakerPrompts, textPrompts, segmentMergePrompts, chapterDetectionPrompts]);
 
   const handleImport = useCallback(
     (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -596,8 +669,12 @@ export function AITemplateSettings() {
 
                 if (promptData.type === "speaker") {
                   addSpeakerPrompt(promptData);
-                } else {
+                } else if (promptData.type === "text") {
                   addTextPrompt(promptData);
+                } else if (promptData.type === "segment-merge") {
+                  addSegmentMergePrompt(promptData);
+                } else if (promptData.type === "chapter-detect") {
+                  addChapterDetectionPrompt(promptData);
                 }
               }
             }
@@ -613,7 +690,7 @@ export function AITemplateSettings() {
         importInputRef.current.value = "";
       }
     },
-    [activeTab, addSpeakerPrompt, addTextPrompt],
+    [activeTab, addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
   );
 
   // Calculate quick access status for text prompts
@@ -649,7 +726,7 @@ export function AITemplateSettings() {
 
       {/* Tabs for prompt types */}
       <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as PromptType)}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="speaker" className="flex items-center gap-2">
             <MessageSquare className="h-4 w-4" />
             Speaker Classification
@@ -661,6 +738,10 @@ export function AITemplateSettings() {
           <TabsTrigger value="segment-merge" className="flex items-center gap-2">
             <GitMerge className="h-4 w-4" />
             Segment Merge
+          </TabsTrigger>
+          <TabsTrigger value="chapter-detect" className="flex items-center gap-2">
+            <BookOpen className="h-4 w-4" />
+            Chapters
           </TabsTrigger>
         </TabsList>
 
@@ -690,6 +771,12 @@ export function AITemplateSettings() {
             Prompts for analyzing segments and suggesting which ones should be merged together.
           </p>
         </TabsContent>
+
+        <TabsContent value="chapter-detect" className="space-y-4 mt-4">
+          <p className="text-sm text-muted-foreground">
+            Prompts for detecting chapter boundaries and suggesting chapter titles and summaries.
+          </p>
+        </TabsContent>
       </Tabs>
 
       {/* Prompt List */}
@@ -698,7 +785,7 @@ export function AITemplateSettings() {
           <Card>
             <CardContent className="py-8 text-center text-muted-foreground">
               <FileText className="h-12 w-12 mx-auto mb-4 opacity-50" />
-              <p>No {activeTab === "speaker" ? "speaker" : "text revision"} prompts configured.</p>
+              <p>No prompts configured for this feature.</p>
               <p className="text-sm">Create a prompt to customize AI behavior.</p>
             </CardContent>
           </Card>
@@ -751,9 +838,7 @@ export function AITemplateSettings() {
       {showAddForm ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">
-              Create New {activeTab === "speaker" ? "Speaker" : "Text"} Prompt
-            </CardTitle>
+            <CardTitle className="text-base">Create New Prompt</CardTitle>
           </CardHeader>
           <CardContent>
             <PromptForm
@@ -772,7 +857,7 @@ export function AITemplateSettings() {
           data-testid="button-add-prompt"
         >
           <Plus className="h-4 w-4 mr-2" />
-          Create {activeTab === "speaker" ? "Speaker" : "Text"} Prompt
+          Create Prompt
         </Button>
       )}
     </div>

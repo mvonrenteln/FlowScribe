@@ -8,9 +8,9 @@
  * @module ai/core/featureRegistry
  */
 
+import { chapterDetectionConfig } from "../features/chapterDetection/config";
 import { textRevisionConfig } from "../features/revision/config";
 import { segmentMergeConfig } from "../features/segmentMerge/config";
-
 // Import feature configs synchronously to ensure they're available immediately
 import { speakerClassificationConfig } from "../features/speaker/config";
 import type { AIFeatureConfig, AIFeatureType, FeatureRegistryEntry } from "./types";
@@ -146,6 +146,11 @@ export function registerDefaultFeatures(): void {
   // Register segment merge
   if (!hasFeature("segment-merge")) {
     registerFeature(segmentMergeConfig);
+  }
+
+  // Register chapter detection
+  if (!hasFeature("chapter-detection")) {
+    registerFeature(chapterDetectionConfig);
   }
 }
 
