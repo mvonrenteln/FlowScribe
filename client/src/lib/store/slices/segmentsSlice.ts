@@ -1,5 +1,6 @@
 import type { StoreApi } from "zustand";
 import { buildSessionKey } from "@/lib/fileReference";
+import { clearWordsIndexCache } from "@/lib/utils/wordIndexCache";
 import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
@@ -249,6 +250,9 @@ export const createSegmentsSlice = (
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: currentSegments,
       confidenceScoresVersion: nextConfidenceScoresVersion,
@@ -426,6 +430,9 @@ export const createSegmentsSlice = (
       currentTime: secondSegment.start,
       confidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       chapters: updatedChapters,
@@ -491,6 +498,9 @@ export const createSegmentsSlice = (
       currentTime,
       confidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       selectedSegmentId: merged.id,
@@ -527,6 +537,9 @@ export const createSegmentsSlice = (
       currentTime,
       confidenceScoresVersion,
     });
+    // timing update doesn't touch words but replace segment object; invalidate to be safe
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       history: nextHistory.history,
@@ -591,6 +604,9 @@ export const createSegmentsSlice = (
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
+    // Invalidate cache because segments removed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       chapters: updatedChapters,

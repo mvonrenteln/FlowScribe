@@ -92,6 +92,10 @@ function TranscriptListComponent({
   }, [pendingMergeSuggestions]);
 
   const segmentIndexById = useSegmentIndexById();
+  const filteredIndexById = useMemo(
+    () => new Map(filteredSegments.map((s, i) => [s.id, i])),
+    [filteredSegments],
+  );
 
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
@@ -107,7 +111,7 @@ function TranscriptListComponent({
     (selectedSegmentId as string | undefined) ??
     (filteredSegments.length > 0 ? filteredSegments[filteredSegments.length - 1].id : undefined);
 
-  const activeIndex = anchorId ? filteredSegments.findIndex((s) => s.id === anchorId) : -1;
+  const activeIndex = anchorId ? (filteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {
     // fallback: last N segments so user stays near the end instead of jumping elsewhere
     const start = Math.max(0, filteredSegments.length - DEV_SLICE_SIZE);
@@ -134,8 +138,8 @@ function TranscriptListComponent({
           segmentsToRender.map((segment, _index) => {
             // segmentHandlers corresponds to filteredSegments indices; when using a slice
             // we need to resolve the original index for the handler lookup.
-            const originalIndex = filteredSegments.findIndex((s) => s.id === segment.id);
-            const handlers = segmentHandlers[originalIndex];
+            const originalIndex = filteredIndexById.get(segment.id) ?? -1;
+            const handlers = originalIndex >= 0 ? segmentHandlers[originalIndex] : undefined;
             if (!handlers) return null; // Safety check
 
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
