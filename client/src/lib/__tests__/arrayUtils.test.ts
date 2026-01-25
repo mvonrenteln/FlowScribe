@@ -3,7 +3,7 @@ import { indexById, mapById } from "../arrayUtils";
 
 describe("arrayUtils", () => {
   it("indexById returns empty map for empty array", () => {
-    const map = indexById([] as any);
+    const map = indexById<{ id: string }>([]);
     expect(map.size).toBe(0);
   });
 
@@ -16,8 +16,8 @@ describe("arrayUtils", () => {
   });
 
   it("indexById keeps first index for duplicate ids", () => {
-    const arr = [{ id: "x" }, { id: "y" }, { id: "x" }];
-    const map = indexById(arr as any);
+    const arr: { id: string }[] = [{ id: "x" }, { id: "y" }, { id: "x" }];
+    const map = indexById(arr);
     expect(map.get("x")).toBe(0);
     expect(map.get("y")).toBe(1);
   });

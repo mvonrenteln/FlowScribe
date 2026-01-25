@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand";
+import { indexById } from "@/lib/arrayUtils";
 import { buildSessionKey } from "@/lib/fileReference";
 import { clearWordsIndexCache } from "@/lib/utils/wordIndexCache";
 import type { Chapter } from "@/types/chapter";
@@ -6,7 +7,6 @@ import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
 import { generateId } from "../utils/id";
-import { indexById } from "@/lib/arrayUtils";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
 import { addToHistory } from "./historySlice";
 

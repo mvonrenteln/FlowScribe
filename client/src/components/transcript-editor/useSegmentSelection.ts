@@ -2,7 +2,9 @@ import { useCallback, useEffect, useMemo, useRef } from "react";
 import { getSegmentById, useSegmentIndexById } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { getWordIndexForTime } from "@/lib/utils/wordIndexCache";
+
 export { getWordIndexForTime } from "@/lib/utils/wordIndexCache";
+
 import { useScrollAndSelection } from "./useScrollAndSelection";
 
 export interface SegmentHandlers {

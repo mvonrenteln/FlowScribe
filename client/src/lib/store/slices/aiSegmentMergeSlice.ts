@@ -14,6 +14,7 @@ import type {
   MergeBatchLogEntry,
   MergeSuggestion,
 } from "@/lib/ai/features/segmentMerge";
+import { indexById } from "@/lib/arrayUtils";
 import type {
   AIPrompt,
   AISegmentMergeSlice,
@@ -102,8 +103,9 @@ const applyMergeToSegments = (
   const [firstSegmentId, secondSegmentId] = suggestion.segmentIds;
   if (!firstSegmentId || !secondSegmentId) return null;
 
-  const index1 = segments.findIndex((s) => s.id === firstSegmentId);
-  const index2 = segments.findIndex((s) => s.id === secondSegmentId);
+  const indexByIdMap = indexById(segments);
+  const index1 = indexByIdMap.get(firstSegmentId) ?? -1;
+  const index2 = indexByIdMap.get(secondSegmentId) ?? -1;
   if (index1 === -1 || index2 === -1) return null;
   if (Math.abs(index1 - index2) !== 1) return null;
 
@@ -347,13 +349,14 @@ export const createAISegmentMergeSlice = (
 
     let workingSegments = state.segments;
     let updatedSuggestions = state.aiSegmentMergeSuggestions.map((s) => ({ ...s }));
+    const suggestionIndexById = new Map(updatedSuggestions.map((s, i) => [s.id, i]));
     const invalidSegmentIds = new Set<string>();
     let nextSelectedSegmentId = state.selectedSegmentId;
     let mergedAny = false;
     let scoresChanged = false;
 
     for (const suggestion of highConfidenceSuggestions) {
-      const suggestionIndex = updatedSuggestions.findIndex((s) => s.id === suggestion.id);
+      const suggestionIndex = suggestionIndexById.get(suggestion.id) ?? -1;
       if (suggestionIndex === -1) continue;
 
       if (updatedSuggestions[suggestionIndex]?.status !== "pending") continue;
