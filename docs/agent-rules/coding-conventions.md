@@ -48,6 +48,13 @@ It is NOT a restatement of formatter or linter rules.
   - it is part of a large list / transcript surface.
 - Prefer simple components over prematurely memoized ones.
 
+### Performance: Prefer memoization and O(1) access on hot paths
+
+- For operations that perform repeated lookups over arrays (e.g. `find`, `findIndex`), prefer building a lookup map (id -> index or id -> element) once and reusing it. This reduces O(n) repeated scans to O(1) lookups.
+- In React components, memoize derived maps with `useMemo(() => indexById(arr), [arr])` so the map is rebuilt only when its source array changes.
+- Avoid rebuilding lookup maps inside tight loops or per-call functions. If a function needs a map, compute it in the caller and pass it through.
+- When refactoring, add tests that would fail if the map-building is accidentally removed or if expensive scans are reintroduced.
+
 ### Handler identity matters
 
 - Do not pass unstable anonymous functions into memoized components.

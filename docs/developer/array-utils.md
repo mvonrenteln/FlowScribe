@@ -29,3 +29,10 @@ const originalIndex = indexMap.get(segment.id) ?? -1;
 ```
 
 Prefer `mapById` when you need to access the full element by id rather than its index.
+
+## Guideline: Memoize and Prefer O(1) Access
+
+- For hot render paths (e.g. transcript lists, search, merge operations) prefer building a map once and reusing it rather than repeatedly calling `find`/`findIndex`.
+- Use `useMemo` in React components to memoize maps derived from arrays: `useMemo(() => indexById(arr), [arr])`.
+- If a lookup map is used by non-React code paths, build it once in the calling scope and pass it down; avoid recreating the map inside tight loops or per-call.
+- Add unit tests that would catch regressions if the map-building is accidentally removed or rebuilt per lookup.
