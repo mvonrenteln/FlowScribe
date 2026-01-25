@@ -48,6 +48,7 @@ interface TranscriptSegmentProps {
   readonly onMergeWithPrevious?: () => void;
   readonly onMergeWithNext?: () => void;
   readonly onDelete: () => void;
+  readonly onStartChapterHere?: (segmentId: string) => void;
   readonly onSeek: (time: number, meta: SeekMeta) => void;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
@@ -140,6 +141,7 @@ function TranscriptSegmentComponent({
   onMergeWithPrevious,
   onMergeWithNext,
   onDelete,
+  onStartChapterHere,
   onSeek,
   searchQuery,
   isRegexSearch,
@@ -429,6 +431,7 @@ function TranscriptSegmentComponent({
           onMergeWithPrevious={onMergeWithPrevious}
           onMergeWithNext={onMergeWithNext}
           onDelete={onDelete}
+          onStartChapterHere={onStartChapterHere}
           onStartEdit={handleStartEdit}
           onClearSelection={() => setSelectedWordIndex(null)}
         />
@@ -469,6 +472,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.onMergeWithPrevious === next.onMergeWithPrevious &&
     prev.onMergeWithNext === next.onMergeWithNext &&
     prev.onDelete === next.onDelete &&
+    prev.onStartChapterHere === next.onStartChapterHere &&
     prev.onSeek === next.onSeek &&
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&

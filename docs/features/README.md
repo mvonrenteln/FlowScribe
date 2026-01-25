@@ -17,10 +17,10 @@ This ensures:
 |---------|--------|----------------|--------|
 | **Text Editing** | ✅ Direct editing | ✅ Transcript Revision | Complete |
 | **Speakers** | ✅ Manual assignment | ✅ Speaker Classification | Complete |
-| **Segment Merge** | ✅ Click to merge | 📋 AI Suggestions | Complete |
-| **Chapters** | 📋 Manual creation | 📋 AI Detection | Complete |
-| **Multi-Track** | 📋 Manual comparison | 📋 AI Selection | Both planned |
-| **Export** | 📋 Manual templates | 📋 AI Transformation | Both planned |
+| **Segment Merge** | ✅ Click to merge | ✅ AI Suggestions | Complete |
+| **Chapters** | 📋 Manual creation | 📋 AI Detection | Design ✅, Dev pending |
+| **Multi-Track** | 📋 Manual comparison | 📋 AI Selection | Planned |
+| **Export** | 📋 Manual templates | 📋 AI Transformation | Planned |
 
 ---
 
@@ -37,11 +37,10 @@ This ensures:
 - [Transcript Revision](ai-transcript-revision-guide.md) — AI text correction and improvement
 - [Segment Merge](ai-segment-merge-suggestion.md) — Manual merge + AI suggestions
 
-### Planned Features
-
-- [Chapters](ai-chapter-detection.md) — Manual chapters + AI detection
-- [Multi-Track Merge](ai-multi-track-merge.md) — Manual comparison + AI selection
-- [Content Transformation](ai-content-transformation.md) — Manual export + AI transformation
+### Designed Features (Development Pending)
+- [**AI Chapter Detection**](ai-chapter-detection.md) — Manual chapters + AI batch detection
+  - [Architecture Details](architecture/ai-chapter-detection-architecture.md)
+  - [Implementation TODO](ai-chapter-detection-TODO.md)
 
 ### Technical Documentation
 - [**Unified Architecture**](architecture/ai-features-unified.md) — Implementation guide, patterns, roadmap
@@ -61,7 +60,7 @@ This ensures:
 | Fix spelling | Spellcheck panel |
 | Assign speakers | Click segment, select speaker |
 | Merge segments | Select + Ctrl+M |
-| Create chapters | Alt+Shift+C (planned) |
+| Create chapters | Segment menu → Start Chapter Here |
 | Compare tracks | Load + manual selection (planned) |
 | Export | Ctrl+E, choose format |
 
@@ -78,5 +77,4 @@ This ensures:
 
 ---
 
-*Last Updated: January 15, 2026*
-
+*Last Updated: January 23, 2026*

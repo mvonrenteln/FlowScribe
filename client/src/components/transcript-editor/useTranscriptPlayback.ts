@@ -32,6 +32,7 @@ interface UseTranscriptPlaybackParams {
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
+  onToggleChaptersOutline: () => void;
   onShowGlossary: () => void;
   onRunDefaultAIRevision: () => void;
   onOpenAIRevisionMenu: () => void;
@@ -71,6 +72,7 @@ export const useTranscriptPlayback = ({
   onShowExport,
   onShowShortcuts,
   onShowSettings,
+  onToggleChaptersOutline,
   onRunDefaultAIRevision,
   onOpenAIRevisionMenu,
   onOpenAISegmentMerge,
@@ -106,9 +108,14 @@ export const useTranscriptPlayback = ({
     seekToTime(currentTime + 5, { source: "transcript", action: "controls" });
   }, [currentTime, seekToTime]);
 
+  const filteredIndexById = useMemo(
+    () => new Map(filteredSegments.map((s, i) => [s.id, i])),
+    [filteredSegments],
+  );
+
   const getSelectedSegmentIndex = useCallback(() => {
-    return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
-  }, [filteredSegments, selectedSegmentId]);
+    return filteredIndexById.get(selectedSegmentId ?? "") ?? -1;
+  }, [selectedSegmentId, filteredIndexById]);
 
   useNavigationHotkeys({
     isTranscriptEditing,
@@ -142,6 +149,7 @@ export const useTranscriptPlayback = ({
     onShowExport,
     onShowShortcuts,
     onShowSettings,
+    onToggleChaptersOutline,
     onRunDefaultAIRevision,
     onOpenAIRevisionMenu,
     onOpenAISegmentMerge,

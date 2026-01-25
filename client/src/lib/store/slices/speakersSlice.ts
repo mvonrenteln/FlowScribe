@@ -16,6 +16,8 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     if (oldName === newName) return;
@@ -41,8 +43,10 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments: newSegments,
       speakers: newSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
     set({
@@ -61,6 +65,8 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     const speaker = speakers.find((s) => s.name === speakerName);
@@ -70,8 +76,10 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments,
       speakers: newSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
     set({
@@ -89,6 +97,8 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     if (speakers.find((s) => s.name === name)) return;
@@ -103,8 +113,10 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments,
       speakers: newSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
     set({
@@ -122,6 +134,8 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       historyIndex,
       selectedSegmentId,
       currentTime,
+      chapters,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
     if (fromName === toName) return;
@@ -149,8 +163,10 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       segments: newSegments,
       speakers: newSpeakers,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       tags: get().tags,
+      chapters,
       confidenceScoresVersion,
     });
     set({

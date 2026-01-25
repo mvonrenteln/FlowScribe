@@ -1,6 +1,10 @@
 import { Fragment, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
+import { sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { useSegmentIndexById } from "../../lib/store";
+import { ChapterHeader } from "../ChapterHeader";
 import { TranscriptSegment } from "../TranscriptSegment";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
@@ -11,6 +15,8 @@ function TranscriptListComponent({
   containerRef,
   filteredSegments,
   speakers,
+  chapters,
+  selectedChapterId,
   activeSegmentId,
   selectedSegmentId,
   activeWordIndex,
@@ -37,6 +43,13 @@ function TranscriptListComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  onStartChapterAtSegment,
+  onSelectChapter,
+  onUpdateChapter,
+  onDeleteChapter,
+  chapterFocusRequest,
+  onChapterFocusRequestHandled,
+  isTranscriptEditing,
 }: TranscriptListProps) {
   // Get tags and tag operations from store
   const tags = useTranscriptStore((s) => s.tags);
@@ -58,14 +71,26 @@ function TranscriptListComponent({
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
-  // Create a map for fast lookup
-  const pendingRevisionBySegmentId = new Map(
-    pendingRevisions.filter((r) => r.status === "pending").map((r) => [r.segmentId, r]),
+  // Create a map for fast lookup of pending revisions/suggestions
+  const pendingRevisionBySegmentId = useMemo(
+    () =>
+      mapById(
+        pendingRevisions
+          .filter((r) => r.status === "pending")
+          .map((r) => ({ id: r.segmentId, ...r })),
+      ),
+    [pendingRevisions],
   );
 
   // Create a map for speaker suggestions
-  const pendingSpeakerSuggestionBySegmentId = new Map(
-    pendingSpeakerSuggestions.filter((s) => s.status === "pending").map((s) => [s.segmentId, s]),
+  const pendingSpeakerSuggestionBySegmentId = useMemo(
+    () =>
+      mapById(
+        pendingSpeakerSuggestions
+          .filter((s) => s.status === "pending")
+          .map((s) => ({ id: s.segmentId, ...s })),
+      ),
+    [pendingSpeakerSuggestions],
   );
 
   const pendingMergeSuggestionByPair = useMemo(() => {
@@ -79,6 +104,14 @@ function TranscriptListComponent({
     return map;
   }, [pendingMergeSuggestions]);
 
+  const segmentIndexById = useSegmentIndexById();
+  const filteredIndexById = useMemo(() => indexById(filteredSegments), [filteredSegments]);
+
+  const chapterByStartId = useMemo(() => {
+    const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
+    return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
+  }, [chapters, segmentIndexById]);
+
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = filteredSegments;
@@ -88,7 +121,7 @@ function TranscriptListComponent({
     (selectedSegmentId as string | undefined) ??
     (filteredSegments.length > 0 ? filteredSegments[filteredSegments.length - 1].id : undefined);
 
-  const activeIndex = anchorId ? filteredSegments.findIndex((s) => s.id === anchorId) : -1;
+  const activeIndex = anchorId ? (filteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {
     // fallback: last N segments so user stays near the end instead of jumping elsewhere
     const start = Math.max(0, filteredSegments.length - DEV_SLICE_SIZE);
@@ -115,8 +148,8 @@ function TranscriptListComponent({
           segmentsToRender.map((segment, _index) => {
             // segmentHandlers corresponds to filteredSegments indices; when using a slice
             // we need to resolve the original index for the handler lookup.
-            const originalIndex = filteredSegments.findIndex((s) => s.id === segment.id);
-            const handlers = segmentHandlers[originalIndex];
+            const originalIndex = filteredIndexById.get(segment.id) ?? -1;
+            const handlers = originalIndex >= 0 ? segmentHandlers[originalIndex] : undefined;
             if (!handlers) return null; // Safety check
 
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
@@ -126,9 +159,23 @@ function TranscriptListComponent({
             const mergeSuggestion = nextSegment
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;
-
+            const chapter = chapterByStartId.get(segment.id);
+            const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
             return (
               <Fragment key={segment.id}>
+                {chapter && (
+                  <ChapterHeader
+                    chapter={chapter}
+                    tags={tags}
+                    isSelected={chapter.id === selectedChapterId}
+                    onOpen={() => onSelectChapter?.(chapter.id)}
+                    onUpdateChapter={onUpdateChapter}
+                    onDeleteChapter={onDeleteChapter}
+                    isTranscriptEditing={isTranscriptEditing}
+                    autoFocus={isChapterFocusTarget}
+                    onAutoFocusHandled={onChapterFocusRequestHandled}
+                  />
+                )}
                 <TranscriptSegment
                   segment={segment}
                   speakers={speakers}
@@ -166,6 +213,7 @@ function TranscriptListComponent({
                   onMergeWithNext={handlers.onMergeWithNext}
                   onDelete={handlers.onDelete}
                   onSeek={onSeek}
+                  onStartChapterHere={onStartChapterAtSegment}
                   searchQuery={searchQuery}
                   isRegexSearch={isRegexSearch}
                   replaceQuery={replaceQuery}

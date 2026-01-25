@@ -1,6 +1,7 @@
 import {
   Bookmark,
   BookmarkCheck,
+  BookOpenText,
   Check,
   CheckCircle2,
   Edit,
@@ -38,6 +39,7 @@ interface SegmentActionsProps {
   readonly onDelete: () => void;
   readonly onStartEdit: () => void;
   readonly onClearSelection: () => void;
+  readonly onStartChapterHere?: (segmentId: string) => void;
 }
 
 export function SegmentActions({
@@ -58,6 +60,7 @@ export function SegmentActions({
   onDelete,
   onStartEdit,
   onClearSelection,
+  onStartChapterHere,
 }: SegmentActionsProps) {
   const restoreSegmentFocus = useCallback(() => {
     const segmentElement = document.querySelector(
@@ -152,6 +155,17 @@ export function SegmentActions({
               <Scissors className="h-4 w-4 mr-2" />
               Split at current word
               <span className="menu-shortcut-badge ml-auto">S</span>
+            </DropdownMenuItem>
+          )}
+          {onStartChapterHere && <DropdownMenuSeparator />}
+          {onStartChapterHere && (
+            <DropdownMenuItem
+              onSelect={() => {
+                onStartChapterHere(segmentId);
+              }}
+            >
+              <BookOpenText className="h-4 w-4 mr-2" />
+              Start Chapter Here
             </DropdownMenuItem>
           )}
           <DropdownMenuItem

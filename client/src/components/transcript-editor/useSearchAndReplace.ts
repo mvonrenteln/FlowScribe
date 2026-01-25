@@ -257,6 +257,12 @@ export function useSearchAndReplace(
     regex,
   ]);
 
+  const matchIndexMap = useMemo(
+    () =>
+      new Map(allMatches.map((m, i) => [`${m.segmentId}:${m.startIndex}`, i] as [string, number])),
+    [allMatches],
+  );
+
   return {
     replaceQuery,
     setReplaceQuery,
@@ -273,7 +279,8 @@ export function useSearchAndReplace(
       }
     },
     findMatchIndex: (segmentId: string, startIndex: number) => {
-      return allMatches.findIndex((m) => m.segmentId === segmentId && m.startIndex === startIndex);
+      const key = `${segmentId}:${startIndex}`;
+      return matchIndexMap.get(key) ?? -1;
     },
     allMatches,
   };

@@ -53,8 +53,8 @@
 │   ├── types.ts                  # Parsing types
 │   └── index.ts
 
-├── logging/                      # Logging infrastructure (NEW)
-│   ├── loggingService.ts         # Feature-specific logging with debug control
+├── logging/                      # Logging service (shared)
+│   ├── loggingService.ts         # General-purpose logging with debug control
 │   ├── index.ts                  # Exports
 │   └── __tests__/
 │       └── loggingService.test.ts # 90+ tests
@@ -2098,4 +2098,3 @@ const result = await executeFeature("your-feature", prompt.variables, {...});
 
 *Last Updated: January 4, 2026*
 *Next Review: January 11, 2026*
-

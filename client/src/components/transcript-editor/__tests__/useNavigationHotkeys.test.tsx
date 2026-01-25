@@ -61,6 +61,7 @@ describe("useNavigationHotkeys", () => {
     onShowExport: vi.fn(),
     onShowShortcuts: vi.fn(),
     onShowSettings: vi.fn(),
+    onToggleChaptersOutline: vi.fn(),
   };
 
   beforeEach(() => {
@@ -80,6 +81,18 @@ describe("useNavigationHotkeys", () => {
     expect(handler).toBeDefined();
     handler?.(new KeyboardEvent("keydown", { key: "2" }));
     expect(updateSegmentSpeaker).toHaveBeenCalledWith("segment-1", "SPEAKER_01");
+  });
+
+  it("toggles the chapter outline panel with the outline shortcut", () => {
+    const onToggleChaptersOutline = vi.fn();
+    renderHook(() =>
+      useNavigationHotkeys({
+        ...baseOptions,
+        onToggleChaptersOutline,
+      }),
+    );
+    hotkeyHandlers.get("mod+shift+o")?.(new KeyboardEvent("keydown", { key: "O" }));
+    expect(onToggleChaptersOutline).toHaveBeenCalled();
   });
 
   it("handles split, merge, bookmark, confirm, and delete hotkeys", () => {

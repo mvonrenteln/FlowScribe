@@ -19,7 +19,9 @@ export interface PersistenceSelection {
   segments: Segment[];
   speakers: Speaker[];
   tags: Tag[];
+  chapters: TranscriptStore["chapters"];
   selectedSegmentId: string | null;
+  selectedChapterId: string | null;
   currentTime: number;
   currentTimeBucket: number;
   isPlaying: boolean;
@@ -60,7 +62,9 @@ export const selectPersistenceState = (state: TranscriptStore): PersistenceSelec
   segments: state.segments,
   speakers: state.speakers,
   tags: state.tags,
+  chapters: state.chapters,
   selectedSegmentId: state.selectedSegmentId,
+  selectedChapterId: state.selectedChapterId,
   currentTime: state.currentTime,
   currentTimeBucket: getPersistTimeBucket(state.currentTime, state.isPlaying),
   isPlaying: state.isPlaying,
@@ -90,7 +94,9 @@ export const arePersistenceSelectionsEqual = (
   left.segments === right.segments &&
   left.speakers === right.speakers &&
   left.tags === right.tags &&
+  left.chapters === right.chapters &&
   left.selectedSegmentId === right.selectedSegmentId &&
+  left.selectedChapterId === right.selectedChapterId &&
   left.currentTimeBucket === right.currentTimeBucket &&
   left.isPlaying === right.isPlaying &&
   left.isWhisperXFormat === right.isWhisperXFormat &&

@@ -62,3 +62,10 @@
 - **Log strategically**: Use structured logging (not console.log) for debugging and monitoring
 - **Use established libraries**: Prefer existing, proven solutions when introducing new capabilities. Do not replace working infrastructure without clear necessity.
 - **Document patterns**: When introducing new patterns, add examples to the architecture guide
+
+### Performance guidance for agents and contributors
+
+- **Prioritize O(1) lookups for hot paths**: When you see repeated `find`/`findIndex` calls over the same array (especially in render paths or loops), replace them with a precomputed lookup map (`Map`) and use O(1) `get` operations.
+- **Memoize derived maps in React**: Use `useMemo` to compute maps derived from arrays and depend on the original array reference to avoid unnecessary rebuilds.
+- **Agents modifying code must enforce this**: If an agent (or PR) changes code that previously used repeated scans, ensure the agent introduces a memoized map or documents why O(n) scans are acceptable. Include a unit test that would fail if maps are rebuilt per-call.
+- **Place map construction at the outermost reasonable scope**: Build maps as high as possible (component-level or service-level) and pass them into deeper functions rather than reconstructing them in nested helpers.

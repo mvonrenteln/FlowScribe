@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "@/hooks/use-toast";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
@@ -69,6 +69,8 @@ export const useTranscriptEditor = () => {
   const segments = useTranscriptStore((state) => state.segments);
   const speakers = useTranscriptStore((state) => state.speakers);
   const tags = useTranscriptStore((state) => state.tags);
+  const chapters = useTranscriptStore((state) => state.chapters);
+  const selectedChapterId = useTranscriptStore((state) => state.selectedChapterId);
   const currentTime = useTranscriptStore((state) => state.currentTime);
   const isPlaying = useTranscriptStore((state) => state.isPlaying);
   const duration = useTranscriptStore((state) => state.duration);
@@ -98,7 +100,10 @@ export const useTranscriptEditor = () => {
   const toggleHighlightLowConfidence = useTranscriptStore(
     (state) => state.toggleHighlightLowConfidence,
   );
-
+  const startChapter = useTranscriptStore((state) => state.startChapter);
+  const updateChapter = useTranscriptStore((state) => state.updateChapter);
+  const deleteChapter = useTranscriptStore((state) => state.deleteChapter);
+  const selectChapter = useTranscriptStore((state) => state.selectChapter);
   const {
     sidebarOpen,
     toggleSidebar,
@@ -116,6 +121,8 @@ export const useTranscriptEditor = () => {
     setShowAISegmentMerge,
     showAICommandPanel,
     setShowAICommandPanel,
+    showChaptersOutline,
+    setShowChaptersOutline,
     showSettings,
     setShowSettings,
     settingsInitialSection,
@@ -227,6 +234,7 @@ export const useTranscriptEditor = () => {
     () => document.body?.dataset.transcriptEditing === "true",
     [],
   );
+  const isTranscriptEditingActive = isTranscriptEditing();
 
   const {
     effectiveSpellcheckLanguages,
@@ -446,6 +454,7 @@ export const useTranscriptEditor = () => {
     onShowExport: () => setShowExport(true),
     onShowShortcuts: () => setShowShortcuts(true),
     onShowSettings: () => setShowSettings(true),
+    onToggleChaptersOutline: () => setShowChaptersOutline((current) => !current),
     onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
     onRunDefaultAIRevision: handleRunDefaultAIRevision,
     onOpenAIRevisionMenu: handleOpenAIRevisionMenu,
@@ -484,6 +493,43 @@ export const useTranscriptEditor = () => {
     [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments],
   );
 
+  const [pendingChapterFocusId, setPendingChapterFocusId] = useState<string | null>(null);
+
+  const handleStartChapterAtSegment = useCallback(
+    (segmentId: string) => {
+      const createdId = startChapter("New Chapter", segmentId);
+      const resolvedId = createdId ?? useTranscriptStore.getState().selectedChapterId;
+      if (resolvedId) {
+        setPendingChapterFocusId(resolvedId);
+      }
+    },
+    [startChapter],
+  );
+
+  const handleChapterFocusRequestHandled = useCallback(() => {
+    setPendingChapterFocusId(null);
+  }, []);
+
+  const handleSelectChapter = useCallback(
+    (chapterId: string) => {
+      selectChapter(chapterId);
+    },
+    [selectChapter],
+  );
+
+  const handleJumpToChapter = useCallback(
+    (chapterId: string) => {
+      const chapter = chapters.find((item) => item.id === chapterId);
+      if (!chapter) return;
+      const segment = segments.find((item) => item.id === chapter.startSegmentId);
+      if (!segment) return;
+      selectChapter(chapterId);
+      setSelectedSegmentId(segment.id);
+      seekToTime(segment.start, { source: "transcript", action: "segment_click" });
+    },
+    [chapters, segments, seekToTime, selectChapter, setSelectedSegmentId],
+  );
+
   const waveformProps = useMemo(
     () => ({
       audioUrl,
@@ -492,7 +538,7 @@ export const useTranscriptEditor = () => {
       currentTime,
       isPlaying,
       playbackRate: playback.playbackRate,
-      showSpeakerRegions: isWhisperXFormat,
+      showSpeakerRegions: isWhisperXFormat || speakers.length > 0,
       onTimeUpdate: updatePlaybackTime,
       onPlayPause: setIsPlaying,
       onDurationChange: setDuration,
@@ -517,111 +563,61 @@ export const useTranscriptEditor = () => {
     ],
   );
 
-  const toolbarProps = useMemo(
-    () => ({
-      sidebarOpen,
-      onToggleSidebar: toggleSidebar,
-      onAudioUpload: handleAudioUpload,
-      onTranscriptUpload: handleTranscriptUpload,
-      audioFileName: audioFile?.name,
-      transcriptFileName: transcriptRef?.name,
-      transcriptLoaded: segments.length > 0,
-      sessionKind,
-      sessionLabel,
-      activeSessionKey: sessionKey,
-      recentSessions,
-      onActivateSession: activateSession,
-      onDeleteSession: transcriptActions.deleteSession,
-      onShowRevisionDialog: () => setShowRevisionDialog(true),
-      canCreateRevision,
-      onUndo: undo,
-      onRedo: redo,
-      canUndo: canUndoChecked,
-      canRedo: canRedoChecked,
-      onShowShortcuts: () => setShowShortcuts(true),
-      onShowExport: () => setShowExport(true),
-      aiCommandPanelOpen: showAICommandPanel,
-      onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
-      highlightLowConfidence,
-      onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
-      confidencePopoverOpen,
-      onConfidencePopoverChange: setConfidencePopoverOpen,
-      lowConfidenceThreshold,
-      onManualConfidenceChange: (value: number) => {
-        setManualConfidenceThreshold(value);
-        setHighlightLowConfidence(true);
-      },
-      onResetConfidenceThreshold: () => setManualConfidenceThreshold(null),
-      spellcheckPopoverOpen,
-      onSpellcheckPopoverChange: setSpellcheckPopoverOpen,
-      spellcheckEnabled,
-      onToggleSpellcheck: () => setSpellcheckEnabled(!spellcheckEnabled),
-      spellcheckLanguages,
-      onSpellcheckLanguageChange: (languages: SpellcheckLanguage[]) =>
-        setSpellcheckLanguages(languages),
-      spellcheckCustomEnabled,
-      onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
-      onShowCustomDictionaries: () => setShowSettings(true),
-      spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
-      onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
-      spellcheckDebugEnabled,
-      effectiveSpellcheckLanguages,
-      spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
-      spellcheckHighlightActive: showSpellcheckMatches,
-      glossaryHighlightActive: showLexiconMatches,
-      onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
-    }),
-    [
-      sidebarOpen,
-      activateSession,
-      audioFile?.name,
-      canRedoChecked,
-      canUndoChecked,
-      effectiveSpellcheckLanguages,
-      handleAudioUpload,
-      handleTranscriptUpload,
-      highlightLowConfidence,
-      lowConfidenceThreshold,
-      recentSessions,
-      redo,
-      segments.length,
-      setHighlightLowConfidence,
-      setManualConfidenceThreshold,
-      setSpellcheckCustomEnabled,
-      setSpellcheckEnabled,
-      setSpellcheckLanguages,
-      spellcheckCustomDictionaries.length,
-      spellcheckCustomEnabled,
-      spellcheckDebugEnabled,
-      spellcheckEnabled,
-      spellcheckLanguages,
-      spellcheckers,
-      transcriptRef?.name,
-      undo,
-      toggleSidebar,
-      setShowRevisionDialog,
-      setShowShortcuts,
-      setShowExport,
-      confidencePopoverOpen,
-      setConfidencePopoverOpen,
-      spellcheckPopoverOpen,
-      setSpellcheckPopoverOpen,
-      setShowSettings,
-      setShowSpellcheckDialog,
-      showAICommandPanel,
-      setShowAICommandPanel,
-      showLexiconMatches,
-      showSpellcheckMatches,
-      sessionKey,
-      sessionKind,
-      sessionLabel,
-      canCreateRevision,
-      transcriptActions.deleteSession,
-      toggleHighlightLowConfidence,
-      lexiconHighlightUnderline,
-      setLexiconHighlightUnderline,
-    ],
-  );
+  const toolbarProps = {
+    sidebarOpen,
+    onToggleSidebar: toggleSidebar,
+    onAudioUpload: handleAudioUpload,
+    onTranscriptUpload: handleTranscriptUpload,
+    audioFileName: audioFile?.name,
+    transcriptFileName: transcriptRef?.name,
+    transcriptLoaded: segments.length > 0,
+    sessionKind,
+    sessionLabel,
+    activeSessionKey: sessionKey,
+    recentSessions,
+    onActivateSession: activateSession,
+    onDeleteSession: transcriptActions.deleteSession,
+    onShowRevisionDialog: () => setShowRevisionDialog(true),
+    canCreateRevision,
+    onUndo: undo,
+    onRedo: redo,
+    canUndo: canUndoChecked,
+    canRedo: canRedoChecked,
+    onShowShortcuts: () => setShowShortcuts(true),
+    onShowExport: () => setShowExport(true),
+    aiCommandPanelOpen: showAICommandPanel,
+    onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
+    chaptersOutlineOpen: showChaptersOutline,
+    onToggleChaptersOutline: () => setShowChaptersOutline((current) => !current),
+    highlightLowConfidence,
+    onToggleHighlightLowConfidence: toggleHighlightLowConfidence,
+    confidencePopoverOpen,
+    onConfidencePopoverChange: setConfidencePopoverOpen,
+    lowConfidenceThreshold,
+    onManualConfidenceChange: (value: number) => {
+      setManualConfidenceThreshold(value);
+      setHighlightLowConfidence(true);
+    },
+    onResetConfidenceThreshold: () => setManualConfidenceThreshold(null),
+    spellcheckPopoverOpen,
+    onSpellcheckPopoverChange: setSpellcheckPopoverOpen,
+    spellcheckEnabled,
+    onToggleSpellcheck: () => setSpellcheckEnabled(!spellcheckEnabled),
+    spellcheckLanguages,
+    onSpellcheckLanguageChange: (languages: SpellcheckLanguage[]) =>
+      setSpellcheckLanguages(languages),
+    spellcheckCustomEnabled,
+    onToggleSpellcheckCustom: () => setSpellcheckCustomEnabled(!spellcheckCustomEnabled),
+    onShowCustomDictionaries: () => setShowSettings(true),
+    spellcheckCustomDictionariesCount: spellcheckCustomDictionaries.length,
+    onShowSpellcheckDialog: () => setShowSpellcheckDialog(true),
+    spellcheckDebugEnabled,
+    effectiveSpellcheckLanguages,
+    spellcheckerLanguages: spellcheckers.map((checker) => checker.language),
+    spellcheckHighlightActive: showSpellcheckMatches,
+    glossaryHighlightActive: showLexiconMatches,
+    onShowGlossary: () => setLexiconHighlightUnderline(!lexiconHighlightUnderline),
+  };
 
   const filterPanelProps = useMemo(
     () => ({
@@ -734,6 +730,8 @@ export const useTranscriptEditor = () => {
       containerRef: transcriptListRef,
       filteredSegments,
       speakers,
+      chapters,
+      selectedChapterId,
       activeSegmentId,
       selectedSegmentId,
       activeWordIndex,
@@ -760,6 +758,13 @@ export const useTranscriptEditor = () => {
       onReplaceCurrent: replaceCurrent,
       onMatchClick,
       findMatchIndex,
+      onStartChapterAtSegment: handleStartChapterAtSegment,
+      onSelectChapter: handleSelectChapter,
+      onUpdateChapter: updateChapter,
+      onDeleteChapter: deleteChapter,
+      chapterFocusRequest: pendingChapterFocusId,
+      onChapterFocusRequestHandled: handleChapterFocusRequestHandled,
+      isTranscriptEditing: isTranscriptEditingActive,
       allMatches,
     }),
     [
@@ -767,32 +772,41 @@ export const useTranscriptEditor = () => {
       activeWordIndex,
       addLexiconEntry,
       addSpellcheckIgnoreWord,
+      allMatches,
+      chapters,
+      deleteChapter,
       effectiveLexiconHighlightBackground,
       effectiveLexiconHighlightUnderline,
+      editRequestId,
       emptyState,
       filteredSegments,
-      highlightLowConfidence,
+      findMatchIndex,
+      handleChapterFocusRequestHandled,
+      handleClearEditRequest,
+      handleSelectChapter,
+      handleStartChapterAtSegment,
+      isRegexSearch,
+      isTranscriptEditingActive,
       lexiconMatchesBySegment,
       lowConfidenceThreshold,
-      selectedSegmentId,
+      onMatchClick,
+      pendingChapterFocusId,
+      playback.handleSeekInternal,
+      replaceCurrent,
+      replaceQuery,
+      searchQuery,
       segmentHandlers,
       showLexiconMatches,
       showSpellcheckMatches,
-      speakers,
       spellcheckMatchesBySegment,
+      highlightLowConfidence,
       splitWordIndex,
+      speakers,
+      selectedChapterId,
+      selectedSegmentId,
       transcriptListRef,
-      playback.handleSeekInternal,
-      searchQuery,
-      isRegexSearch,
+      updateChapter,
       currentMatch,
-      replaceQuery,
-      replaceCurrent,
-      onMatchClick,
-      findMatchIndex,
-      allMatches,
-      editRequestId,
-      handleClearEditRequest,
     ],
   );
 
@@ -886,6 +900,17 @@ export const useTranscriptEditor = () => {
     [filteredSegments, setShowAICommandPanel, setShowSettings, showAICommandPanel],
   );
 
+  const chaptersOutlinePanelProps = useMemo(
+    () => ({
+      open: showChaptersOutline,
+      onOpenChange: setShowChaptersOutline,
+      chapters,
+      selectedChapterId,
+      onJumpToChapter: handleJumpToChapter,
+    }),
+    [chapters, handleJumpToChapter, selectedChapterId, setShowChaptersOutline, showChaptersOutline],
+  );
+
   return {
     sidebarOpen,
     toolbarProps,
@@ -897,6 +922,7 @@ export const useTranscriptEditor = () => {
     transcriptListProps,
     dialogProps,
     aiCommandPanelProps,
+    chaptersOutlinePanelProps,
   };
 };
 

@@ -10,6 +10,7 @@ export const useTranscriptUIState = () => {
   const [showRevisionDialog, setShowRevisionDialog] = useState(false);
   const [showAISegmentMerge, setShowAISegmentMerge] = useState(false);
   const [showAICommandPanel, setShowAICommandPanel] = useState(false);
+  const [showChaptersOutline, setShowChaptersOutline] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
   const [settingsInitialSection, setSettingsInitialSection] = useState<SettingsSection | undefined>(
     undefined,
@@ -41,6 +42,8 @@ export const useTranscriptUIState = () => {
     setShowAISegmentMerge,
     showAICommandPanel,
     setShowAICommandPanel,
+    showChaptersOutline,
+    setShowChaptersOutline,
     showSettings,
     setShowSettings,
     settingsInitialSection,

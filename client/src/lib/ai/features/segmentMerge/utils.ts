@@ -590,8 +590,11 @@ export function validateMergeCandidate(
     }
   }
 
+  // Build index map once to avoid repeated findIndex calls
+  const indexByIdMap = new Map(allSegments.map((s, i) => [s.id, i]));
+
   // Check segments are consecutive
-  const indices = segmentIds.map((id) => allSegments.findIndex((s) => s.id === id));
+  const indices = segmentIds.map((id) => indexByIdMap.get(id) ?? -1);
   for (let i = 1; i < indices.length; i++) {
     if (indices[i] !== indices[i - 1] + 1) {
       return { valid: false, error: "Segments must be consecutive" };

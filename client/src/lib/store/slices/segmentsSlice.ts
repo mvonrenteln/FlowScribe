@@ -1,5 +1,8 @@
 import type { StoreApi } from "zustand";
+import { indexById } from "@/lib/arrayUtils";
 import { buildSessionKey } from "@/lib/fileReference";
+import { clearWordsIndexCache } from "@/lib/utils/wordIndexCache";
+import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
@@ -9,6 +12,49 @@ import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+type ChapterReplacement =
+  | string
+  | {
+      start?: string;
+      end?: string;
+    };
+
+/**
+ * Remap chapter segment ids after segment operations (split/merge/delete)
+ * and filter out chapters that no longer reference valid segments.
+ */
+function remapAndFilterChapters(
+  chapters: Chapter[] | undefined | null,
+  replacements: Record<string, ChapterReplacement>,
+  validSegments: Segment[],
+): Chapter[] {
+  if (!chapters || chapters.length === 0) return [];
+  const validIds = new Set(validSegments.map((s) => s.id));
+  return chapters
+    .map((ch) => {
+      if (!ch) return ch;
+      let changed = false;
+      const next: Chapter = { ...ch };
+      for (const [oldId, rep] of Object.entries(replacements)) {
+        if (next.startSegmentId === oldId) {
+          if (typeof rep === "string") next.startSegmentId = rep;
+          else if (rep.start) next.startSegmentId = rep.start;
+          changed = true;
+        }
+        if (next.endSegmentId === oldId) {
+          if (typeof rep === "string") next.endSegmentId = rep;
+          else if (rep.end) next.endSegmentId = rep.end;
+          changed = true;
+        }
+      }
+      return changed ? next : ch;
+    })
+    .filter(
+      (ch): ch is Chapter =>
+        Boolean(ch) && validIds.has(ch.startSegmentId) && validIds.has(ch.endSegmentId),
+    );
+}
 
 export const createSegmentsSlice = (
   set: StoreSetter,
@@ -82,7 +128,9 @@ export const createSegmentsSlice = (
         segments: session.segments,
         speakers: session.speakers,
         tags: session.tags ?? [],
+        chapters: session.chapters ?? [],
         selectedSegmentId: selectedFromSession,
+        selectedChapterId: session.selectedChapterId ?? null,
         currentTime: session.currentTime ?? 0,
         isWhisperXFormat: session.isWhisperXFormat ?? false,
         history: [
@@ -90,7 +138,9 @@ export const createSegmentsSlice = (
             segments: session.segments,
             speakers: session.speakers,
             tags: session.tags ?? [],
+            chapters: session.chapters ?? [],
             selectedSegmentId: selectedFromSession,
+            selectedChapterId: session.selectedChapterId ?? null,
             currentTime: session.currentTime ?? 0,
             confidenceScoresVersion,
           },
@@ -109,14 +159,18 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags: importedTags,
+      chapters: [],
       selectedSegmentId,
+      selectedChapterId: null,
       isWhisperXFormat: data.isWhisperXFormat || false,
       history: [
         {
           segments,
           speakers,
           tags: importedTags,
+          chapters: [],
           selectedSegmentId,
+          selectedChapterId: null,
           currentTime: 0,
           confidenceScoresVersion,
         },
@@ -159,17 +213,20 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
     const currentSegments = [...segments];
+    const currentIndexById = indexById(currentSegments);
     let changed = false;
 
     for (const update of updates) {
-      const segmentIndex = currentSegments.findIndex((s) => s.id === update.id);
+      const segmentIndex = currentIndexById.get(update.id) ?? -1;
       if (segmentIndex === -1) continue;
 
       const segment = currentSegments[segmentIndex];
@@ -189,10 +246,15 @@ export const createSegmentsSlice = (
       segments: currentSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: currentSegments,
       confidenceScoresVersion: nextConfidenceScoresVersion,
@@ -206,9 +268,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -219,7 +283,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -235,9 +301,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -252,7 +320,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
@@ -269,9 +339,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -284,7 +356,9 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
@@ -296,8 +370,18 @@ export const createSegmentsSlice = (
   },
 
   splitSegment: (id, wordIndex) => {
-    const { segments, speakers, tags, history, historyIndex, confidenceScoresVersion } = get();
-    const segmentIndex = segments.findIndex((s) => s.id === id);
+    const {
+      segments,
+      speakers,
+      tags,
+      chapters,
+      history,
+      historyIndex,
+      selectedChapterId,
+      confidenceScoresVersion,
+    } = get();
+    const indexMap = indexById(segments);
+    const segmentIndex = indexMap.get(id) ?? -1;
     if (segmentIndex === -1) return;
 
     const segment = segments[segmentIndex];
@@ -333,16 +417,28 @@ export const createSegmentsSlice = (
       ...segments.slice(segmentIndex + 1),
     ];
 
+    const updatedChapters = remapAndFilterChapters(
+      chapters,
+      { [id]: { start: firstSegment.id, end: secondSegment.id } },
+      newSegments,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
+      chapters: updatedChapters,
       selectedSegmentId: secondSegment.id,
+      selectedChapterId,
       currentTime: secondSegment.start,
       confidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
+      chapters: updatedChapters,
       selectedSegmentId: secondSegment.id,
       currentTime: secondSegment.start,
       seekRequestTime: secondSegment.start,
@@ -356,13 +452,16 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       currentTime,
+      selectedChapterId,
       confidenceScoresVersion,
     } = get();
-    const index1 = segments.findIndex((s) => s.id === id1);
-    const index2 = segments.findIndex((s) => s.id === id2);
+    const indexMap = indexById(segments);
+    const index1 = indexMap.get(id1) ?? -1;
+    const index2 = indexMap.get(id2) ?? -1;
 
     if (index1 === -1 || index2 === -1) return null;
     if (Math.abs(index1 - index2) !== 1) return null;
@@ -387,17 +486,29 @@ export const createSegmentsSlice = (
       ...segments.slice(Math.max(index1, index2) + 1),
     ];
 
+    const updatedChapters = remapAndFilterChapters(
+      chapters,
+      { [first.id]: merged.id, [second.id]: merged.id },
+      newSegments,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
+      chapters: updatedChapters,
       selectedSegmentId: merged.id,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
+    // Invalidate word index cache because segments array changed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       selectedSegmentId: merged.id,
+      chapters: updatedChapters,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });
@@ -409,9 +520,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -422,10 +535,15 @@ export const createSegmentsSlice = (
       segments: newSegments,
       speakers,
       tags,
+      chapters,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     });
+    // timing update doesn't touch words but replace segment object; invalidate to be safe
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
       history: nextHistory.history,
@@ -438,9 +556,11 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags,
+      chapters,
       history,
       historyIndex,
       selectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion,
     } = get();
@@ -453,16 +573,48 @@ export const createSegmentsSlice = (
           null)
         : selectedSegmentId;
     const nextConfidenceScoresVersion = confidenceScoresVersion + 1;
+    // Compute replacements for chapters that referenced the deleted id:
+    // - startSegmentId -> next segment at the deleted index (becomes first)
+    // - endSegmentId -> previous segment before the deleted index
+    const indexMap = indexById(segments);
+    const deletedIndex = indexMap.get(id) ?? -1;
+    const startReplacement = newSegments[deletedIndex];
+    const endReplacement = newSegments[deletedIndex - 1];
+
+    // Remove chapters that only referenced the deleted segment (single-segment
+    // chapters) before attempting remap, since remapping would create
+    // inverted or empty ranges.
+    const chaptersToRemap = (chapters || []).filter(
+      (ch) => !(ch && ch.startSegmentId === id && ch.endSegmentId === id),
+    );
+
+    const updatedChapters = remapAndFilterChapters(
+      chaptersToRemap,
+      {
+        [id]: {
+          start: startReplacement?.id,
+          end: endReplacement?.id,
+        },
+      },
+      newSegments,
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
       tags,
+      chapters: updatedChapters,
       selectedSegmentId: nextSelectedSegmentId,
+      selectedChapterId,
       currentTime,
       confidenceScoresVersion: nextConfidenceScoresVersion,
     });
+    // Invalidate cache because segments removed
+    clearWordsIndexCache();
+
     set({
       segments: newSegments,
+      chapters: updatedChapters,
       confidenceScoresVersion: nextConfidenceScoresVersion,
       selectedSegmentId: nextSelectedSegmentId,
       history: nextHistory.history,

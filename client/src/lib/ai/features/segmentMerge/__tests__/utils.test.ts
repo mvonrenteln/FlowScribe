@@ -1,6 +1,46 @@
 import { describe, expect, it } from "vitest";
-import { createBatchPairMapping } from "../../../core/batchIdMapping";
+import { validateMergeCandidate } from "@/lib/ai/features/segmentMerge/utils";
 import type { MergeAnalysisSegment } from "../types";
+
+function makeSegment(id: string, speaker = "A"): MergeAnalysisSegment {
+  return { id, speaker } as MergeAnalysisSegment;
+}
+
+describe("validateMergeCandidate", () => {
+  it("rejects less than 2 segments", () => {
+    const res = validateMergeCandidate([], []);
+    expect(res.valid).toBe(false);
+  });
+
+  it("rejects when a segment id is missing", () => {
+    const all = [makeSegment("a"), makeSegment("b")];
+    const res = validateMergeCandidate(["a", "c"], all as MergeAnalysisSegment[]);
+    expect(res.valid).toBe(false);
+    expect(res.error).toContain("not found");
+  });
+
+  it("rejects non-consecutive segments", () => {
+    const all = [makeSegment("a"), makeSegment("b"), makeSegment("c")];
+    const res = validateMergeCandidate(["a", "c"], all as MergeAnalysisSegment[]);
+    expect(res.valid).toBe(false);
+    expect(res.error).toBe("Segments must be consecutive");
+  });
+
+  it("rejects segments with different speakers", () => {
+    const all = [makeSegment("a", "A"), makeSegment("b", "B")];
+    const res = validateMergeCandidate(["a", "b"], all as MergeAnalysisSegment[]);
+    expect(res.valid).toBe(false);
+    expect(res.error).toBe("Segments must have the same speaker");
+  });
+
+  it("accepts valid consecutive same-speaker segments", () => {
+    const all = [makeSegment("a", "A"), makeSegment("b", "A"), makeSegment("c", "A")];
+    const res = validateMergeCandidate(["a", "b", "c"], all as MergeAnalysisSegment[]);
+    expect(res.valid).toBe(true);
+  });
+});
+
+import { createBatchPairMapping } from "../../../core/batchIdMapping";
 import {
   applyBasicSmoothing,
   calculateTimeGap,

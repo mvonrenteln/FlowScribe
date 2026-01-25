@@ -9,6 +9,7 @@ import {
   readGlobalState,
   readSessionsState,
 } from "@/lib/storage";
+import type { Chapter, ChapterUpdate } from "@/types/chapter";
 import {
   PAUSED_TIME_PERSIST_STEP,
   PERSIST_THROTTLE_MS,
@@ -26,6 +27,7 @@ import {
   initialAISegmentMergeState,
 } from "./store/slices/aiSegmentMergeSlice";
 import { createAISpeakerSlice, initialAISpeakerState } from "./store/slices/aiSpeakerSlice";
+import { createChapterSlice } from "./store/slices/chapterSlice";
 import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
@@ -53,6 +55,7 @@ import type {
 } from "./store/types";
 import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfig";
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
+import { memoizedBuildSegmentIndexMap, memoizedBuildSegmentMaps } from "./store/utils/chapters";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
@@ -73,6 +76,63 @@ const resolvedSpellcheckSelection = resolveSpellcheckSelection(
   Boolean(globalState?.spellcheckCustomEnabled),
 );
 
+/**
+ * Return a memoized mapping of segment id -> index for the current store `segments`.
+ *
+ * This selector is optimized for performance: the underlying builder (`memoizedBuildSegmentIndexMap`)
+ * uses a WeakMap cache keyed by the `segments` array identity so callers do not repeatedly rebuild
+ * an O(n) index on every render. Use this when you need a fast id->index lookup in components
+ * or selectors.
+ *
+ * Returns: `Map<string, number>`
+ */
+export const useSegmentIndexById = () =>
+  useTranscriptStore((s) => memoizedBuildSegmentIndexMap(s.segments));
+
+/**
+ * Synchronous variant of `useSegmentIndexById` for imperative code.
+ * Reads the current store state and returns the memoized id->index map.
+ */
+export const getSegmentIndexById = () =>
+  memoizedBuildSegmentIndexMap(useTranscriptStore.getState().segments);
+
+/**
+ * Return a small set of memoized lookup maps derived from the store `segments`.
+ *
+ * The returned object contains at least:
+ * - `segmentById`: Map<string, Segment>
+ * - `indexById`: Map<string, number>
+ *
+ * Like the index selector, the maps are memoized (WeakMap keyed by the segments array)
+ * so repeated reads are cheap and safe in render paths. Use `useSegmentMaps` in
+ * components that need both id->segment and id->index lookups.
+ */
+export const useSegmentMaps = () => useTranscriptStore((s) => memoizedBuildSegmentMaps(s.segments));
+
+/**
+ * Synchronous variant of `useSegmentMaps` for imperative code.
+ */
+export const getSegmentMaps = () =>
+  memoizedBuildSegmentMaps(useTranscriptStore.getState().segments);
+
+/**
+ * Convenience hook: return the `Segment` for the given id, or `undefined`.
+ * Uses `useSegmentMaps()` internally and is safe to call from React components.
+ */
+export const useSegmentById = (id: string | null | undefined) => {
+  const maps = useSegmentMaps();
+  if (!id) return undefined;
+  return maps.segmentById.get(id) as Segment | undefined;
+};
+
+/**
+ * Synchronous variant of `useSegmentById` for imperative code paths.
+ */
+export const getSegmentById = (id: string | null | undefined) => {
+  if (!id) return undefined;
+  return getSegmentMaps().segmentById.get(id) as Segment | undefined;
+};
+
 const rawActiveSession =
   sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
     ? sessionsState.sessions[sessionsState.activeSessionKey]
@@ -82,6 +142,7 @@ const activeSession = rawActiveSession
       ...rawActiveSession,
       segments: normalizeSegments(rawActiveSession.segments),
       tags: rawActiveSession.tags ?? [],
+      chapters: rawActiveSession.chapters ?? [],
     }
   : null;
 const activeSessionKey =
@@ -94,7 +155,9 @@ const initialHistoryState = buildInitialHistory(
         segments: activeSession.segments,
         speakers: activeSession.speakers,
         tags: activeSession.tags ?? [],
+        chapters: activeSession.chapters ?? [],
         selectedSegmentId: activeSession.selectedSegmentId,
+        selectedChapterId: activeSession.selectedChapterId ?? null,
         currentTime: activeSession.currentTime ?? 0,
         confidenceScoresVersion: 0,
       }
@@ -114,7 +177,9 @@ const initialState: InitialStoreState = {
   segments: activeSession?.segments ?? [],
   speakers: activeSession?.speakers ?? [],
   tags: activeSession?.tags ?? [],
+  chapters: activeSession?.chapters ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
+  selectedChapterId: activeSession?.selectedChapterId ?? null,
   currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
@@ -170,6 +235,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createSegmentsSlice(set, get, storeContext),
       ...createSpeakersSlice(set, get),
       ...createTagsSlice(set, get),
+      ...createChapterSlice(set, get),
       ...createLexiconSlice(set, get),
       ...createSpellcheckSlice(set, get),
       ...createHistorySlice(set, get),
@@ -213,11 +279,14 @@ if (canUseLocalStorage()) {
         previous.segments !== state.segments ||
         previous.speakers !== state.speakers ||
         previous.tags !== state.tags ||
+        previous.chapters !== state.chapters ||
         !isSameFileReference(previous.audioRef, state.audioRef) ||
         !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
         previous.isWhisperXFormat !== state.isWhisperXFormat;
       const shouldUpdateSelected =
-        !previous || previous.selectedSegmentId !== state.selectedSegmentId;
+        !previous ||
+        previous.selectedSegmentId !== state.selectedSegmentId ||
+        previous.selectedChapterId !== state.selectedChapterId;
       const timeDelta = previous ? Math.abs(state.currentTime - previous.currentTime) : Infinity;
       const timeThreshold = state.isPlaying ? PLAYING_TIME_PERSIST_STEP : PAUSED_TIME_PERSIST_STEP;
       const shouldUpdateTime = !previous || timeDelta >= timeThreshold;
@@ -231,7 +300,9 @@ if (canUseLocalStorage()) {
           segments: state.segments,
           speakers: state.speakers,
           tags: state.tags,
+          chapters: state.chapters,
           selectedSegmentId: state.selectedSegmentId,
+          selectedChapterId: state.selectedChapterId,
           currentTime: state.currentTime,
           isWhisperXFormat: state.isWhisperXFormat,
           updatedAt: Date.now(),
@@ -245,6 +316,7 @@ if (canUseLocalStorage()) {
           nextEntry.segments = state.segments;
           nextEntry.speakers = state.speakers;
           nextEntry.tags = state.tags;
+          nextEntry.chapters = state.chapters;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
           // Only update timestamp if content changed, not just on activation
           if (baseChanged || !previous) {
@@ -256,6 +328,7 @@ if (canUseLocalStorage()) {
         }
         if (shouldUpdateSelected || !previous) {
           nextEntry.selectedSegmentId = state.selectedSegmentId;
+          nextEntry.selectedChapterId = state.selectedChapterId;
         }
         if (shouldUpdateTime || !previous) {
           nextEntry.currentTime = state.currentTime;
@@ -401,6 +474,8 @@ export const selectAISpeakerState = (state: TranscriptStore) => ({
 });
 
 export type {
+  Chapter,
+  ChapterUpdate,
   AISpeakerConfig,
   AISpeakerSuggestion,
   FileReference,

@@ -20,6 +20,7 @@ const shortcuts = {
     { keys: ["↑"], description: "Previous segment" },
     { keys: ["↓"], description: "Next segment" },
     { keys: ["Escape"], description: "Deselect segment / Cancel edit" },
+    { keys: ["Ctrl", "Shift", "O"], description: "Toggle Chapters drawer" },
   ],
   Editing: [
     { keys: ["Ctrl", "Z"], description: "Undo" },

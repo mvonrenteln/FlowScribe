@@ -10,6 +10,7 @@
 - Keyboard-first interaction patterns
 - Clear visual feedback for all editing states
 - Minimal cognitive load through consistent patterns
+- Orientation tools must coexist with the content they describe
 
 ## Layout System
 

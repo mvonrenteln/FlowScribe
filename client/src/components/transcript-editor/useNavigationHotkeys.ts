@@ -35,6 +35,7 @@ interface UseNavigationHotkeysOptions {
   onShowExport: () => void;
   onShowShortcuts: () => void;
   onShowSettings: () => void;
+  onToggleChaptersOutline?: () => void;
   // AI Revision
   onRunDefaultAIRevision?: () => void;
   onOpenAIRevisionMenu?: () => void;
@@ -74,6 +75,7 @@ export function useNavigationHotkeys({
   onShowExport,
   onShowShortcuts,
   onShowSettings,
+  onToggleChaptersOutline,
   onRunDefaultAIRevision,
   onOpenAIRevisionMenu,
   onOpenAISegmentMerge,
@@ -252,6 +254,15 @@ export function useNavigationHotkeys({
     if (isTranscriptEditing()) return;
     onShowSettings();
   });
+
+  useHotkeys(
+    "mod+shift+o",
+    () => {
+      if (isTranscriptEditing()) return;
+      onToggleChaptersOutline?.();
+    },
+    { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
+  );
 
   useHotkeys("shift+/", () => {
     if (isTranscriptEditing()) return;

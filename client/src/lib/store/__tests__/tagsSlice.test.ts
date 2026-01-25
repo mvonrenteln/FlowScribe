@@ -10,7 +10,9 @@ describe("tagsSlice", () => {
       tags: [],
       segments: [],
       speakers: [],
+      chapters: [],
       selectedSegmentId: null,
+      selectedChapterId: null,
       history: [],
       historyIndex: -1,
       currentTime: 0,
@@ -156,6 +158,27 @@ describe("tagsSlice", () => {
       expect(segments.every((s) => !s.tags.includes(tagId))).toBe(true);
     });
 
+    it("removes tag from chapters when tag is deleted", () => {
+      const tagId = useTranscriptStore.getState().tags[0].id;
+
+      // Create a chapter that references the tagId
+      const chapter = {
+        id: "ch-1",
+        title: "Chapter 1",
+        startSegmentId: "seg-1",
+        endSegmentId: "seg-2",
+        segmentCount: 2,
+        createdAt: Date.now(),
+        source: "manual" as const,
+        tags: [tagId],
+      };
+      useTranscriptStore.setState({ chapters: [chapter] });
+
+      useTranscriptStore.getState().removeTag(tagId);
+
+      const chapters = useTranscriptStore.getState().chapters;
+      expect(chapters[0].tags).not.toContain(tagId);
+    });
     it("handles empty tags array on segment", () => {
       const seg = createTestSegment({ id: "seg-empty", text: "Empty", tags: [] });
       useTranscriptStore.setState({ segments: [seg] });

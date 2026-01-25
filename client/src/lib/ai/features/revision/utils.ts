@@ -7,6 +7,7 @@
  * @module ai/features/revision/utils
  */
 
+import { indexById } from "@/lib/arrayUtils";
 import type { RevisionPrompt } from "./types";
 
 // ==================== Prompt Variables ====================
@@ -243,12 +244,9 @@ export function findContextSegments<T extends { id: string }>(
   segments: T[],
   segmentId: string,
 ): { previous?: T; next?: T; index: number } {
-  const index = segments.findIndex((s) => s.id === segmentId);
-
-  if (index === -1) {
-    return { index: -1 };
-  }
-
+  const indexMap = indexById(segments);
+  const index = indexMap.get(segmentId) ?? -1;
+  if (index === -1) return { index: -1 };
   return {
     previous: index > 0 ? segments[index - 1] : undefined,
     next: index < segments.length - 1 ? segments[index + 1] : undefined,

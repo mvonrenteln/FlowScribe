@@ -33,7 +33,9 @@ const buildPersistedSession = (state: TranscriptStore): PersistedSession => ({
   segments: state.segments,
   speakers: state.speakers,
   tags: state.tags,
+  chapters: state.chapters,
   selectedSegmentId: state.selectedSegmentId,
+  selectedChapterId: state.selectedChapterId,
   currentTime: state.currentTime,
   isWhisperXFormat: state.isWhisperXFormat,
   updatedAt: Date.now(),
@@ -98,7 +100,13 @@ export const createSessionSlice = (
     const nextTags = shouldResetTranscript
       ? []
       : (session?.tags ?? (shouldPromoteCurrent ? state.tags : []));
+    const nextChapters = shouldResetTranscript
+      ? []
+      : (session?.chapters ?? (shouldPromoteCurrent ? state.chapters : []));
     const nextSelectedSegmentId = shouldResetTranscript ? null : selectedSegmentId;
+    const nextSelectedChapterId = shouldResetTranscript
+      ? null
+      : (session?.selectedChapterId ?? null);
     const nextCurrentTime = shouldResetTranscript
       ? 0
       : (session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0));
@@ -113,7 +121,9 @@ export const createSessionSlice = (
               segments: persistedHistorySegments ?? session?.segments ?? state.segments,
               speakers: session?.speakers ?? state.speakers,
               tags: session?.tags ?? state.tags,
+              chapters: session?.chapters ?? state.chapters,
               selectedSegmentId,
+              selectedChapterId: session?.selectedChapterId ?? state.selectedChapterId,
               currentTime: session?.currentTime ?? state.currentTime,
               confidenceScoresVersion,
             },
@@ -134,7 +144,9 @@ export const createSessionSlice = (
       segments: nextSegments,
       speakers: nextSpeakers,
       tags: nextTags,
+      chapters: nextChapters,
       selectedSegmentId: nextSelectedSegmentId,
+      selectedChapterId: nextSelectedChapterId,
       currentTime: nextCurrentTime,
       isWhisperXFormat: nextIsWhisperXFormat,
       history: nextHistory,
@@ -174,6 +186,7 @@ export const createSessionSlice = (
         : shouldPromoteCurrent
           ? state.selectedSegmentId
           : (session?.segments[0]?.id ?? null);
+    const selectedChapterId = session?.selectedChapterId ?? null;
     set({
       audioRef: state.audioRef,
       transcriptRef: reference,
@@ -184,7 +197,9 @@ export const createSessionSlice = (
       segments: persistedSegments ?? (shouldPromoteCurrent ? state.segments : []),
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
       tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
+      chapters: session?.chapters ?? (shouldPromoteCurrent ? state.chapters : []),
       selectedSegmentId,
+      selectedChapterId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
       isWhisperXFormat:
         session?.isWhisperXFormat ?? (shouldPromoteCurrent ? state.isWhisperXFormat : false),
@@ -195,7 +210,9 @@ export const createSessionSlice = (
                 segments: persistedHistorySegments ?? session?.segments ?? state.segments,
                 speakers: session?.speakers ?? state.speakers,
                 tags: session?.tags ?? state.tags,
+                chapters: session?.chapters ?? state.chapters,
                 selectedSegmentId,
+                selectedChapterId,
                 currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
                 confidenceScoresVersion,
               },
@@ -213,6 +230,7 @@ export const createSessionSlice = (
       session.segments.some((segment) => segment.id === session.selectedSegmentId)
         ? session.selectedSegmentId
         : (session.segments[0]?.id ?? null);
+    const selectedChapterId = session.selectedChapterId ?? null;
     const state = get();
     const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const shouldClearAudio = !isSameFileReference(state.audioRef, session.audioRef);
@@ -226,7 +244,9 @@ export const createSessionSlice = (
       segments: normalizeSegments(session.segments),
       speakers: session.speakers,
       tags: session.tags ?? [],
+      chapters: session.chapters ?? [],
       selectedSegmentId,
+      selectedChapterId,
       currentTime: session.currentTime ?? 0,
       isWhisperXFormat: session.isWhisperXFormat ?? false,
       history: [
@@ -234,7 +254,9 @@ export const createSessionSlice = (
           segments: normalizeSegments(session.segments),
           speakers: session.speakers,
           tags: session.tags ?? [],
+          chapters: session.chapters ?? [],
           selectedSegmentId,
+          selectedChapterId,
           currentTime: session.currentTime ?? 0,
           confidenceScoresVersion,
         },
@@ -326,7 +348,9 @@ export const buildInitialHistory = (
     segments: Segment[];
     speakers: TranscriptStore["speakers"];
     tags: TranscriptStore["tags"];
+    chapters: TranscriptStore["chapters"];
     selectedSegmentId: string | null;
+    selectedChapterId: string | null;
     currentTime: number;
     confidenceScoresVersion: number;
   } | null,
@@ -338,7 +362,9 @@ export const buildInitialHistory = (
           segments: session.segments,
           speakers: session.speakers,
           tags: session.tags,
+          chapters: session.chapters,
           selectedSegmentId: session.selectedSegmentId,
+          selectedChapterId: session.selectedChapterId,
           currentTime: session.currentTime,
           confidenceScoresVersion: session.confidenceScoresVersion,
         },
