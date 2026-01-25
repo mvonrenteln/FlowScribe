@@ -1,5 +1,6 @@
 import { Fragment, useMemo } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
 import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
@@ -70,14 +71,26 @@ function TranscriptListComponent({
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
-  // Create a map for fast lookup
-  const pendingRevisionBySegmentId = new Map(
-    pendingRevisions.filter((r) => r.status === "pending").map((r) => [r.segmentId, r]),
+  // Create a map for fast lookup of pending revisions/suggestions
+  const pendingRevisionBySegmentId = useMemo(
+    () =>
+      mapById(
+        pendingRevisions
+          .filter((r) => r.status === "pending")
+          .map((r) => ({ id: r.segmentId, ...r })),
+      ),
+    [pendingRevisions],
   );
 
   // Create a map for speaker suggestions
-  const pendingSpeakerSuggestionBySegmentId = new Map(
-    pendingSpeakerSuggestions.filter((s) => s.status === "pending").map((s) => [s.segmentId, s]),
+  const pendingSpeakerSuggestionBySegmentId = useMemo(
+    () =>
+      mapById(
+        pendingSpeakerSuggestions
+          .filter((s) => s.status === "pending")
+          .map((s) => ({ id: s.segmentId, ...s })),
+      ),
+    [pendingSpeakerSuggestions],
   );
 
   const pendingMergeSuggestionByPair = useMemo(() => {
@@ -92,10 +105,7 @@ function TranscriptListComponent({
   }, [pendingMergeSuggestions]);
 
   const segmentIndexById = useSegmentIndexById();
-  const filteredIndexById = useMemo(
-    () => new Map(filteredSegments.map((s, i) => [s.id, i])),
-    [filteredSegments],
-  );
+  const filteredIndexById = useMemo(() => indexById(filteredSegments), [filteredSegments]);
 
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
