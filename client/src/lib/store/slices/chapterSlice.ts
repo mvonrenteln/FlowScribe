@@ -234,7 +234,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   selectChapterById: (id) => get().chapters.find((chapter) => chapter.id === id),
 
   selectChapterForSegment: (segmentId) => {
-    const { chapters, segments } = get();
+    const { chapters } = get();
     const indexById = getSegmentIndexById();
     const segmentIndex = indexById.get(segmentId);
     if (segmentIndex === undefined) return undefined;

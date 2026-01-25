@@ -7,15 +7,63 @@ import type { Segment } from "../types";
 export const buildSegmentIndexMap = (segments: Segment[]) =>
   new Map(segments.map((segment, index) => [segment.id, index]));
 
-// Memoized variant keyed by the segments array identity to avoid rebuilding
-// the Map in hot render paths. Uses a WeakMap so cached entries don't
-// prevent GC for discarded segment arrays.
+/**
+ * Memoized variant of `buildSegmentIndexMap` keyed by the `segments` array
+ * identity. This is important for hot render paths where callers frequently
+ * request the index map — avoiding a rebuild (and a linear scan of the
+ * segments array) can save a lot of CPU on large transcripts.
+ *
+ * Implementation notes:
+ * - The cache is keyed by the exact `segments` array reference, so callers
+ *   must use the same array identity for caching to work (this is the case
+ *   for our store selectors which return the store's `segments` array).
+ * - It uses a `WeakMap` so entries do not prevent the garbage collector from
+ *   reclaiming discarded segment arrays (avoid memory leaks during reloads).
+ * - Prefer calling the exported `memoizedBuildSegmentIndexMap` rather than
+ *   re-running `buildSegmentIndexMap` directly when performance matters.
+ */
 const _segmentMapCache = new WeakMap<Segment[], Map<string, number>>();
 export const memoizedBuildSegmentIndexMap = (segments: Segment[]) => {
   const cached = _segmentMapCache.get(segments);
   if (cached) return cached;
   const next = buildSegmentIndexMap(segments);
   _segmentMapCache.set(segments, next);
+  return next;
+};
+
+// Build both index and object maps together. Useful for callers that need
+// both lookups and want a single cached object keyed by the `segments`
+// array identity so invalidation is automatic when the array changes.
+type SegmentMaps = {
+  indexById: Map<string, number>;
+  segmentById: Map<string, Segment>;
+};
+
+/**
+ * Combined, memoized map object providing both `indexById` and
+ * `segmentById` lookups. Many callers need both maps together; building
+ * them once and returning a single cached object reduces duplicated work.
+ *
+ * This cache follows the same identity-based WeakMap strategy as above and
+ * is intentionally internal to this module. Public helpers such as
+ * `useSegmentMaps` / `getSegmentMaps` in the store layer rely on this
+ * function to provide a stable, memoized view of the segment maps.
+ *
+ * Important usage guidance:
+ * - Callers that only need one of the maps should still prefer the
+ *   store-provided selectors (`useSegmentIndexById`, `useSegmentMaps`) so
+ *   the cache is reused consistently.
+ * - Because the cache keys by array identity, the cache will automatically
+ *   invalidate when the store replaces the `segments` array.
+ */
+const _segmentMapsCache = new WeakMap<Segment[], SegmentMaps>();
+export const memoizedBuildSegmentMaps = (segments: Segment[]): SegmentMaps => {
+  const cached = _segmentMapsCache.get(segments);
+  if (cached) return cached;
+  const indexById = buildSegmentIndexMap(segments);
+  const segmentById = new Map(segments.map((s) => [s.id, s]));
+  const next = { indexById, segmentById } as const;
+  _segmentMapsCache.set(segments, next);
   return next;
 };
 

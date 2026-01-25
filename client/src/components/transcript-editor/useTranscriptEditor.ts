@@ -905,18 +905,10 @@ export const useTranscriptEditor = () => {
       open: showChaptersOutline,
       onOpenChange: setShowChaptersOutline,
       chapters,
-      segments,
       selectedChapterId,
       onJumpToChapter: handleJumpToChapter,
     }),
-    [
-      chapters,
-      handleJumpToChapter,
-      segments,
-      selectedChapterId,
-      setShowChaptersOutline,
-      showChaptersOutline,
-    ],
+    [chapters, handleJumpToChapter, selectedChapterId, setShowChaptersOutline, showChaptersOutline],
   );
 
   return {

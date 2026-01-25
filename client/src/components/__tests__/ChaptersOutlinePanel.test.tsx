@@ -4,7 +4,7 @@ import { describe, expect, it, vi } from "vitest";
 import { ChaptersOutlinePanel } from "@/components/ChaptersOutlinePanel";
 import type { Chapter, Segment } from "@/lib/store";
 
-const segments: Segment[] = [
+const _segments: Segment[] = [
   {
     id: "seg-1",
     speaker: "SPEAKER_00",
@@ -47,7 +47,6 @@ describe("ChaptersOutlinePanel", () => {
         open={true}
         onOpenChange={vi.fn()}
         chapters={chapters}
-        segments={segments}
         selectedChapterId="chapter-1"
         onJumpToChapter={onJumpToChapter}
       />,
@@ -64,7 +63,6 @@ describe("ChaptersOutlinePanel", () => {
         open={false}
         onOpenChange={vi.fn()}
         chapters={chapters}
-        segments={segments}
         selectedChapterId="chapter-1"
         onJumpToChapter={vi.fn()}
       />,

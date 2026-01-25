@@ -2,7 +2,7 @@ import { X } from "lucide-react";
 import { useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import type { Chapter, Segment } from "@/lib/store";
+import type { Chapter } from "@/lib/store";
 import { useSegmentIndexById } from "@/lib/store";
 import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { cn } from "@/lib/utils";
@@ -11,7 +11,6 @@ interface ChaptersOutlinePanelProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chapters: Chapter[];
-  segments: Segment[];
   selectedChapterId: string | null;
   onJumpToChapter: (chapterId: string) => void;
 }
@@ -23,7 +22,6 @@ export function ChaptersOutlinePanel({
   open,
   onOpenChange,
   chapters,
-  segments,
   selectedChapterId,
   onJumpToChapter,
 }: ChaptersOutlinePanelProps) {

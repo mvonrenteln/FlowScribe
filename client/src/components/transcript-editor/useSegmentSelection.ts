@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { useTranscriptStore } from "@/lib/store";
+import { getSegmentById, useSegmentIndexById } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { useScrollAndSelection } from "./useScrollAndSelection";
 
@@ -92,8 +92,8 @@ export const useSegmentSelection = ({
   const setSelectedSegmentIdRef = useRef(setSelectedSegmentId);
 
   const getSelectedSegmentIndex = useCallback(() => {
-    return filteredSegments.findIndex((s) => s.id === selectedSegmentId);
-  }, [filteredSegments, selectedSegmentId]);
+    return filteredIndexByIdRef.current.get(selectedSegmentId ?? "") ?? -1;
+  }, [selectedSegmentId]);
 
   const selectPreviousSegment = useCallback(() => {
     const currentIndex = getSelectedSegmentIndex();
@@ -174,9 +174,10 @@ export const useSegmentSelection = ({
     );
   }, [filteredSegments]);
 
+  const segmentIndexById = useSegmentIndexById();
   useEffect(() => {
-    segmentIndexByIdRef.current = new Map(segments.map((segment, index) => [segment.id, index]));
-  }, [segments]);
+    segmentIndexByIdRef.current = segmentIndexById;
+  }, [segmentIndexById]);
 
   useEffect(() => {
     mergeSegmentsRef.current = mergeSegments;
@@ -252,14 +253,14 @@ export const useSegmentSelection = ({
       if (!handlers) {
         handlers = {
           onSelect: () => {
-            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            const current = getSegmentById(segment.id);
             if (current) {
               setSelectedSegmentId(current.id);
               seekToTime(current.start, { source: "transcript", action: "segment_click" });
             }
           },
           onSelectOnly: () => {
-            const current = useTranscriptStore.getState().segments.find((s) => s.id === segment.id);
+            const current = getSegmentById(segment.id);
             if (current) {
               setSelectedSegmentId(current.id);
             }

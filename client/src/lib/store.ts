@@ -55,7 +55,7 @@ import type {
 } from "./store/types";
 import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfig";
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
-import { memoizedBuildSegmentIndexMap } from "./store/utils/chapters";
+import { memoizedBuildSegmentIndexMap, memoizedBuildSegmentMaps } from "./store/utils/chapters";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
 import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
 import {
@@ -76,13 +76,62 @@ const resolvedSpellcheckSelection = resolveSpellcheckSelection(
   Boolean(globalState?.spellcheckCustomEnabled),
 );
 
-// Store-level selector for the segment index map. Components can use this
-// to avoid independently rebuilding the map when they read `segments`.
+/**
+ * Return a memoized mapping of segment id -> index for the current store `segments`.
+ *
+ * This selector is optimized for performance: the underlying builder (`memoizedBuildSegmentIndexMap`)
+ * uses a WeakMap cache keyed by the `segments` array identity so callers do not repeatedly rebuild
+ * an O(n) index on every render. Use this when you need a fast id->index lookup in components
+ * or selectors.
+ *
+ * Returns: `Map<string, number>`
+ */
 export const useSegmentIndexById = () =>
   useTranscriptStore((s) => memoizedBuildSegmentIndexMap(s.segments));
 
+/**
+ * Synchronous variant of `useSegmentIndexById` for imperative code.
+ * Reads the current store state and returns the memoized id->index map.
+ */
 export const getSegmentIndexById = () =>
   memoizedBuildSegmentIndexMap(useTranscriptStore.getState().segments);
+
+/**
+ * Return a small set of memoized lookup maps derived from the store `segments`.
+ *
+ * The returned object contains at least:
+ * - `segmentById`: Map<string, Segment>
+ * - `indexById`: Map<string, number>
+ *
+ * Like the index selector, the maps are memoized (WeakMap keyed by the segments array)
+ * so repeated reads are cheap and safe in render paths. Use `useSegmentMaps` in
+ * components that need both id->segment and id->index lookups.
+ */
+export const useSegmentMaps = () => useTranscriptStore((s) => memoizedBuildSegmentMaps(s.segments));
+
+/**
+ * Synchronous variant of `useSegmentMaps` for imperative code.
+ */
+export const getSegmentMaps = () =>
+  memoizedBuildSegmentMaps(useTranscriptStore.getState().segments);
+
+/**
+ * Convenience hook: return the `Segment` for the given id, or `undefined`.
+ * Uses `useSegmentMaps()` internally and is safe to call from React components.
+ */
+export const useSegmentById = (id: string | null | undefined) => {
+  const maps = useSegmentMaps();
+  if (!id) return undefined;
+  return maps.segmentById.get(id) as Segment | undefined;
+};
+
+/**
+ * Synchronous variant of `useSegmentById` for imperative code paths.
+ */
+export const getSegmentById = (id: string | null | undefined) => {
+  if (!id) return undefined;
+  return getSegmentMaps().segmentById.get(id) as Segment | undefined;
+};
 
 const rawActiveSession =
   sessionsState.activeSessionKey && sessionsState.sessions[sessionsState.activeSessionKey]
