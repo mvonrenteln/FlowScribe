@@ -10,6 +10,7 @@
 
 import type { StoreApi } from "zustand";
 import type { RevisionResult } from "@/lib/ai/features/revision";
+import { indexById } from "@/lib/arrayUtils";
 import type {
   AIPrompt,
   AIRevisionBatchLogEntry,
@@ -232,8 +233,9 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       aiRevisionAbortController: abortController,
     });
 
-    // Find context segments
-    const segmentIndex = state.segments.findIndex((s) => s.id === segmentId);
+    // Find context segments using index map for O(1) lookups
+    const indexMap = indexById(state.segments);
+    const segmentIndex = indexMap.get(segmentId) ?? -1;
     const previousSegment = segmentIndex > 0 ? state.segments[segmentIndex - 1] : undefined;
     const nextSegment =
       segmentIndex < state.segments.length - 1 ? state.segments[segmentIndex + 1] : undefined;

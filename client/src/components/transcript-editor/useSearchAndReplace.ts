@@ -272,8 +272,13 @@ export function useSearchAndReplace(
         setCurrentMatchIndex(index);
       }
     },
+    // Build a quick lookup map for match positions to avoid O(n) scan on hot paths
     findMatchIndex: (segmentId: string, startIndex: number) => {
-      return allMatches.findIndex((m) => m.segmentId === segmentId && m.startIndex === startIndex);
+      const key = `${segmentId}:${startIndex}`;
+      const indexMap = new Map(
+        allMatches.map((m, i) => [`${m.segmentId}:${m.startIndex}`, i] as [string, number]),
+      );
+      return indexMap.get(key) ?? -1;
     },
     allMatches,
   };

@@ -380,7 +380,8 @@ export const createSegmentsSlice = (
       selectedChapterId,
       confidenceScoresVersion,
     } = get();
-    const segmentIndex = segments.findIndex((s) => s.id === id);
+    const indexMap = indexById(segments);
+    const segmentIndex = indexMap.get(id) ?? -1;
     if (segmentIndex === -1) return;
 
     const segment = segments[segmentIndex];
@@ -458,8 +459,9 @@ export const createSegmentsSlice = (
       selectedChapterId,
       confidenceScoresVersion,
     } = get();
-    const index1 = segments.findIndex((s) => s.id === id1);
-    const index2 = segments.findIndex((s) => s.id === id2);
+    const indexMap = indexById(segments);
+    const index1 = indexMap.get(id1) ?? -1;
+    const index2 = indexMap.get(id2) ?? -1;
 
     if (index1 === -1 || index2 === -1) return null;
     if (Math.abs(index1 - index2) !== 1) return null;
@@ -574,7 +576,8 @@ export const createSegmentsSlice = (
     // Compute replacements for chapters that referenced the deleted id:
     // - startSegmentId -> next segment at the deleted index (becomes first)
     // - endSegmentId -> previous segment before the deleted index
-    const deletedIndex = segments.findIndex((s) => s.id === id);
+    const indexMap = indexById(segments);
+    const deletedIndex = indexMap.get(id) ?? -1;
     const startReplacement = newSegments[deletedIndex];
     const endReplacement = newSegments[deletedIndex - 1];
 
