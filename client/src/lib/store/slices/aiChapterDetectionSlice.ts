@@ -146,10 +146,58 @@ export const createAIChapterDetectionSlice = (
               aiChapterDetectionBatchLog: [...snapshot.aiChapterDetectionBatchLog, entry],
             });
           },
-        });
+          onBatchComplete: (batchIndex, mapped) => {
+            const snapshot = get();
+            // eslint-disable-next-line no-console
+            console.log("[FS-AI] onBatchComplete handler called", {
+              batchIndex,
+              processingFlag: snapshot.aiChapterDetectionIsProcessing,
+              mappedCount: mapped.length,
+            });
+            if (!snapshot.aiChapterDetectionIsProcessing) {
+              // eslint-disable-next-line no-console
+              console.log(
+                "[FS-AI] onBatchComplete handler exiting because processingFlag is false",
+                { batchIndex },
+              );
+              return;
+            }
 
-        const snapshot = get();
-        if (!snapshot.aiChapterDetectionIsProcessing) return;
+            // Convert mapped items into suggestions and append incrementally
+            const indexById = buildSegmentIndexMap(snapshot.segments);
+            const newSuggestions = mapped.map((ch) => {
+              const first = ch.startSegmentId;
+              const last = ch.endSegmentId;
+              const segmentCount =
+                indexById.has(first) && indexById.has(last)
+                  ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
+                  : 0;
+              return toSuggestion({
+                id: generateId(),
+                title: ch.title,
+                summary: ch.summary,
+                notes: ch.notes,
+                tags: ch.tags,
+                startSegmentId: first,
+                endSegmentId: last,
+                segmentCount,
+                createdAt: Date.now(),
+                source: "ai",
+              } as unknown as Chapter);
+            });
+
+            // append batch suggestions
+
+            set({
+              aiChapterDetectionSuggestions: [
+                ...snapshot.aiChapterDetectionSuggestions,
+                ...newSuggestions,
+              ],
+            });
+
+            // appended suggestions
+          },
+        });
 
         const suggestions = result.chapters.map((ch) =>
           toSuggestion({

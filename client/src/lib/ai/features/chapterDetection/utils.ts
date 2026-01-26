@@ -51,12 +51,13 @@ export function mapResponseToRealSegmentIds(
 
   const mapped = chapters
     .map((ch) => {
-      const startId =
-        normalizeIds([ch.start], mapping)[0] ??
-        (fallbackMapping ? normalizeIds([ch.start], fallbackMapping)[0] : undefined);
-      const endId =
-        normalizeIds([ch.end], mapping)[0] ??
-        (fallbackMapping ? normalizeIds([ch.end], fallbackMapping)[0] : undefined);
+      const startNorm = normalizeIds([ch.start], mapping)[0];
+      const startFb = fallbackMapping ? normalizeIds([ch.start], fallbackMapping)[0] : undefined;
+      const endNorm = normalizeIds([ch.end], mapping)[0];
+      const endFb = fallbackMapping ? normalizeIds([ch.end], fallbackMapping)[0] : undefined;
+
+      const startId = startNorm ?? startFb;
+      const endId = endNorm ?? endFb;
       return {
         title: String(ch.title ?? "").trim(),
         summary: typeof ch.summary === "string" ? ch.summary.trim() : undefined,

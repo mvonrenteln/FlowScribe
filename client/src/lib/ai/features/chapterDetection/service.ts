@@ -43,6 +43,17 @@ export interface DetectChaptersParams extends AIFeatureOptions {
   };
   onProgress?: (processedBatches: number, totalBatches: number) => void;
   onBatchLog?: (entry: ChapterDetectionBatchLogEntry) => void;
+  onBatchComplete?: (
+    batchIndex: number,
+    mapped: Array<{
+      title: string;
+      summary?: string;
+      notes?: string;
+      tags?: string[];
+      startSegmentId: string;
+      endSegmentId: string;
+    }>,
+  ) => void;
 }
 
 export interface DetectChaptersResult {
@@ -83,6 +94,7 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
     customPrompt,
     onProgress,
     onBatchLog,
+    onBatchComplete,
     signal,
     providerId,
     model,
@@ -186,6 +198,8 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
     }
 
     const mapped = mapResponseToRealSegmentIds(result.data, mapping, globalMapping);
+    // Notify caller about per-batch mapped chapters so they can be applied incrementally.
+    onBatchComplete?.(batchIndex, mapped);
     const indexById = new Map(batchSegments.map((s, idx) => [s.id, idx]));
 
     for (const ch of mapped) {

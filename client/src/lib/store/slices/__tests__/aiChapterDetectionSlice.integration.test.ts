@@ -167,4 +167,78 @@ describe("aiChapterDetectionSlice integration", () => {
     expect(first?.startSegmentId).toBe("seg-1");
     expect(first?.endSegmentId).toBe("seg-30");
   });
+
+  it("appends batch suggestions incrementally when a later batch fails", async () => {
+    // prepare mock to succeed for first 3 batches, then fail
+    mockExecuteFeature.mockClear();
+
+    const successResp = async () => ({
+      success: true,
+      data: {
+        chapters: [
+          {
+            title: "A",
+            summary: "summary A",
+            notes: "notes A",
+            tags: ["keep"],
+            start: 1,
+            end: 10,
+            confidence: 0.9,
+          },
+          {
+            title: "B",
+            summary: "summary B",
+            notes: "notes B",
+            tags: ["keep"],
+            start: 11,
+            end: 20,
+            confidence: 0.8,
+          },
+        ],
+      },
+      metadata: {
+        featureId: "chapter-detection",
+        providerId: "test",
+        model: "test",
+        durationMs: 1,
+      },
+    });
+
+    const failResp = async () => ({ success: false, error: "simulated" });
+
+    mockExecuteFeature
+      .mockImplementationOnce(successResp)
+      .mockImplementationOnce(successResp)
+      .mockImplementationOnce(successResp)
+      .mockImplementationOnce(failResp);
+
+    // make 160 segments -> 4 batches of 40
+    mockStore = createMockStore();
+    mockStore.set((s) => ({
+      ...s,
+      segments: buildSegments(160),
+      history: [
+        {
+          segments: buildSegments(160),
+          speakers: [],
+          tags: [],
+          chapters: [],
+          selectedSegmentId: null,
+          selectedChapterId: null,
+          currentTime: 0,
+          confidenceScoresVersion: 0,
+        },
+      ],
+      historyIndex: 0,
+    }));
+    slice = createAIChapterDetectionSlice(mockStore.set, mockStore.get);
+
+    slice.startChapterDetection({ batchSize: 40 });
+    await flushPromises();
+    await flushPromises();
+
+    const state = mockStore.getState() as TranscriptStore;
+    // 3 successful batches * 2 chapters each = 6 suggestions
+    expect(state.aiChapterDetectionSuggestions).toHaveLength(6);
+  });
 });
