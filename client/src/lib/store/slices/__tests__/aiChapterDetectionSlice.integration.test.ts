@@ -241,4 +241,46 @@ describe("aiChapterDetectionSlice integration", () => {
     // 3 successful batches * 2 chapters each = 6 suggestions
     expect(state.aiChapterDetectionSuggestions).toHaveLength(6);
   });
+
+  it("removes suggestions when accepting or rejecting", () => {
+    const suggestion = {
+      id: "chapter-1",
+      title: "Intro",
+      summary: "Summary",
+      notes: "Notes",
+      tags: ["keep"],
+      startSegmentId: "seg-1",
+      endSegmentId: "seg-2",
+      segmentCount: 2,
+      createdAt: 0,
+      source: "ai" as const,
+      status: "pending" as const,
+    };
+
+    mockStore.set({
+      aiChapterDetectionSuggestions: [suggestion],
+      chapters: [],
+    });
+
+    slice.acceptChapterSuggestion("chapter-1");
+
+    let state = mockStore.getState() as TranscriptStore;
+    expect(state.aiChapterDetectionSuggestions).toHaveLength(0);
+    expect(state.chapters).toHaveLength(1);
+
+    mockStore.set({
+      aiChapterDetectionSuggestions: [
+        {
+          ...suggestion,
+          id: "chapter-2",
+          startSegmentId: "seg-3",
+          endSegmentId: "seg-4",
+        },
+      ],
+    });
+
+    slice.rejectChapterSuggestion("chapter-2");
+    state = mockStore.getState() as TranscriptStore;
+    expect(state.aiChapterDetectionSuggestions).toHaveLength(0);
+  });
 });

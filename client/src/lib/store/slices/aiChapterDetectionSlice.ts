@@ -298,11 +298,8 @@ export const createAIChapterDetectionSlice = (
       chapters: ordered,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
-    });
-
-    set({
-      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.map((s) =>
-        s.id === suggestionId ? { ...s, status: "accepted" } : s,
+      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
+        (s) => s.id !== suggestionId,
       ),
       aiChapterDetectionError: null,
     });
@@ -311,8 +308,8 @@ export const createAIChapterDetectionSlice = (
   rejectChapterSuggestion: (suggestionId) => {
     const state = get();
     set({
-      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.map((s) =>
-        s.id === suggestionId ? { ...s, status: "rejected" } : s,
+      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
+        (s) => s.id !== suggestionId,
       ),
     });
   },
@@ -376,11 +373,8 @@ export const createAIChapterDetectionSlice = (
       chapters: ordered,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
-    });
-
-    set({
-      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.map((s) =>
-        s.status === "pending" ? { ...s, status: "accepted" } : s,
+      aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
+        (s) => s.status !== "pending",
       ),
       aiChapterDetectionError: null,
     });

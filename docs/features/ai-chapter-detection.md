@@ -1,6 +1,6 @@
 # AI Chapter Detection
 
-*Last Updated: January 25, 2026*
+*Last Updated: January 26, 2026*
 
 ## Overview
 
@@ -55,6 +55,7 @@ Notes:
 
 - Suggestions are preview-only until you accept them.
 - If something looks wrong, you can reject or edit the suggested chapter before applying it.
+- Accepting or rejecting a suggestion removes it from the suggestions list and the inline preview.
 
 ---
 
