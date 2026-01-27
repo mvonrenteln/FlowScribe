@@ -160,6 +160,30 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
       model,
       signal,
       customPrompt,
+      onRetry: (retryInfo) => {
+        // Report retry attempt in batch log
+        const retryLogEntry: ChapterDetectionBatchLogEntry = {
+          batchIndex,
+          batchSize: batchSegments.length,
+          rawItemCount: 0,
+          suggestionCount: 0,
+          processedTotal: batchIndex + 1,
+          totalExpected: batches.length,
+          issues: [
+            {
+              level: "warn",
+              message: `Retry ${retryInfo.attempt} - ${retryInfo.errorMessage}`,
+            },
+          ],
+          loggedAt: Date.now(),
+          batchDurationMs: retryInfo.attemptDurationMs,
+          elapsedMs: Date.now() - createdAt,
+          fatal: false,
+          requestPayload,
+        };
+        batchLog.push(retryLogEntry);
+        onBatchLog?.(retryLogEntry);
+      },
     });
 
     if (!result.success || !result.data) {
