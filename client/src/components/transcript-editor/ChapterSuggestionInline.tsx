@@ -85,6 +85,11 @@ export function ChapterSuggestionInline({
         {suggestion.summary && (
           <div className="text-xs text-muted-foreground">{suggestion.summary}</div>
         )}
+        {suggestion.notes && (
+          <div className="text-xs text-muted-foreground whitespace-pre-wrap">
+            {suggestion.notes}
+          </div>
+        )}
         {suggestionTags.length > 0 && (
           <div className="flex flex-wrap gap-1">
             {suggestionTags.map((tag) => (
