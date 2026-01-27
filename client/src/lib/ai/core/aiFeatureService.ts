@@ -252,15 +252,19 @@ function logParseFailure(
         ? content
         : `${content.slice(0, MAX_PREVIEW / 2)}\n\n... [${content.length - MAX_PREVIEW} chars omitted] ...\n\n${content.slice(-MAX_PREVIEW / 2)}`;
 
-    console.warn(`[AIFeatureService] Structured parse failed for feature (attempt ${attempt}):`, featureId, {
-      providerId: providerConfig.id,
-      model: providerConfig.model,
-      error: parseResult.error?.message,
-      parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
-      rawResponsePreview,
-      rawResponseLength: content.length,
-      parseMetadata: parseResult.metadata,
-    });
+    console.warn(
+      `[AIFeatureService] Structured parse failed for feature (attempt ${attempt}):`,
+      featureId,
+      {
+        providerId: providerConfig.id,
+        model: providerConfig.model,
+        error: parseResult.error?.message,
+        parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
+        rawResponsePreview,
+        rawResponseLength: content.length,
+        parseMetadata: parseResult.metadata,
+      },
+    );
   } catch (logEx) {
     console.warn(
       "[AIFeatureService] Failed to log parse failure details:",
@@ -276,7 +280,10 @@ function logParseFailure(
 function tryLenientRecovery<TOutput>(
   featureId: AIFeatureType,
   config: { responseSchema?: SimpleSchema },
-  response: { content: string; usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number } },
+  response: {
+    content: string;
+    usage?: { promptTokens?: number; completionTokens?: number; totalTokens?: number };
+  },
   variables: Record<string, unknown>,
   providerConfig: { id: string; model: string },
   startTime: number,
@@ -430,7 +437,9 @@ function normalizeSegmentMergeResponse(
           typeof confidenceRaw === "number" ? confidenceRaw : Number(confidenceRaw);
 
         const smoothingRaw = item.smoothingChanges ?? item.smoothing_changes ?? item.changes;
-        const smoothingChanges = Array.isArray(smoothingRaw) ? smoothingRaw.join("; ") : smoothingRaw;
+        const smoothingChanges = Array.isArray(smoothingRaw)
+          ? smoothingRaw.join("; ")
+          : smoothingRaw;
 
         return {
           segmentIds: segIdsArray,

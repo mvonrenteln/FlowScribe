@@ -317,15 +317,15 @@ export function extractArrayItems(input: string, maxDepth = 10): unknown[] | nul
     } else if (ch === '"') {
       // string primitive
       let j = i + 1;
-      let escape = false;
+      let isEscaped = false;
       for (; j < len; j++) {
-        if (escape) {
-          escape = false;
+        if (isEscaped) {
+          isEscaped = false;
           continue;
         }
         const c = input[j];
         if (c === "\\") {
-          escape = true;
+          isEscaped = true;
           continue;
         }
         if (c === '"') {
@@ -343,7 +343,6 @@ export function extractArrayItems(input: string, maxDepth = 10): unknown[] | nul
     } else {
       // number, true, false, null - find comma or closing bracket
       let j = i;
-      const inString = false;
       for (; j < len; j++) {
         const c = input[j];
         if (c === "," || c === "]") break;

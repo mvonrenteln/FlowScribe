@@ -287,7 +287,7 @@ describe("truncated array recovery", () => {
     expect(result.success).toBe(true);
     expect(result.data).toBeDefined();
     // Expect at least the complete first 3 items to be recovered
-    expect(result.data!.length).toBeGreaterThanOrEqual(3);
+    expect(result.data?.length).toBeGreaterThanOrEqual(3);
     expect(result.metadata.parseStatus).toBe("MALFORMED");
     expect(result.metadata.recovery).toBeDefined();
     expect(result.metadata.recovery?.usedStrategy).toBeTruthy();

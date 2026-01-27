@@ -106,13 +106,20 @@ export function parseResponse<T>(
             if (propSchema.type === "array" && propSchema.items) {
               const typeGuard = createTypeGuard(propSchema.items);
               const strategies = createStandardStrategies(propSchema, typeGuard);
-              const recovery = applyRecoveryStrategies<any>(input, strategies);
+              const recovery = applyRecoveryStrategies<unknown>(
+                input,
+                strategies as RecoveryStrategy<unknown>[],
+              );
 
               if (recovery.data && recovery.data.length > 0) {
                 // Build candidate object with the recovered array
                 const candidate: Record<string, unknown> = { [propName]: recovery.data };
                 // Validate candidate against the full object schema
-                const validation = validate<any>(candidate, schema, applyDefaults);
+                const validation = validate<Record<string, unknown>>(
+                  candidate,
+                  schema,
+                  applyDefaults,
+                );
                 if (validation.valid && validation.data) {
                   return {
                     success: true,
@@ -196,14 +203,18 @@ export function parseResponse<T>(
               if (propSchema.type === "array" && propSchema.items) {
                 const typeGuard = createTypeGuard(propSchema.items);
                 const strategies = createStandardStrategies(propSchema, typeGuard);
-                const recovery = applyRecoveryStrategies<any>(
+                const recovery = applyRecoveryStrategies<unknown>(
                   input,
-                  strategies as RecoveryStrategy<any>[],
+                  strategies as RecoveryStrategy<unknown>[],
                 );
 
                 if (recovery.data && recovery.data.length > 0) {
                   const candidate: Record<string, unknown> = { [propName]: recovery.data };
-                  const validation = validate<any>(candidate, schema, applyDefaults);
+                  const validation = validate<Record<string, unknown>>(
+                    candidate,
+                    schema,
+                    applyDefaults,
+                  );
                   if (validation.valid && validation.data) {
                     return {
                       success: true,

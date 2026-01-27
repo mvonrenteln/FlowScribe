@@ -664,9 +664,7 @@ export function AIServerSettings() {
       <div className="space-y-4">
         <div>
           <h3 className="text-base font-medium">Global AI Settings</h3>
-          <p className="text-sm text-muted-foreground">
-            Settings that apply to all AI providers.
-          </p>
+          <p className="text-sm text-muted-foreground">Settings that apply to all AI providers.</p>
         </div>
 
         <div className="space-y-2">
@@ -680,16 +678,14 @@ export function AIServerSettings() {
               value={settings.parseRetryCount ?? 3}
               onChange={(e) => {
                 const value = parseInt(e.target.value, 10);
-                if (!isNaN(value) && value >= 0 && value <= 10) {
+                if (!Number.isNaN(value) && value >= 0 && value <= 10) {
                   handleParseRetryCountChange(value);
                 }
               }}
               className="w-24"
               data-testid="input-parse-retry-count"
             />
-            <span className="text-sm text-muted-foreground">
-              (0-10)
-            </span>
+            <span className="text-sm text-muted-foreground">(0-10)</span>
           </div>
           <p className="text-xs text-muted-foreground">
             Number of retries when AI response cannot be parsed. Set to 0 to disable retries.
