@@ -63,22 +63,6 @@ export async function executeFeature<TOutput>(
 
   const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
   let pairIndexMap: Record<number, string[]> | undefined;
-  if (featureId === "segment-merge" && typeof variables.segmentPairsJson === "string") {
-    try {
-      const parsed = JSON.parse(variables.segmentPairsJson) as Array<{
-        pairIndex: number;
-        segmentIds: string[];
-      }>;
-      pairIndexMap = parsed.reduce<Record<number, string[]>>((acc, entry) => {
-        if (Array.isArray(entry.segmentIds) && entry.segmentIds.length >= 2) {
-          acc[entry.pairIndex] = entry.segmentIds.map((s) => String(s));
-        }
-        return acc;
-      }, {});
-    } catch {
-      // Ignore parse errors; feature will fall back to lenient normalization
-    }
-  }
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -137,7 +121,10 @@ export async function executeFeature<TOutput>(
 
           // Try a lenient parse to show what can be extracted
           try {
-            const lenient = parseResponse(response.content, { jsonOptions: { lenient: true } });
+            const lenient = parseResponse(response.content, {
+              jsonOptions: { lenient: true },
+              recoverPartial: true,
+            });
             console.warn("[AIFeatureService] Lenient parse result:", {
               success: lenient.success,
               dataPreview: lenient.data
@@ -151,6 +138,31 @@ export async function executeFeature<TOutput>(
 
             // If lenient extraction produced usable data, try normalization for known features
             if (lenient.success && lenient.data) {
+              // Try to construct pairIndexMap from provided variables when available.
+              // This mapping helps normalization for segment-merge results where
+              // providers may return numeric pair indices instead of real IDs.
+              if (
+                providerConfig &&
+                config.responseSchema &&
+                typeof variables.segmentPairsJson === "string"
+              ) {
+                try {
+                  const parsedPairs = JSON.parse(variables.segmentPairsJson) as
+                    | Array<{ pairIndex: number; segmentIds: string[] }>
+                    | undefined;
+                  if (Array.isArray(parsedPairs) && parsedPairs.length > 0) {
+                    pairIndexMap = parsedPairs.reduce<Record<number, string[]>>((acc, entry) => {
+                      if (Array.isArray(entry.segmentIds) && entry.segmentIds.length >= 2) {
+                        acc[entry.pairIndex] = entry.segmentIds.map((s) => String(s));
+                      }
+                      return acc;
+                    }, {});
+                  }
+                } catch {
+                  // Ignore parse errors; feature will fall back to lenient normalization
+                }
+              }
+
               // Feature-specific normalization: segment-merge often returns variant types
               if (featureId === "segment-merge" && Array.isArray(lenient.data)) {
                 try {
