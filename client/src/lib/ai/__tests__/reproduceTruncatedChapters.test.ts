@@ -69,7 +69,7 @@ describe("reproduce truncated chapters recovery", () => {
     expect(result.data).toBeDefined();
     expect(result.metadata.parseStatus).toBe("MALFORMED");
     // Expect the parser to recover the four fully-formed chapter objects
-    expect(Array.isArray(result.data!.chapters)).toBe(true);
-    expect(result.data!.chapters.length).toBe(4);
+    expect(Array.isArray(result.data?.chapters)).toBe(true);
+    expect(result.data?.chapters.length).toBe(4);
   });
 });
