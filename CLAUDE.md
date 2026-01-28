@@ -92,6 +92,7 @@ client/src/
 
 | Area | Read |
 | ------ | ------ |
+| **Agent rules (read first)** | `AGENTS.md` |
 | Player/selection/seek | `docs/features/architecture/player-transcript-sync.md` |
 | AI features | `docs/features/architecture/ai-features-unified.md` |
 | Coding patterns | `docs/agent-rules/coding-conventions.md` |
