@@ -44,6 +44,7 @@ import {
 import { useTranscriptStore } from "@/lib/store";
 import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { buildPromptExportData } from "@/lib/store/utils/aiPromptExport";
+import { buildPromptImportPlan } from "@/lib/store/utils/aiPromptImport";
 import { cn } from "@/lib/utils";
 
 // ==================== Constants ====================
@@ -646,26 +647,37 @@ export function AITemplateSettings() {
 
           const items = data.prompts ?? [];
           if (data.version === 1 && Array.isArray(items)) {
-            for (const item of items) {
-              if (item.name && item.systemPrompt && item.userPromptTemplate) {
-                const promptData = {
-                  name: item.name,
-                  type: item.type || activeTab,
-                  systemPrompt: item.systemPrompt,
-                  userPromptTemplate: item.userPromptTemplate,
-                  isBuiltIn: false,
-                  quickAccess: item.quickAccess || false,
-                };
+            const plan = buildPromptImportPlan(
+              {
+                speaker: speakerPrompts,
+                text: textPrompts,
+                "segment-merge": segmentMergePrompts,
+                "chapter-detect": chapterDetectionPrompts,
+              },
+              items,
+            );
 
-                if (promptData.type === "speaker") {
-                  addSpeakerPrompt(promptData);
-                } else if (promptData.type === "text") {
-                  addTextPrompt(promptData);
-                } else if (promptData.type === "segment-merge") {
-                  addSegmentMergePrompt(promptData);
-                } else if (promptData.type === "chapter-detect") {
-                  addChapterDetectionPrompt(promptData);
-                }
+            for (const update of plan.updates) {
+              if (update.type === "speaker") {
+                updateSpeakerPrompt(update.id, update.updates);
+              } else if (update.type === "text") {
+                updateTextPrompt(update.id, update.updates);
+              } else if (update.type === "segment-merge") {
+                updateSegmentMergePrompt(update.id, update.updates);
+              } else if (update.type === "chapter-detect") {
+                updateChapterDetectionPrompt(update.id, update.updates);
+              }
+            }
+
+            for (const create of plan.creates) {
+              if (create.type === "speaker") {
+                addSpeakerPrompt(create.data);
+              } else if (create.type === "text") {
+                addTextPrompt(create.data);
+              } else if (create.type === "segment-merge") {
+                addSegmentMergePrompt(create.data);
+              } else if (create.type === "chapter-detect") {
+                addChapterDetectionPrompt(create.data);
               }
             }
           }
@@ -680,7 +692,20 @@ export function AITemplateSettings() {
         importInputRef.current.value = "";
       }
     },
-    [activeTab, addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
+    [
+      addSpeakerPrompt,
+      addTextPrompt,
+      addSegmentMergePrompt,
+      addChapterDetectionPrompt,
+      updateSpeakerPrompt,
+      updateTextPrompt,
+      updateSegmentMergePrompt,
+      updateChapterDetectionPrompt,
+      speakerPrompts,
+      textPrompts,
+      segmentMergePrompts,
+      chapterDetectionPrompts,
+    ],
   );
 
   // Calculate quick access status for text prompts
