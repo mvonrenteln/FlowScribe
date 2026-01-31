@@ -168,6 +168,49 @@ describe("aiChapterDetectionSlice integration", () => {
     expect(first?.endSegmentId).toBe("seg-30");
   });
 
+  it("limits detection to scoped segment ids when provided", async () => {
+    mockExecuteFeature.mockResolvedValueOnce({
+      success: true,
+      data: {
+        chapters: [
+          {
+            title: "Scoped chapter",
+            summary: "Scoped summary",
+            tags: ["keep"],
+            start: 1,
+            end: 2,
+            notes: "Scoped notes",
+            confidence: 0.9,
+          },
+        ],
+      },
+      metadata: {
+        featureId: "chapter-detection",
+        providerId: "test-provider",
+        model: "test-model",
+        durationMs: 5,
+      },
+    });
+
+    mockStore = createMockStore();
+    mockStore.set((s) => ({
+      ...s,
+      segments: buildSegments(5),
+    }));
+    slice = createAIChapterDetectionSlice(mockStore.set, mockStore.get);
+
+    slice.startChapterDetection({ batchSize: 10, segmentIds: ["seg-2", "seg-4"] });
+    await flushPromises();
+    await flushPromises();
+
+    const state = mockStore.getState() as TranscriptStore;
+    expect(state.aiChapterDetectionIsProcessing).toBe(false);
+    expect(state.aiChapterDetectionSuggestions).toHaveLength(1);
+    const [first] = state.aiChapterDetectionSuggestions;
+    expect(first?.startSegmentId).toBe("seg-2");
+    expect(first?.endSegmentId).toBe("seg-4");
+  });
+
   it("appends batch suggestions incrementally when a later batch fails", async () => {
     // prepare mock to succeed for first 3 batches, then fail
     mockExecuteFeature.mockClear();

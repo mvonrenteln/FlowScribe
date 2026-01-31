@@ -85,16 +85,22 @@ export const createAIChapterDetectionSlice = (
     }
 
     const abortController = new AbortController();
+    const { segmentIds, ...configOverrides } = options ?? {};
     const config: AIChapterDetectionConfig = {
       ...state.aiChapterDetectionConfig,
-      ...options,
+      ...configOverrides,
     };
+    const useSegmentScope = segmentIds !== undefined;
+    const scopedSegmentIds = useSegmentScope ? new Set(segmentIds ?? []) : null;
+    const segmentsToDetect = useSegmentScope
+      ? state.segments.filter((segment) => scopedSegmentIds?.has(segment.id))
+      : state.segments;
 
     set({
       aiChapterDetectionIsProcessing: true,
       aiChapterDetectionProcessedBatches: 0,
       aiChapterDetectionTotalBatches: Math.ceil(
-        state.segments.length / Math.max(1, config.batchSize),
+        segmentsToDetect.length / Math.max(1, config.batchSize),
       ),
       aiChapterDetectionError: null,
       aiChapterDetectionAbortController: abortController,
@@ -117,7 +123,7 @@ export const createAIChapterDetectionSlice = (
           .map((t) => ({ id: t.id, label: t.name }));
 
         const result = await detectChapters({
-          segments: toDetectSegments(state.segments),
+          segments: toDetectSegments(segmentsToDetect),
           batchSize: config.batchSize,
           minChapterLength: config.minChapterLength,
           maxChapterLength: config.maxChapterLength,

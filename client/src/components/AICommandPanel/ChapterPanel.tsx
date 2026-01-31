@@ -1,5 +1,5 @@
 import { Check, Sparkles, StopCircle, Trash2 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -10,14 +10,17 @@ import { AIConfigurationSection } from "./AIConfigurationSection";
 import { AIResultsSection } from "./AIResultsSection";
 import { BatchLogDrawer } from "./BatchLogDrawer";
 import { useAiSettingsSelection } from "./hooks/useAiSettingsSelection";
+import { useScopedSegments } from "./hooks/useScopedSegments";
 import { ResultsList } from "./ResultsList";
+import { ScopeSection } from "./ScopeSection";
 import { truncateText } from "./utils/truncateText";
 
 interface ChapterPanelProps {
+  filteredSegmentIds: string[];
   onOpenSettings: () => void;
 }
 
-export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
+export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: ChapterPanelProps) {
   const segments = useTranscriptStore((s) => s.segments);
   const suggestions = useTranscriptStore((s) => s.aiChapterDetectionSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiChapterDetectionIsProcessing);
@@ -42,6 +45,7 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
       initialModel: config.selectedModel ?? "",
     });
 
+  const [excludeConfirmed, setExcludeConfirmed] = useState(true);
   const [batchSize, setBatchSize] = useState(config.batchSize.toString());
   const [minLen, setMinLen] = useState(config.minChapterLength.toString());
   const [maxLen, setMaxLen] = useState(config.maxChapterLength.toString());
@@ -49,7 +53,11 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
 
   const pending = suggestions.filter((s) => s.status === "pending");
 
-  const segmentById = useMemo(() => new Map(segments.map((s) => [s.id, s])), [segments]);
+  const { segmentById, scopedSegmentIds, isFiltered } = useScopedSegments({
+    segments,
+    filteredSegmentIds,
+    excludeConfirmed,
+  });
 
   const handleStart = () => {
     const parsedBatch = Number.parseInt(batchSize, 10);
@@ -59,6 +67,7 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
     if (Number.isNaN(parsedMin) || parsedMin < 1) return;
     if (Number.isNaN(parsedMax) || parsedMax < parsedMin) return;
     if (parsedMax > parsedBatch) return;
+    if (scopedSegmentIds.length === 0) return;
 
     updateConfig({
       selectedProviderId: selectedProviderId || undefined,
@@ -74,6 +83,7 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
       batchSize: parsedBatch,
       minChapterLength: parsedMin,
       maxChapterLength: parsedMax,
+      segmentIds: scopedSegmentIds,
     });
   };
 
@@ -85,7 +95,15 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
   };
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-6">
+      <ScopeSection
+        scopedSegmentCount={scopedSegmentIds.length}
+        isFiltered={isFiltered}
+        excludeConfirmed={excludeConfirmed}
+        onExcludeConfirmedChange={setExcludeConfirmed}
+        id="chapters"
+      />
+
       <AIConfigurationSection
         id="chapters"
         settings={settings}
@@ -187,7 +205,7 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
           label: "Start Batch",
           icon: <Sparkles className="h-4 w-4 mr-2" />,
           onClick: handleStart,
-          disabled: segments.length === 0,
+          disabled: scopedSegmentIds.length === 0,
         }}
         stopAction={{
           label: "Stop",

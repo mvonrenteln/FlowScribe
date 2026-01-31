@@ -335,6 +335,9 @@ interface ChapterHeaderProps {
 4. **Start / Progress / Stop** (standard controls)  
 5. **Results Summary** (standard): pending suggestions + quick navigation
 
+**Scope Behavior:**
+- Scope filters are applied before batching; only scoped segments are sent to chapter detection.
+
 **Rendering Rules:**
 - Detailed suggestions render inline in the Transcript (not in the panel).
 - The panel only shows summary items and batch controls, identical to other AI batch features.

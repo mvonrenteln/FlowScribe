@@ -60,7 +60,7 @@ describe("ChapterPanel", () => {
       seekToTime,
     });
 
-    render(<ChapterPanel onOpenSettings={vi.fn()} />);
+    render(<ChapterPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
 
     const button = screen.getByRole("button", { name: /introduction/i });
     await act(async () => {
@@ -69,5 +69,39 @@ describe("ChapterPanel", () => {
 
     expect(setSelectedSegmentId).toHaveBeenCalledWith("seg-1");
     expect(seekToTime).toHaveBeenCalledWith(2.5, { source: "ai", action: "jump" });
+  });
+
+  it("starts detection with scoped segment ids", async () => {
+    const user = userEvent.setup();
+    const startChapterDetection = vi.fn();
+    const updateChapterDetectionConfig = vi.fn();
+
+    setStoreState({
+      segments: [
+        { ...baseSegments[0], id: "seg-1" },
+        {
+          id: "seg-2",
+          speaker: "SPEAKER_01",
+          tags: [],
+          start: 4.5,
+          end: 5.5,
+          text: "Chapter two",
+          words: [],
+        },
+      ],
+      startChapterDetection,
+      updateChapterDetectionConfig,
+    });
+
+    render(<ChapterPanel filteredSegmentIds={["seg-2"]} onOpenSettings={vi.fn()} />);
+
+    const button = screen.getByRole("button", { name: /start batch/i });
+    await act(async () => {
+      await user.click(button);
+    });
+
+    expect(startChapterDetection).toHaveBeenCalledWith(
+      expect.objectContaining({ segmentIds: ["seg-2"] }),
+    );
   });
 });

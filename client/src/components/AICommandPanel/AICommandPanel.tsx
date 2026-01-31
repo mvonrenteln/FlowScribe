@@ -80,7 +80,9 @@ export function AICommandPanel({
         {activeTab === "merge" && (
           <MergePanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
         )}
-        {activeTab === "chapters" && <ChapterPanel onOpenSettings={onOpenSettings} />}
+        {activeTab === "chapters" && (
+          <ChapterPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
+        )}
       </div>
     </aside>
   );

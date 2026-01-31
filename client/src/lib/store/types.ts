@@ -656,7 +656,13 @@ export interface AIChapterDetectionConfig {
 }
 
 export interface AIChapterDetectionSlice {
-  startChapterDetection: (options?: Partial<AIChapterDetectionConfig>) => void;
+  /**
+   * Start chapter detection with optional config overrides and a scoped segment list.
+   * When segmentIds is provided, detection only runs on those segments.
+   */
+  startChapterDetection: (
+    options?: Partial<AIChapterDetectionConfig> & { segmentIds?: string[] },
+  ) => void;
   cancelChapterDetection: () => void;
   acceptChapterSuggestion: (suggestionId: string) => void;
   rejectChapterSuggestion: (suggestionId: string) => void;
