@@ -58,6 +58,7 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
     if (Number.isNaN(parsedBatch) || parsedBatch < 10 || parsedBatch > 200) return;
     if (Number.isNaN(parsedMin) || parsedMin < 1) return;
     if (Number.isNaN(parsedMax) || parsedMax < parsedMin) return;
+    if (parsedMax > parsedBatch) return;
 
     updateConfig({
       selectedProviderId: selectedProviderId || undefined,
@@ -125,7 +126,22 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
               type="number"
               min={1}
               value={minLen}
-              onChange={(e) => setMinLen(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || /^\d*$/.test(v)) setMinLen(v);
+              }}
+              onBlur={() => {
+                const parsedBatch = Number.parseInt(batchSize, 10);
+                const batchVal = Number.isNaN(parsedBatch) ? config.batchSize : parsedBatch;
+                let parsedMin = Number.parseInt(minLen, 10);
+                if (Number.isNaN(parsedMin) || parsedMin < 1) parsedMin = 1;
+                // Ensure min is not greater than batch size
+                if (parsedMin > batchVal) parsedMin = batchVal;
+                // Ensure min is not greater than current max
+                const parsedMax = Number.parseInt(maxLen, 10);
+                if (!Number.isNaN(parsedMax) && parsedMin > parsedMax) parsedMin = parsedMax;
+                setMinLen(String(parsedMin));
+              }}
               disabled={isProcessing}
             />
           </div>
@@ -139,7 +155,22 @@ export function ChapterPanel({ onOpenSettings }: ChapterPanelProps) {
               type="number"
               min={1}
               value={maxLen}
-              onChange={(e) => setMaxLen(e.target.value)}
+              onChange={(e) => {
+                const v = e.target.value;
+                if (v === "" || /^\d*$/.test(v)) setMaxLen(v);
+              }}
+              onBlur={() => {
+                const parsedBatch = Number.parseInt(batchSize, 10);
+                const batchVal = Number.isNaN(parsedBatch) ? config.batchSize : parsedBatch;
+                let parsedMax = Number.parseInt(maxLen, 10);
+                const parsedMin = Number.parseInt(minLen, 10);
+                if (Number.isNaN(parsedMax) || parsedMax < 1) parsedMax = parsedMin || 1;
+                // Max must not exceed batch size
+                if (parsedMax > batchVal) parsedMax = batchVal;
+                // Max must be at least min
+                if (!Number.isNaN(parsedMin) && parsedMax < parsedMin) parsedMax = parsedMin;
+                setMaxLen(String(parsedMax));
+              }}
               disabled={isProcessing}
             />
           </div>
