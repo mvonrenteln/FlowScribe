@@ -160,11 +160,31 @@ export function AIConfigurationSection({
                     value={batchSize}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (
-                        value === "" ||
-                        (Number(value) >= batchSizeMin && Number(value) <= batchSizeMax)
-                      ) {
+                      // Allow empty and intermediate numeric input (so users can type multi-digit numbers).
+                      // Only accept digits to avoid invalid characters from typing.
+                      if (value === "" || /^\d*$/.test(value)) {
                         onBatchSizeChange(value);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      // If empty, reset to min
+                      if (value === "") {
+                        onBatchSizeChange(String(batchSizeMin));
+                        return;
+                      }
+                      const num = Number(value);
+                      if (Number.isNaN(num)) {
+                        onBatchSizeChange(String(batchSizeMin));
+                        return;
+                      }
+                      // Clamp to bounds
+                      if (num < batchSizeMin) {
+                        onBatchSizeChange(String(batchSizeMin));
+                      } else if (num > batchSizeMax) {
+                        onBatchSizeChange(String(batchSizeMax));
+                      } else {
+                        onBatchSizeChange(String(num));
                       }
                     }}
                     disabled={isProcessing}
