@@ -48,24 +48,4 @@ describe("normalizeAIChapterDetectionConfig", () => {
     expect(result.prompts.every((p) => p.type === "chapter-detect")).toBe(true);
     expect(result.activePromptId).toBe("custom-1");
   });
-
-  it("migrates legacy templates arrays into prompts", () => {
-    const legacyPrompt = makeCustomPrompt({
-      id: "legacy-custom",
-      type: "text",
-    });
-    const legacyConfig = {
-      batchSize: 12,
-      minChapterLength: 3,
-      maxChapterLength: 50,
-      tagIds: [],
-      templates: [legacyPrompt],
-      activePromptId: "legacy-custom",
-    } as unknown as AIChapterDetectionConfig;
-
-    const result = normalizeAIChapterDetectionConfig(legacyConfig);
-    const migrated = result.prompts.find((p) => p.id === "legacy-custom");
-    expect(migrated).toBeTruthy();
-    expect(migrated?.type).toBe("chapter-detect");
-  });
 });

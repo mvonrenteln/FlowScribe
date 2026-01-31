@@ -24,10 +24,6 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
   activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
 };
 
-type LegacyPromptConfig = {
-  templates?: AIPrompt[];
-};
-
 const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
   ...prompt,
   type: "chapter-detect",
@@ -58,20 +54,10 @@ const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
 
 const getPromptsFromConfig = (
   config?: PersistedGlobalState["aiChapterDetectionConfig"],
-): AIPrompt[] | undefined => {
-  if (Array.isArray(config?.prompts)) {
-    return config.prompts;
-  }
-  const legacyTemplates = (config as LegacyPromptConfig | null | undefined)?.templates;
-  if (Array.isArray(legacyTemplates)) {
-    return legacyTemplates;
-  }
-  return undefined;
-};
+): AIPrompt[] | undefined => (Array.isArray(config?.prompts) ? config.prompts : undefined);
 
 /**
- * Normalize persisted chapter detection config by restoring defaults, preserving
- * custom prompts, and upgrading legacy `templates` storage to `prompts`.
+ * Normalize persisted chapter detection config by restoring defaults and preserving custom prompts.
  */
 export const normalizeAIChapterDetectionConfig = (
   config?: PersistedGlobalState["aiChapterDetectionConfig"],

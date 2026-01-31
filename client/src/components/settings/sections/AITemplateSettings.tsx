@@ -644,8 +644,7 @@ export function AITemplateSettings() {
           const content = String(reader.result);
           const data = JSON.parse(content);
 
-          // Support both old format (templates) and new format (prompts)
-          const items = data.prompts ?? data.templates ?? [];
+          const items = data.prompts ?? [];
           if (data.version === 1 && Array.isArray(items)) {
             for (const item of items) {
               if (item.name && item.systemPrompt && item.userPromptTemplate) {

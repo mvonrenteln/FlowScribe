@@ -39,8 +39,6 @@ Implement a **unified side panel** for all AI features with consistent structure
 #### Prompt Persistence (Settings)
 
 - AI prompt templates are stored in the global settings payload (localStorage).
-- Chapter Detection templates are normalized on load; legacy `templates` arrays are upgraded to
-  `prompts`.
 - Built-in prompts are always restored and remain editable but not deletable.
 
 #### 2. Consistent Panel Layout for All Features
