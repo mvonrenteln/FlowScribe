@@ -71,6 +71,25 @@ export const readSessionsState = (): PersistedSessionsState => {
             }, keys[0]);
           }
         }
+        // Fallback: if active session is empty (no segments, no transcript),
+        // switch to the most recently updated session that has content.
+        // This recovers from crashes that occur after a new session key was
+        // persisted but before any data was loaded into it.
+        if (activeSessionKey && sessions[activeSessionKey]) {
+          const active = sessions[activeSessionKey];
+          if (active.segments.length === 0 && !active.transcriptRef) {
+            const contentKeys = Object.keys(sessions).filter(
+              (k) => sessions[k].segments.length > 0,
+            );
+            if (contentKeys.length > 0) {
+              activeSessionKey = contentKeys.reduce((best, key) => {
+                return (sessions[key]?.updatedAt ?? 0) > (sessions[best]?.updatedAt ?? 0)
+                  ? key
+                  : best;
+              }, contentKeys[0]);
+            }
+          }
+        }
         return {
           sessions,
           activeSessionKey,
@@ -91,6 +110,16 @@ export const readGlobalState = (): PersistedGlobalState | null => {
     return JSON.parse(raw) as PersistedGlobalState;
   } catch {
     return null;
+  }
+};
+
+export const writeSessionsSync = (state: PersistedSessionsState): boolean => {
+  if (!canUseLocalStorage()) return false;
+  try {
+    window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(state));
+    return true;
+  } catch {
+    return false;
   }
 };
 

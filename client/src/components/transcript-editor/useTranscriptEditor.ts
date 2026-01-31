@@ -59,6 +59,7 @@ export const useTranscriptEditor = () => {
 
   const audioFile = useTranscriptStore((state) => state.audioFile);
   const audioUrl = useTranscriptStore((state) => state.audioUrl);
+  const audioRef = useTranscriptStore((state) => state.audioRef);
   const transcriptRef = useTranscriptStore((state) => state.transcriptRef);
   const sessionKey = useTranscriptStore((state) => state.sessionKey);
   const sessionKind = useTranscriptStore((state) => state.sessionKind);
@@ -183,6 +184,7 @@ export const useTranscriptEditor = () => {
     useTranscriptInitialization({
       audioFile,
       audioUrl,
+      audioRef,
       setAudioFile,
       setAudioUrl,
       setAudioReference,

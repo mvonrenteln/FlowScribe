@@ -4,12 +4,15 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import {
-  clearAudioHandle,
-  loadAudioHandle,
+  buildAudioRefKey,
+  clearAudioHandleForAudioRef,
+  loadAudioHandleForAudioRef,
   requestAudioHandlePermission,
-  saveAudioHandle,
+  saveAudioHandleForAudioRef,
 } from "@/lib/audioHandleStorage";
+import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
+import { useTranscriptStore } from "@/lib/store";
 
 interface FileUploadProps {
   onAudioUpload: (file: File) => void;
@@ -20,6 +23,8 @@ interface FileUploadProps {
   variant?: "card" | "inline";
   revisionName?: string | null;
 }
+
+// confirmIfLargeAudio moved to shared utility to allow reuse across restore flows
 
 export function FileUpload({
   onAudioUpload,
@@ -37,9 +42,15 @@ export function FileUpload({
     transcriptFileName,
   );
 
+  // Get audioRef from store to compute audio reference key for handle storage
+  const audioRef = useTranscriptStore((state) => state.audioRef);
+  const audioRefKey = audioRef ? buildAudioRefKey(audioRef) : null;
+
   useEffect(() => {
+    if (!audioRefKey) return;
+
     let isMounted = true;
-    loadAudioHandle()
+    loadAudioHandleForAudioRef(audioRefKey)
       .then((handle) => {
         if (isMounted) {
           setAudioHandle(handle);
@@ -48,10 +59,34 @@ export function FileUpload({
       .catch((err) => {
         console.error("Failed to load saved audio handle:", err);
       });
+    // Listen for external changes to the stored handle (save/clear) so we
+    // can update the `Reopen Audio` button immediately.
+    const onHandleUpdated = (ev: Event) => {
+      try {
+        const ce = ev as CustomEvent<{ audioRefKey?: string; present?: boolean }>;
+        // Only react to updates for this audio
+        if (ce?.detail?.audioRefKey !== audioRefKey) return;
+        if (ce?.detail?.present === false) {
+          setAudioHandle(null);
+          return;
+        }
+      } catch (_e) {
+        // ignore
+      }
+      // If present or unknown, reload the handle from storage.
+      loadAudioHandleForAudioRef(audioRefKey)
+        .then((h) => setAudioHandle(h))
+        .catch((err) => console.error("Failed to reload saved audio handle:", err));
+    };
+    window.addEventListener("flowscribe:audio-handle-updated", onHandleUpdated as EventListener);
     return () => {
       isMounted = false;
+      window.removeEventListener(
+        "flowscribe:audio-handle-updated",
+        onHandleUpdated as EventListener,
+      );
     };
-  }, []);
+  }, [audioRefKey]);
 
   useEffect(() => {
     setLocalTranscriptFileName(transcriptFileName);
@@ -61,15 +96,22 @@ export function FileUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        clearAudioHandle()
-          .then(() => setAudioHandle(null))
-          .catch((err) => {
-            console.error("Failed to clear saved audio handle:", err);
-          });
+        const proceed = confirmIfLargeAudio(file);
+        if (!proceed) return;
+
+        // Clear handle for old audio if exists
+        if (audioRefKey) {
+          clearAudioHandleForAudioRef(audioRefKey)
+            .then(() => setAudioHandle(null))
+            .catch((err) => {
+              console.error("Failed to clear saved audio handle:", err);
+            });
+        }
+
         onAudioUpload(file);
       }
     },
-    [onAudioUpload],
+    [onAudioUpload, audioRefKey],
   );
 
   const handleAudioPick = useCallback(async () => {
@@ -105,9 +147,18 @@ export function FileUpload({
       });
       if (!handle) return;
       const file = await handle.getFile();
-      await saveAudioHandle(handle);
-      setAudioHandle(handle);
+      const proceed = confirmIfLargeAudio(file);
+      if (!proceed) return;
+
+      // Call onAudioUpload FIRST to trigger session creation/change
       onAudioUpload(file);
+
+      // Save the handle using the audio reference key
+      // Multiple sessions with the same audio file will share this handle
+      const audioRef = buildFileReference(file);
+      const audioRefKey = buildAudioRefKey(audioRef);
+      await saveAudioHandleForAudioRef(audioRefKey, handle);
+      setAudioHandle(handle);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
       console.error("Failed to pick audio file:", err);
@@ -115,16 +166,27 @@ export function FileUpload({
   }, [onAudioUpload]);
 
   const handleRestoreAudio = useCallback(async () => {
-    if (!audioHandle) return;
+    if (!audioHandle || !audioRefKey) return;
     const granted = await requestAudioHandlePermission(audioHandle);
     if (!granted) return;
     try {
       const file = await audioHandle.getFile();
+      const proceed = confirmIfLargeAudio(file);
+      if (!proceed) {
+        // User declined loading the previously saved large file — clear it
+        // so the UI no longer offers reopening the same problematic file.
+        clearAudioHandleForAudioRef(audioRefKey)
+          .then(() => setAudioHandle(null))
+          .catch((err) => console.error("Failed to clear saved audio handle:", err));
+        return;
+      }
       onAudioUpload(file);
     } catch (err) {
       console.error("Failed to restore audio file:", err);
     }
-  }, [audioHandle, onAudioUpload]);
+  }, [audioHandle, onAudioUpload, audioRefKey]);
+
+  // confirmIfLargeAudio moved to module scope above to avoid recreating the function on each render
 
   const handleTranscriptChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {

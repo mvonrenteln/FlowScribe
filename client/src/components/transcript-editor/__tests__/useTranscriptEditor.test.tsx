@@ -8,7 +8,9 @@ vi.mock("../useNavigationHotkeys", () => ({
 }));
 
 vi.mock("@/lib/audioHandleStorage", () => ({
-  loadAudioHandle: vi.fn().mockResolvedValue(null),
+  buildAudioRefKey: vi.fn(),
+  loadAudioHandleForAudioRef: vi.fn().mockResolvedValue(null),
+  clearAudioHandleForAudioRef: vi.fn().mockResolvedValue(undefined),
   queryAudioHandlePermission: vi.fn().mockResolvedValue(false),
 }));
 

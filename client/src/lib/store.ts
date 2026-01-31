@@ -8,6 +8,7 @@ import {
   createStorageScheduler,
   readGlobalState,
   readSessionsState,
+  writeSessionsSync,
 } from "@/lib/storage";
 import type { Chapter, ChapterUpdate } from "@/types/chapter";
 import {
@@ -225,6 +226,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
           schedulePersist(sessionState, globalStateToPersist);
         }
       },
+      writeSessionsSync,
       (recentSessions) => set({ recentSessions }),
     );
 
@@ -377,6 +379,19 @@ if (canUseLocalStorage()) {
     },
     { equalityFn: arePersistenceSelectionsEqual },
   );
+
+  // Flush sessions cache to localStorage synchronously before the page unloads.
+  // The throttled persist pipeline (with Web Worker) may still be pending when
+  // the user refreshes or navigates away, which would cause recent sessions to
+  // be lost. This handler ensures all in-memory session data is written.
+  window.addEventListener("beforeunload", () => {
+    if (storeContext) {
+      writeSessionsSync({
+        sessions: storeContext.getSessionsCache(),
+        activeSessionKey: storeContext.getActiveSessionKey(),
+      });
+    }
+  });
 }
 
 export const selectAudioAndSessionState = (state: TranscriptStore) => ({
