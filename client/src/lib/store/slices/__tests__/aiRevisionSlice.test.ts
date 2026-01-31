@@ -92,6 +92,29 @@ describe("aiRevisionSlice", () => {
       expect(res.prompts.find((p) => p.id === "custom-1")).toBeDefined();
       expect(res.defaultPromptId).toBe("custom-1");
     });
+
+    it("repairs missing prompt types for custom prompts", () => {
+      const saved: AIRevisionConfig = {
+        prompts: [
+          ...DEFAULT_TEXT_PROMPTS,
+          {
+            id: "custom-2",
+            name: "Custom Missing Type",
+            systemPrompt: "Custom",
+            userPromptTemplate: "{{text}}",
+            isBuiltIn: false,
+            isDefault: false,
+            quickAccess: false,
+          } as AIRevisionConfig["prompts"][number],
+        ],
+        defaultPromptId: "custom-2",
+        quickAccessPromptIds: [],
+      } as AIRevisionConfig;
+
+      const res = normalizeAIRevisionConfig(saved);
+      const prompt = res.prompts.find((p) => p.id === "custom-2");
+      expect(prompt?.type).toBe("text");
+    });
   });
 
   describe("basic actions (sanity)", () => {

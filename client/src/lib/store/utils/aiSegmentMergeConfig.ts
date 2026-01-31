@@ -25,15 +25,31 @@ export const DEFAULT_AI_SEGMENT_MERGE_CONFIG: AISegmentMergeConfig = {
   activePromptId: "builtin-segment-merge-default",
 };
 
-const clonePrompts = (prompts: AIPrompt[]) => prompts.map((p) => ({ ...p }));
+const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
+  ...prompt,
+  type: "segment-merge",
+  isBuiltIn: prompt.id === DEFAULT_SEGMENT_MERGE_PROMPT.id,
+  isDefault:
+    prompt.id === DEFAULT_SEGMENT_MERGE_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
+});
+
+const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePrompt(p));
 
 const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
-  const normalized = clonePrompts(
+  const normalized = normalizePrompts(
     prompts.length ? prompts : DEFAULT_AI_SEGMENT_MERGE_CONFIG.prompts,
   );
-  if (!normalized.some((p) => p.isBuiltIn && p.type === "segment-merge")) {
+  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_SEGMENT_MERGE_PROMPT.id);
+  if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_SEGMENT_MERGE_PROMPT });
+    return normalized;
   }
+  normalized[builtInIndex] = {
+    ...normalized[builtInIndex],
+    isBuiltIn: true,
+    isDefault: true,
+    type: "segment-merge",
+  };
   return normalized;
 };
 

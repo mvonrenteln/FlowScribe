@@ -3,6 +3,7 @@ import { buildSessionKey, type FileReference } from "@/lib/fileReference";
 import type { Segment, Speaker } from "@/lib/store";
 
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
+const GLOBAL_STORAGE_KEY = "flowscribe:global";
 
 const makeRef = (name: string, size = 1): FileReference => ({
   name,
@@ -261,5 +262,62 @@ describe("useTranscriptStore persistence", () => {
     expect(state.chapters[0]?.id).toBe("stored-chapter");
     expect(state.selectedChapterId).toBe("stored-chapter");
     expect(state.currentTime).toBe(7);
+  });
+
+  it("loads chapter detection prompts from global storage (legacy templates)", async () => {
+    window.localStorage.setItem(
+      GLOBAL_STORAGE_KEY,
+      JSON.stringify({
+        aiChapterDetectionConfig: {
+          batchSize: 12,
+          minChapterLength: 3,
+          maxChapterLength: 30,
+          tagIds: [],
+          templates: [
+            {
+              id: "legacy-chapter",
+              name: "Legacy Chapter Prompt",
+              type: "text",
+              systemPrompt: "Legacy system",
+              userPromptTemplate: "Legacy user",
+              isBuiltIn: false,
+              isDefault: false,
+            },
+          ],
+          activePromptId: "legacy-chapter",
+        },
+      }),
+    );
+
+    const store = await loadStore();
+    const prompts = store.getState().aiChapterDetectionConfig.prompts;
+    expect(prompts.find((p) => p.id === "legacy-chapter")).toBeTruthy();
+    expect(prompts.every((p) => p.type === "chapter-detect")).toBe(true);
+  });
+
+  it("persists chapter detection prompt changes to global storage", async () => {
+    const store = await loadStore();
+    store.getState().addChapterDetectionPrompt({
+      name: "Persisted Chapter Prompt",
+      type: "chapter-detect",
+      systemPrompt: "Persisted system",
+      userPromptTemplate: "Persisted user",
+      isBuiltIn: false,
+      isDefault: false,
+      quickAccess: false,
+    });
+
+    vi.runAllTimers();
+
+    const persistedRaw = window.localStorage.getItem(GLOBAL_STORAGE_KEY);
+    expect(persistedRaw).toBeTruthy();
+    const persisted = JSON.parse(persistedRaw ?? "{}") as {
+      aiChapterDetectionConfig?: { prompts?: Array<{ name: string }> };
+    };
+    expect(
+      persisted.aiChapterDetectionConfig?.prompts?.some(
+        (prompt) => prompt.name === "Persisted Chapter Prompt",
+      ),
+    ).toBe(true);
   });
 });

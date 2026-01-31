@@ -24,23 +24,60 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
   activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
 };
 
-const clonePrompts = (prompts: AIPrompt[]) => prompts.map((p) => ({ ...p }));
+type LegacyPromptConfig = {
+  templates?: AIPrompt[];
+};
+
+const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
+  ...prompt,
+  type: "chapter-detect",
+  isBuiltIn: prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id,
+  isDefault:
+    prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
+});
+
+const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePrompt(p));
 
 const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
-  const normalized = clonePrompts(
+  const normalized = normalizePrompts(
     prompts.length ? prompts : DEFAULT_AI_CHAPTER_DETECTION_CONFIG.prompts,
   );
-  if (!normalized.some((p) => p.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id)) {
+  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id);
+  if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_CHAPTER_DETECTION_PROMPT });
+    return normalized;
   }
+  normalized[builtInIndex] = {
+    ...normalized[builtInIndex],
+    isBuiltIn: true,
+    isDefault: true,
+    type: "chapter-detect",
+  };
   return normalized;
 };
 
+const getPromptsFromConfig = (
+  config?: PersistedGlobalState["aiChapterDetectionConfig"],
+): AIPrompt[] | undefined => {
+  if (Array.isArray(config?.prompts)) {
+    return config.prompts;
+  }
+  const legacyTemplates = (config as LegacyPromptConfig | null | undefined)?.templates;
+  if (Array.isArray(legacyTemplates)) {
+    return legacyTemplates;
+  }
+  return undefined;
+};
+
+/**
+ * Normalize persisted chapter detection config by restoring defaults, preserving
+ * custom prompts, and upgrading legacy `templates` storage to `prompts`.
+ */
 export const normalizeAIChapterDetectionConfig = (
   config?: PersistedGlobalState["aiChapterDetectionConfig"],
 ): AIChapterDetectionConfig => {
   const base = DEFAULT_AI_CHAPTER_DETECTION_CONFIG;
-  const prompts = ensureBuiltInPrompt(config?.prompts ?? base.prompts);
+  const prompts = ensureBuiltInPrompt(getPromptsFromConfig(config) ?? base.prompts);
   const activePromptId = prompts.some(
     (p) => p.id === (config?.activePromptId ?? base.activePromptId),
   )

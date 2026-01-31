@@ -43,6 +43,7 @@ import {
 } from "@/lib/ai/features/speaker";
 import { useTranscriptStore } from "@/lib/store";
 import type { AIPrompt, PromptType } from "@/lib/store/types";
+import { buildPromptExportData } from "@/lib/store/utils/aiPromptExport";
 import { cn } from "@/lib/utils";
 
 // ==================== Constants ====================
@@ -617,17 +618,7 @@ export function AITemplateSettings() {
       ...segmentMergePrompts,
       ...chapterDetectionPrompts,
     ];
-    const exportData = {
-      version: 1,
-      prompts: allPrompts.map((p) => ({
-        name: p.name,
-        type: p.type,
-        systemPrompt: p.systemPrompt,
-        userPromptTemplate: p.userPromptTemplate,
-        isBuiltIn: p.isBuiltIn,
-        quickAccess: p.quickAccess,
-      })),
-    };
+    const exportData = buildPromptExportData(allPrompts);
 
     const blob = new Blob([JSON.stringify(exportData, null, 2)], {
       type: "application/json",

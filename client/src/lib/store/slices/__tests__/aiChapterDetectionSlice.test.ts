@@ -140,4 +140,63 @@ describe("aiChapterDetectionSlice", () => {
     expect(s.chapters?.length).toBe(1);
     expect(s.aiChapterDetectionError).toMatch(/overlap/i);
   });
+
+  it("addChapterDetectionPrompt appends a custom prompt", () => {
+    const beforeCount = mockStore.getState().aiChapterDetectionConfig.prompts.length;
+    slice.addChapterDetectionPrompt({
+      name: "Custom Prompt",
+      type: "chapter-detect",
+      systemPrompt: "Custom system",
+      userPromptTemplate: "Custom user",
+      isBuiltIn: false,
+      isDefault: false,
+      quickAccess: false,
+    });
+    const state = mockStore.getState();
+    expect(state.aiChapterDetectionConfig.prompts.length).toBe(beforeCount + 1);
+    const added = state.aiChapterDetectionConfig.prompts.find((p) => p.name === "Custom Prompt");
+    expect(added?.type).toBe("chapter-detect");
+  });
+
+  it("updateChapterDetectionPrompt updates prompt fields", () => {
+    const promptId = mockStore.getState().aiChapterDetectionConfig.prompts[0]?.id;
+    if (!promptId) throw new Error("missing default prompt");
+
+    slice.updateChapterDetectionPrompt(promptId, {
+      name: "Updated Name",
+      userPromptTemplate: "Updated user",
+    });
+    const state = mockStore.getState();
+    const updated = state.aiChapterDetectionConfig.prompts.find((p) => p.id === promptId);
+    expect(updated?.name).toBe("Updated Name");
+    expect(updated?.userPromptTemplate).toBe("Updated user");
+    expect(updated?.type).toBe("chapter-detect");
+  });
+
+  it("deleteChapterDetectionPrompt removes prompt and repairs active id", () => {
+    slice.addChapterDetectionPrompt({
+      name: "Delete Me",
+      type: "chapter-detect",
+      systemPrompt: "Custom system",
+      userPromptTemplate: "Custom user",
+      isBuiltIn: false,
+      isDefault: false,
+      quickAccess: false,
+    });
+    const stateWithCustom = mockStore.getState();
+    const customPrompt = stateWithCustom.aiChapterDetectionConfig.prompts.find(
+      (p) => p.name === "Delete Me",
+    );
+    if (!customPrompt) throw new Error("missing custom prompt");
+    slice.setActiveChapterDetectionPrompt(customPrompt.id);
+
+    slice.deleteChapterDetectionPrompt(customPrompt.id);
+    const state = mockStore.getState();
+    expect(
+      state.aiChapterDetectionConfig.prompts.find((p) => p.id === customPrompt.id),
+    ).toBeFalsy();
+    expect(state.aiChapterDetectionConfig.activePromptId).toBe(
+      state.aiChapterDetectionConfig.prompts[0]?.id,
+    );
+  });
 });
