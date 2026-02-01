@@ -113,12 +113,31 @@ export const readGlobalState = (): PersistedGlobalState | null => {
   }
 };
 
+const isQuotaExceeded = (error: unknown): boolean => {
+  if (error instanceof DOMException) {
+    return error.name === "QuotaExceededError" || error.code === 22;
+  }
+  return false;
+};
+
+const dispatchQuotaExceeded = () => {
+  try {
+    globalThis.window?.dispatchEvent?.(new CustomEvent("flowscribe:storage-quota-exceeded"));
+  } catch {
+    // ignore in non-browser environments
+  }
+};
+
 export const writeSessionsSync = (state: PersistedSessionsState): boolean => {
   if (!canUseLocalStorage()) return false;
   try {
     window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(state));
     return true;
-  } catch {
+  } catch (error) {
+    if (isQuotaExceeded(error)) {
+      console.error("QuotaExceededError: session data could not be saved", error);
+      dispatchQuotaExceeded();
+    }
     return false;
   }
 };
@@ -177,8 +196,11 @@ export const createStorageScheduler = (
         if (typeof globalJson === "string") {
           window.localStorage.setItem(GLOBAL_STORAGE_KEY, globalJson);
         }
-      } catch {
-        // Ignore persistence failures (quota, serialization).
+      } catch (err) {
+        if (isQuotaExceeded(err)) {
+          console.error("QuotaExceededError: worker persistence failed", err);
+          dispatchQuotaExceeded();
+        }
       }
     });
     return worker;
@@ -209,8 +231,11 @@ export const createStorageScheduler = (
       try {
         window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToPersist));
         window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(globalToPersist));
-      } catch {
-        // Ignore persistence failures (quota, serialization).
+      } catch (err) {
+        if (isQuotaExceeded(err)) {
+          console.error("QuotaExceededError: sync fallback persistence failed", err);
+          dispatchQuotaExceeded();
+        }
       }
     }, throttleMs);
   };

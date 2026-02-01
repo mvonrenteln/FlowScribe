@@ -1054,5 +1054,628 @@ describe("useTranscriptStore persistence", () => {
       expect(store.getState().audioFile).toBeNull();
       expect(store.getState().audioUrl).toBeNull();
     });
+
+    it("both sessions intact in localStorage after activation + reload (S6)", async () => {
+      vi.mocked(loadAudioHandleForAudioRef).mockResolvedValue(null);
+
+      const audioRefA = makeRef("audio-a");
+      const transcriptRefA = makeRef("transcript-a");
+      const sessionKeyA = buildSessionKey(audioRefA, transcriptRefA);
+      const audioRefB = makeRef("audio-b");
+      const transcriptRefB = makeRef("transcript-b");
+      const sessionKeyB = buildSessionKey(audioRefB, transcriptRefB);
+      const sessions = {
+        [sessionKeyA]: {
+          audioRef: audioRefA,
+          transcriptRef: transcriptRefA,
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+        [sessionKeyB]: {
+          audioRef: audioRefB,
+          transcriptRef: transcriptRefB,
+          segments: [makeSegment("seg-b")],
+          speakers: [makeSpeaker("speaker-b")],
+          selectedSegmentId: "seg-b",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 20,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyA }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      store.getState().activateSession(sessionKeyB);
+      await vi.advanceTimersByTimeAsync(600);
+
+      // Simulate beforeunload
+      window.dispatchEvent(new Event("beforeunload"));
+
+      // Reload
+      const store2 = await loadStore();
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKeyA]).toBeDefined();
+      expect(persisted.sessions?.[sessionKeyA].segments[0].id).toBe("seg-a");
+      expect(persisted.sessions?.[sessionKeyB]).toBeDefined();
+      expect(persisted.sessions?.[sessionKeyB].segments[0].id).toBe("seg-b");
+      expect(store2.getState().recentSessions).toHaveLength(2);
+    });
+  });
+
+  describe("readSessionsState fallback boundaries", () => {
+    it("does NOT fallback when active session has segments but no transcriptRef (R5)", async () => {
+      const activeKey = buildSessionKey(makeRef("audio-a"), null);
+      const otherKey = buildSessionKey(makeRef("audio-b"), makeRef("transcript-b"));
+      const sessions = {
+        [activeKey]: {
+          audioRef: makeRef("audio-a"),
+          transcriptRef: null,
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 50,
+        },
+        [otherKey]: {
+          audioRef: makeRef("audio-b"),
+          transcriptRef: makeRef("transcript-b"),
+          segments: [makeSegment("seg-b")],
+          speakers: [makeSpeaker("speaker-b")],
+          selectedSegmentId: "seg-b",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 40,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: activeKey }),
+      );
+
+      const store = await loadStore();
+      expect(store.getState().sessionKey).toBe(activeKey);
+      expect(store.getState().segments[0]?.id).toBe("seg-a");
+    });
+
+    it("does NOT fallback when active session has transcriptRef but no segments (R6)", async () => {
+      const activeKey = buildSessionKey(makeRef("audio-a"), makeRef("transcript-a"));
+      const otherKey = buildSessionKey(makeRef("audio-b"), makeRef("transcript-b"));
+      const sessions = {
+        [activeKey]: {
+          audioRef: makeRef("audio-a"),
+          transcriptRef: makeRef("transcript-a"),
+          segments: [],
+          speakers: [],
+          selectedSegmentId: null,
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 50,
+        },
+        [otherKey]: {
+          audioRef: makeRef("audio-b"),
+          transcriptRef: makeRef("transcript-b"),
+          segments: [makeSegment("seg-b")],
+          speakers: [makeSpeaker("speaker-b")],
+          selectedSegmentId: "seg-b",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 40,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: activeKey }),
+      );
+
+      // readSessionsState fallback checks: segments=0 AND !transcriptRef
+      // Here transcriptRef IS set, so no fallback should occur
+      const store = await loadStore();
+      expect(store.getState().sessionKey).toBe(activeKey);
+    });
+
+    it("does NOT fallback when active session has both segments and transcriptRef (R7)", async () => {
+      const activeKey = buildSessionKey(makeRef("audio-a"), makeRef("transcript-a"));
+      const otherKey = buildSessionKey(makeRef("audio-b"), makeRef("transcript-b"));
+      const sessions = {
+        [activeKey]: {
+          audioRef: makeRef("audio-a"),
+          transcriptRef: makeRef("transcript-a"),
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 5,
+          isWhisperXFormat: false,
+          updatedAt: 50,
+        },
+        [otherKey]: {
+          audioRef: makeRef("audio-b"),
+          transcriptRef: makeRef("transcript-b"),
+          segments: [makeSegment("seg-b")],
+          speakers: [makeSpeaker("speaker-b")],
+          selectedSegmentId: "seg-b",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 60,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: activeKey }),
+      );
+
+      const store = await loadStore();
+      expect(store.getState().sessionKey).toBe(activeKey);
+      expect(store.getState().segments[0]?.id).toBe("seg-a");
+    });
+  });
+
+  describe("Subscription → Cache → localStorage roundtrip", () => {
+    it("persists session after text edit + throttle wait (W1)", async () => {
+      const audioRef = makeRef("audio-w1");
+      const transcriptRef = makeRef("transcript-w1");
+      const sessionKey = buildSessionKey(audioRef, transcriptRef);
+      const sessions = {
+        [sessionKey]: {
+          audioRef,
+          transcriptRef,
+          segments: [makeSegment("seg-w1")],
+          speakers: [makeSpeaker("speaker-w1")],
+          selectedSegmentId: "seg-w1",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 1,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKey }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      store.getState().updateSegmentText("seg-w1", "edited text");
+      vi.advanceTimersByTime(600);
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKey].segments[0].text).toBe("edited text");
+    });
+
+    it("persists session after text edit via beforeunload without throttle wait (W2)", async () => {
+      const audioRef = makeRef("audio-w2");
+      const transcriptRef = makeRef("transcript-w2");
+      const sessionKey = buildSessionKey(audioRef, transcriptRef);
+      const sessions = {
+        [sessionKey]: {
+          audioRef,
+          transcriptRef,
+          segments: [makeSegment("seg-w2")],
+          speakers: [makeSpeaker("speaker-w2")],
+          selectedSegmentId: "seg-w2",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 1,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKey }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      store.getState().updateSegmentText("seg-w2", "edited before unload");
+
+      // Do NOT advance timers — fire beforeunload immediately
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKey].segments[0].text).toBe("edited before unload");
+    });
+
+    it("preserves both sessions after session switch + beforeunload (W3)", async () => {
+      vi.mocked(loadAudioHandleForAudioRef).mockResolvedValue(null);
+
+      const audioRefA = makeRef("audio-w3a");
+      const transcriptRefA = makeRef("transcript-w3a");
+      const sessionKeyA = buildSessionKey(audioRefA, transcriptRefA);
+      const audioRefB = makeRef("audio-w3b");
+      const transcriptRefB = makeRef("transcript-w3b");
+      const sessionKeyB = buildSessionKey(audioRefB, transcriptRefB);
+
+      const sessions = {
+        [sessionKeyA]: {
+          audioRef: audioRefA,
+          transcriptRef: transcriptRefA,
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+        [sessionKeyB]: {
+          audioRef: audioRefB,
+          transcriptRef: transcriptRefB,
+          segments: [makeSegment("seg-b")],
+          speakers: [makeSpeaker("speaker-b")],
+          selectedSegmentId: "seg-b",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 20,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyA }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // Edit session A
+      store.getState().updateSegmentText("seg-a", "edited-a");
+
+      // Switch to session B
+      store.getState().activateSession(sessionKeyB);
+      await vi.advanceTimersByTimeAsync(100);
+
+      // Fire beforeunload immediately
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKeyA]).toBeDefined();
+      expect(persisted.sessions?.[sessionKeyA].segments[0].text).toBe("edited-a");
+      expect(persisted.sessions?.[sessionKeyB]).toBeDefined();
+      expect(persisted.sessions?.[sessionKeyB].segments[0].id).toBe("seg-b");
+    });
+
+    it("persists newly created session (audio + transcript) via beforeunload (W4)", async () => {
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      const audioRef = makeRef("audio-w4");
+      store.getState().setAudioReference(audioRef);
+
+      const transcriptRef = makeRef("transcript-w4");
+      store.getState().loadTranscript({
+        segments: [makeSegment("seg-w4")],
+        reference: transcriptRef,
+        isWhisperXFormat: false,
+      });
+
+      const sessionKey = buildSessionKey(audioRef, transcriptRef);
+      expect(store.getState().sessionKey).toBe(sessionKey);
+
+      // Immediately fire beforeunload without waiting for throttle
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKey]).toBeDefined();
+      expect(persisted.sessions?.[sessionKey].segments[0].id).toBe("seg-w4");
+    });
+
+    it("does not lose session during rapid session switching (W6)", async () => {
+      vi.mocked(loadAudioHandleForAudioRef).mockResolvedValue(null);
+
+      const refs = Array.from({ length: 4 }, (_, i) => ({
+        audioRef: makeRef(`audio-${i}`),
+        transcriptRef: makeRef(`transcript-${i}`),
+      }));
+      const sessionKeys = refs.map((r) => buildSessionKey(r.audioRef, r.transcriptRef));
+      const sessions = Object.fromEntries(
+        refs.map((r, i) => [
+          sessionKeys[i],
+          {
+            audioRef: r.audioRef,
+            transcriptRef: r.transcriptRef,
+            segments: [makeSegment(`seg-${i}`)],
+            speakers: [makeSpeaker(`speaker-${i}`)],
+            selectedSegmentId: `seg-${i}`,
+            currentTime: 0,
+            isWhisperXFormat: false,
+            updatedAt: (i + 1) * 10,
+          },
+        ]),
+      );
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeys[0] }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // Rapid switching
+      store.getState().activateSession(sessionKeys[1]);
+      store.getState().activateSession(sessionKeys[2]);
+      store.getState().activateSession(sessionKeys[3]);
+      store.getState().activateSession(sessionKeys[0]);
+
+      // beforeunload
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      for (let i = 0; i < 4; i++) {
+        expect(persisted.sessions?.[sessionKeys[i]]).toBeDefined();
+        expect(persisted.sessions[sessionKeys[i]].segments[0].id).toBe(`seg-${i}`);
+      }
+    });
+
+    it("beforeunload writes newer data than pending worker response (W7)", async () => {
+      const audioRef = makeRef("audio-w7");
+      const transcriptRef = makeRef("transcript-w7");
+      const sessionKey = buildSessionKey(audioRef, transcriptRef);
+      const sessions = {
+        [sessionKey]: {
+          audioRef,
+          transcriptRef,
+          segments: [makeSegment("seg-w7")],
+          speakers: [makeSpeaker("speaker-w7")],
+          selectedSegmentId: "seg-w7",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 1,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKey }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // First edit triggers throttled persist
+      store.getState().updateSegmentText("seg-w7", "old edit");
+      // Don't let throttle fire yet
+
+      // Second edit — more recent
+      store.getState().updateSegmentText("seg-w7", "new edit");
+
+      // beforeunload fires before throttle completes
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      expect(persisted.sessions?.[sessionKey].segments[0].text).toBe("new edit");
+    });
+  });
+
+  describe("setAudioReference persistence", () => {
+    it("does NOT set activeSessionKey for empty intermediate session (A6)", async () => {
+      const audioRefOld = makeRef("audio-old");
+      const transcriptRefOld = makeRef("transcript-old");
+      const sessionKeyOld = buildSessionKey(audioRefOld, transcriptRefOld);
+      const sessions = {
+        [sessionKeyOld]: {
+          audioRef: audioRefOld,
+          transcriptRef: transcriptRefOld,
+          segments: [makeSegment("seg-old")],
+          speakers: [makeSpeaker("speaker-old")],
+          selectedSegmentId: "seg-old",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyOld }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // Switch to new audio — creates empty intermediate session
+      const audioRefNew = makeRef("audio-new");
+      store.getState().setAudioReference(audioRefNew);
+
+      // beforeunload now
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      // activeSessionKey should still point to the old session, not the empty intermediate
+      expect(persisted.activeSessionKey).toBe(sessionKeyOld);
+
+      // Reload: should restore the old session with data
+      const store2 = await loadStore();
+      expect(store2.getState().segments[0]?.id).toBe("seg-old");
+    });
+
+    it("old session remains in recentSessions after audio switch (A7)", async () => {
+      const audioRefOld = makeRef("audio-old");
+      const transcriptRefOld = makeRef("transcript-old");
+      const sessionKeyOld = buildSessionKey(audioRefOld, transcriptRefOld);
+      const sessions = {
+        [sessionKeyOld]: {
+          audioRef: audioRefOld,
+          transcriptRef: transcriptRefOld,
+          segments: [makeSegment("seg-old")],
+          speakers: [makeSpeaker("speaker-old")],
+          selectedSegmentId: "seg-old",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyOld }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // Switch audio
+      const audioRefNew = makeRef("audio-new");
+      store.getState().setAudioReference(audioRefNew);
+      vi.advanceTimersByTime(600);
+
+      // Old session must remain in recentSessions
+      const recent = store.getState().recentSessions;
+      expect(recent.some((s) => s.key === sessionKeyOld)).toBe(true);
+    });
+  });
+
+  describe("loadTranscript persistence", () => {
+    it("newly loaded transcript visible in recentSessions after persist (L4)", async () => {
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      const audioRef = makeRef("audio-l4");
+      store.getState().setAudioReference(audioRef);
+
+      const transcriptRef = makeRef("transcript-l4");
+      store.getState().loadTranscript({
+        segments: [makeSegment("seg-l4")],
+        reference: transcriptRef,
+        isWhisperXFormat: false,
+      });
+
+      vi.advanceTimersByTime(600);
+
+      const sessionKey = buildSessionKey(audioRef, transcriptRef);
+      const recent = store.getState().recentSessions;
+      expect(recent.some((s) => s.key === sessionKey)).toBe(true);
+    });
+  });
+
+  describe("Ghost session cleanup", () => {
+    it("empty intermediate sessions do not appear in recentSessions (G1)", async () => {
+      const audioRefA = makeRef("audio-a");
+      const transcriptRefA = makeRef("transcript-a");
+      const sessionKeyA = buildSessionKey(audioRefA, transcriptRefA);
+      const sessions = {
+        [sessionKeyA]: {
+          audioRef: audioRefA,
+          transcriptRef: transcriptRefA,
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyA }),
+      );
+
+      const store = await loadStore();
+      vi.advanceTimersByTime(600);
+
+      // Create empty intermediate session by switching audio
+      store.getState().setAudioReference(makeRef("audio-ghost"));
+      vi.advanceTimersByTime(600);
+
+      const recent = store.getState().recentSessions;
+      // Ghost session (no segments, no transcript) must not appear
+      const ghostKey = buildSessionKey(makeRef("audio-ghost"), null);
+      expect(recent.some((s) => s.key === ghostKey)).toBe(false);
+      // Original must still be there
+      expect(recent.some((s) => s.key === sessionKeyA)).toBe(true);
+    });
+
+    it("empty sessions are cleaned from localStorage on next persist (G2)", async () => {
+      const audioRefA = makeRef("audio-a");
+      const transcriptRefA = makeRef("transcript-a");
+      const sessionKeyA = buildSessionKey(audioRefA, transcriptRefA);
+      // Pre-seed with a ghost session
+      const ghostKey = buildSessionKey(makeRef("audio-ghost"), null);
+      const sessions = {
+        [sessionKeyA]: {
+          audioRef: audioRefA,
+          transcriptRef: transcriptRefA,
+          segments: [makeSegment("seg-a")],
+          speakers: [makeSpeaker("speaker-a")],
+          selectedSegmentId: "seg-a",
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 10,
+        },
+        [ghostKey]: {
+          audioRef: makeRef("audio-ghost"),
+          transcriptRef: null,
+          segments: [],
+          speakers: [],
+          selectedSegmentId: null,
+          currentTime: 0,
+          isWhisperXFormat: false,
+          updatedAt: 20,
+        },
+      };
+      window.localStorage.setItem(
+        SESSIONS_STORAGE_KEY,
+        JSON.stringify({ sessions, activeSessionKey: sessionKeyA }),
+      );
+
+      const store = await loadStore();
+      // Trigger a persist by making any change
+      store.getState().updateSegmentText("seg-a", "trigger persist");
+      vi.advanceTimersByTime(600);
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      const persisted = JSON.parse(window.localStorage.getItem(SESSIONS_STORAGE_KEY) || "{}");
+      // Ghost session should have been cleaned
+      expect(persisted.sessions?.[ghostKey]).toBeUndefined();
+      // Real session still present
+      expect(persisted.sessions?.[sessionKeyA]).toBeDefined();
+    });
+  });
+
+  describe("QuotaExceeded handling", () => {
+    it("writeSessionsSync returns false on QuotaExceededError (Q1)", async () => {
+      // Load the store first so the module is initialized, then get writeSessionsSync
+      await loadStore();
+      const { writeSessionsSync: writeFn } = await import("@/lib/storage");
+      const quotaError = new DOMException("quota exceeded", "QuotaExceededError");
+      const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw quotaError;
+      });
+
+      const result = writeFn({ sessions: {}, activeSessionKey: null });
+      expect(result).toBe(false);
+
+      spy.mockRestore();
+    });
+
+    it("dispatches flowscribe:storage-quota-exceeded event on QuotaExceededError (Q2)", async () => {
+      await loadStore();
+      const { writeSessionsSync: writeFn } = await import("@/lib/storage");
+      const quotaError = new DOMException("quota exceeded", "QuotaExceededError");
+      const spy = vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
+        throw quotaError;
+      });
+
+      const handler = vi.fn();
+      window.addEventListener("flowscribe:storage-quota-exceeded", handler);
+
+      writeFn({ sessions: {}, activeSessionKey: null });
+      expect(handler).toHaveBeenCalledTimes(1);
+
+      window.removeEventListener("flowscribe:storage-quota-exceeded", handler);
+      spy.mockRestore();
+    });
+
+    it("quota error flag is set in store after quota event (Q3)", async () => {
+      const store = await loadStore();
+      expect(store.getState().quotaErrorShown).toBe(false);
+
+      store.getState().setQuotaErrorShown(true);
+      expect(store.getState().quotaErrorShown).toBe(true);
+    });
   });
 });

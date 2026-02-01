@@ -6,7 +6,7 @@ import {
   queryAudioHandlePermission,
 } from "@/lib/audioHandleStorage";
 import confirmIfLargeAudio from "@/lib/confirmLargeFile";
-import { buildFileReference, buildSessionKey, isSameFileReference } from "@/lib/fileReference";
+import { buildSessionKey, isSameFileReference } from "@/lib/fileReference";
 import { buildRecentSessions } from "@/lib/storage";
 import { normalizeSegments } from "@/lib/transcript/normalizeTranscript";
 import { SPEAKER_COLORS } from "../constants";
@@ -315,13 +315,12 @@ export const createSessionSlice = (
             return;
           }
 
-          // Set audioFile, audioUrl, AND audioRef
-          // Since the file reference should match the session's audioRef,
-          // this won't trigger a session change or reset the transcript
-          const fileRef = buildFileReference(file);
+          // Reuse the session's audioRef identity to avoid creating a new
+          // object that would trigger an unnecessary subscription fire and
+          // potentially a different sessionKey.
+          const fileRef = session.audioRef;
           const url = URL.createObjectURL(file);
 
-          // Update the state with the loaded audio
           set({
             audioFile: file,
             audioUrl: url,

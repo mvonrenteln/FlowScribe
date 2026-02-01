@@ -246,6 +246,8 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAIRevisionSlice(set, get),
       ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
+      quotaErrorShown: false,
+      setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
     };
   }),
 );
@@ -341,7 +343,22 @@ if (canUseLocalStorage()) {
         });
       }
 
-      storeContext.setActiveSessionKey(sessionKey);
+      if (state.segments.length > 0 || state.transcriptRef) {
+        storeContext.setActiveSessionKey(sessionKey);
+      }
+
+      // Remove ghost sessions: entries with no segments, no transcript, and
+      // not the currently active session key.  These accumulate when
+      // setAudioReference creates intermediate "audio-only" entries.
+      const currentCache = storeContext.getSessionsCache();
+      const cleaned = Object.fromEntries(
+        Object.entries(currentCache).filter(
+          ([key, s]) => s.segments.length > 0 || s.transcriptRef || key === sessionKey,
+        ),
+      );
+      if (Object.keys(cleaned).length !== Object.keys(currentCache).length) {
+        storeContext.setSessionsCache(cleaned);
+      }
 
       if (shouldTouchSession) {
         storeContext.updateRecentSessions(storeContext.getSessionsCache());
@@ -361,7 +378,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||
         lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled ||
         lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig ||
-        lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig;
+        lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig ||
+        lastGlobalPayload.aiSegmentMergeConfig !== nextGlobalPayload.aiSegmentMergeConfig;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(

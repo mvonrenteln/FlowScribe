@@ -4,6 +4,7 @@ import { ExportDialog } from "../ExportDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
 import { RevisionDialog } from "../RevisionDialog";
 import { SpellcheckDialog } from "../SpellcheckDialog";
+import { StorageQuotaDialog } from "../StorageQuotaDialog";
 import { SettingsSheet } from "../settings";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -72,6 +73,7 @@ const EditorDialogsComponent = ({
         initialSection={settingsInitialSection}
         showTrigger={false}
       />
+      <StorageQuotaDialog />
     </>
   );
 };
