@@ -1,4 +1,11 @@
 import type { StoreApi } from "zustand";
+import {
+  buildAudioRefKey,
+  clearAudioHandleForAudioRef,
+  loadAudioHandleForAudioRef,
+  queryAudioHandlePermission,
+} from "@/lib/audioHandleStorage";
+import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildSessionKey, isSameFileReference } from "@/lib/fileReference";
 import { buildRecentSessions } from "@/lib/storage";
 import { normalizeSegments } from "@/lib/transcript/normalizeTranscript";
@@ -55,6 +62,16 @@ export const createSessionSlice = (
     const state = get();
     const audioChanged = !isSameFileReference(state.audioRef, reference);
     const shouldResetTranscript = audioChanged && reference !== null;
+    // When switching to a new audio, flush the current session to localStorage
+    // immediately to prevent data loss if the tab crashes shortly after
+    // (e.g., from loading a very large audio file that causes OOM).
+    if (shouldResetTranscript && state.segments.length > 0) {
+      context.setSessionsCache({
+        ...context.getSessionsCache(),
+        [state.sessionKey]: buildPersistedSession(state),
+      });
+      context.persistSync();
+    }
     const nextTranscriptRef = shouldResetTranscript ? null : state.transcriptRef;
     const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const sessionKey = buildSessionKey(reference, nextTranscriptRef);
@@ -267,6 +284,51 @@ export const createSessionSlice = (
       seekRequestTime: null,
       confidenceScoresVersion,
     });
+
+    // Try to restore audio handle for this session
+    // Use audio reference key for handle lookup
+    if (shouldClearAudio && session.audioRef) {
+      const audioRefKey = buildAudioRefKey(session.audioRef);
+      loadAudioHandleForAudioRef(audioRefKey)
+        .then(async (handle) => {
+          if (!handle) return;
+          const granted = await queryAudioHandlePermission(handle);
+          if (!granted) return;
+          const file = await handle.getFile();
+          const proceed = confirmIfLargeAudio(file);
+          if (!proceed) {
+            // User declined loading the large file for this audio
+            clearAudioHandleForAudioRef(audioRefKey).catch((err) =>
+              console.error("Failed to clear audio handle:", err),
+            );
+            return;
+          }
+          // Load audio file for this session
+          const currentState = get();
+
+          // Check if the audio reference is still the same, not just the sessionKey
+          // This allows audio loading to continue even if a transcript was added
+          // (which changes the sessionKey but keeps the same audioRef)
+          const targetAudioRef = session.audioRef;
+          if (!isSameFileReference(currentState.audioRef, targetAudioRef)) {
+            // Audio reference changed - abort loading
+            return;
+          }
+
+          // Reuse the session's audioRef identity to avoid creating a new
+          // object that would trigger an unnecessary subscription fire and
+          // potentially a different sessionKey.
+          const fileRef = session.audioRef;
+          const url = URL.createObjectURL(file);
+
+          set({
+            audioFile: file,
+            audioUrl: url,
+            audioRef: fileRef,
+          });
+        })
+        .catch((err) => console.error("Failed to restore audio handle:", err));
+    }
   },
   createRevision: (name, overwrite) => {
     const trimmedName = name.trim();
