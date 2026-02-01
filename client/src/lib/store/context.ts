@@ -15,12 +15,14 @@ export interface StoreContext {
   setLastRecentSerialized: (value: string) => void;
   updateRecentSessions: (sessions: Record<string, PersistedSession>) => void;
   persist: (sessionsState: PersistedSessionsState, globalState: PersistedGlobalState) => void;
+  persistSync: () => void;
 }
 
 export const createStoreContext = (
   initialSessions: Record<string, PersistedSession>,
   initialActiveKey: string | null,
   persist: StoreContext["persist"],
+  persistSyncFn: (sessionsState: PersistedSessionsState) => void,
   setRecentSessions: (sessions: RecentSessionSummary[]) => void,
 ): StoreContext => {
   let sessionsCache = initialSessions;
@@ -49,5 +51,11 @@ export const createStoreContext = (
       }
     },
     persist,
+    persistSync: () => {
+      persistSyncFn({
+        sessions: sessionsCache,
+        activeSessionKey: activeSessionKeyCache,
+      });
+    },
   };
 };

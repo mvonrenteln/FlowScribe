@@ -209,7 +209,10 @@ export type TranscriptStore = InitialStoreState &
   AISpeakerSlice &
   ConfidenceSlice &
   AIRevisionSlice &
-  AISegmentMergeSlice;
+  AISegmentMergeSlice & {
+    quotaErrorShown: boolean;
+    setQuotaErrorShown: (shown: boolean) => void;
+  };
 
 export interface ConfidenceSlice {
   setHighlightLowConfidence: (enabled: boolean) => void;
