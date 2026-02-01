@@ -272,3 +272,98 @@ export function getProperty<T>(obj: unknown, key: string, defaultValue: T): T {
 
   return value as T;
 }
+
+/**
+ * Extract complete top-level items from a JSON array in text, stopping at the
+ * first incomplete/truncated item. Returns array of parsed items or null if
+ * no array start was found.
+ */
+export function extractArrayItems(input: string, maxDepth = 10): unknown[] | null {
+  const firstBracket = input.indexOf("[");
+  if (firstBracket === -1) return null;
+
+  const items: unknown[] = [];
+  let i = firstBracket + 1;
+  const len = input.length;
+
+  // Helper to skip whitespace
+  const skipWS = () => {
+    while (i < len && /\s/.test(input[i])) i++;
+  };
+
+  skipWS();
+
+  while (i < len) {
+    skipWS();
+    if (i >= len) break;
+
+    const ch = input[i];
+    if (ch === "]") {
+      // End of array
+      break;
+    }
+
+    // Determine item start
+    if (ch === "{" || ch === "[") {
+      const end = findMatchingBracket(input, i, ch, ch === "{" ? "}" : "]", maxDepth);
+      if (end < 0) break; // truncated item
+      const itemText = input.substring(i, end + 1);
+      try {
+        items.push(JSON.parse(itemText));
+      } catch {
+        break;
+      }
+      i = end + 1;
+    } else if (ch === '"') {
+      // string primitive
+      let j = i + 1;
+      let isEscaped = false;
+      for (; j < len; j++) {
+        if (isEscaped) {
+          isEscaped = false;
+          continue;
+        }
+        const c = input[j];
+        if (c === "\\") {
+          isEscaped = true;
+          continue;
+        }
+        if (c === '"') {
+          break;
+        }
+      }
+      if (j >= len) break; // truncated
+      const itemText = input.substring(i, j + 1);
+      try {
+        items.push(JSON.parse(itemText));
+      } catch {
+        break;
+      }
+      i = j + 1;
+    } else {
+      // number, true, false, null - find comma or closing bracket
+      let j = i;
+      for (; j < len; j++) {
+        const c = input[j];
+        if (c === "," || c === "]") break;
+      }
+      const itemText = input.substring(i, j).trim();
+      if (!itemText) break;
+      try {
+        items.push(JSON.parse(itemText));
+      } catch {
+        break;
+      }
+      i = j;
+    }
+
+    // Skip whitespace and optional comma
+    skipWS();
+    if (input[i] === ",") {
+      i++;
+    }
+    skipWS();
+  }
+
+  return items;
+}

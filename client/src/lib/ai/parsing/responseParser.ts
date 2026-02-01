@@ -7,7 +7,9 @@
  * @module ai/parsing/responseParser
  */
 
-import { extractJSON } from "./jsonParser";
+import { extractArrayItems, extractJSON } from "./jsonParser";
+import type { RecoveryStrategy } from "./recoveryStrategies";
+import { applyRecoveryStrategies, createStandardStrategies } from "./recoveryStrategies";
 import type { ParseResult, ResponseParserOptions, SimpleSchema } from "./types";
 import { validate } from "./validator";
 
@@ -69,6 +71,82 @@ export function parseResponse<T>(
       extractionMethod = "lenient";
     }
   } catch (error) {
+    // If extraction failed, we may still attempt recovery for arrays when requested.
+    // Support both top-level arrays and arrays nested inside an object (e.g., { chapters: [...] }).
+    if (options.recoverPartial && schema) {
+      try {
+        // Top-level array schema
+        if (schema.type === "array" && schema.items) {
+          const typeGuard = createTypeGuard(schema.items);
+          const strategies = createStandardStrategies(schema, typeGuard);
+          const recovery = applyRecoveryStrategies<T>(input, strategies as RecoveryStrategy<T>[]);
+
+          if (recovery.data && recovery.data.length > 0) {
+            return {
+              success: true,
+              data: recovery.data as unknown as T,
+              rawInput: input,
+              metadata: {
+                extractionMethod: "lenient",
+                validated: false,
+                warnings: [],
+                parseStatus: "MALFORMED",
+                recovery: {
+                  usedStrategy: recovery.usedStrategy,
+                  attemptedStrategies: recovery.attemptedStrategies,
+                },
+              },
+            } as ParseResult<T>;
+          }
+        }
+
+        // Object schema with an array property (try to recover that property)
+        if (schema.type === "object" && schema.properties) {
+          for (const [propName, propSchema] of Object.entries(schema.properties)) {
+            if (propSchema.type === "array" && propSchema.items) {
+              const typeGuard = createTypeGuard(propSchema.items);
+              const strategies = createStandardStrategies(propSchema, typeGuard);
+              const recovery = applyRecoveryStrategies<unknown>(
+                input,
+                strategies as RecoveryStrategy<unknown>[],
+              );
+
+              if (recovery.data && recovery.data.length > 0) {
+                // Build candidate object with the recovered array
+                const candidate: Record<string, unknown> = { [propName]: recovery.data };
+                // Validate candidate against the full object schema
+                const validation = validate<Record<string, unknown>>(
+                  candidate,
+                  schema,
+                  applyDefaults,
+                );
+                if (validation.valid && validation.data) {
+                  return {
+                    success: true,
+                    data: validation.data as unknown as T,
+                    rawInput: input,
+                    metadata: {
+                      extractionMethod: "lenient",
+                      validated: false,
+                      warnings: [],
+                      parseStatus: "MALFORMED",
+                      recovery: {
+                        usedStrategy: recovery.usedStrategy,
+                        attemptedStrategies: recovery.attemptedStrategies,
+                        skipped: 0,
+                      },
+                    },
+                  } as ParseResult<T>;
+                }
+              }
+            }
+          }
+        }
+      } catch {
+        // fall through to return original parse error
+      }
+    }
+
     return {
       success: false,
       error: error instanceof Error ? error : new Error(String(error)),
@@ -77,6 +155,7 @@ export function parseResponse<T>(
         extractionMethod: "direct",
         validated: false,
         warnings: [],
+        parseStatus: "INVALID",
       },
     } as ParseResult<T>;
   }
@@ -90,6 +169,78 @@ export function parseResponse<T>(
     wasValidated = true;
 
     if (!validationResult.valid || !validationResult.data) {
+      // If caller requested recovery, attempt partial recovery for arrays.
+      if (options.recoverPartial && schema) {
+        try {
+          // Top-level array schema
+          if (schema.type === "array" && schema.items) {
+            const typeGuard = createTypeGuard(schema.items);
+            const strategies = createStandardStrategies(schema, typeGuard);
+            const recovery = applyRecoveryStrategies<T>(input, strategies as RecoveryStrategy<T>[]);
+
+            if (recovery.data && recovery.data.length > 0) {
+              return {
+                success: true,
+                data: recovery.data as unknown as T,
+                rawInput: input,
+                metadata: {
+                  extractionMethod,
+                  validated: false,
+                  warnings: validationResult.warnings,
+                  parseStatus: "MALFORMED",
+                  recovery: {
+                    usedStrategy: recovery.usedStrategy,
+                    attemptedStrategies: recovery.attemptedStrategies,
+                  },
+                },
+              } as ParseResult<T>;
+            }
+          }
+
+          // Object schema with an array property (try to recover that property)
+          if (schema.type === "object" && schema.properties) {
+            for (const [propName, propSchema] of Object.entries(schema.properties)) {
+              if (propSchema.type === "array" && propSchema.items) {
+                const typeGuard = createTypeGuard(propSchema.items);
+                const strategies = createStandardStrategies(propSchema, typeGuard);
+                const recovery = applyRecoveryStrategies<unknown>(
+                  input,
+                  strategies as RecoveryStrategy<unknown>[],
+                );
+
+                if (recovery.data && recovery.data.length > 0) {
+                  const candidate: Record<string, unknown> = { [propName]: recovery.data };
+                  const validation = validate<Record<string, unknown>>(
+                    candidate,
+                    schema,
+                    applyDefaults,
+                  );
+                  if (validation.valid && validation.data) {
+                    return {
+                      success: true,
+                      data: validation.data as unknown as T,
+                      rawInput: input,
+                      metadata: {
+                        extractionMethod,
+                        validated: false,
+                        warnings: validationResult.warnings,
+                        parseStatus: "MALFORMED",
+                        recovery: {
+                          usedStrategy: recovery.usedStrategy,
+                          attemptedStrategies: recovery.attemptedStrategies,
+                        },
+                      },
+                    } as ParseResult<T>;
+                  }
+                }
+              }
+            }
+          }
+        } catch {
+          // fall through to return invalid
+        }
+      }
+
       return {
         success: false,
         error: new Error(
@@ -100,6 +251,7 @@ export function parseResponse<T>(
           extractionMethod,
           validated: true,
           warnings: validationResult.warnings,
+          parseStatus: "INVALID",
         },
       } as ParseResult<T>;
     }
@@ -212,12 +364,26 @@ export function recoverPartialArray<T>(
   let skipped = 0;
 
   try {
+    // First try to extract fully-formed top-level items from a possibly-truncated array
+    const items = extractArrayItems(input);
+    if (Array.isArray(items) && items.length > 0) {
+      for (const item of items) {
+        if (itemValidator(item)) {
+          recovered.push(item as T);
+        } else {
+          skipped++;
+        }
+      }
+      return { recovered, skipped };
+    }
+
+    // Fallback: leniently parse whole JSON and filter valid items
     const extracted = extractJSON(input, { lenient: true });
 
     if (Array.isArray(extracted)) {
       for (const item of extracted) {
         if (itemValidator(item)) {
-          recovered.push(item);
+          recovered.push(item as T);
         } else {
           skipped++;
         }

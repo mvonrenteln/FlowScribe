@@ -2,120 +2,120 @@
 
 *Created: January 22, 2026*  
 *Updated: January 23, 2026 (design locked: `summary`/`notes`/`tags` + Collapsible chapter header + minimal AI context)*  
-*Status: Not Started*
+*Status: Partially Done (manual chapters shipped; AI detection not shipped)*
 
 ---
 
 ## Phase 1: Foundation & Data Layer
 
-- [ ] **1.1 Define Chapter Types**
-  - [ ] Create `client/src/types/chapter.ts`
-  - [ ] Define `Chapter` interface (id, title, summary?, notes?, tags?, startSegmentId, endSegmentId, source, createdAt, segmentCount)
-  - [ ] Define `ChapterSuggestion` extends `Chapter` with `acceptanceStatus` + optional `confidence`
-  - [ ] Add JSDoc comments for all fields
-  - [ ] Tests: type integrity, validation helpers
+- [x] **1.1 Define Chapter Types**
+  - [x] Create `client/src/types/chapter.ts`
+  - [x] Define `Chapter` interface (id, title, summary?, notes?, tags?, startSegmentId, endSegmentId, source, createdAt, segmentCount)
+  - [x] Define `ChapterSuggestion` extends `Chapter` with `acceptanceStatus` (no confidence field)
+  - [x] Add JSDoc comments for all fields
+  - [ ] Tests: type integrity, validation helpers (covered indirectly; no dedicated type-level tests)
 
-- [ ] **1.2 Create Chapter Store Slice**
-  - [ ] Create `client/src/lib/store/slices/chapterSlice.ts`
-  - [ ] Implement state: `chapters: Chapter[]`, `selectedChapterId?: string`
-  - [ ] Implement actions: `startChapter()`, `updateChapter()`, `deleteChapter()`, `selectChapter()`, `clearChapters()`
-  - [ ] Implement selectors: `selectAllChapters()`, `selectChapterById()`, `selectChapterForSegment()`, `selectSegmentsInChapter()`
-  - [ ] Add validation: no overlaps on add/update
-  - [ ] Tests: >80% coverage for all actions & selectors
+- [x] **1.2 Create Chapter Store Slice**
+  - [x] Create `client/src/lib/store/slices/chapterSlice.ts`
+  - [x] Implement state: `chapters: Chapter[]`, `selectedChapterId?: string`
+  - [x] Implement actions: `startChapter()`, `updateChapter()`, `deleteChapter()`, `selectChapter()`, `clearChapters()`
+  - [x] Implement selectors: `selectAllChapters()`, `selectChapterById()`, `selectChapterForSegment()`, `selectSegmentsInChapter()`
+  - [x] Add validation: no overlaps on add/update
+  - [x] Tests: >80% coverage for all actions & selectors
 
 - [ ] **1.3 Create AI Chapter Detection Slice**
-  - [ ] Create `client/src/lib/store/slices/aiChapterDetectionSlice.ts`
-  - [ ] Define `AIChapterDetectionState` interface (processing, suggestions, config, lastProcessedBatchIndex, lastBatchChapters)
-  - [ ] Define `ChapterDetectionConfig` interface (batchSize, min/max length, tagIds, provider/model)
+  - [x] Create `client/src/lib/store/slices/aiChapterDetectionSlice.ts`
+  - [x] Define AI detection state fields (processing, suggestions, config)
+  - [x] Define `AIChapterDetectionConfig` interface (batchSize, min/max length, tagIds, provider/model, prompts)
   - [ ] Ensure AI detection state is in-memory only (no localStorage/IndexedDB persistence)
-  - [ ] Implement state & actions (see architecture doc)
-  - [ ] Tests: >80% coverage
+  - [x] Implement state & actions (see architecture doc)
+  - [x] Tests: basic slice coverage (overlap refusal + accept-all history)
 
-- [ ] **1.4 Export & Register Slices**
-  - [ ] Update `client/src/lib/store/index.ts` to export new slices
-  - [ ] Verify store integration with existing slices
+- [x] **1.4 Export & Register Slices**
+  - [x] Update `client/src/lib/store/index.ts` to export new slices
+  - [x] Verify store integration with existing slices
 
 ---
 
 ## Phase 2: UI Foundation
 
-- [ ] **2.1 Create ChaptersOutlinePanel Component**
-  - [ ] Create `client/src/components/ChaptersOutlinePanel.tsx`
-  - [ ] Floating, non-modal outline panel (fixed position, right side)
-  - [ ] List all chapters: title + segment range
-  - [ ] Click chapter → scroll to segment + highlight
-  - [ ] No edit/delete actions in the panel (orientation only)
-  - [ ] Toggle button + keyboard shortcut: Outline / TOC
+- [x] **2.1 Create ChaptersOutlinePanel Component**
+  - [x] Create `client/src/components/ChaptersOutlinePanel.tsx`
+  - [x] Floating, non-modal outline panel (fixed position, right side)
+  - [ ] List all chapters: title + segment range (currently title + optional summary only)
+  - [x] Click chapter → jump (select chapter + select start segment + seek)
+  - [x] No edit/delete actions in the panel (orientation only)
+  - [x] Toggle button (toolbar)
+  - [ ] Keyboard shortcut: Outline / TOC
     - [ ] macOS: `Cmd+Shift+O`
     - [ ] Windows/Linux: `Ctrl+Shift+O`
-    - [ ] Rationale: `O` = “Outline” (common in editors)
-  - [ ] Tests: user interactions, store dispatch
+  - [x] Tests: user interactions, store dispatch
 
-- [ ] **2.2 Simplify Chapter Header UX**
-  - [ ] Keep `ChapterHeader` but move all editing inline (title, summary, notes, tags)
-  - [ ] Title becomes an `<Input>` when focused; Enter/blur commits, Esc cancels
-  - [ ] Summary and notes expand inline (textarea) only in edit mode
-  - [ ] Delete action is a compact button directly on the header (edit mode only)
-  - [ ] Tags are chips with inline remove controls and a local `+` trigger that opens the segment-style tag selector
-  - [ ] Tests: inline editing, deletion, inline tag management
-- [ ] **2.3 Segment Menu Integration**
-  - [ ] “Start Chapter Here” stays inside the segment context menu
-  - [ ] Action inserts a chapter header, then instantly requests inline title focus with the placeholder selected
-  - [ ] No popovers: focus is handled via `ChapterHeader` props (e.g., `autoFocus`)
-  - [ ] Tests: creation + auto-focus behavior, edit-mode gating via `document.body.dataset.transcriptEditing`
-- [ ] **2.4 TranscriptEditor Integration**
-  - [ ] Continue rendering headers before the segments that start them
-  - [ ] Replace `chapterEditTarget` popover state with a minimal inline focus request prop
-  - [ ] Outline panel toggle/state history remains untouched
-  - [ ] Tests: chapter rendering + inline focus behavior
+- [x] **2.2 Simplify Chapter Header UX**
+  - [x] Keep `ChapterHeader` but move all editing inline (title, summary, notes, tags)
+  - [x] Title becomes an `<Input>` when focused; Enter/blur commits, Esc cancels
+  - [x] Summary and notes expand inline (textarea) only in edit mode
+  - [x] Delete action is a compact button directly on the header (edit mode only)
+  - [x] Tags are chips with inline remove controls and a local `+` trigger that opens the segment-style tag selector
+  - [x] Tests: inline editing, deletion, inline tag management
+- [x] **2.3 Segment Menu Integration**
+  - [x] “Start Chapter Here” stays inside the segment context menu
+  - [x] Action inserts a chapter header, then instantly requests inline title focus with the placeholder selected
+  - [x] No popovers: focus is handled via `ChapterHeader` props (e.g., `autoFocus`)
+  - [x] Tests: creation + auto-focus behavior, edit-mode gating via `document.body.dataset.transcriptEditing`
+- [x] **2.4 TranscriptEditor Integration**
+  - [x] Continue rendering headers before the segments that start them
+  - [x] Replace `chapterEditTarget` popover state with a minimal inline focus request prop
+  - [x] Outline panel toggle/state history remains untouched
+  - [x] Tests: chapter rendering + inline focus behavior
 
 ---
 
 ## Phase 3: Manual Chapter Management
 
-- [ ] **3.1 Manual Chapter CRUD**
-  - [ ] Test: add chapter at segment
-  - [ ] Test: edit chapter (title, summary, notes, tags, range)
-  - [ ] Test: delete chapter
-  - [ ] Test: no overlaps validation
-  - [ ] Test: segment order validation
-  - [ ] Verify integration with segment selection/scroll
+- [x] **3.1 Manual Chapter CRUD**
+  - [x] Test: add chapter at segment
+  - [x] Test: edit chapter (title, summary, notes, tags, range)
+  - [x] Test: delete chapter
+  - [x] Test: no overlaps validation
+  - [x] Test: segment order validation
+  - [x] Verify integration with segment selection/scroll
 
-- [ ] **3.2 Undo/Redo Support**
-  - [ ] Verify chapterSlice actions integrated with undo/redo system
-  - [ ] Test: add + undo, edit + undo, delete + undo
+- [x] **3.2 Undo/Redo Support**
+  - [x] Verify chapterSlice actions integrated with undo/redo system
+  - [x] Test: add + undo, edit + undo, delete + undo
   - [ ] Test: accept all AI results as single undo entry
 
-- [ ] **3.3 Tag System Integration**
-  - [ ] Verify `Chapter.tags` stores existing `Tag.id` values
-  - [ ] Inline ChapterHeader tag UI mirrors segment tag picker (chips with remove + local `+` selector)
-  - [ ] UI displays tags as compact badges in collapsed ChapterHeader
-  - [ ] Test: assign/change tags
+- [x] **3.3 Tag System Integration**
+  - [x] Verify `Chapter.tags` stores existing `Tag.id` values
+  - [x] Inline ChapterHeader tag UI mirrors segment tag picker (chips with remove + local `+` selector)
+  - [x] UI displays tags as compact badges in collapsed ChapterHeader
+  - [x] Test: assign/change tags
 
 ---
 
 ## Phase 4: AI Infrastructure
 
 - [ ] **4.1 Create Chapter Detection Feature Config**
-  - [ ] Create `client/src/lib/ai/features/chapterDetection/config.ts`
+  - [x] Create `client/src/lib/ai/features/chapterDetection/config.ts`
   - [ ] Define system prompt
   - [ ] Define user prompt template (with Handlebars variables)
   - [ ] Variables: `maxBatchSize`, `minChapterLength`, `maxChapterLength`, `tagsAvailable`, `segments`, `previousChapter`
   - [ ] Define response schema (Zod validation) using `segmentSimpleIds[]` (or start/end SimpleID), no real segment IDs
   - [ ] Ensure AI response uses `summary` + `tags` (no `notes` generation)
-  - [ ] Register templates in AI Prompts settings store (persisted) and select via `activePromptId`
-  - [ ] Tests: prompt compilation with various variables
+  - [x] Register templates in AI Prompts settings store (persisted) and select via `activePromptId`
+  - [x] Align AI output with persisted chapter model (`startSegmentId`/`endSegmentId`)
+  - [ ] Tests: prompt compilation with various variables (nice-to-have)
 
 - [ ] **4.2 Chapter Detection Feature Types**
-  - [ ] Create `client/src/lib/ai/features/chapterDetection/types.ts`
-  - [ ] Define `ChapterDetectionResponse` interface
-  - [ ] Define `ChapterContinuation` for overlap logic
-  - [ ] Tests: type integrity
+  - [x] Create `client/src/lib/ai/features/chapterDetection/types.ts`
+  - [x] Define `ChapterDetectionResponse` interface
+  - [x] Define `ChapterContinuation` for overlap logic (optional)
+  - [ ] Tests: parsing edge cases (nice-to-have)
 
 - [ ] **4.3 Batch Utilities**
-  - [ ] Create/update `client/src/lib/ai/core/batch.ts`
-  - [ ] Implement `createChapterDetectionBatch(segments, batchSize, lastBatchChapters)`
-  - [ ] Implement SimpleID mapping: `createSimpleIdMapping()`, `mapResponseIds()`
+  - [x] Reuse `client/src/lib/ai/core/batchIdMapping.ts` for SimpleID mapping
+  - [ ] Implement explicit overlap/continuation batch logic (future improvement)
   - [ ] Implement validation: `validateBatchResults()`
   - [ ] Tests: >90% coverage (batch slicing, overlap, mapping roundtrip)
 

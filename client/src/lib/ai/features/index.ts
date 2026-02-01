@@ -4,16 +4,18 @@
  * @module ai/features
  */
 
-// ==================== Chapter Detection (Placeholder) ====================
+export type {
+  ChapterDetectionConfig,
+  ChapterDetectionIssue,
+  ChapterDetectionResponse,
+} from "./chapterDetection";
+// ==================== Chapter Detection ====================
 export {
-  CHAPTER_GRANULARITY,
-  CHAPTER_SYSTEM_PROMPT,
-  CHAPTER_USER_PROMPT_TEMPLATE,
-  type Chapter,
-  type ChapterDetectionInput,
-  type ChapterDetectionOutput,
+  CHAPTER_DETECTION_SYSTEM_PROMPT,
+  CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
   chapterDetectionConfig,
-  chapterResponseSchema,
+  chapterDetectionResponseSchema,
+  detectChapters,
 } from "./chapterDetection";
 
 // ==================== Content Transformation (Placeholder) ====================

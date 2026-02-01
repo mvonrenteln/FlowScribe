@@ -264,6 +264,36 @@ describe("recoverPartialArray", () => {
   });
 });
 
+describe("truncated array recovery", () => {
+  it("should recover up to the last intact element and mark MALFORMED", () => {
+    const itemSchema: SimpleSchema = {
+      type: "object",
+      properties: {
+        tag: { type: "string" },
+        confidence: { type: "number" },
+      },
+      required: ["tag"],
+    };
+
+    // Simulate a truncated JSON array (last item cut off)
+    const truncated =
+      '[{"tag":"A","confidence":0.9}, {"tag":"B","confidence":0.8}, {"tag":"C","confidence":0.7}, {"tag":"D","conf';
+
+    const result = parseResponse<{ tag: string; confidence: number }>(truncated, {
+      schema: { type: "array", items: itemSchema },
+      recoverPartial: true,
+    });
+
+    expect(result.success).toBe(true);
+    expect(result.data).toBeDefined();
+    // Expect at least the complete first 3 items to be recovered
+    expect(result.data?.length).toBeGreaterThanOrEqual(3);
+    expect(result.metadata.parseStatus).toBe("MALFORMED");
+    expect(result.metadata.recovery).toBeDefined();
+    expect(result.metadata.recovery?.usedStrategy).toBeTruthy();
+  });
+});
+
 describe("createTypeGuard", () => {
   it("should create working type guard", () => {
     const schema: SimpleSchema = {

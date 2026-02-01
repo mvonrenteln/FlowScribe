@@ -32,6 +32,14 @@ export interface ParseResult<T> {
     validated: boolean;
     /** Validation warnings (non-fatal issues) */
     warnings: string[];
+    /** Parse status: OK, MALFORMED (partial recovery), or INVALID */
+    parseStatus?: "OK" | "MALFORMED" | "INVALID";
+    /** Recovery details when partial recovery was applied */
+    recovery?: {
+      usedStrategy?: string | null;
+      attemptedStrategies?: number;
+      skipped?: number;
+    };
   };
 }
 
@@ -155,6 +163,9 @@ export interface ResponseParserOptions<T> {
 
   /** JSON parser options */
   jsonOptions?: JsonParserOptions;
+
+  /** Whether to attempt partial recovery for malformed responses (default false) */
+  recoverPartial?: boolean;
 
   /** Whether to apply default values from schema */
   applyDefaults?: boolean;

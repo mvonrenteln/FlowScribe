@@ -388,6 +388,7 @@ describe("useScrollAndSelection", () => {
       },
     });
 
+    const viewport = document.createElement("div");
     const container = document.createElement("div");
     const segment1 = document.createElement("div");
     segment1.dataset.segmentId = "segment-1";
@@ -395,6 +396,8 @@ describe("useScrollAndSelection", () => {
     segment2.dataset.segmentId = "segment-2";
     container.appendChild(segment1);
     container.appendChild(segment2);
+    viewport.appendChild(container);
+    document.body.appendChild(viewport);
 
     act(() => {
       const transcriptListRef = result.current
@@ -416,7 +419,9 @@ describe("useScrollAndSelection", () => {
       setIsPlaying,
     });
 
-    expect(scrollIntoView).toHaveBeenCalled();
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalled();
+    });
 
     const [firstInstance] = scrollIntoView.mock.instances as HTMLElement[];
     expect(firstInstance?.dataset.segmentId).toBe("segment-2");

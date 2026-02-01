@@ -2,11 +2,12 @@ import { Bot, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
+import { ChapterPanel } from "./ChapterPanel";
 import { MergePanel } from "./MergePanel";
 import { RevisionPanel } from "./RevisionPanel";
 import { SpeakerPanel } from "./SpeakerPanel";
 
-export type AICommandPanelTab = "revision" | "speaker" | "merge";
+export type AICommandPanelTab = "revision" | "speaker" | "merge" | "chapters";
 
 interface AICommandPanelProps {
   open: boolean;
@@ -49,6 +50,7 @@ export function AICommandPanel({
               { id: "revision", label: "Revision" },
               { id: "speaker", label: "Speaker" },
               { id: "merge", label: "Merge" },
+              { id: "chapters", label: "Chapters" },
             ] as const
           ).map((tab) => (
             <button
@@ -77,6 +79,9 @@ export function AICommandPanel({
         )}
         {activeTab === "merge" && (
           <MergePanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
+        )}
+        {activeTab === "chapters" && (
+          <ChapterPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
         )}
       </div>
     </aside>

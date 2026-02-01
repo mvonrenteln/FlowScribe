@@ -17,6 +17,10 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import {
+  createAIChapterDetectionSlice,
+  initialAIChapterDetectionState,
+} from "./store/slices/aiChapterDetectionSlice";
 import { createAiRevisionSelectionSlice } from "./store/slices/aiRevisionSelectionSlice";
 import {
   createAIRevisionSlice,
@@ -54,6 +58,7 @@ import type {
   TranscriptStore,
   Word,
 } from "./store/types";
+import { normalizeAIChapterDetectionConfig } from "./store/utils/aiChapterDetectionConfig";
 import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfig";
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { memoizedBuildSegmentIndexMap, memoizedBuildSegmentMaps } from "./store/utils/chapters";
@@ -210,6 +215,11 @@ const initialState: InitialStoreState = {
   // AI Segment Merge state
   ...initialAISegmentMergeState,
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(globalState?.aiSegmentMergeConfig),
+  // AI Chapter Detection state
+  ...initialAIChapterDetectionState,
+  aiChapterDetectionConfig: normalizeAIChapterDetectionConfig(
+    globalState?.aiChapterDetectionConfig,
+  ),
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -246,6 +256,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAIRevisionSlice(set, get),
       ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
+      ...createAIChapterDetectionSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
     };
@@ -379,7 +390,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.spellcheckCustomEnabled !== nextGlobalPayload.spellcheckCustomEnabled ||
         lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig ||
         lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig ||
-        lastGlobalPayload.aiSegmentMergeConfig !== nextGlobalPayload.aiSegmentMergeConfig;
+        lastGlobalPayload.aiSegmentMergeConfig !== nextGlobalPayload.aiSegmentMergeConfig ||
+        lastGlobalPayload.aiChapterDetectionConfig !== nextGlobalPayload.aiChapterDetectionConfig;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(
