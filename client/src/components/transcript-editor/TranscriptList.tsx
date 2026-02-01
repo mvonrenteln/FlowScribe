@@ -176,7 +176,8 @@ function TranscriptListComponent({
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
             const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
-            const nextSegment = filteredSegments[originalIndex + 1];
+            // FIX: Only show merge suggestion if both segments are in the current render slice
+            const nextSegment = segmentsToRender[_index + 1];
             const mergeSuggestion = nextSegment
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;

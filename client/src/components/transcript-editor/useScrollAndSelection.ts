@@ -143,13 +143,17 @@ export function useScrollAndSelection({
 
       lastScrollRef.current = { id: segmentId, at: now };
       mark("scroll-effect-start", { segmentId, behavior: options.behavior });
+      // Double RAF to ensure DOM has settled after dynamic content changes (merge suggestions, etc.)
       requestAnimationFrame(() => {
-        time(
-          "scroll-effect",
-          () => targetElement.scrollIntoView({ block: options.block, behavior: options.behavior }),
-          { segmentId, behavior: options.behavior },
-        );
-        mark("scroll-effect-end", { segmentId, behavior: options.behavior });
+        requestAnimationFrame(() => {
+          time(
+            "scroll-effect",
+            () =>
+              targetElement.scrollIntoView({ block: options.block, behavior: options.behavior }),
+            { segmentId, behavior: options.behavior },
+          );
+          mark("scroll-effect-end", { segmentId, behavior: options.behavior });
+        });
       });
     },
     [],
