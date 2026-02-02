@@ -398,6 +398,7 @@ export const useTranscriptEditor = () => {
     updateSegmentSpeaker,
     mergeSegments,
     addLexiconFalsePositive,
+    selectChapterForSegment: useTranscriptStore.getState().selectChapterForSegment,
     filterLowConfidence,
     activeSpeakerName,
     lowConfidenceThreshold,

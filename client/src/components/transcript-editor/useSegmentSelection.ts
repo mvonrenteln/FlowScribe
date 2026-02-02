@@ -43,6 +43,7 @@ interface UseSegmentSelectionParams {
   updateSegmentSpeaker: TranscriptStore["updateSegmentSpeaker"];
   mergeSegments: TranscriptStore["mergeSegments"];
   addLexiconFalsePositive: TranscriptStore["addLexiconFalsePositive"];
+  selectChapterForSegment: TranscriptStore["selectChapterForSegment"];
   filterLowConfidence: boolean;
   activeSpeakerName: string | null | undefined;
   lowConfidenceThreshold: number | null;
@@ -69,6 +70,7 @@ export const useSegmentSelection = ({
   updateSegmentSpeaker,
   mergeSegments,
   addLexiconFalsePositive,
+  selectChapterForSegment,
   filterLowConfidence,
   activeSpeakerName,
   lowConfidenceThreshold,
@@ -269,15 +271,9 @@ export const useSegmentSelection = ({
           },
           onTextChange: (text: string) => {
             // Check if segment belongs to chapter with reformulation
-            const segmentIndex = segments.findIndex((s) => s.id === segment.id);
-            const chapterWithReformulation = chapters.find((chapter) => {
-              const startIndex = segments.findIndex((s) => s.id === chapter.startSegmentId);
-              const endIndex = segments.findIndex((s) => s.id === chapter.endSegmentId);
-              return (
-                chapter.reformulatedText && segmentIndex >= startIndex && segmentIndex <= endIndex
-              );
-            });
-            if (chapterWithReformulation) {
+            // Use memoized selectChapterForSegment instead of O(n²) findIndex loops
+            const chapter = selectChapterForSegment(segment.id);
+            if (chapter?.reformulatedText) {
               toast({
                 title: "Reformulated text is based on older content",
                 description: "Consider regenerating the reformulation.",
