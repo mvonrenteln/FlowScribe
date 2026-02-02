@@ -6,7 +6,7 @@
  */
 
 import { Check, Loader2, RotateCw, X, XCircle } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -20,9 +20,11 @@ interface ChapterReformulationViewProps {
   chapterId: string;
   /** Called when user closes the view */
   onClose: () => void;
+  /** Optional trigger element to return focus to when closing */
+  triggerElement?: HTMLElement | null;
 }
 
-export function ChapterReformulationView({ chapterId, onClose }: ChapterReformulationViewProps) {
+export function ChapterReformulationView({ chapterId, onClose, triggerElement }: ChapterReformulationViewProps) {
   const { t } = useTranslation();
   const chapters = useTranscriptStore((s) => s.chapters);
   const segments = useTranscriptStore((s) => s.segments);
@@ -48,6 +50,10 @@ export function ChapterReformulationView({ chapterId, onClose }: ChapterReformul
   const [promptId, setPromptId] = useState<string>("");
   const [isMounted, setIsMounted] = useState(false);
 
+  // Refs for focus management
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const closeButtonRef = useRef<HTMLButtonElement>(null);
+
   // Check if reformulation is in progress for this chapter
   const isProcessing = reformulationInProgress && reformulationChapterId === chapterId;
 
@@ -70,6 +76,76 @@ export function ChapterReformulationView({ chapterId, onClose }: ChapterReformul
     };
   }, []);
 
+  // Focus management: Set initial focus and return focus on unmount
+  useEffect(() => {
+    if (!isMounted) return;
+
+    // Set initial focus to close button
+    closeButtonRef.current?.focus();
+
+    // Return focus to trigger element on unmount
+    return () => {
+      if (triggerElement && document.body.contains(triggerElement)) {
+        triggerElement.focus();
+      }
+    };
+  }, [isMounted, triggerElement]);
+
+  // Focus trap
+  useEffect(() => {
+    if (!isMounted || !dialogRef.current) return;
+
+    const dialog = dialogRef.current;
+    const focusableSelector =
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
+    const handleFocusTrap = (e: FocusEvent) => {
+      const target = e.target;
+      if (!(target instanceof Node)) return;
+
+      // If focus moved outside the dialog, bring it back
+      if (!dialog.contains(target)) {
+        e.preventDefault();
+        closeButtonRef.current?.focus();
+      }
+    };
+
+    const handleTabKey = (e: KeyboardEvent) => {
+      if (e.key !== "Tab") return;
+
+      const focusableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(focusableSelector),
+      ).filter((el) => !el.hasAttribute("disabled"));
+
+      if (focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey) {
+        // Shift + Tab
+        if (document.activeElement === firstElement) {
+          e.preventDefault();
+          lastElement?.focus();
+        }
+      } else {
+        // Tab
+        if (document.activeElement === lastElement) {
+          e.preventDefault();
+          firstElement?.focus();
+        }
+      }
+    };
+
+    document.addEventListener("focusin", handleFocusTrap);
+    dialog.addEventListener("keydown", handleTabKey);
+
+    return () => {
+      document.removeEventListener("focusin", handleFocusTrap);
+      dialog.removeEventListener("keydown", handleTabKey);
+    };
+  }, [isMounted]);
+
   const handleAccept = useCallback(() => {
     if (!chapter || !reformulatedText) return;
 
@@ -87,6 +163,20 @@ export function ChapterReformulationView({ chapterId, onClose }: ChapterReformul
     onClose();
   }, [cancelReformulation, onClose]);
 
+  // Escape key handler (must be after handleReject definition)
+  useEffect(() => {
+    if (!isMounted) return;
+
+    const handleEscape = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleReject();
+      }
+    };
+
+    document.addEventListener("keydown", handleEscape);
+    return () => document.removeEventListener("keydown", handleEscape);
+  }, [isMounted, handleReject]);
+
   const handleRegenerate = useCallback(() => {
     if (!promptId) return;
     startReformulation(chapterId, promptId);
@@ -98,17 +188,32 @@ export function ChapterReformulationView({ chapterId, onClose }: ChapterReformul
 
   const content = (
     <div
+      ref={dialogRef}
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reformulation-view-title"
+      aria-describedby="reformulation-view-description"
       className="fixed inset-0 z-[60] flex flex-col bg-background pointer-events-auto"
       data-testid="chapter-reformulation-view"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex items-center gap-2">
-          <h2 className="text-lg font-semibold">{t("reformulation.view.title")}</h2>
-          <span className="text-sm text-muted-foreground">— {chapter.title}</span>
+          <h2 id="reformulation-view-title" className="text-lg font-semibold">
+            {t("reformulation.view.title")}
+          </h2>
+          <span id="reformulation-view-description" className="text-sm text-muted-foreground">
+            — {chapter.title}
+          </span>
         </div>
 
-        <Button variant="ghost" size="icon" onClick={handleReject}>
+        <Button
+          ref={closeButtonRef}
+          variant="ghost"
+          size="icon"
+          onClick={handleReject}
+          aria-label={t("reformulation.view.close", { defaultValue: "Schließen" })}
+        >
           <X className="h-4 w-4" />
         </Button>
       </div>

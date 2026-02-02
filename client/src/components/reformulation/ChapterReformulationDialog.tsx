@@ -100,15 +100,12 @@ export function ChapterReformulationDialog({
       selectedModel,
     });
 
-    // Start reformulation first to set processing state
+    // Start reformulation to set processing state
     startReformulation(chapterId, selectedPromptId);
 
-    // Then open view and close dialog after a micro-task
-    // This ensures processing state is set before view renders
-    setTimeout(() => {
-      onStartReformulation();
-      onOpenChange(false);
-    }, 0);
+    // Close dialog and open view - parent component handles the transition
+    onStartReformulation();
+    onOpenChange(false);
   }, [
     selectedPromptId,
     selectedProvider,

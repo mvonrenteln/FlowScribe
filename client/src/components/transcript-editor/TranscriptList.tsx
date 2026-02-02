@@ -80,33 +80,27 @@ function TranscriptListComponent({
   // Reformulation dialog and view state
   const [reformulationDialogOpen, setReformulationDialogOpen] = useState(false);
   const [reformulationViewOpen, setReformulationViewOpen] = useState(false);
-  const [reformulationViewPending, setReformulationViewPending] = useState(false);
   const [reformulationChapterId, setReformulationChapterId] = useState<string | null>(null);
+  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
 
   const handleReformulateChapter = (chapterId: string) => {
+    // Capture the currently focused element as the trigger
+    setTriggerElement(document.activeElement as HTMLElement);
     setReformulationChapterId(chapterId);
     setReformulationDialogOpen(true);
   };
 
   const handleStartReformulation = () => {
+    // Close dialog and immediately open view - no setTimeout/RAF needed
     setReformulationDialogOpen(false);
-    setReformulationViewPending(true);
+    setReformulationViewOpen(true);
   };
 
   const handleCloseReformulationView = () => {
     setReformulationViewOpen(false);
-    setReformulationViewPending(false);
     setReformulationChapterId(null);
+    setTriggerElement(null);
   };
-
-  useEffect(() => {
-    if (!reformulationViewPending || reformulationDialogOpen) return;
-    const frame = requestAnimationFrame(() => {
-      setReformulationViewOpen(true);
-      setReformulationViewPending(false);
-    });
-    return () => cancelAnimationFrame(frame);
-  }, [reformulationDialogOpen, reformulationViewPending]);
 
   // Create a map for fast lookup of pending revisions/suggestions
   const pendingRevisionBySegmentId = useMemo(
@@ -370,6 +364,7 @@ function TranscriptListComponent({
         <ChapterReformulationView
           chapterId={reformulationChapterId}
           onClose={handleCloseReformulationView}
+          triggerElement={triggerElement}
         />
       )}
     </ScrollArea>
