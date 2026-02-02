@@ -6,6 +6,7 @@ import type {
   SpellcheckLanguage,
   TranscriptStore,
 } from "../types";
+import type { ReformulationConfig, ReformulationPrompt } from "../slices/reformulationSlice";
 
 export interface GlobalStatePayload extends PersistedGlobalState {
   lexiconEntries: LexiconEntry[];
@@ -22,6 +23,8 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   manualConfidenceThreshold: number | null;
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
+  reformulationConfig: ReformulationConfig;
+  reformulationPrompts: ReformulationPrompt[];
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -39,4 +42,6 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   manualConfidenceThreshold: state.manualConfidenceThreshold,
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
+  reformulationConfig: state.reformulationConfig,
+  reformulationPrompts: state.reformulationPrompts,
 });

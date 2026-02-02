@@ -25,6 +25,18 @@ export type Chapter = {
   createdAt: number;
   /** Origin of this chapter. */
   source: ChapterSource;
+  /** Reformulated/transformed text (optional). */
+  reformulatedText?: string;
+  /** Timestamp when reformulation was created (ms). */
+  reformulatedAt?: number;
+  /** ID of the prompt used for reformulation. */
+  reformulationPromptId?: string;
+  /** Metadata about the reformulation. */
+  reformulationContext?: {
+    model?: string;
+    providerId?: string;
+    wordCount?: number;
+  };
 };
 
 /**

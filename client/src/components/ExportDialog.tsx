@@ -13,6 +13,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { buildJSONExport } from "@/lib/exportUtils";
+import { useTranscriptStore } from "@/lib/store";
 import type { Segment, Tag } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 
@@ -56,6 +57,10 @@ const ExportDialogComponent = ({
 }: ExportDialogProps) => {
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
+  const [useReformulated, setUseReformulated] = useState(false);
+
+  // Get chapters from store
+  const chapters = useTranscriptStore((state) => state.chapters);
 
   // Pre-compute tagsById Map once
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
@@ -65,13 +70,65 @@ const ExportDialogComponent = ({
 
   // Pre-compute all export formats (only recalculates when segments/tags change)
   const exportedJSON = useMemo(
-    () => JSON.stringify(buildJSONExport(segmentsToExport, tags), null, 2),
-    [segmentsToExport, tags],
+    () => JSON.stringify(buildJSONExport(segmentsToExport, tags, chapters), null, 2),
+    [segmentsToExport, tags, chapters],
   );
 
   const exportedSRT = useMemo(() => formatSRT(segmentsToExport), [segmentsToExport]);
 
   const exportedTXT = useMemo(() => {
+    // If useReformulated is enabled and there are chapters, try chapter-based export
+    if (useReformulated && chapters.length > 0) {
+      const parts: string[] = [];
+
+      for (const chapter of chapters) {
+        // Chapter header
+        parts.push(`# ${chapter.title}`);
+        if (chapter.summary) {
+          parts.push(`\n${chapter.summary}\n`);
+        }
+
+        // Use reformulated text if available, otherwise fall back to segments
+        if (chapter.reformulatedText) {
+          parts.push(chapter.reformulatedText);
+        } else {
+          // Find segments in this chapter
+          const chapterSegments = segmentsToExport.filter(
+            (seg) =>
+              segments.findIndex((s) => s.id === chapter.startSegmentId) <=
+                segments.findIndex((s) => s.id === seg.id) &&
+              segments.findIndex((s) => s.id === seg.id) <=
+                segments.findIndex((s) => s.id === chapter.endSegmentId),
+          );
+
+          const formatTime = (seconds: number): string => {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, "0")}`;
+          };
+
+          const segmentTexts = chapterSegments.map((segment) => {
+            const segmentTagIds = getSegmentTags(segment);
+            const tagNames = segmentTagIds
+              .map((tagId) => tagsById.get(tagId)?.name)
+              .filter((name): name is string => !!name);
+
+            const speakerLabel =
+              tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
+
+            return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
+          });
+
+          parts.push(segmentTexts.join("\n\n"));
+        }
+
+        parts.push("\n\n");
+      }
+
+      return parts.join("\n");
+    }
+
+    // Default segment-based export
     return segmentsToExport
       .map((segment) => {
         const formatTime = (seconds: number): string => {
@@ -91,7 +148,7 @@ const ExportDialogComponent = ({
         return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
       })
       .join("\n\n");
-  }, [segmentsToExport, tagsById]);
+  }, [segmentsToExport, tagsById, useReformulated, chapters, segments]);
 
   // Memoize the export description text
   const exportDescription = useMemo(
@@ -188,16 +245,34 @@ const ExportDialogComponent = ({
             </div>
           </RadioGroup>
 
-          <div className="flex items-center gap-2 mt-4 pt-4 border-t">
-            <Checkbox
-              id="use-filters"
-              checked={useFilters}
-              onCheckedChange={(checked) => setUseFilters(checked === true)}
-            />
-            <Label htmlFor="use-filters" className="cursor-pointer">
-              <span className="font-medium">Apply active filters</span>
-              <p className="text-sm text-muted-foreground">{exportDescription}</p>
-            </Label>
+          <div className="flex flex-col gap-3 mt-4 pt-4 border-t">
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="use-filters"
+                checked={useFilters}
+                onCheckedChange={(checked) => setUseFilters(checked === true)}
+              />
+              <Label htmlFor="use-filters" className="cursor-pointer">
+                <span className="font-medium">Apply active filters</span>
+                <p className="text-sm text-muted-foreground">{exportDescription}</p>
+              </Label>
+            </div>
+
+            {format === "txt" && chapters.length > 0 && (
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="use-reformulated"
+                  checked={useReformulated}
+                  onCheckedChange={(checked) => setUseReformulated(checked === true)}
+                />
+                <Label htmlFor="use-reformulated" className="cursor-pointer">
+                  <span className="font-medium">Use reformulated text (where available)</span>
+                  <p className="text-sm text-muted-foreground">
+                    Organize by chapters and use reformulated text when available
+                  </p>
+                </Label>
+              </div>
+            )}
           </div>
         </div>
 

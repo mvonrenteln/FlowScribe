@@ -1,4 +1,4 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
@@ -6,6 +6,9 @@ import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
 import { TranscriptSegment } from "../TranscriptSegment";
+import { ReformulatedTextDisplay } from "../reformulation/ReformulatedTextDisplay";
+import { ChapterReformulationDialog } from "../reformulation/ChapterReformulationDialog";
+import { ChapterReformulationView } from "../reformulation/ChapterReformulationView";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -71,6 +74,29 @@ function TranscriptListComponent({
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
+  // Get chapter display modes for reformulated text
+  const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
+  const selectChapterForSegment = useTranscriptStore((s) => s.selectChapterForSegment);
+
+  // Reformulation dialog and view state
+  const [reformulationDialogOpen, setReformulationDialogOpen] = useState(false);
+  const [reformulationViewOpen, setReformulationViewOpen] = useState(false);
+  const [reformulationChapterId, setReformulationChapterId] = useState<string | null>(null);
+
+  const handleReformulateChapter = (chapterId: string) => {
+    setReformulationChapterId(chapterId);
+    setReformulationDialogOpen(true);
+  };
+
+  const handleStartReformulation = () => {
+    setReformulationViewOpen(true);
+  };
+
+  const handleCloseReformulationView = () => {
+    setReformulationViewOpen(false);
+    setReformulationChapterId(null);
+  };
+
   // Create a map for fast lookup of pending revisions/suggestions
   const pendingRevisionBySegmentId = useMemo(
     () =>
@@ -111,6 +137,26 @@ function TranscriptListComponent({
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
     return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
   }, [chapters, segmentIndexById]);
+
+  // Build a set of segment IDs that should be hidden (because they're in a reformulated chapter)
+  const hiddenSegmentIds = useMemo(() => {
+    const hidden = new Set<string>();
+    for (const chapter of chapters) {
+      const displayMode = chapterDisplayModes[chapter.id] || "original";
+      if (displayMode === "reformulated" && chapter.reformulatedText) {
+        // Add all segment IDs in this chapter except the first one (where we'll show the reformulated text)
+        const startIndex = segmentIndexById.get(chapter.startSegmentId);
+        const endIndex = segmentIndexById.get(chapter.endSegmentId);
+        if (startIndex !== undefined && endIndex !== undefined) {
+          for (let i = startIndex + 1; i <= endIndex; i++) {
+            const segment = filteredSegments[filteredIndexById.get(filteredSegments[i]?.id ?? "") ?? -1];
+            if (segment) hidden.add(segment.id);
+          }
+        }
+      }
+    }
+    return hidden;
+  }, [chapters, chapterDisplayModes, segmentIndexById, filteredSegments, filteredIndexById]);
 
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
@@ -161,6 +207,17 @@ function TranscriptListComponent({
               : undefined;
             const chapter = chapterByStartId.get(segment.id);
             const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
+
+            // Check if this segment should be hidden (part of reformulated chapter)
+            if (hiddenSegmentIds.has(segment.id)) {
+              return null;
+            }
+
+            // Check if we should show reformulated text for this chapter
+            const displayMode = chapter ? chapterDisplayModes[chapter.id] || "original" : "original";
+            const showReformulated =
+              displayMode === "reformulated" && chapter?.reformulatedText;
+
             return (
               <Fragment key={segment.id}>
                 {chapter && (
@@ -174,9 +231,19 @@ function TranscriptListComponent({
                     isTranscriptEditing={isTranscriptEditing}
                     autoFocus={isChapterFocusTarget}
                     onAutoFocusHandled={onChapterFocusRequestHandled}
+                    onReformulateChapter={handleReformulateChapter}
                   />
                 )}
-                <TranscriptSegment
+
+                {showReformulated && chapter ? (
+                  <ReformulatedTextDisplay
+                    chapterId={chapter.id}
+                    text={chapter.reformulatedText!}
+                    searchQuery={searchQuery}
+                    isRegexSearch={isRegexSearch}
+                  />
+                ) : (
+                  <TranscriptSegment
                   segment={segment}
                   speakers={speakers}
                   tags={tags}
@@ -251,7 +318,9 @@ function TranscriptListComponent({
                     pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
                   }
                 />
-                {mergeSuggestion && nextSegment && (
+                )}
+
+                {!showReformulated && mergeSuggestion && nextSegment && (
                   <MergeSuggestionInline
                     suggestion={mergeSuggestion}
                     firstSegment={segment}
@@ -268,6 +337,24 @@ function TranscriptListComponent({
           })
         )}
       </div>
+
+      {/* Reformulation Dialog */}
+      {reformulationChapterId && (
+        <ChapterReformulationDialog
+          open={reformulationDialogOpen}
+          onOpenChange={setReformulationDialogOpen}
+          chapterId={reformulationChapterId}
+          onStartReformulation={handleStartReformulation}
+        />
+      )}
+
+      {/* Reformulation View */}
+      {reformulationViewOpen && reformulationChapterId && (
+        <ChapterReformulationView
+          chapterId={reformulationChapterId}
+          onClose={handleCloseReformulationView}
+        />
+      )}
     </ScrollArea>
   );
 }

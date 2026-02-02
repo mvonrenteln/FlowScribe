@@ -33,6 +33,10 @@ import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
+import {
+  createReformulationSlice,
+  initialReformulationState,
+} from "./store/slices/reformulationSlice";
 import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
@@ -210,6 +214,10 @@ const initialState: InitialStoreState = {
   // AI Segment Merge state
   ...initialAISegmentMergeState,
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(globalState?.aiSegmentMergeConfig),
+  // Reformulation state
+  ...initialReformulationState,
+  reformulationConfig: globalState?.reformulationConfig ?? initialReformulationState.reformulationConfig,
+  reformulationPrompts: globalState?.reformulationPrompts ?? initialReformulationState.reformulationPrompts,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -246,6 +254,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAIRevisionSlice(set, get),
       ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
+      ...createReformulationSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
     };

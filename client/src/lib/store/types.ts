@@ -107,6 +107,9 @@ export interface PersistedGlobalState {
   aiRevisionConfig?: AIRevisionConfig;
   // AI Segment Merge config
   aiSegmentMergeConfig?: AISegmentMergeConfig;
+  // Chapter Reformulation config
+  reformulationConfig?: import("./slices/reformulationSlice").ReformulationConfig;
+  reformulationPrompts?: import("./slices/reformulationSlice").ReformulationPrompt[];
 }
 
 export interface RecentSessionSummary {
@@ -209,7 +212,8 @@ export type TranscriptStore = InitialStoreState &
   AISpeakerSlice &
   ConfidenceSlice &
   AIRevisionSlice &
-  AISegmentMergeSlice & {
+  AISegmentMergeSlice &
+  import("./slices/reformulationSlice").ReformulationSlice & {
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
   };
@@ -326,6 +330,23 @@ export interface ChapterSlice {
   selectChapterById: (id: string) => Chapter | undefined;
   selectChapterForSegment: (segmentId: string) => Chapter | undefined;
   selectSegmentsInChapter: (chapterId: string) => Segment[];
+
+  // Reformulation actions
+  setChapterReformulation: (
+    chapterId: string,
+    reformulatedText: string,
+    metadata: {
+      promptId: string;
+      providerId?: string;
+      model?: string;
+    },
+  ) => void;
+  clearChapterReformulation: (chapterId: string) => void;
+  updateChapterReformulation: (chapterId: string, reformulatedText: string) => void;
+
+  // Display mode
+  chapterDisplayModes: Record<string, "original" | "reformulated">;
+  setChapterDisplayMode: (chapterId: string, mode: "original" | "reformulated") => void;
 }
 
 export interface LexiconSlice {
