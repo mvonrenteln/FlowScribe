@@ -24,7 +24,11 @@ interface ChapterReformulationViewProps {
   triggerElement?: HTMLElement | null;
 }
 
-export function ChapterReformulationView({ chapterId, onClose, triggerElement }: ChapterReformulationViewProps) {
+export function ChapterReformulationView({
+  chapterId,
+  onClose,
+  triggerElement,
+}: ChapterReformulationViewProps) {
   const { t } = useTranslation();
   const chapters = useTranscriptStore((s) => s.chapters);
   const segments = useTranscriptStore((s) => s.segments);

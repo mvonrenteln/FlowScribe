@@ -381,7 +381,6 @@ export const useTranscriptEditor = () => {
   } = useSegmentSelection({
     segments,
     filteredSegments,
-    chapters,
     currentTime,
     isPlaying,
     selectedSegmentId,

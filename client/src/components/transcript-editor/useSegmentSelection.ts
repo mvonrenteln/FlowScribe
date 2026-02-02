@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { toast } from "@/hooks/use-toast";
-import type { Chapter } from "@/lib/store";
 import { getSegmentById, useSegmentIndexById } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { getWordIndexForTime } from "@/lib/utils/wordIndexCache";
@@ -26,7 +25,6 @@ export interface SegmentHandlers {
 interface UseSegmentSelectionParams {
   segments: Segment[];
   filteredSegments: Segment[];
-  chapters: Chapter[];
   currentTime: number;
   isPlaying: boolean;
   selectedSegmentId: string | null;
@@ -53,7 +51,6 @@ interface UseSegmentSelectionParams {
 export const useSegmentSelection = ({
   segments,
   filteredSegments,
-  chapters,
   currentTime,
   isPlaying,
   selectedSegmentId,
@@ -312,7 +309,6 @@ export const useSegmentSelection = ({
     });
   }, [
     addLexiconFalsePositive,
-    chapters,
     confirmSegment,
     deleteSegment,
     filteredSegments,
@@ -323,6 +319,7 @@ export const useSegmentSelection = ({
     toggleSegmentBookmark,
     updateSegmentSpeaker,
     updateSegmentText,
+    selectChapterForSegment,
   ]);
 
   return {
