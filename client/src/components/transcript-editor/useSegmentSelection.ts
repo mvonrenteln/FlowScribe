@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { toast } from "@/hooks/use-toast";
+import type { Chapter } from "@/lib/store";
 import { getSegmentById, useSegmentIndexById } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { getWordIndexForTime } from "@/lib/utils/wordIndexCache";
@@ -24,6 +26,7 @@ export interface SegmentHandlers {
 interface UseSegmentSelectionParams {
   segments: Segment[];
   filteredSegments: Segment[];
+  chapters: Chapter[];
   currentTime: number;
   isPlaying: boolean;
   selectedSegmentId: string | null;
@@ -49,6 +52,7 @@ interface UseSegmentSelectionParams {
 export const useSegmentSelection = ({
   segments,
   filteredSegments,
+  chapters,
   currentTime,
   isPlaying,
   selectedSegmentId,
@@ -263,7 +267,24 @@ export const useSegmentSelection = ({
               setSelectedSegmentId(current.id);
             }
           },
-          onTextChange: (text: string) => updateSegmentText(segment.id, text),
+          onTextChange: (text: string) => {
+            // Check if segment belongs to chapter with reformulation
+            const segmentIndex = segments.findIndex((s) => s.id === segment.id);
+            const chapterWithReformulation = chapters.find((chapter) => {
+              const startIndex = segments.findIndex((s) => s.id === chapter.startSegmentId);
+              const endIndex = segments.findIndex((s) => s.id === chapter.endSegmentId);
+              return (
+                chapter.reformulatedText && segmentIndex >= startIndex && segmentIndex <= endIndex
+              );
+            });
+            if (chapterWithReformulation) {
+              toast({
+                title: "Reformulated text is based on older content",
+                description: "Consider regenerating the reformulation.",
+              });
+            }
+            updateSegmentText(segment.id, text);
+          },
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
           onConfirm: () => confirmSegment(segment.id),
@@ -295,6 +316,7 @@ export const useSegmentSelection = ({
     });
   }, [
     addLexiconFalsePositive,
+    chapters,
     confirmSegment,
     deleteSegment,
     filteredSegments,

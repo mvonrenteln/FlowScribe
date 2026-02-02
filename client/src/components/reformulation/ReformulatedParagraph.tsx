@@ -5,16 +5,15 @@
  * Follows the same UX pattern as TranscriptSegment (double-click to edit).
  */
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, X } from "lucide-react";
+import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
 interface ReformulatedParagraphProps {
   /** Paragraph text content */
   text: string;
-  /** Paragraph index (for key) */
-  index: number;
   /** Called when text is changed */
   onTextChange: (text: string) => void;
   /** Whether this paragraph is currently selected */
@@ -63,12 +62,12 @@ function renderTextWithHighlights(
 
 export function ReformulatedParagraph({
   text,
-  index,
   onTextChange,
   isSelected = false,
   onSelect,
   searchMatches = [],
 }: ReformulatedParagraphProps) {
+  const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(text);
   const [editHeight, setEditHeight] = useState<number | null>(null);
@@ -221,23 +220,13 @@ export function ReformulatedParagraph({
         />
 
         <div className="mt-2 flex items-center justify-end gap-2">
-          <Button
-            size="sm"
-            variant="ghost"
-            onClick={handleCancelEdit}
-            className="h-7 px-2 text-xs"
-          >
+          <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-7 px-2 text-xs">
             <X className="mr-1 h-3 w-3" />
-            Abbrechen
+            {t("reformulation.actions.cancel")}
           </Button>
-          <Button
-            size="sm"
-            variant="default"
-            onClick={handleSaveEdit}
-            className="h-7 px-2 text-xs"
-          >
+          <Button size="sm" variant="default" onClick={handleSaveEdit} className="h-7 px-2 text-xs">
             <Check className="mr-1 h-3 w-3" />
-            Speichern
+            {t("reformulation.actions.save")}
           </Button>
         </div>
       </div>
@@ -247,8 +236,16 @@ export function ReformulatedParagraph({
   return (
     <div
       ref={viewRef}
+      role="button"
+      tabIndex={0}
       onClick={handleParagraphClick}
       onDoubleClick={handleParagraphDoubleClick}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          handleParagraphClick();
+        }
+      }}
       className={cn(
         "cursor-pointer rounded p-3 transition-colors",
         "hover:bg-muted/30",

@@ -4,15 +4,7 @@
  * Configuration UI for chapter reformulation prompts and settings.
  */
 
-import {
-  AlertCircle,
-  Check,
-  ChevronDown,
-  ChevronUp,
-  Plus,
-  Sparkles,
-  Trash2,
-} from "lucide-react";
+import { AlertCircle, Check, ChevronDown, ChevronUp, Plus, Sparkles, Trash2 } from "lucide-react";
 import { useCallback, useState } from "react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -23,19 +15,19 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import { useStore } from "@/lib/store";
-import { cn } from "@/lib/utils";
 import type { ReformulationPrompt } from "@/lib/ai/features/reformulation/types";
+import { useTranscriptStore } from "@/lib/store";
+import { cn } from "@/lib/utils";
 
 export function ChapterReformulationSettings() {
-  const prompts = useStore((s) => s.reformulationPrompts);
-  const config = useStore((s) => s.reformulationConfig);
-  const addPrompt = useStore((s) => s.addReformulationPrompt);
-  const updatePrompt = useStore((s) => s.updateReformulationPrompt);
-  const deletePrompt = useStore((s) => s.deleteReformulationPrompt);
-  const setDefaultPrompt = useStore((s) => s.setDefaultReformulationPrompt);
-  const toggleQuickAccess = useStore((s) => s.toggleQuickAccessReformulationPrompt);
-  const updateConfig = useStore((s) => s.updateReformulationConfig);
+  const prompts = useTranscriptStore((s) => s.reformulationPrompts);
+  const config = useTranscriptStore((s) => s.reformulationConfig);
+  const addPrompt = useTranscriptStore((s) => s.addReformulationPrompt);
+  const updatePrompt = useTranscriptStore((s) => s.updateReformulationPrompt);
+  const deletePrompt = useTranscriptStore((s) => s.deleteReformulationPrompt);
+  const setDefaultPrompt = useTranscriptStore((s) => s.setDefaultReformulationPrompt);
+  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessReformulationPrompt);
+  const updateConfig = useTranscriptStore((s) => s.updateReformulationConfig);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -67,7 +59,7 @@ export function ChapterReformulationSettings() {
 
   const handleDelete = useCallback(
     (id: string) => {
-      if (confirm("Diesen Prompt wirklich löschen?")) {
+      if (confirm("Really delete this prompt?")) {
         deletePrompt(id);
       }
     },
@@ -77,9 +69,9 @@ export function ChapterReformulationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Kapitel-Umformulierung</h3>
+        <h3 className="text-lg font-medium">Chapter Reformulation</h3>
         <p className="text-sm text-muted-foreground">
-          Konfiguriere Prompts und Einstellungen für die Umformulierung von Kapiteln.
+          Configure prompts and settings for chapter reformulation.
         </p>
       </div>
 
@@ -88,26 +80,24 @@ export function ChapterReformulationSettings() {
       {/* Context Settings */}
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Kontext-Einstellungen</CardTitle>
+          <CardTitle className="text-base">Context Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="flex items-center space-x-2">
             <Checkbox
               id="includeContext"
               checked={config.includeContext}
-              onCheckedChange={(checked) =>
-                updateConfig({ includeContext: checked === true })
-              }
+              onCheckedChange={(checked) => updateConfig({ includeContext: checked === true })}
             />
             <Label htmlFor="includeContext" className="text-sm font-normal cursor-pointer">
-              Kontext einbeziehen (Zusammenfassungen + vorheriges Kapitel)
+              Include context (summaries + previous chapter)
             </Label>
           </div>
 
           {config.includeContext && (
             <div className="space-y-2 ml-6">
               <Label htmlFor="contextWordLimit" className="text-sm">
-                Maximale Wörter aus vorherigem Kapitel
+                Maximum words from previous chapter
               </Label>
               <Input
                 id="contextWordLimit"
@@ -116,13 +106,11 @@ export function ChapterReformulationSettings() {
                 max={2000}
                 value={config.contextWordLimit}
                 onChange={(e) =>
-                  updateConfig({ contextWordLimit: parseInt(e.target.value) || 500 })
+                  updateConfig({ contextWordLimit: parseInt(e.target.value, 10) || 500 })
                 }
                 className="w-32"
               />
-              <p className="text-xs text-muted-foreground">
-                Standardwert: 500 Wörter
-              </p>
+              <p className="text-xs text-muted-foreground">Default: 500 words</p>
             </div>
           )}
         </CardContent>
@@ -139,7 +127,7 @@ export function ChapterReformulationSettings() {
             className="h-8"
           >
             <Plus className="mr-2 h-4 w-4" />
-            Neuer Prompt
+            New Prompt
           </Button>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -153,20 +141,18 @@ export function ChapterReformulationSettings() {
                     id="new-prompt-name"
                     value={newPrompt.name || ""}
                     onChange={(e) => setNewPrompt({ ...newPrompt, name: e.target.value })}
-                    placeholder="z.B. Ausführliche Zusammenfassung"
+                    placeholder="e.g., Detailed Summary"
                   />
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="new-prompt-instructions">Anweisungen</Label>
+                  <Label htmlFor="new-prompt-instructions">Instructions</Label>
                   <Textarea
                     id="new-prompt-instructions"
                     value={newPrompt.instructions || ""}
-                    onChange={(e) =>
-                      setNewPrompt({ ...newPrompt, instructions: e.target.value })
-                    }
+                    onChange={(e) => setNewPrompt({ ...newPrompt, instructions: e.target.value })}
                     rows={6}
-                    placeholder="Beschreibe, wie der Text umformuliert werden soll..."
+                    placeholder="Describe how the text should be reformulated..."
                     className="font-mono text-sm"
                   />
                 </div>
@@ -180,7 +166,7 @@ export function ChapterReformulationSettings() {
                       setNewPrompt({ name: "", instructions: "" });
                     }}
                   >
-                    Abbrechen
+                    Cancel
                   </Button>
                   <Button
                     size="sm"
@@ -188,7 +174,7 @@ export function ChapterReformulationSettings() {
                     disabled={!newPrompt.name?.trim() || !newPrompt.instructions?.trim()}
                   >
                     <Check className="mr-2 h-4 w-4" />
-                    Speichern
+                    Save
                   </Button>
                 </div>
               </CardContent>
@@ -198,7 +184,7 @@ export function ChapterReformulationSettings() {
           {/* Existing Prompts */}
           {prompts.map((prompt) => {
             const isExpanded = expandedId === prompt.id;
-            const isEditing = editingId === prompt.id;
+            const _isEditing = editingId === prompt.id;
             const isQuickAccess = config.quickAccessPromptIds.includes(prompt.id);
             const isDefault = config.defaultPromptId === prompt.id;
 
@@ -223,16 +209,14 @@ export function ChapterReformulationSettings() {
 
                     <div className="flex items-center gap-1">
                       {!prompt.isBuiltin && (
-                        <>
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(prompt.id)}
-                            className="h-8 w-8 p-0"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(prompt.id)}
+                          className="h-8 w-8 p-0"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
                       )}
                       <Button
                         size="sm"
@@ -253,11 +237,13 @@ export function ChapterReformulationSettings() {
                 {isExpanded && (
                   <CardContent className="pt-0 space-y-4">
                     <div className="space-y-2">
-                      <Label className="text-xs text-muted-foreground">Anweisungen</Label>
+                      <Label className="text-xs text-muted-foreground">Instructions</Label>
                       <Textarea
                         value={prompt.instructions}
                         readOnly={prompt.isBuiltin}
-                        onChange={(e) => handleSaveEdit(prompt.id, { instructions: e.target.value })}
+                        onChange={(e) =>
+                          handleSaveEdit(prompt.id, { instructions: e.target.value })
+                        }
                         rows={6}
                         className="font-mono text-sm"
                       />
@@ -276,7 +262,7 @@ export function ChapterReformulationSettings() {
                           htmlFor={`quick-${prompt.id}`}
                           className="text-sm font-normal cursor-pointer"
                         >
-                          Quick Access anzeigen
+                          Show in Quick Access
                         </Label>
                       </div>
 
@@ -287,7 +273,7 @@ export function ChapterReformulationSettings() {
                           onClick={() => setDefaultPrompt(prompt.id)}
                           className="w-full"
                         >
-                          Als Standard festlegen
+                          Set as Default
                         </Button>
                       )}
                     </div>
@@ -301,7 +287,7 @@ export function ChapterReformulationSettings() {
             <Alert>
               <AlertCircle className="h-4 w-4" />
               <AlertDescription>
-                Noch keine Prompts vorhanden. Erstelle deinen ersten Prompt!
+                No prompts available yet. Create your first prompt!
               </AlertDescription>
             </Alert>
           )}

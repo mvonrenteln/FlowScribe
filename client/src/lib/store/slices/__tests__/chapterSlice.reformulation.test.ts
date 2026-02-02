@@ -2,12 +2,12 @@
  * Tests for Chapter Reformulation Actions in ChapterSlice
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { create } from "zustand";
+import type { Chapter } from "@/types/chapter";
+import type { ChapterSlice, HistorySlice, TranscriptStore } from "../../types";
 import { createChapterSlice } from "../chapterSlice";
 import { createHistorySlice } from "../historySlice";
-import type { ChapterSlice, HistorySlice, TranscriptStore } from "../../types";
-import type { Chapter } from "@/types/chapter";
 
 // Minimal store setup for testing
 type TestStore = Pick<

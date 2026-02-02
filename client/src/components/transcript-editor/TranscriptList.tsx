@@ -1,14 +1,14 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
 import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
-import { TranscriptSegment } from "../TranscriptSegment";
-import { ReformulatedTextDisplay } from "../reformulation/ReformulatedTextDisplay";
 import { ChapterReformulationDialog } from "../reformulation/ChapterReformulationDialog";
 import { ChapterReformulationView } from "../reformulation/ChapterReformulationView";
+import { ReformulatedTextDisplay } from "../reformulation/ReformulatedTextDisplay";
+import { TranscriptSegment } from "../TranscriptSegment";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -76,11 +76,11 @@ function TranscriptListComponent({
 
   // Get chapter display modes for reformulated text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
-  const selectChapterForSegment = useTranscriptStore((s) => s.selectChapterForSegment);
 
   // Reformulation dialog and view state
   const [reformulationDialogOpen, setReformulationDialogOpen] = useState(false);
   const [reformulationViewOpen, setReformulationViewOpen] = useState(false);
+  const [reformulationViewPending, setReformulationViewPending] = useState(false);
   const [reformulationChapterId, setReformulationChapterId] = useState<string | null>(null);
 
   const handleReformulateChapter = (chapterId: string) => {
@@ -89,13 +89,24 @@ function TranscriptListComponent({
   };
 
   const handleStartReformulation = () => {
-    setReformulationViewOpen(true);
+    setReformulationDialogOpen(false);
+    setReformulationViewPending(true);
   };
 
   const handleCloseReformulationView = () => {
     setReformulationViewOpen(false);
+    setReformulationViewPending(false);
     setReformulationChapterId(null);
   };
+
+  useEffect(() => {
+    if (!reformulationViewPending || reformulationDialogOpen) return;
+    const frame = requestAnimationFrame(() => {
+      setReformulationViewOpen(true);
+      setReformulationViewPending(false);
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [reformulationDialogOpen, reformulationViewPending]);
 
   // Create a map for fast lookup of pending revisions/suggestions
   const pendingRevisionBySegmentId = useMemo(
@@ -149,7 +160,8 @@ function TranscriptListComponent({
         const endIndex = segmentIndexById.get(chapter.endSegmentId);
         if (startIndex !== undefined && endIndex !== undefined) {
           for (let i = startIndex + 1; i <= endIndex; i++) {
-            const segment = filteredSegments[filteredIndexById.get(filteredSegments[i]?.id ?? "") ?? -1];
+            const segment =
+              filteredSegments[filteredIndexById.get(filteredSegments[i]?.id ?? "") ?? -1];
             if (segment) hidden.add(segment.id);
           }
         }
@@ -214,9 +226,10 @@ function TranscriptListComponent({
             }
 
             // Check if we should show reformulated text for this chapter
-            const displayMode = chapter ? chapterDisplayModes[chapter.id] || "original" : "original";
-            const showReformulated =
-              displayMode === "reformulated" && chapter?.reformulatedText;
+            const displayMode = chapter
+              ? chapterDisplayModes[chapter.id] || "original"
+              : "original";
+            const showReformulated = displayMode === "reformulated" && chapter?.reformulatedText;
 
             return (
               <Fragment key={segment.id}>
@@ -235,89 +248,93 @@ function TranscriptListComponent({
                   />
                 )}
 
-                {showReformulated && chapter ? (
+                {showReformulated && chapter?.reformulatedText ? (
                   <ReformulatedTextDisplay
                     chapterId={chapter.id}
-                    text={chapter.reformulatedText!}
+                    text={chapter.reformulatedText}
                     searchQuery={searchQuery}
                     isRegexSearch={isRegexSearch}
                   />
                 ) : (
                   <TranscriptSegment
-                  segment={segment}
-                  speakers={speakers}
-                  tags={tags}
-                  isSelected={segment.id === selectedSegmentId}
-                  isActive={activeSegmentId === segment.id}
-                  currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
-                  activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
-                  splitWordIndex={resolvedSplitWordIndex ?? undefined}
-                  highlightLowConfidence={highlightLowConfidence}
-                  lowConfidenceThreshold={lowConfidenceThreshold}
-                  lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
-                  showLexiconMatches={showLexiconMatches}
-                  lexiconHighlightUnderline={lexiconHighlightUnderline}
-                  lexiconHighlightBackground={lexiconHighlightBackground}
-                  spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
-                  showSpellcheckMatches={showSpellcheckMatches}
-                  editRequested={editRequestId === segment.id}
-                  onEditRequestHandled={
-                    editRequestId === segment.id ? onClearEditRequest : undefined
-                  }
-                  onSelect={handlers.onSelect}
-                  onSelectOnly={handlers.onSelectOnly}
-                  onTextChange={handlers.onTextChange}
-                  onSpeakerChange={handlers.onSpeakerChange}
-                  onSplit={handlers.onSplit}
-                  onConfirm={handlers.onConfirm}
-                  onToggleBookmark={handlers.onToggleBookmark}
-                  onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
-                  onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
-                  onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
-                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
-                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
-                  onMergeWithPrevious={handlers.onMergeWithPrevious}
-                  onMergeWithNext={handlers.onMergeWithNext}
-                  onDelete={handlers.onDelete}
-                  onSeek={onSeek}
-                  onStartChapterHere={onStartChapterAtSegment}
-                  searchQuery={searchQuery}
-                  isRegexSearch={isRegexSearch}
-                  replaceQuery={replaceQuery}
-                  onReplaceCurrent={onReplaceCurrent}
-                  onMatchClick={onMatchClick}
-                  findMatchIndex={findMatchIndex}
-                  // AI Revision props
-                  pendingRevision={
-                    pendingRevision
-                      ? {
-                          revisedText: pendingRevision.revisedText,
-                          changeSummary: pendingRevision.changeSummary,
-                        }
-                      : undefined
-                  }
-                  onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
-                  onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
-                  lastRevisionResult={
-                    lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
-                  }
-                  // AI Speaker props
-                  pendingSpeakerSuggestion={
-                    pendingSpeakerSugg
-                      ? {
-                          suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
-                          confidence: pendingSpeakerSugg.confidence,
-                          reason: pendingSpeakerSugg.reason,
-                        }
-                      : undefined
-                  }
-                  onAcceptSpeakerSuggestion={
-                    pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
-                  }
-                  onRejectSpeakerSuggestion={
-                    pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
-                  }
-                />
+                    segment={segment}
+                    speakers={speakers}
+                    tags={tags}
+                    isSelected={segment.id === selectedSegmentId}
+                    isActive={activeSegmentId === segment.id}
+                    currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
+                    activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                    splitWordIndex={resolvedSplitWordIndex ?? undefined}
+                    highlightLowConfidence={highlightLowConfidence}
+                    lowConfidenceThreshold={lowConfidenceThreshold}
+                    lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
+                    showLexiconMatches={showLexiconMatches}
+                    lexiconHighlightUnderline={lexiconHighlightUnderline}
+                    lexiconHighlightBackground={lexiconHighlightBackground}
+                    spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
+                    showSpellcheckMatches={showSpellcheckMatches}
+                    editRequested={editRequestId === segment.id}
+                    onEditRequestHandled={
+                      editRequestId === segment.id ? onClearEditRequest : undefined
+                    }
+                    onSelect={handlers.onSelect}
+                    onSelectOnly={handlers.onSelectOnly}
+                    onTextChange={handlers.onTextChange}
+                    onSpeakerChange={handlers.onSpeakerChange}
+                    onSplit={handlers.onSplit}
+                    onConfirm={handlers.onConfirm}
+                    onToggleBookmark={handlers.onToggleBookmark}
+                    onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
+                    onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
+                    onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
+                    onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                    onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                    onMergeWithPrevious={handlers.onMergeWithPrevious}
+                    onMergeWithNext={handlers.onMergeWithNext}
+                    onDelete={handlers.onDelete}
+                    onSeek={onSeek}
+                    onStartChapterHere={onStartChapterAtSegment}
+                    searchQuery={searchQuery}
+                    isRegexSearch={isRegexSearch}
+                    replaceQuery={replaceQuery}
+                    onReplaceCurrent={onReplaceCurrent}
+                    onMatchClick={onMatchClick}
+                    findMatchIndex={findMatchIndex}
+                    // AI Revision props
+                    pendingRevision={
+                      pendingRevision
+                        ? {
+                            revisedText: pendingRevision.revisedText,
+                            changeSummary: pendingRevision.changeSummary,
+                          }
+                        : undefined
+                    }
+                    onAcceptRevision={
+                      pendingRevision ? () => acceptRevision(segment.id) : undefined
+                    }
+                    onRejectRevision={
+                      pendingRevision ? () => rejectRevision(segment.id) : undefined
+                    }
+                    lastRevisionResult={
+                      lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
+                    }
+                    // AI Speaker props
+                    pendingSpeakerSuggestion={
+                      pendingSpeakerSugg
+                        ? {
+                            suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
+                            confidence: pendingSpeakerSugg.confidence,
+                            reason: pendingSpeakerSugg.reason,
+                          }
+                        : undefined
+                    }
+                    onAcceptSpeakerSuggestion={
+                      pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
+                    }
+                    onRejectSpeakerSuggestion={
+                      pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
+                    }
+                  />
                 )}
 
                 {!showReformulated && mergeSuggestion && nextSegment && (
@@ -339,7 +356,7 @@ function TranscriptListComponent({
       </div>
 
       {/* Reformulation Dialog */}
-      {reformulationChapterId && (
+      {reformulationDialogOpen && reformulationChapterId && (
         <ChapterReformulationDialog
           open={reformulationDialogOpen}
           onOpenChange={setReformulationDialogOpen}

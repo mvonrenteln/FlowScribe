@@ -24,7 +24,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
-import { useStore } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 
 interface ChapterReformulationDialogProps {
   open: boolean;
@@ -39,14 +39,14 @@ export function ChapterReformulationDialog({
   chapterId,
   onStartReformulation,
 }: ChapterReformulationDialogProps) {
-  const prompts = useStore((s) => s.reformulationPrompts);
-  const quickAccessIds = useStore((s) => s.reformulationConfig.quickAccessPromptIds);
-  const defaultPromptId = useStore((s) => s.reformulationConfig.defaultPromptId);
-  const reformulationConfig = useStore((s) => s.reformulationConfig);
-  const startReformulation = useStore((s) => s.startReformulation);
-  const isProcessing = useStore((s) => s.reformulationInProgress);
-  const processingChapterId = useStore((s) => s.reformulationChapterId);
-  const updateReformulationConfig = useStore((s) => s.updateReformulationConfig);
+  const prompts = useTranscriptStore((s) => s.reformulationPrompts);
+  const quickAccessIds = useTranscriptStore((s) => s.reformulationConfig.quickAccessPromptIds);
+  const defaultPromptId = useTranscriptStore((s) => s.reformulationConfig.defaultPromptId);
+  const reformulationConfig = useTranscriptStore((s) => s.reformulationConfig);
+  const startReformulation = useTranscriptStore((s) => s.startReformulation);
+  const isProcessing = useTranscriptStore((s) => s.reformulationInProgress);
+  const processingChapterId = useTranscriptStore((s) => s.reformulationChapterId);
+  const updateReformulationConfig = useTranscriptStore((s) => s.updateReformulationConfig);
 
   // Local state
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
@@ -68,6 +68,12 @@ export function ChapterReformulationDialog({
     () => reformulationConfig.selectedModel ?? defaultModel,
   );
 
+  useEffect(() => {
+    if (open) return;
+    document.body.style.pointerEvents = "";
+    document.documentElement.style.pointerEvents = "";
+  }, [open]);
+
   // Update model when provider changes
   useEffect(() => {
     if (!selectedProvider) return;
@@ -85,7 +91,7 @@ export function ChapterReformulationDialog({
 
   const isProcessingThis = isProcessing && processingChapterId === chapterId;
 
-  const handleStart = useCallback(async () => {
+  const handleStart = useCallback(() => {
     if (!selectedPromptId) return;
 
     // Update config with selections
@@ -94,12 +100,15 @@ export function ChapterReformulationDialog({
       selectedModel,
     });
 
-    // Start reformulation
-    await startReformulation(chapterId, selectedPromptId);
+    // Start reformulation first to set processing state
+    startReformulation(chapterId, selectedPromptId);
 
-    // Notify parent and trigger view
-    onStartReformulation();
-    onOpenChange(false);
+    // Then open view and close dialog after a micro-task
+    // This ensures processing state is set before view renders
+    setTimeout(() => {
+      onStartReformulation();
+      onOpenChange(false);
+    }, 0);
   }, [
     selectedPromptId,
     selectedProvider,
@@ -117,10 +126,10 @@ export function ChapterReformulationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Kapitel umformulieren
+            Reformulate Chapter
           </DialogTitle>
           <DialogDescription>
-            Wähle einen Prompt und starte die Umformulierung des Kapitels.
+            Select a prompt and start reformulating the chapter.
           </DialogDescription>
         </DialogHeader>
 
@@ -209,13 +218,14 @@ export function ChapterReformulationDialog({
                         {model}
                       </SelectItem>
                     )) ??
-                    (settings.aiProviders.find((p) => p.id === selectedProvider)?.model && (
-                      <SelectItem
-                        value={settings.aiProviders.find((p) => p.id === selectedProvider)!.model!}
-                      >
-                        {settings.aiProviders.find((p) => p.id === selectedProvider)!.model}
-                      </SelectItem>
-                    ))}
+                    (() => {
+                      const provider = settings.aiProviders.find((p) => p.id === selectedProvider);
+                      return (
+                        provider?.model && (
+                          <SelectItem value={provider.model}>{provider.model}</SelectItem>
+                        )
+                      );
+                    })()}
                 </SelectContent>
               </Select>
             </div>
@@ -224,18 +234,18 @@ export function ChapterReformulationDialog({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={isProcessingThis}>
-            Abbrechen
+            Cancel
           </Button>
           <Button onClick={handleStart} disabled={isProcessingThis || !selectedPromptId}>
             {isProcessingThis ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Umformuliere...
+                Processing...
               </>
             ) : (
               <>
                 <Sparkles className="mr-2 h-4 w-4" />
-                Starten
+                Start
               </>
             )}
           </Button>

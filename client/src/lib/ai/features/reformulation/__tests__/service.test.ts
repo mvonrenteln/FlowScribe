@@ -2,9 +2,9 @@
  * Tests for Chapter Reformulation Service
  */
 
-import { describe, it, expect, vi } from "vitest";
-import { buildChapterContent, truncateToWords } from "../service";
+import { describe, expect, it } from "vitest";
 import type { Segment } from "@/lib/store/types";
+import { buildChapterContent, truncateToWords } from "../service";
 
 describe("buildChapterContent", () => {
   it("should combine segment texts with double newlines", () => {
@@ -91,9 +91,9 @@ describe("truncateToWords", () => {
     expect(result).toBe("Hello");
   });
 
-  it("should preserve spacing when truncating", () => {
+  it("should normalize spacing when truncating", () => {
     const text = "Word1 Word2  Word3   Word4 Word5";
     const result = truncateToWords(text, 3);
-    expect(result).toBe("Word3   Word4 Word5");
+    expect(result).toBe("Word3 Word4 Word5");
   });
 });

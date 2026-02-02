@@ -73,6 +73,13 @@ Notes:
 
 ---
 
+## Reformulate chapter compare view (developer note)
+
+- The full-screen compare view renders in a portal attached to `document.body` to avoid pointer-event locks from dialogs or scroll containers.
+- If you adjust reformulation flows, ensure the prompt dialog closes before the compare view opens so the view remains interactive.
+
+---
+
 ## Quick keyboard tip
 
 - Toggle the Chapter Outline Panel: macOS `Cmd+Shift+O`, Windows/Linux `Ctrl+Shift+O`.
@@ -83,4 +90,3 @@ Notes:
 
 - Summaries and notes have distinct purposes: summaries are concise content descriptions; notes are private editorial comments.
 - The AI helps speed up chaptering but does not replace manual control — you always review and accept changes.
-

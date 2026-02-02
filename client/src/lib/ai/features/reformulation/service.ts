@@ -7,16 +7,12 @@
  * @module ai/features/reformulation/service
  */
 
-import type { Chapter } from "@/types/chapter";
 import type { Segment } from "@/lib/store/types";
+import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { CHAPTER_REFORMULATION_CONFIG } from "./config";
-import type {
-  ReformulateChapterParams,
-  ReformulationContext,
-  ReformulationResult,
-} from "./types";
+import type { ReformulateChapterParams, ReformulationContext, ReformulationResult } from "./types";
 
 // ==================== Main Functions ====================
 
@@ -102,10 +98,7 @@ export async function reformulateChapter(
   });
 
   if (parseResult.wasError) {
-    console.warn(
-      "[Reformulation Service] AI returned error-like response:",
-      parseResult.warnings,
-    );
+    console.warn("[Reformulation Service] AI returned error-like response:", parseResult.warnings);
   }
 
   const reformulatedText = parseResult.text.trim();

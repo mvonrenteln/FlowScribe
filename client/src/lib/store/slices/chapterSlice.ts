@@ -1,10 +1,10 @@
 import type { StoreApi } from "zustand";
-import { getSegmentIndexById } from "@/lib/store";
 import type { Chapter } from "@/types/chapter";
 import type { ChapterSlice, TranscriptStore } from "../types";
 import {
   getChapterRangeIndices,
   hasOverlappingChapters,
+  memoizedBuildSegmentIndexMap,
   normalizeChapterCounts,
   sortChaptersByStart,
 } from "../utils/chapters";
@@ -32,7 +32,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     } = get();
 
     if (!segments.length) return undefined;
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const startIndex = indexById.get(startSegmentId);
     if (startIndex === undefined) return undefined;
 
@@ -136,7 +136,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
           }
         : chapter,
     );
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     if (hasOverlappingChapters(normalized, indexById)) return;
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -173,7 +173,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
       confidenceScoresVersion,
     } = get();
     if (!chapters.some((chapter) => chapter.id === id)) return;
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const nextChapters = chapters.filter((chapter) => chapter.id !== id);
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -235,7 +235,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
   selectChapterForSegment: (segmentId) => {
     const { chapters } = get();
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(get().segments);
     const segmentIndex = indexById.get(segmentId);
     if (segmentIndex === undefined) return undefined;
     return chapters.find((chapter) => {
@@ -249,9 +249,161 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const { chapters, segments } = get();
     const chapter = chapters.find((item) => item.id === chapterId);
     if (!chapter) return [];
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const range = getChapterRangeIndices(chapter, indexById);
     if (!range) return [];
     return segments.slice(range.startIndex, range.endIndex + 1);
+  },
+
+  // Reformulation methods
+  setChapterReformulation: (chapterId, reformulatedText, metadata) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const chapter = chapters.find((c) => c.id === chapterId);
+    if (!chapter) return;
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId
+        ? {
+            ...c,
+            reformulatedText,
+            reformulatedAt: Date.now(),
+            reformulationPromptId: metadata.promptId,
+            reformulationContext: {
+              model: metadata.model,
+              providerId: metadata.providerId,
+              wordCount: reformulatedText.split(/\s+/).length,
+            },
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  clearChapterReformulation: (chapterId) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId
+        ? {
+            ...c,
+            reformulatedText: undefined,
+            reformulatedAt: undefined,
+            reformulationPromptId: undefined,
+            reformulationContext: undefined,
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  updateChapterReformulation: (chapterId, reformulatedText) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId && c.reformulatedText
+        ? {
+            ...c,
+            reformulatedText,
+            reformulationContext: {
+              ...c.reformulationContext,
+              wordCount: reformulatedText.split(/\s+/).length,
+            },
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  chapterDisplayModes: {},
+
+  setChapterDisplayMode: (chapterId, mode) => {
+    set((state) => ({
+      chapterDisplayModes: {
+        ...state.chapterDisplayModes,
+        [chapterId]: mode,
+      },
+    }));
   },
 });

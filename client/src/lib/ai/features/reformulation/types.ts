@@ -6,8 +6,8 @@
  * @module ai/features/reformulation/types
  */
 
-import type { Chapter } from "@/types/chapter";
 import type { Segment } from "@/lib/store/types";
+import type { Chapter } from "@/types/chapter";
 
 /**
  * Reformulation prompt configuration.

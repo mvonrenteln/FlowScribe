@@ -7,7 +7,7 @@
 
 import { useCallback, useMemo, useState } from "react";
 import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
-import { useStore } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 import { ReformulatedParagraph } from "./ReformulatedParagraph";
 
 interface ReformulatedTextDisplayProps {
@@ -28,7 +28,7 @@ export function ReformulatedTextDisplay({
   isRegexSearch = false,
 }: ReformulatedTextDisplayProps) {
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
-  const updateChapterReformulation = useStore((s) => s.updateChapterReformulation);
+  const updateChapterReformulation = useTranscriptStore((s) => s.updateChapterReformulation);
 
   // Split text into paragraphs by double newline
   const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
@@ -61,7 +61,7 @@ export function ReformulatedTextDisplay({
   if (paragraphs.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        <p className="text-sm">Kein reformulierter Text vorhanden.</p>
+        <p className="text-sm">No reformulated text available.</p>
       </div>
     );
   }
@@ -70,9 +70,8 @@ export function ReformulatedTextDisplay({
     <div className="space-y-4 p-4">
       {paragraphs.map((paragraph, index) => (
         <ReformulatedParagraph
-          key={index}
+          key={`${index}-${paragraph.slice(0, 50)}`}
           text={paragraph}
-          index={index}
           onTextChange={(newText) => handleParagraphChange(index, newText)}
           isSelected={selectedParagraphIndex === index}
           onSelect={() => setSelectedParagraphIndex(index)}

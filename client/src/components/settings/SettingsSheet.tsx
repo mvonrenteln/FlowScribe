@@ -19,8 +19,8 @@ import {
 import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
-import { ChapterReformulationSettings } from "./sections/ChapterReformulationSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
+import { ChapterReformulationSettings } from "./sections/ChapterReformulationSettings";
 import { ConfidenceSettings } from "./sections/ConfidenceSettings";
 import { GlossarySettings } from "./sections/GlossarySettings";
 import { SpellcheckSettings } from "./sections/SpellcheckSettings";

@@ -8,6 +8,7 @@
  * @module ai/core/featureRegistry
  */
 
+import { CHAPTER_REFORMULATION_CONFIG } from "../features/reformulation/config";
 import { textRevisionConfig } from "../features/revision/config";
 import { segmentMergeConfig } from "../features/segmentMerge/config";
 
@@ -146,6 +147,11 @@ export function registerDefaultFeatures(): void {
   // Register segment merge
   if (!hasFeature("segment-merge")) {
     registerFeature(segmentMergeConfig);
+  }
+
+  // Register chapter reformulation
+  if (!hasFeature("chapter-reformulation")) {
+    registerFeature(CHAPTER_REFORMULATION_CONFIG);
   }
 }
 

@@ -1,5 +1,15 @@
-import { Check, ChevronDown, Edit2, MoreVertical, Plus, Trash2, X } from "lucide-react";
+import { Check, ChevronDown, Edit2, MoreVertical, Plus, Sparkles, Trash2, X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -21,6 +31,7 @@ interface ChapterHeaderProps {
   onOpen: () => void;
   onUpdateChapter: (id: string, updates: ChapterUpdate) => void;
   onDeleteChapter: (id: string) => void;
+  onReformulateChapter: (chapterId: string) => void;
   isTranscriptEditing: boolean;
   autoFocus?: boolean;
   onAutoFocusHandled?: () => void;
@@ -33,6 +44,7 @@ export function ChapterHeader({
   onOpen,
   onUpdateChapter,
   onDeleteChapter,
+  onReformulateChapter,
   isTranscriptEditing,
   autoFocus,
   onAutoFocusHandled,
@@ -48,6 +60,7 @@ export function ChapterHeader({
   const [_isHovered, setIsHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [_hasOverflow, setHasOverflow] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
   // Check if tags overflow - recheck when tags change
@@ -355,7 +368,7 @@ export function ChapterHeader({
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    "text-base font-medium leading-tight tracking-tight truncate text-foreground",
+                    "text-base font-medium leading-tight tracking-tight truncate text-foreground pointer-events-auto",
                     !chapter.title && "text-muted-foreground italic",
                   )}
                   onDoubleClick={handleTitleDoubleClick}
@@ -524,8 +537,16 @@ export function ChapterHeader({
                         Edit title
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        className="py-1.5 text-xs"
+                        onSelect={() => onReformulateChapter(chapter.id)}
+                        data-testid={`menu-reformulate-chapter-${chapter.id}`}
+                      >
+                        <Sparkles className="h-3 w-3 mr-2" />
+                        Reformulate chapter
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         className="py-1.5 text-xs text-destructive"
-                        onSelect={() => onDeleteChapter(chapter.id)}
+                        onSelect={() => setShowDeleteDialog(true)}
                         data-testid={`menu-delete-chapter-${chapter.id}`}
                       >
                         <Trash2 className="h-3 w-3 mr-2" />
@@ -781,6 +802,32 @@ export function ChapterHeader({
           </div>
         </div>
       </CollapsibleContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Chapter?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {chapter.reformulatedText
+                ? "This chapter has a reformulation. Both will be deleted."
+                : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteChapter(chapter.id);
+                setShowDeleteDialog(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {chapter.reformulatedText ? "Delete Both" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Collapsible>
   );
 }

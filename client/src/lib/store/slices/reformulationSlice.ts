@@ -7,21 +7,24 @@
  */
 
 import type { StoreApi } from "zustand";
-import type { TranscriptStore } from "../types";
-import { generateId } from "../utils/id";
 import {
   BUILTIN_REFORMULATION_PROMPTS,
   getDefaultReformulationPrompt,
 } from "@/lib/ai/features/reformulation/config";
-import type { ReformulationPrompt } from "@/lib/ai/features/reformulation/types";
 import { reformulateChapter } from "@/lib/ai/features/reformulation/service";
+import type { ReformulationPrompt } from "@/lib/ai/features/reformulation/types";
+import type { TranscriptStore } from "../types";
+import { generateId } from "../utils/id";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 // ==================== Types ====================
 
-export interface ReformulationConfig {
+// Re-export types for external use
+export type { ReformulationPrompt };
+
+export type ReformulationConfig = {
   /** Include context (summaries + previous chapter) */
   includeContext: boolean;
   /** Maximum words from previous chapter */
@@ -34,7 +37,7 @@ export interface ReformulationConfig {
   selectedProviderId?: string;
   /** Selected model */
   selectedModel?: string;
-}
+};
 
 export interface ReformulationSlice {
   // Configuration
@@ -220,32 +223,21 @@ export const createReformulationSlice = (
         contextWordLimit: state.reformulationConfig.contextWordLimit,
       });
 
-      // Update chapter with reformulated text
-      const updatedChapters = state.chapters.map((c) =>
-        c.id === chapterId
-          ? {
-              ...c,
-              reformulatedText: result.reformulatedText,
-              reformulatedAt: Date.now(),
-              reformulationPromptId: promptId,
-              reformulationContext: {
-                model: state.reformulationConfig.selectedModel,
-                providerId: state.reformulationConfig.selectedProviderId,
-                wordCount: result.wordCount,
-              },
-            }
-          : c,
-      );
-
+      // Clear processing state first
       set({
-        chapters: updatedChapters,
         reformulationInProgress: false,
         reformulationChapterId: null,
         reformulationAbortController: null,
       });
 
-      // Save to history
-      get().saveHistory?.();
+      // Update chapter with reformulated text using the chapter slice action
+      // This ensures proper history management
+      // Use get() to get fresh state after async operation
+      get().setChapterReformulation(chapterId, result.reformulatedText, {
+        promptId,
+        providerId: state.reformulationConfig.selectedProviderId,
+        model: state.reformulationConfig.selectedModel,
+      });
     } catch (error) {
       console.error("[Reformulation Slice] Reformulation failed:", error);
 

@@ -1,3 +1,4 @@
+import type { ReformulationConfig, ReformulationPrompt } from "../slices/reformulationSlice";
 import type {
   AIRevisionConfig,
   AISegmentMergeConfig,
@@ -6,7 +7,6 @@ import type {
   SpellcheckLanguage,
   TranscriptStore,
 } from "../types";
-import type { ReformulationConfig, ReformulationPrompt } from "../slices/reformulationSlice";
 
 export interface GlobalStatePayload extends PersistedGlobalState {
   lexiconEntries: LexiconEntry[];

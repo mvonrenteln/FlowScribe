@@ -76,5 +76,23 @@
     "whitespaceOnly": "Whitespace changes only",
     "oneChange": "1 change",
     "nChanges": "{{count}} changes"
+  },
+  "reformulation": {
+    "view": {
+      "title": "Reformulate Chapter",
+      "originalLabel": "Original ({{count}} segments)",
+      "reformulatedLabel": "Reformulated",
+      "processing": "Reformulating chapter...",
+      "retry": "Try again",
+      "waiting": "Waiting for reformulation...",
+      "wordCount": "{{reformulated}} words • {{original}} words original"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "reject": "Reject",
+      "regenerate": "Regenerate",
+      "accept": "Accept"
+    }
   }
 }

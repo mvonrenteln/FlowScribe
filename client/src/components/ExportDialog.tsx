@@ -13,8 +13,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { buildJSONExport } from "@/lib/exportUtils";
-import { useTranscriptStore } from "@/lib/store";
 import type { Segment, Tag } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 
 interface ExportDialogProps {

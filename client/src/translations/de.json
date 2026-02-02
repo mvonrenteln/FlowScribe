@@ -23,5 +23,23 @@
     "showCompact": "Kompakt anzeigen",
     "showDiff": "Nebeneinander anzeigen",
     "changeSuggested": "Änderung vorgeschlagen"
+  },
+  "reformulation": {
+    "view": {
+      "title": "Reformulate Chapter",
+      "originalLabel": "Original ({{count}} segments)",
+      "reformulatedLabel": "Reformulated",
+      "processing": "Reformulating chapter...",
+      "retry": "Try again",
+      "waiting": "Waiting for reformulation...",
+      "wordCount": "{{reformulated}} words • {{original}} words original"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "reject": "Reject",
+      "regenerate": "Regenerate",
+      "accept": "Accept"
+    }
   }
 }

@@ -5,7 +5,7 @@
  * Provides a vertical menu to switch between settings sections.
  */
 
-import { Book, Bot, FileText, Gauge, Palette, SpellCheck, Sparkles } from "lucide-react";
+import { Book, Bot, FileText, Gauge, Palette, Sparkles, SpellCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 

@@ -13,6 +13,7 @@ import {
   getFeaturesByCategory,
   getRegistrySize,
   hasFeature,
+  registerDefaultFeatures,
   registerFeature,
   unregisterFeature,
 } from "../core/featureRegistry";
@@ -184,6 +185,17 @@ describe("Feature Registry", () => {
 
       registerFeature(anotherFeature);
       expect(getRegistrySize()).toBe(2);
+    });
+  });
+
+  describe("registerDefaultFeatures", () => {
+    it("should register built-in features including chapter reformulation", () => {
+      registerDefaultFeatures();
+
+      expect(hasFeature("speaker-classification")).toBe(true);
+      expect(hasFeature("text-revision")).toBe(true);
+      expect(hasFeature("segment-merge")).toBe(true);
+      expect(hasFeature("chapter-reformulation")).toBe(true);
     });
   });
 });

@@ -132,7 +132,6 @@ export function findReformulationPrompt(
   customPrompts: ReformulationPrompt[] = [],
 ): ReformulationPrompt | undefined {
   return (
-    BUILTIN_REFORMULATION_PROMPTS.find((p) => p.id === id) ||
-    customPrompts.find((p) => p.id === id)
+    BUILTIN_REFORMULATION_PROMPTS.find((p) => p.id === id) || customPrompts.find((p) => p.id === id)
   );
 }

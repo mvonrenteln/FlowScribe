@@ -185,6 +185,7 @@ const initialState: InitialStoreState = {
   chapters: activeSession?.chapters ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
   selectedChapterId: activeSession?.selectedChapterId ?? null,
+  chapterDisplayModes: {},
   currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
@@ -216,8 +217,10 @@ const initialState: InitialStoreState = {
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(globalState?.aiSegmentMergeConfig),
   // Reformulation state
   ...initialReformulationState,
-  reformulationConfig: globalState?.reformulationConfig ?? initialReformulationState.reformulationConfig,
-  reformulationPrompts: globalState?.reformulationPrompts ?? initialReformulationState.reformulationPrompts,
+  reformulationConfig:
+    globalState?.reformulationConfig ?? initialReformulationState.reformulationConfig,
+  reformulationPrompts:
+    globalState?.reformulationPrompts ?? initialReformulationState.reformulationPrompts,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;

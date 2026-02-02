@@ -138,6 +138,7 @@ export interface InitialStoreState {
   chapters: Chapter[];
   selectedSegmentId: string | null;
   selectedChapterId: string | null;
+  chapterDisplayModes: Record<string, "original" | "reformulated">;
   currentTime: number;
   isPlaying: boolean;
   duration: number;
@@ -197,6 +198,13 @@ export interface InitialStoreState {
   aiSegmentMergeError: string | null;
   aiSegmentMergeAbortController: AbortController | null;
   aiSegmentMergeBatchLog: MergeBatchLogEntry[];
+  // Reformulation state
+  reformulationConfig: import("./slices/reformulationSlice").ReformulationConfig;
+  reformulationPrompts: import("./slices/reformulationSlice").ReformulationPrompt[];
+  reformulationInProgress: boolean;
+  reformulationChapterId: string | null;
+  reformulationError: string | null;
+  reformulationAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &

@@ -2,7 +2,7 @@
  * Tests for ReformulationSlice
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
+import { beforeEach, describe, expect, it } from "vitest";
 import { create } from "zustand";
 import {
   createReformulationSlice,
@@ -27,10 +27,7 @@ describe("ReformulationSlice", () => {
       expect(state.reformulationConfig).toMatchObject({
         includeContext: true,
         contextWordLimit: 500,
-        quickAccessPromptIds: expect.arrayContaining([
-          "builtin-summarize",
-          "builtin-narrative",
-        ]),
+        quickAccessPromptIds: expect.arrayContaining(["builtin-summarize", "builtin-narrative"]),
       });
     });
 
@@ -161,8 +158,9 @@ describe("ReformulationSlice", () => {
 
     it("should toggle quick access", () => {
       const promptId = "builtin-summarize";
-      const initialInQuickAccess =
-        store.getState().reformulationConfig.quickAccessPromptIds.includes(promptId);
+      const initialInQuickAccess = store
+        .getState()
+        .reformulationConfig.quickAccessPromptIds.includes(promptId);
 
       store.getState().toggleQuickAccessReformulationPrompt(promptId);
 
