@@ -311,6 +311,12 @@ export const useTranscriptEditor = () => {
     clearFilters();
   }, [clearFilters, sessionKey]);
 
+  // Update filtered segment IDs in store whenever filters change
+  const setFilteredSegmentIds = useTranscriptStore((s) => s.setFilteredSegmentIds);
+  useEffect(() => {
+    setFilteredSegmentIds(filteredSegments.map((seg) => seg.id));
+  }, [filteredSegments, setFilteredSegmentIds]);
+
   // Tag select handler - optimized for performance
   const handleTagSelect = useCallback(
     (tagId: string) => {

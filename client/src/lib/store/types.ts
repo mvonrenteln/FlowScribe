@@ -146,6 +146,8 @@ export interface InitialStoreState {
   history: HistoryState[];
   historyIndex: number;
   isWhisperXFormat: boolean;
+  // UI State: Currently filtered segment IDs (for active filters like tags, bookmarks, etc.)
+  filteredSegmentIds: Set<string>;
   lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
@@ -281,6 +283,7 @@ export interface SegmentsSlice {
     reference?: FileReference | null;
   }) => void;
   setSelectedSegmentId: (id: string | null) => void;
+  setFilteredSegmentIds: (ids: string[]) => void;
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentsTexts: (updates: Array<{ id: string; text: string }>) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;

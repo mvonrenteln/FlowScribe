@@ -246,13 +246,20 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   },
 
   selectSegmentsInChapter: (chapterId) => {
-    const { chapters, segments } = get();
+    const { chapters, segments, filteredSegmentIds } = get();
     const chapter = chapters.find((item) => item.id === chapterId);
     if (!chapter) return [];
     const indexById = memoizedBuildSegmentIndexMap(segments);
     const range = getChapterRangeIndices(chapter, indexById);
     if (!range) return [];
-    return segments.slice(range.startIndex, range.endIndex + 1);
+    const allSegments = segments.slice(range.startIndex, range.endIndex + 1);
+
+    // If filters are active (filteredSegmentIds is not empty), only return filtered segments
+    if (filteredSegmentIds.size > 0) {
+      return allSegments.filter((seg) => filteredSegmentIds.has(seg.id));
+    }
+
+    return allSegments;
   },
 
   // Reformulation methods

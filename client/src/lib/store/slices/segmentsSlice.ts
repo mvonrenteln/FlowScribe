@@ -203,6 +203,11 @@ export const createSegmentsSlice = (
       return { selectedSegmentId: id, history };
     }),
 
+  setFilteredSegmentIds: (ids) =>
+    set({
+      filteredSegmentIds: new Set(ids),
+    }),
+
   updateSegmentText: (id, text) => {
     const { updateSegmentsTexts } = get();
     updateSegmentsTexts([{ id, text }]);

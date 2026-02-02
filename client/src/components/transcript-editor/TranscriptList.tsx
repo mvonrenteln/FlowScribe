@@ -54,7 +54,8 @@ function TranscriptListComponent({
   onChapterFocusRequestHandled,
   isTranscriptEditing,
 }: TranscriptListProps) {
-  // Get tags and tag operations from store
+  // Get segments and tags from store
+  const segments = useTranscriptStore((s) => s.segments);
   const tags = useTranscriptStore((s) => s.tags);
   const removeTagFromSegment = useTranscriptStore((s) => s.removeTagFromSegment);
   const assignTagToSegment = useTranscriptStore((s) => s.assignTagToSegment);
@@ -153,16 +154,16 @@ function TranscriptListComponent({
         const startIndex = segmentIndexById.get(chapter.startSegmentId);
         const endIndex = segmentIndexById.get(chapter.endSegmentId);
         if (startIndex !== undefined && endIndex !== undefined) {
+          // Iterate through the full segments array using the correct indices
           for (let i = startIndex + 1; i <= endIndex; i++) {
-            const segment =
-              filteredSegments[filteredIndexById.get(filteredSegments[i]?.id ?? "") ?? -1];
+            const segment = segments[i];
             if (segment) hidden.add(segment.id);
           }
         }
       }
     }
     return hidden;
-  }, [chapters, chapterDisplayModes, segmentIndexById, filteredSegments, filteredIndexById]);
+  }, [chapters, chapterDisplayModes, segmentIndexById, segments]);
 
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
