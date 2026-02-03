@@ -1,6 +1,6 @@
-# AI Chapter Detection — User-Focused
+# AI Chapter Detection
 
-*Last Updated: January 25, 2026*
+*Last Updated: January 26, 2026*
 
 ## Overview
 
@@ -26,14 +26,14 @@ This feature helps with navigation, per-chapter processing, and structured expor
 
 ---
 
-## How AI context is handled (simple)
+## How AI context is handled
 
 - The AI receives a small amount of nearby context so its chapter suggestions fit the surrounding content. Typically this includes summaries from the two preceding chapters.
 - Editor `notes` are private and are not included in AI context unless you enable a setting to share them.
 
 ---
 
-## Part A: Manual Chapter Management (quick)
+## Part A: Manual Chapter Management
 
 - Start a chapter from a segment's context menu ("Start Chapter Here"). The new chapter appears above the chosen segment and is immediately editable inline.
 - Click a title to edit it in place. Enter or blur to save; Esc cancels.
@@ -43,7 +43,7 @@ This feature helps with navigation, per-chapter processing, and structured expor
 
 ---
 
-## Part B: AI Chapter Detection (user flow)
+## Part B: AI Chapter Detection
 
 1. Open the AI Command Panel and choose the "Chapters" tab.
 2. Configure the scope and any feature settings (prompt template, min/max chapter length, etc.).
@@ -52,12 +52,14 @@ This feature helps with navigation, per-chapter processing, and structured expor
 5. Review suggestions and Accept or Reject per chapter. Use "Accept All" to apply all suggestions in one undoable step.
 
 Notes:
+
 - Suggestions are preview-only until you accept them.
 - If something looks wrong, you can reject or edit the suggested chapter before applying it.
+- Accepting or rejecting a suggestion removes it from the suggestions list and the inline preview.
 
 ---
 
-## How the detection works (brief, user-facing)
+## How the detection works
 
 - The AI analyzes the transcript in chunks and proposes chapter boundaries and titles.
 - Suggestions are shown for review and require your approval to be applied.

@@ -85,6 +85,20 @@ export interface AIFeatureConfig {
 // ==================== Feature Execution ====================
 
 /**
+ * Information about a retry attempt for logging/UI purposes.
+ */
+export interface RetryAttemptInfo {
+  /** Current attempt number (1-based) */
+  attempt: number;
+  /** Maximum number of attempts configured */
+  maxAttempts: number;
+  /** Error message that triggered the retry */
+  errorMessage: string;
+  /** Duration of the failed attempt in ms */
+  attemptDurationMs: number;
+}
+
+/**
  * Options for executing an AI feature.
  */
 export interface AIFeatureOptions {
@@ -108,6 +122,12 @@ export interface AIFeatureOptions {
 
   /** Abort signal for cancellation */
   signal?: AbortSignal;
+
+  /**
+   * Callback invoked when a retry attempt is made due to parse failure.
+   * Can be used to log retry attempts in batch logs.
+   */
+  onRetry?: (info: RetryAttemptInfo) => void;
 }
 
 /**
@@ -146,6 +166,9 @@ export interface AIFeatureResult<T> {
       completion: number;
       total: number;
     };
+
+    /** Number of retry attempts made before success (0 if first attempt succeeded) */
+    retryAttempts?: number;
   };
 }
 

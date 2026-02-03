@@ -71,6 +71,16 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <th
                   class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
                 >
+                  Request
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
+                  Response
+                </th>
+                <th
+                  class="h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0"
+                >
                   Time
                 </th>
               </tr>
@@ -130,6 +140,34 @@ exports[`BatchLog > matches snapshot 1`] = `
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
+                  <button
+                    aria-controls="radix-:r0:"
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs"
+                    data-state="closed"
+                    type="button"
+                  >
+                    View
+                  </button>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  <button
+                    aria-controls="radix-:r4:"
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs"
+                    data-state="closed"
+                    type="button"
+                  >
+                    View
+                  </button>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
                   2024-01-01T12:00:00.000Z
                 </td>
               </tr>
@@ -181,6 +219,34 @@ exports[`BatchLog > matches snapshot 1`] = `
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
                 >
                   Minor
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  <button
+                    aria-controls="radix-:r8:"
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs"
+                    data-state="closed"
+                    type="button"
+                  >
+                    View
+                  </button>
+                </td>
+                <td
+                  class="p-4 align-middle [&:has([role=checkbox])]:pr-0"
+                >
+                  <button
+                    aria-controls="radix-:rc:"
+                    aria-expanded="false"
+                    aria-haspopup="dialog"
+                    class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0 hover-elevate active-elevate-2 border border-transparent min-h-8 rounded-md px-3 text-xs"
+                    data-state="closed"
+                    type="button"
+                  >
+                    View
+                  </button>
                 </td>
                 <td
                   class="p-4 align-middle [&:has([role=checkbox])]:pr-0"

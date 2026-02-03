@@ -1,6 +1,7 @@
 import type { FileReference } from "@/lib/fileReference";
 import { PAUSED_TIME_PERSIST_STEP, PLAYING_TIME_PERSIST_STEP } from "@/lib/store/constants";
 import type {
+  AIChapterDetectionConfig,
   AIRevisionConfig,
   AISegmentMergeConfig,
   AISpeakerConfig,
@@ -42,6 +43,7 @@ export interface PersistenceSelection {
   aiSpeakerConfig: AISpeakerConfig;
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
+  aiChapterDetectionConfig: AIChapterDetectionConfig;
   reformulationConfig: ReformulationConfig;
 }
 
@@ -87,6 +89,7 @@ export const selectPersistenceState = (state: TranscriptStore): PersistenceSelec
   aiSpeakerConfig: state.aiSpeakerConfig,
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
+  aiChapterDetectionConfig: state.aiChapterDetectionConfig,
   reformulationConfig: state.reformulationConfig,
 });
 
@@ -120,4 +123,5 @@ export const arePersistenceSelectionsEqual = (
   left.aiSpeakerConfig === right.aiSpeakerConfig &&
   left.aiRevisionConfig === right.aiRevisionConfig &&
   left.aiSegmentMergeConfig === right.aiSegmentMergeConfig &&
+  left.aiChapterDetectionConfig === right.aiChapterDetectionConfig &&
   left.reformulationConfig === right.reformulationConfig;

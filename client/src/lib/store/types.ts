@@ -107,6 +107,8 @@ export interface PersistedGlobalState {
   aiRevisionConfig?: AIRevisionConfig;
   // AI Segment Merge config
   aiSegmentMergeConfig?: AISegmentMergeConfig;
+  // AI Chapter Detection config
+  aiChapterDetectionConfig?: AIChapterDetectionConfig;
   // Chapter Reformulation config
   reformulationConfig?: import("./slices/reformulationSlice").ReformulationConfig;
   reformulationPrompts?: import("./slices/reformulationSlice").ReformulationPrompt[];
@@ -200,6 +202,15 @@ export interface InitialStoreState {
   aiSegmentMergeError: string | null;
   aiSegmentMergeAbortController: AbortController | null;
   aiSegmentMergeBatchLog: MergeBatchLogEntry[];
+  // AI Chapter Detection state
+  aiChapterDetectionSuggestions: AIChapterSuggestion[];
+  aiChapterDetectionIsProcessing: boolean;
+  aiChapterDetectionProcessedBatches: number;
+  aiChapterDetectionTotalBatches: number;
+  aiChapterDetectionConfig: AIChapterDetectionConfig;
+  aiChapterDetectionError: string | null;
+  aiChapterDetectionAbortController: AbortController | null;
+  aiChapterDetectionBatchLog: AIChapterDetectionBatchLogEntry[];
   // Reformulation state
   reformulationConfig: import("./slices/reformulationSlice").ReformulationConfig;
   reformulationPrompts: import("./slices/reformulationSlice").ReformulationPrompt[];
@@ -223,6 +234,7 @@ export type TranscriptStore = InitialStoreState &
   ConfidenceSlice &
   AIRevisionSlice &
   AISegmentMergeSlice &
+  AIChapterDetectionSlice &
   import("./slices/reformulationSlice").ReformulationSlice & {
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
@@ -428,7 +440,7 @@ export interface AISpeakerBatchInsight {
   elapsedMs?: number;
 }
 
-export type PromptType = "speaker" | "text" | "segment-merge";
+export type PromptType = "speaker" | "text" | "segment-merge" | "chapter-detect";
 
 export type MergeConfidenceLevel = "high" | "medium" | "low";
 
@@ -617,6 +629,87 @@ export interface AISegmentMergeConfig {
   prompts: AIPrompt[];
   /** ID of the currently active prompt */
   activePromptId: string;
+}
+
+// ==================== AI Chapter Detection Types ====================
+
+export type AIChapterSuggestionStatus = "pending" | "accepted" | "rejected";
+
+export interface AIChapterSuggestion {
+  id: string;
+  title: string;
+  summary?: string;
+  notes?: string;
+  tags?: string[];
+  startSegmentId: string;
+  endSegmentId: string;
+  segmentCount: number;
+  createdAt: number;
+  source: "manual" | "ai";
+  status: AIChapterSuggestionStatus;
+}
+
+export interface AIChapterDetectionBatchIssue {
+  level: "warn" | "error";
+  message: string;
+  context?: Record<string, unknown>;
+}
+
+export interface AIChapterDetectionBatchLogEntry {
+  batchIndex: number;
+  batchSize: number;
+  rawItemCount: number;
+  suggestionCount: number;
+  processedTotal: number;
+  totalExpected: number;
+  issues: AIChapterDetectionBatchIssue[];
+  loggedAt: number;
+  batchDurationMs?: number;
+  elapsedMs?: number;
+  fatal: boolean;
+  requestPayload?: string;
+  responsePayload?: string;
+}
+
+export interface AIChapterDetectionConfig {
+  /** Batch size for processing transcript segments (50–200 recommended) */
+  batchSize: number;
+  /** Minimum segments per chapter */
+  minChapterLength: number;
+  /** Maximum segments per chapter */
+  maxChapterLength: number;
+  /** Tag IDs that are allowed to be suggested/used */
+  tagIds: string[];
+  /** Selected AI provider ID */
+  selectedProviderId?: string;
+  /** Selected model */
+  selectedModel?: string;
+  /** Active prompt for chapter detection */
+  activePromptId: string;
+  /** Available prompts for chapter detection */
+  prompts: AIPrompt[];
+}
+
+export interface AIChapterDetectionSlice {
+  /**
+   * Start chapter detection with optional config overrides and a scoped segment list.
+   * When segmentIds is provided, detection only runs on those segments.
+   */
+  startChapterDetection: (
+    options?: Partial<AIChapterDetectionConfig> & { segmentIds?: string[] },
+  ) => void;
+  cancelChapterDetection: () => void;
+  acceptChapterSuggestion: (suggestionId: string) => void;
+  rejectChapterSuggestion: (suggestionId: string) => void;
+  acceptAllChapterSuggestions: () => void;
+  clearChapterSuggestions: () => void;
+  updateChapterDetectionConfig: (config: Partial<AIChapterDetectionConfig>) => void;
+  addChapterDetectionPrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updateChapterDetectionPrompt: (id: string, updates: Partial<AIPrompt>) => void;
+  deleteChapterDetectionPrompt: (id: string) => void;
+  setActiveChapterDetectionPrompt: (id: string) => void;
+  setChapterDetectionError: (error: string | null) => void;
+  setChapterDetectionProgress: (processed: number, total: number) => void;
 }
 
 export interface AISegmentMergeSlice {

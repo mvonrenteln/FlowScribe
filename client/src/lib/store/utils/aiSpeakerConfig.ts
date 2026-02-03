@@ -23,13 +23,28 @@ export const DEFAULT_AI_SPEAKER_CONFIG: AISpeakerConfig = {
   activePromptId: "builtin-speaker-default",
 };
 
-const clonePrompts = (prompts: AIPrompt[]) => prompts.map((p) => ({ ...p }));
+const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
+  ...prompt,
+  type: "speaker",
+  isBuiltIn: prompt.id === DEFAULT_SPEAKER_PROMPT.id,
+  isDefault: prompt.id === DEFAULT_SPEAKER_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
+});
+
+const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePrompt(p));
 
 const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
-  const normalized = clonePrompts(prompts.length ? prompts : DEFAULT_AI_SPEAKER_CONFIG.prompts);
-  if (!normalized.some((p) => p.isBuiltIn && p.type === "speaker")) {
+  const normalized = normalizePrompts(prompts.length ? prompts : DEFAULT_AI_SPEAKER_CONFIG.prompts);
+  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_SPEAKER_PROMPT.id);
+  if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_SPEAKER_PROMPT });
+    return normalized;
   }
+  normalized[builtInIndex] = {
+    ...normalized[builtInIndex],
+    isBuiltIn: true,
+    isDefault: true,
+    type: "speaker",
+  };
   return normalized;
 };
 

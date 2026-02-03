@@ -76,7 +76,6 @@ interface AIChapterDetectionState {
 // Only accepted chapters are persisted via the main chapter slice.
 
 interface ChapterSuggestion extends Chapter {
-  confidence?: number;      // 0–1, AI confidence
   acceptanceStatus: "pending" | "accepted" | "rejected";
 }
 
@@ -99,8 +98,8 @@ interface ChapterDetectionResponse {
     title: string;
     summary?: string;
     tags?: string[];                // Tag IDs (must be validated)
-    segmentSimpleIds: number[];     // Synthetic short IDs (1..n) from the batch mapping
-    // OR: startSimpleId, endSimpleId (alternative)
+    start: number;                  // Synthetic SimpleID (1..n) from the batch mapping
+    end: number;                    // Synthetic SimpleID (1..n) from the batch mapping
   }[];
   
   // Overlap info for next batch
@@ -223,7 +222,8 @@ For each batch:
      - Parse SimpleID references back to real IDs via shared ai/core mapping helpers
      - Validate: all chapters within batch bounds
      - Handle chapter continuation logic
-     - If confidence missing, default to "medium" grouping for summary UI
+     - Normalize start/end SimpleIDs to real segment IDs via shared mapping
+     - If a batch mapping fails, fall back to global SimpleID mapping for resilience
   
   5. Store results:
      - Add to suggestions[]
@@ -333,7 +333,10 @@ interface ChapterHeaderProps {
 2. **AI Configuration** (standard): Provider + Model + Batch Size  
 3. **Feature Settings** (chapter-specific): Prompt Template, Min/Max Chapter Length, Tags  
 4. **Start / Progress / Stop** (standard controls)  
-5. **Results Summary** (standard): confidence groups + quick navigation
+5. **Results Summary** (standard): pending suggestions + quick navigation
+
+**Scope Behavior:**
+- Scope filters are applied before batching; only scoped segments are sent to chapter detection.
 
 **Rendering Rules:**
 - Detailed suggestions render inline in the Transcript (not in the panel).
@@ -512,7 +515,8 @@ export const chapterDetectionResponseSchema = z.object({
     title: z.string(),
     summary: z.string().optional(),
     tags: z.array(z.string()).optional(),
-    segmentSimpleIds: z.array(z.number()),
+    start: z.number(),
+    end: z.number(),
   })),
   chapterContinuation: z.object({
     lastChapterTitle: z.string(),

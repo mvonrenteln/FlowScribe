@@ -1,4 +1,13 @@
 import React from "react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -23,6 +32,8 @@ export interface BatchLogRow {
   processed?: string;
   issues?: string;
   loggedAt: number;
+  requestPayload?: string;
+  responsePayload?: string;
 }
 
 export type BatchLogSortKey = "batch" | "time" | "expected";
@@ -37,6 +48,27 @@ interface BatchLogProps {
 const formatDuration = (durationMs?: number) => formatDurationMs(durationMs);
 
 const formatNumber = (value?: number) => (typeof value === "number" ? value : "—");
+
+const PayloadButton = ({ label, payload }: { label: string; payload?: string }) => {
+  const content = payload?.length ? payload : "No payload captured for this batch.";
+  return (
+    <Dialog>
+      <DialogTrigger asChild>
+        <Button variant="ghost" size="sm">
+          View
+        </Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-3xl">
+        <DialogHeader>
+          <DialogTitle>{label}</DialogTitle>
+        </DialogHeader>
+        <ScrollArea className="h-[60vh]">
+          <pre className="whitespace-pre-wrap text-xs text-muted-foreground">{content}</pre>
+        </ScrollArea>
+      </DialogContent>
+    </Dialog>
+  );
+};
 
 export function BatchLog({ rows, sortBy = "batch", compact = false, total }: BatchLogProps) {
   const sorted = React.useMemo(() => {
@@ -67,6 +99,8 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
                 <TableHead>Unchanged</TableHead>
                 <TableHead>Processed</TableHead>
                 <TableHead>Issues</TableHead>
+                <TableHead>Request</TableHead>
+                <TableHead>Response</TableHead>
                 <TableHead>Time</TableHead>
               </TableRow>
             </TableHeader>
@@ -95,6 +129,18 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
                       <TableCell>{formatNumber(row.unchanged)}</TableCell>
                       <TableCell>{`${processedSoFar} / ${effectiveTotal}`}</TableCell>
                       <TableCell>{row.issues ?? "—"}</TableCell>
+                      <TableCell>
+                        <PayloadButton
+                          label={`Batch ${row.batchLabel} Request`}
+                          payload={row.requestPayload}
+                        />
+                      </TableCell>
+                      <TableCell>
+                        <PayloadButton
+                          label={`Batch ${row.batchLabel} Response`}
+                          payload={row.responsePayload}
+                        />
+                      </TableCell>
                       <TableCell>{new Date(row.loggedAt).toLocaleTimeString()}</TableCell>
                     </TableRow>
                   );

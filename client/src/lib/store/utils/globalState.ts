@@ -1,5 +1,6 @@
 import type { ReformulationConfig, ReformulationPrompt } from "../slices/reformulationSlice";
 import type {
+  AIChapterDetectionConfig,
   AIRevisionConfig,
   AISegmentMergeConfig,
   LexiconEntry,
@@ -23,6 +24,7 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   manualConfidenceThreshold: number | null;
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
+  aiChapterDetectionConfig: AIChapterDetectionConfig;
   reformulationConfig: ReformulationConfig;
   reformulationPrompts: ReformulationPrompt[];
 }
@@ -42,6 +44,7 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   manualConfidenceThreshold: state.manualConfidenceThreshold,
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
+  aiChapterDetectionConfig: state.aiChapterDetectionConfig,
   reformulationConfig: state.reformulationConfig,
   reformulationPrompts: state.reformulationPrompts,
 });

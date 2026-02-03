@@ -27,6 +27,10 @@ interface AIConfigurationSectionProps {
   promptValue: string;
   promptOptions: PromptOption[];
   batchSize: string;
+  batchSizeLabel?: string;
+  batchSizeMin?: number;
+  batchSizeMax?: number;
+  batchSizeHelp?: string;
   onProviderChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onPromptChange: (value: string) => void;
@@ -43,6 +47,10 @@ export function AIConfigurationSection({
   promptValue,
   promptOptions,
   batchSize,
+  batchSizeLabel = "Batch Size",
+  batchSizeMin = 1,
+  batchSizeMax = 50,
+  batchSizeHelp = "Number of segments to process in each batch (1-50)",
   onProviderChange,
   onModelChange,
   onPromptChange,
@@ -137,7 +145,7 @@ export function AIConfigurationSection({
 
       <div className="flex flex-col gap-1">
         <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground cursor-help">
-          Batch Size
+          {batchSizeLabel}
         </Label>
         <div className="flex items-center gap-2">
           <div className="flex-1">
@@ -147,13 +155,36 @@ export function AIConfigurationSection({
                   <Input
                     id={`${id}-batch-size`}
                     type="number"
-                    min={1}
-                    max={50}
+                    min={batchSizeMin}
+                    max={batchSizeMax}
                     value={batchSize}
                     onChange={(e) => {
                       const value = e.target.value;
-                      if (value === "" || (Number(value) >= 1 && Number(value) <= 50)) {
+                      // Allow empty and intermediate numeric input (so users can type multi-digit numbers).
+                      // Only accept digits to avoid invalid characters from typing.
+                      if (value === "" || /^\d*$/.test(value)) {
                         onBatchSizeChange(value);
+                      }
+                    }}
+                    onBlur={(e) => {
+                      const value = e.target.value;
+                      // If empty, reset to min
+                      if (value === "") {
+                        onBatchSizeChange(String(batchSizeMin));
+                        return;
+                      }
+                      const num = Number(value);
+                      if (Number.isNaN(num)) {
+                        onBatchSizeChange(String(batchSizeMin));
+                        return;
+                      }
+                      // Clamp to bounds
+                      if (num < batchSizeMin) {
+                        onBatchSizeChange(String(batchSizeMin));
+                      } else if (num > batchSizeMax) {
+                        onBatchSizeChange(String(batchSizeMax));
+                      } else {
+                        onBatchSizeChange(String(num));
                       }
                     }}
                     disabled={isProcessing}
@@ -161,7 +192,7 @@ export function AIConfigurationSection({
                   />
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Number of segments to process in each batch (1-50)</p>
+                  <p>{batchSizeHelp}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>

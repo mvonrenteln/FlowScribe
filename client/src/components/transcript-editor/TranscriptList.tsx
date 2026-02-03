@@ -9,6 +9,7 @@ import { ChapterReformulationDialog } from "../reformulation/ChapterReformulatio
 import { ChapterReformulationView } from "../reformulation/ChapterReformulationView";
 import { ReformulatedTextDisplay } from "../reformulation/ReformulatedTextDisplay";
 import { TranscriptSegment } from "../TranscriptSegment";
+import { ChapterSuggestionInline } from "./ChapterSuggestionInline";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
 import type { TranscriptEditorState } from "./useTranscriptEditor";
 
@@ -103,6 +104,12 @@ function TranscriptListComponent({
     setTriggerElement(null);
   };
 
+  // AI Chapter Detection
+  const chapterSuggestions = useTranscriptStore((s) => s.aiChapterDetectionSuggestions);
+  const acceptChapterSuggestion = useTranscriptStore((s) => s.acceptChapterSuggestion);
+  const rejectChapterSuggestion = useTranscriptStore((s) => s.rejectChapterSuggestion);
+  const allSegments = useTranscriptStore((s) => s.segments);
+
   // Create a map for fast lookup of pending revisions/suggestions
   const pendingRevisionBySegmentId = useMemo(
     () =>
@@ -136,8 +143,23 @@ function TranscriptListComponent({
     return map;
   }, [pendingMergeSuggestions]);
 
+  const pendingChapterSuggestionsByStart = useMemo(() => {
+    const map = new Map<string, typeof chapterSuggestions>();
+    for (const suggestion of chapterSuggestions) {
+      if (suggestion.status !== "pending") continue;
+      const existing = map.get(suggestion.startSegmentId);
+      if (existing) {
+        existing.push(suggestion);
+      } else {
+        map.set(suggestion.startSegmentId, [suggestion]);
+      }
+    }
+    return map;
+  }, [chapterSuggestions]);
+
   const segmentIndexById = useSegmentIndexById();
   const filteredIndexById = useMemo(() => indexById(filteredSegments), [filteredSegments]);
+  const segmentById = useMemo(() => mapById(allSegments), [allSegments]);
 
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
@@ -208,10 +230,12 @@ function TranscriptListComponent({
             const resolvedSplitWordIndex = activeSegmentId === segment.id ? splitWordIndex : null;
             const pendingRevision = pendingRevisionBySegmentId.get(segment.id);
             const pendingSpeakerSugg = pendingSpeakerSuggestionBySegmentId.get(segment.id);
-            const nextSegment = filteredSegments[originalIndex + 1];
+            // FIX: Only show merge suggestion if both segments are in the current render slice
+            const nextSegment = segmentsToRender[_index + 1];
             const mergeSuggestion = nextSegment
               ? pendingMergeSuggestionByPair.get(`${segment.id}::${nextSegment.id}`)
               : undefined;
+            const chapterSuggestionsForSegment = pendingChapterSuggestionsByStart.get(segment.id);
             const chapter = chapterByStartId.get(segment.id);
             const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
 
@@ -228,6 +252,17 @@ function TranscriptListComponent({
 
             return (
               <Fragment key={segment.id}>
+                {chapterSuggestionsForSegment?.map((suggestion) => (
+                  <ChapterSuggestionInline
+                    key={suggestion.id}
+                    suggestion={suggestion}
+                    startSegment={segmentById.get(suggestion.startSegmentId)}
+                    endSegment={segmentById.get(suggestion.endSegmentId)}
+                    tags={tags}
+                    onAccept={() => acceptChapterSuggestion(suggestion.id)}
+                    onReject={() => rejectChapterSuggestion(suggestion.id)}
+                  />
+                ))}
                 {chapter && (
                   <ChapterHeader
                     chapter={chapter}

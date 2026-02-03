@@ -19,6 +19,9 @@ export interface PersistedSettings {
   // AI Providers
   aiProviders: AIProviderConfig[];
   defaultAIProviderId?: string;
+
+  /** Number of retries when AI response cannot be parsed (default: 3) */
+  parseRetryCount?: number;
 }
 
 // ==================== Default Settings ====================
@@ -36,6 +39,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
     },
   ],
   defaultAIProviderId: "default-ollama",
+  parseRetryCount: 3,
 };
 
 // ==================== Storage Functions ====================

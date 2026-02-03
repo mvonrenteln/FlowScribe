@@ -363,6 +363,52 @@ describe("TranscriptEditor integration", () => {
     });
   });
 
+  it("renders inline chapter suggestions in the transcript", async () => {
+    useTranscriptStore.setState({
+      segments: [
+        {
+          id: "segment-1",
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hello",
+          words: [],
+          tags: [],
+        },
+        {
+          id: "segment-2",
+          speaker: "SPEAKER_00",
+          start: 1,
+          end: 2,
+          text: "World",
+          words: [],
+          tags: [],
+        },
+      ],
+      speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+      aiChapterDetectionSuggestions: [
+        {
+          id: "chapter-suggestion-1",
+          title: "Greeting",
+          summary: "Opening line",
+          tags: [],
+          startSegmentId: "segment-1",
+          endSegmentId: "segment-2",
+          segmentCount: 2,
+          createdAt: Date.now(),
+          source: "ai",
+          status: "pending",
+        },
+      ],
+    });
+
+    render(<TranscriptEditor />);
+
+    await waitFor(() => {
+      expect(screen.getByTestId("chapter-suggestion-chapter-suggestion-1")).toBeInTheDocument();
+    });
+  });
+
   it("keeps inline merge suggestions visible when the list is sliced", async () => {
     const segments = Array.from({ length: 60 }, (_, index) => {
       const start = index;

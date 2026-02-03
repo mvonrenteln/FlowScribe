@@ -136,6 +136,35 @@ export async function analyzeMergeCandidates(
           userPromptTemplate: prompt.userTemplate,
         },
         signal,
+        onRetry: (retryInfo) => {
+          // Report retry attempt in batch log
+          if (onProgress && prompt.pairCount > 0) {
+            const retryLogEntry: MergeBatchLogEntry = {
+              batchIndex: batchIndex + 1,
+              pairCount: prompt.pairCount,
+              rawItemCount: 0,
+              normalizedCount: 0,
+              suggestionCount: 0,
+              processedTotal: totalAnalyzed,
+              totalExpected: segments.length - 1,
+              issues: [
+                {
+                  level: "warn",
+                  message: `Retry ${retryInfo.attempt} - ${retryInfo.errorMessage}`,
+                },
+              ],
+              batchDurationMs: retryInfo.attemptDurationMs,
+              fatal: false,
+            };
+            onProgress({
+              batchIndex: batchIndex + 1,
+              totalBatches: batches.length,
+              batchSuggestions: [],
+              processedCount: totalAnalyzed,
+              batchLogEntry: retryLogEntry,
+            });
+          }
+        },
       });
 
       logger.info(`Batch ${batchIndex + 1} AI execution complete`, {

@@ -163,7 +163,7 @@ export function normalizeAIRevisionConfig(saved?: AIRevisionConfig | null): AIRe
   // Add custom (non-built-in) prompts from saved state
   for (const [id, promptItem] of savedPromptsById) {
     if (!builtInPromptIds.includes(id)) {
-      mergedPrompts.push({ ...promptItem, isBuiltIn: false });
+      mergedPrompts.push({ ...promptItem, isBuiltIn: false, type: "text" });
     }
   }
 
