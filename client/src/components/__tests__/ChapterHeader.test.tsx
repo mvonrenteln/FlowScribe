@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChapterHeader } from "@/components/ChapterHeader";
@@ -27,6 +27,7 @@ describe("ChapterHeader", () => {
     onOpen: vi.fn(),
     onUpdateChapter: vi.fn(),
     onDeleteChapter: vi.fn(),
+    onRewriteChapter: vi.fn(),
     isTranscriptEditing: true,
   };
 
@@ -283,17 +284,24 @@ describe("ChapterHeader", () => {
     const deleteMenuItem = await screen.findByTestId(`menu-delete-chapter-${mockChapter.id}`);
     await user.click(deleteMenuItem);
 
+    // Dialog should appear - find and click the delete button
+    const deleteButton = await screen.findByRole("button", { name: /delete/i });
+    await user.click(deleteButton);
+
     expect(onDeleteChapter).toHaveBeenCalledWith("chapter-1");
   });
 
   it("calls onOpen when title area is clicked", async () => {
-    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     const onOpen = vi.fn();
     render(<ChapterHeader {...defaultProps} onOpen={onOpen} />);
 
-    // Click on the title text
-    const titleElement = screen.getByText("Test Chapter");
-    await user.click(titleElement);
+    // Click on the title area container (avoid span pointer-event quirks in tests)
+    const candidates = screen.getAllByRole("button", { name: /test chapter/i });
+    const titleButton = candidates.find((el) => el.tagName === "DIV");
+    if (!titleButton) {
+      throw new Error("Title button container not found");
+    }
+    fireEvent.click(titleButton);
 
     expect(onOpen).toHaveBeenCalled();
   });

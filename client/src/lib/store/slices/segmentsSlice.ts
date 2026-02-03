@@ -203,6 +203,18 @@ export const createSegmentsSlice = (
       return { selectedSegmentId: id, history };
     }),
 
+  setFilteredSegmentIds: (ids) => {
+    const current = get().filteredSegmentIds;
+    const next = new Set(ids);
+
+    // Skip update if sets are equal (shallow equality check)
+    if (current.size === next.size && Array.from(next).every((id) => current.has(id))) {
+      return;
+    }
+
+    set({ filteredSegmentIds: next });
+  },
+
   updateSegmentText: (id, text) => {
     const { updateSegmentsTexts } = get();
     updateSegmentsTexts([{ id, text }]);

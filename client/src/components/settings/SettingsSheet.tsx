@@ -20,6 +20,7 @@ import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
+import { ChapterRewriteSettings } from "./sections/ChapterRewriteSettings";
 import { ConfidenceSettings } from "./sections/ConfidenceSettings";
 import { GlossarySettings } from "./sections/GlossarySettings";
 import { SpellcheckSettings } from "./sections/SpellcheckSettings";
@@ -58,6 +59,8 @@ export function SettingsSheet({
         return <AIServerSettings />;
       case "ai-prompts":
         return <AITemplateSettings />;
+      case "chapter-rewrite":
+        return <ChapterRewriteSettings />;
       case "appearance":
         return <AppearanceSettings />;
       case "spellcheck":

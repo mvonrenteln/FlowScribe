@@ -1,10 +1,10 @@
 import type { StoreApi } from "zustand";
-import { getSegmentIndexById } from "@/lib/store";
 import type { Chapter } from "@/types/chapter";
 import type { ChapterSlice, TranscriptStore } from "../types";
 import {
   getChapterRangeIndices,
   hasOverlappingChapters,
+  memoizedBuildSegmentIndexMap,
   normalizeChapterCounts,
   sortChaptersByStart,
 } from "../utils/chapters";
@@ -13,6 +13,15 @@ import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+/**
+ * Cache for selectSegmentsInChapter results.
+ * Key format: `${chapterId}:${filteredSegmentIds.size}:${segments.length}`
+ */
+const segmentsInChapterCache = new Map<
+  string,
+  ReturnType<ChapterSlice["selectSegmentsInChapter"]>
+>();
 
 /**
  * Zustand slice for manual chapter CRUD and lookup selectors.
@@ -32,7 +41,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     } = get();
 
     if (!segments.length) return undefined;
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const startIndex = indexById.get(startSegmentId);
     if (startIndex === undefined) return undefined;
 
@@ -136,7 +145,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
           }
         : chapter,
     );
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     if (hasOverlappingChapters(normalized, indexById)) return;
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -173,7 +182,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
       confidenceScoresVersion,
     } = get();
     if (!chapters.some((chapter) => chapter.id === id)) return;
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const nextChapters = chapters.filter((chapter) => chapter.id !== id);
     const normalized = normalizeChapterCounts(nextChapters, indexById);
     const ordered = sortChaptersByStart(normalized, indexById);
@@ -235,7 +244,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
   selectChapterForSegment: (segmentId) => {
     const { chapters } = get();
-    const indexById = getSegmentIndexById();
+    const indexById = memoizedBuildSegmentIndexMap(get().segments);
     const segmentIndex = indexById.get(segmentId);
     if (segmentIndex === undefined) return undefined;
     return chapters.find((chapter) => {
@@ -246,12 +255,200 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   },
 
   selectSegmentsInChapter: (chapterId) => {
-    const { chapters, segments } = get();
+    const { chapters, segments, filteredSegmentIds } = get();
+
+    // Build cache key from relevant state
+    const cacheKey = `${chapterId}:${filteredSegmentIds.size}:${segments.length}`;
+    const cached = segmentsInChapterCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
     const chapter = chapters.find((item) => item.id === chapterId);
-    if (!chapter) return [];
-    const indexById = getSegmentIndexById();
+    if (!chapter) {
+      segmentsInChapterCache.set(cacheKey, []);
+      return [];
+    }
+
+    const indexById = memoizedBuildSegmentIndexMap(segments);
     const range = getChapterRangeIndices(chapter, indexById);
-    if (!range) return [];
-    return segments.slice(range.startIndex, range.endIndex + 1);
+    if (!range) {
+      segmentsInChapterCache.set(cacheKey, []);
+      return [];
+    }
+
+    const allSegments = segments.slice(range.startIndex, range.endIndex + 1);
+
+    // If filters are active (filteredSegmentIds is not empty), only return filtered segments
+    let result: typeof allSegments;
+    if (filteredSegmentIds.size > 0) {
+      result = allSegments.filter((seg) => filteredSegmentIds.has(seg.id));
+    } else {
+      result = allSegments;
+    }
+
+    // Cache result (limit cache size to prevent memory leaks)
+    if (segmentsInChapterCache.size > 100) {
+      // Clear old entries (simple LRU-like behavior)
+      const firstKey = segmentsInChapterCache.keys().next().value;
+      if (firstKey !== undefined) segmentsInChapterCache.delete(firstKey);
+    }
+    segmentsInChapterCache.set(cacheKey, result);
+
+    return result;
+  },
+
+  // Rewrite methods
+  setChapterRewrite: (chapterId, rewrittenText, metadata) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const chapter = chapters.find((c) => c.id === chapterId);
+    if (!chapter) return;
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId
+        ? {
+            ...c,
+            rewrittenText,
+            rewrittenAt: Date.now(),
+            rewritePromptId: metadata.promptId,
+            rewriteContext: {
+              model: metadata.model,
+              providerId: metadata.providerId,
+              wordCount: rewrittenText.split(/\s+/).length,
+            },
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  clearChapterRewrite: (chapterId) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId
+        ? {
+            ...c,
+            rewrittenText: undefined,
+            rewrittenAt: undefined,
+            rewritePromptId: undefined,
+            rewriteContext: undefined,
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  updateChapterRewrite: (chapterId, rewrittenText) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+
+    const updatedChapters = chapters.map((c) =>
+      c.id === chapterId && c.rewrittenText
+        ? {
+            ...c,
+            rewrittenText,
+            rewriteContext: {
+              ...c.rewriteContext,
+              wordCount: rewrittenText.split(/\s+/).length,
+            },
+          }
+        : c,
+    );
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: updatedChapters,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: updatedChapters,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  chapterDisplayModes: {},
+
+  setChapterDisplayMode: (chapterId, mode) => {
+    const current = get().chapterDisplayModes;
+    // Skip update if mode is already set to this value
+    if (current[chapterId] === mode) return;
+
+    set({
+      chapterDisplayModes: {
+        ...current,
+        [chapterId]: mode,
+      },
+    });
   },
 });

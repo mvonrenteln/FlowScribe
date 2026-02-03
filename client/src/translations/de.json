@@ -23,5 +23,23 @@
     "showCompact": "Kompakt anzeigen",
     "showDiff": "Nebeneinander anzeigen",
     "changeSuggested": "Änderung vorgeschlagen"
+  },
+  "rewrite": {
+    "view": {
+      "title": "Rewrite Chapter",
+      "originalLabel": "Original ({{count}} segments)",
+      "rewrittenLabel": "Überarbeitet",
+      "processing": "Reformulating chapter...",
+      "retry": "Try again",
+      "waiting": "Waiting for rewrite...",
+      "wordCount": "{{rewritten}} words • {{original}} words original"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "reject": "Reject",
+      "regenerate": "Regenerate",
+      "accept": "Accept"
+    }
   }
 }

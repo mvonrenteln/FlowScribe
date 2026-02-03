@@ -76,5 +76,23 @@
     "whitespaceOnly": "Whitespace changes only",
     "oneChange": "1 change",
     "nChanges": "{{count}} changes"
+  },
+  "rewrite": {
+    "view": {
+      "title": "Rewrite Chapter",
+      "originalLabel": "Original ({{count}} segments)",
+      "rewrittenLabel": "Rewritten",
+      "processing": "Reformulating chapter...",
+      "retry": "Try again",
+      "waiting": "Waiting for rewrite...",
+      "wordCount": "{{rewritten}} words • {{original}} words original"
+    },
+    "actions": {
+      "cancel": "Cancel",
+      "save": "Save",
+      "reject": "Reject",
+      "regenerate": "Regenerate",
+      "accept": "Accept"
+    }
   }
 }

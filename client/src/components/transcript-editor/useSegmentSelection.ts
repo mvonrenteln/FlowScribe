@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
+import { toast } from "@/hooks/use-toast";
 import { getSegmentById, useSegmentIndexById } from "@/lib/store";
 import type { SeekMeta, Segment, TranscriptStore } from "@/lib/store/types";
 import { getWordIndexForTime } from "@/lib/utils/wordIndexCache";
@@ -40,6 +41,7 @@ interface UseSegmentSelectionParams {
   updateSegmentSpeaker: TranscriptStore["updateSegmentSpeaker"];
   mergeSegments: TranscriptStore["mergeSegments"];
   addLexiconFalsePositive: TranscriptStore["addLexiconFalsePositive"];
+  selectChapterForSegment: TranscriptStore["selectChapterForSegment"];
   filterLowConfidence: boolean;
   activeSpeakerName: string | null | undefined;
   lowConfidenceThreshold: number | null;
@@ -65,6 +67,7 @@ export const useSegmentSelection = ({
   updateSegmentSpeaker,
   mergeSegments,
   addLexiconFalsePositive,
+  selectChapterForSegment,
   filterLowConfidence,
   activeSpeakerName,
   lowConfidenceThreshold,
@@ -263,7 +266,18 @@ export const useSegmentSelection = ({
               setSelectedSegmentId(current.id);
             }
           },
-          onTextChange: (text: string) => updateSegmentText(segment.id, text),
+          onTextChange: (text: string) => {
+            // Check if segment belongs to chapter with rewrite
+            // Use memoized selectChapterForSegment instead of O(n²) findIndex loops
+            const chapter = selectChapterForSegment(segment.id);
+            if (chapter?.rewrittenText) {
+              toast({
+                title: "Rewritten text is based on older content",
+                description: "Consider regenerating the rewrite.",
+              });
+            }
+            updateSegmentText(segment.id, text);
+          },
           onSpeakerChange: (speaker: string) => updateSegmentSpeaker(segment.id, speaker),
           onSplit: (wordIndex: number) => handleSplitSegment(segment.id, wordIndex),
           onConfirm: () => confirmSegment(segment.id),
@@ -305,6 +319,7 @@ export const useSegmentSelection = ({
     toggleSegmentBookmark,
     updateSegmentSpeaker,
     updateSegmentText,
+    selectChapterForSegment,
   ]);
 
   return {

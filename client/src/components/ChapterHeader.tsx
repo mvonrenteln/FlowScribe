@@ -1,5 +1,26 @@
-import { Check, ChevronDown, Edit2, MoreVertical, Plus, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Edit2,
+  FileText,
+  MoreVertical,
+  Plus,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -12,6 +33,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Chapter, ChapterUpdate, Tag } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface ChapterHeaderProps {
@@ -21,6 +43,7 @@ interface ChapterHeaderProps {
   onOpen: () => void;
   onUpdateChapter: (id: string, updates: ChapterUpdate) => void;
   onDeleteChapter: (id: string) => void;
+  onRewriteChapter: (chapterId: string) => void;
   isTranscriptEditing: boolean;
   autoFocus?: boolean;
   onAutoFocusHandled?: () => void;
@@ -33,10 +56,17 @@ export function ChapterHeader({
   onOpen,
   onUpdateChapter,
   onDeleteChapter,
+  onRewriteChapter,
   isTranscriptEditing,
   autoFocus,
   onAutoFocusHandled,
 }: ChapterHeaderProps) {
+  // Get chapter display mode from store
+  const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
+  const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
+  const currentDisplayMode = chapterDisplayModes[chapter.id] || "original";
+  const { t } = useTranslation();
+
   const [expanded, setExpanded] = useState(false);
   const [titleDraft, setTitleDraft] = useState(chapter.title);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
@@ -45,9 +75,10 @@ export function ChapterHeader({
   const ignoreNextTitleBlurRef = useRef(false);
   const ignoreNextSummaryBlurRef = useRef(false);
   const ignoreNextNotesBlurRef = useRef(false);
-  const [_isHovered, setIsHovered] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [_hasOverflow, setHasOverflow] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
   // Check if tags overflow - recheck when tags change
@@ -266,12 +297,18 @@ export function ChapterHeader({
       <div
         className={cn("group relative mt-6 mb-2 flex items-start gap-3 py-3")}
         data-testid={`chapter-header-${chapter.id}`}
+        onMouseEnter={() => setIsHeaderHovered(true)}
+        onMouseLeave={() => setIsHeaderHovered(false)}
+        role="group"
       >
         {/* Chevron toggle - only this triggers expand/collapse */}
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="mt-0.5 p-0.5 rounded hover:bg-muted/10 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+            className={cn(
+              "mt-0.5 p-0.5 rounded hover:bg-muted/10 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+              isHeaderHovered ? "opacity-100" : "opacity-0",
+            )}
             aria-label={expanded ? "Collapse chapter" : "Expand chapter"}
           >
             <ChevronDown
@@ -355,7 +392,7 @@ export function ChapterHeader({
                   role="button"
                   tabIndex={0}
                   className={cn(
-                    "text-base font-medium leading-tight tracking-tight truncate text-foreground",
+                    "text-base font-medium leading-tight tracking-tight truncate text-foreground pointer-events-auto",
                     !chapter.title && "text-muted-foreground italic",
                   )}
                   onDoubleClick={handleTitleDoubleClick}
@@ -369,14 +406,6 @@ export function ChapterHeader({
                   <div
                     ref={tagRowRef}
                     className="relative flex items-center"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    onFocusCapture={() => setIsHovered(true)}
-                    onBlurCapture={(event) => {
-                      const nextFocused = event.relatedTarget as Node | null;
-                      if (nextFocused && event.currentTarget.contains(nextFocused)) return;
-                      setIsHovered(false);
-                    }}
                     role="group"
                     data-testid={`chapter-tags-${chapter.id}`}
                   >
@@ -384,7 +413,10 @@ export function ChapterHeader({
                       <div className="flex items-center gap-1.5">
                         <div
                           ref={tagContainerRef}
-                          className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity"
+                          className={cn(
+                            "flex items-center gap-1.5 max-w-[28ch] overflow-hidden transition-opacity",
+                            isHeaderHovered ? "opacity-100" : "opacity-0",
+                          )}
                         >
                           {chapterTagInfo.map((info) => (
                             <Badge
@@ -423,7 +455,10 @@ export function ChapterHeader({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                              className={cn(
+                                "h-6 w-6 flex-shrink-0 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                                isHeaderHovered ? "opacity-100" : "opacity-0",
+                              )}
                               disabled={availableTags.length === 0}
                               data-testid={`button-add-tag-${chapter.id}`}
                               onClick={(e) => e.stopPropagation()}
@@ -463,7 +498,10 @@ export function ChapterHeader({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                            className={cn(
+                              "px-2 text-xs gap-1.5 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                              isHeaderHovered ? "opacity-100" : "opacity-0",
+                            )}
                             data-testid={`button-add-first-tag-${chapter.id}`}
                           >
                             <Plus className="h-3 w-3" />
@@ -498,13 +536,52 @@ export function ChapterHeader({
                     )}
                   </div>
 
+                  {/* Rewrite Toggle - only shown when rewrite exists */}
+                  {chapter.rewrittenText && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className={cn(
+                        "h-6 px-2 text-xs gap-1.5 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                        isHeaderHovered ? "opacity-100" : "opacity-0",
+                      )}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const newMode =
+                          currentDisplayMode === "original" ? "rewritten" : "original";
+                        setChapterDisplayMode(chapter.id, newMode);
+                      }}
+                      aria-label={
+                        currentDisplayMode === "original"
+                          ? t("rewrite.view.rewrittenLabel")
+                          : t("diffView.original")
+                      }
+                      data-testid={`button-toggle-rewrite-${chapter.id}`}
+                    >
+                      {currentDisplayMode === "original" ? (
+                        <>
+                          <Sparkles className="h-3 w-3" />
+                          <span>{t("rewrite.view.rewrittenLabel")}</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-3 w-3" />
+                          <span>{t("diffView.original")}</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
+
                   {/* Options menu - aligned to the far right */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                        className={cn(
+                          "h-6 w-6 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                          isHeaderHovered ? "opacity-100" : "opacity-0",
+                        )}
                         onClick={(event) => event.stopPropagation()}
                         aria-label="Chapter options"
                         data-testid={`button-chapter-options-${chapter.id}`}
@@ -524,8 +601,16 @@ export function ChapterHeader({
                         Edit title
                       </DropdownMenuItem>
                       <DropdownMenuItem
+                        className="py-1.5 text-xs"
+                        onSelect={() => onRewriteChapter(chapter.id)}
+                        data-testid={`menu-rewrite-chapter-${chapter.id}`}
+                      >
+                        <Sparkles className="h-3 w-3 mr-2" />
+                        Rewrite chapter
+                      </DropdownMenuItem>
+                      <DropdownMenuItem
                         className="py-1.5 text-xs text-destructive"
-                        onSelect={() => onDeleteChapter(chapter.id)}
+                        onSelect={() => setShowDeleteDialog(true)}
                         data-testid={`menu-delete-chapter-${chapter.id}`}
                       >
                         <Trash2 className="h-3 w-3 mr-2" />
@@ -781,6 +866,32 @@ export function ChapterHeader({
           </div>
         </div>
       </CollapsibleContent>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Chapter?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {chapter.rewrittenText
+                ? "This chapter has a rewrite. Both will be deleted."
+                : "This action cannot be undone."}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDeleteChapter(chapter.id);
+                setShowDeleteDialog(false);
+              }}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {chapter.rewrittenText ? "Delete Both" : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </Collapsible>
   );
 }

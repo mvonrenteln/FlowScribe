@@ -25,6 +25,18 @@ export type Chapter = {
   createdAt: number;
   /** Origin of this chapter. */
   source: ChapterSource;
+  /** Rewritten/transformed text (optional). */
+  rewrittenText?: string;
+  /** Timestamp when rewrite was created (ms). */
+  rewrittenAt?: number;
+  /** ID of the prompt used for rewrite. */
+  rewritePromptId?: string;
+  /** Metadata about the rewrite. */
+  rewriteContext?: {
+    model?: string;
+    providerId?: string;
+    wordCount?: number;
+  };
 };
 
 /**

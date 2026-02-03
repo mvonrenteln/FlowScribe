@@ -1,10 +1,13 @@
-import { Fragment, useMemo } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
 import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
+import { ChapterRewriteDialog } from "../rewrite/ChapterRewriteDialog";
+import { ChapterRewriteView } from "../rewrite/ChapterRewriteView";
+import { RewrittenTextDisplay } from "../rewrite/RewrittenTextDisplay";
 import { TranscriptSegment } from "../TranscriptSegment";
 import { ChapterSuggestionInline } from "./ChapterSuggestionInline";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
@@ -52,7 +55,8 @@ function TranscriptListComponent({
   onChapterFocusRequestHandled,
   isTranscriptEditing,
 }: TranscriptListProps) {
-  // Get tags and tag operations from store
+  // Get segments and tags from store
+  const segments = useTranscriptStore((s) => s.segments);
   const tags = useTranscriptStore((s) => s.tags);
   const removeTagFromSegment = useTranscriptStore((s) => s.removeTagFromSegment);
   const assignTagToSegment = useTranscriptStore((s) => s.assignTagToSegment);
@@ -72,6 +76,49 @@ function TranscriptListComponent({
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
+  // Get chapter display modes for rewritten text
+  const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
+
+  // Rewrite dialog and view state - consolidated into single state object
+  const [rewriteState, setRewriteState] = useState<{
+    dialogOpen: boolean;
+    viewOpen: boolean;
+    chapterId: string | null;
+    triggerElement: HTMLElement | null;
+  }>({
+    dialogOpen: false,
+    viewOpen: false,
+    chapterId: null,
+    triggerElement: null,
+  });
+
+  const handleRewriteChapter = (chapterId: string) => {
+    setRewriteState({
+      dialogOpen: true,
+      viewOpen: false,
+      chapterId,
+      triggerElement: document.activeElement as HTMLElement,
+    });
+  };
+
+  const handleStartRewrite = () => {
+    setRewriteState((prev) => ({
+      ...prev,
+      dialogOpen: false,
+      viewOpen: true,
+    }));
+  };
+
+  const handleCloseRewriteView = () => {
+    setRewriteState({
+      dialogOpen: false,
+      viewOpen: false,
+      chapterId: null,
+      triggerElement: null,
+    });
+  };
+
+  // AI Chapter Detection
   const chapterSuggestions = useTranscriptStore((s) => s.aiChapterDetectionSuggestions);
   const acceptChapterSuggestion = useTranscriptStore((s) => s.acceptChapterSuggestion);
   const rejectChapterSuggestion = useTranscriptStore((s) => s.rejectChapterSuggestion);
@@ -133,6 +180,34 @@ function TranscriptListComponent({
     return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
   }, [chapters, segmentIndexById]);
 
+  // Build a set of segment IDs that should be hidden (because they're in a rewritten chapter)
+  // Optimized: filter chapters first to avoid processing all chapters on every render
+  const rewrittenChapters = useMemo(
+    () =>
+      chapters.filter(
+        (ch) => chapterDisplayModes[ch.id] === "rewritten" && ch.rewrittenText !== undefined,
+      ),
+    [chapters, chapterDisplayModes],
+  );
+
+  const hiddenSegmentIds = useMemo(() => {
+    const hidden = new Set<string>();
+    // Only process chapters that are actually rewritten and displayed as such
+    for (const chapter of rewrittenChapters) {
+      const startIndex = segmentIndexById.get(chapter.startSegmentId);
+      const endIndex = segmentIndexById.get(chapter.endSegmentId);
+      if (startIndex !== undefined && endIndex !== undefined) {
+        // Build segment IDs from indices without accessing segments array
+        // All segments except the first one (where rewritten text is shown)
+        for (let i = startIndex + 1; i <= endIndex; i++) {
+          const segment = segments[i];
+          if (segment) hidden.add(segment.id);
+        }
+      }
+    }
+    return hidden;
+  }, [rewrittenChapters, segmentIndexById, segments]);
+
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = filteredSegments;
@@ -184,6 +259,18 @@ function TranscriptListComponent({
             const chapterSuggestionsForSegment = pendingChapterSuggestionsByStart.get(segment.id);
             const chapter = chapterByStartId.get(segment.id);
             const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
+
+            // Check if this segment should be hidden (part of rewritten chapter)
+            if (hiddenSegmentIds.has(segment.id)) {
+              return null;
+            }
+
+            // Check if we should show rewritten text for this chapter
+            const displayMode = chapter
+              ? chapterDisplayModes[chapter.id] || "original"
+              : "original";
+            const showRewritten = displayMode === "rewritten" && chapter?.rewrittenText;
+
             return (
               <Fragment key={segment.id}>
                 {chapterSuggestionsForSegment?.map((suggestion) => (
@@ -208,84 +295,100 @@ function TranscriptListComponent({
                     isTranscriptEditing={isTranscriptEditing}
                     autoFocus={isChapterFocusTarget}
                     onAutoFocusHandled={onChapterFocusRequestHandled}
+                    onRewriteChapter={handleRewriteChapter}
                   />
                 )}
-                <TranscriptSegment
-                  segment={segment}
-                  speakers={speakers}
-                  tags={tags}
-                  isSelected={segment.id === selectedSegmentId}
-                  isActive={activeSegmentId === segment.id}
-                  currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
-                  activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
-                  splitWordIndex={resolvedSplitWordIndex ?? undefined}
-                  highlightLowConfidence={highlightLowConfidence}
-                  lowConfidenceThreshold={lowConfidenceThreshold}
-                  lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
-                  showLexiconMatches={showLexiconMatches}
-                  lexiconHighlightUnderline={lexiconHighlightUnderline}
-                  lexiconHighlightBackground={lexiconHighlightBackground}
-                  spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
-                  showSpellcheckMatches={showSpellcheckMatches}
-                  editRequested={editRequestId === segment.id}
-                  onEditRequestHandled={
-                    editRequestId === segment.id ? onClearEditRequest : undefined
-                  }
-                  onSelect={handlers.onSelect}
-                  onSelectOnly={handlers.onSelectOnly}
-                  onTextChange={handlers.onTextChange}
-                  onSpeakerChange={handlers.onSpeakerChange}
-                  onSplit={handlers.onSplit}
-                  onConfirm={handlers.onConfirm}
-                  onToggleBookmark={handlers.onToggleBookmark}
-                  onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
-                  onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
-                  onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
-                  onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
-                  onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
-                  onMergeWithPrevious={handlers.onMergeWithPrevious}
-                  onMergeWithNext={handlers.onMergeWithNext}
-                  onDelete={handlers.onDelete}
-                  onSeek={onSeek}
-                  onStartChapterHere={onStartChapterAtSegment}
-                  searchQuery={searchQuery}
-                  isRegexSearch={isRegexSearch}
-                  replaceQuery={replaceQuery}
-                  onReplaceCurrent={onReplaceCurrent}
-                  onMatchClick={onMatchClick}
-                  findMatchIndex={findMatchIndex}
-                  // AI Revision props
-                  pendingRevision={
-                    pendingRevision
-                      ? {
-                          revisedText: pendingRevision.revisedText,
-                          changeSummary: pendingRevision.changeSummary,
-                        }
-                      : undefined
-                  }
-                  onAcceptRevision={pendingRevision ? () => acceptRevision(segment.id) : undefined}
-                  onRejectRevision={pendingRevision ? () => rejectRevision(segment.id) : undefined}
-                  lastRevisionResult={
-                    lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
-                  }
-                  // AI Speaker props
-                  pendingSpeakerSuggestion={
-                    pendingSpeakerSugg
-                      ? {
-                          suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
-                          confidence: pendingSpeakerSugg.confidence,
-                          reason: pendingSpeakerSugg.reason,
-                        }
-                      : undefined
-                  }
-                  onAcceptSpeakerSuggestion={
-                    pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
-                  }
-                  onRejectSpeakerSuggestion={
-                    pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
-                  }
-                />
-                {mergeSuggestion && nextSegment && (
+
+                {showRewritten && chapter?.rewrittenText ? (
+                  <RewrittenTextDisplay
+                    chapterId={chapter.id}
+                    text={chapter.rewrittenText}
+                    searchQuery={searchQuery}
+                    isRegexSearch={isRegexSearch}
+                  />
+                ) : (
+                  <TranscriptSegment
+                    segment={segment}
+                    speakers={speakers}
+                    tags={tags}
+                    isSelected={segment.id === selectedSegmentId}
+                    isActive={activeSegmentId === segment.id}
+                    currentMatch={currentMatch?.segmentId === segment.id ? currentMatch : undefined}
+                    activeWordIndex={activeSegmentId === segment.id ? activeWordIndex : undefined}
+                    splitWordIndex={resolvedSplitWordIndex ?? undefined}
+                    highlightLowConfidence={highlightLowConfidence}
+                    lowConfidenceThreshold={lowConfidenceThreshold}
+                    lexiconMatches={lexiconMatchesBySegment.get(segment.id)}
+                    showLexiconMatches={showLexiconMatches}
+                    lexiconHighlightUnderline={lexiconHighlightUnderline}
+                    lexiconHighlightBackground={lexiconHighlightBackground}
+                    spellcheckMatches={spellcheckMatchesBySegment.get(segment.id)}
+                    showSpellcheckMatches={showSpellcheckMatches}
+                    editRequested={editRequestId === segment.id}
+                    onEditRequestHandled={
+                      editRequestId === segment.id ? onClearEditRequest : undefined
+                    }
+                    onSelect={handlers.onSelect}
+                    onSelectOnly={handlers.onSelectOnly}
+                    onTextChange={handlers.onTextChange}
+                    onSpeakerChange={handlers.onSpeakerChange}
+                    onSplit={handlers.onSplit}
+                    onConfirm={handlers.onConfirm}
+                    onToggleBookmark={handlers.onToggleBookmark}
+                    onRemoveTag={(tagId) => removeTagFromSegment(segment.id, tagId)}
+                    onAddTag={(tagId) => assignTagToSegment(segment.id, tagId)}
+                    onIgnoreLexiconMatch={handlers.onIgnoreLexiconMatch}
+                    onIgnoreSpellcheckMatch={onIgnoreSpellcheckMatch}
+                    onAddSpellcheckToGlossary={onAddSpellcheckToGlossary}
+                    onMergeWithPrevious={handlers.onMergeWithPrevious}
+                    onMergeWithNext={handlers.onMergeWithNext}
+                    onDelete={handlers.onDelete}
+                    onSeek={onSeek}
+                    onStartChapterHere={onStartChapterAtSegment}
+                    searchQuery={searchQuery}
+                    isRegexSearch={isRegexSearch}
+                    replaceQuery={replaceQuery}
+                    onReplaceCurrent={onReplaceCurrent}
+                    onMatchClick={onMatchClick}
+                    findMatchIndex={findMatchIndex}
+                    // AI Revision props
+                    pendingRevision={
+                      pendingRevision
+                        ? {
+                            revisedText: pendingRevision.revisedText,
+                            changeSummary: pendingRevision.changeSummary,
+                          }
+                        : undefined
+                    }
+                    onAcceptRevision={
+                      pendingRevision ? () => acceptRevision(segment.id) : undefined
+                    }
+                    onRejectRevision={
+                      pendingRevision ? () => rejectRevision(segment.id) : undefined
+                    }
+                    lastRevisionResult={
+                      lastRevisionResult?.segmentId === segment.id ? lastRevisionResult : undefined
+                    }
+                    // AI Speaker props
+                    pendingSpeakerSuggestion={
+                      pendingSpeakerSugg
+                        ? {
+                            suggestedSpeaker: pendingSpeakerSugg.suggestedSpeaker,
+                            confidence: pendingSpeakerSugg.confidence,
+                            reason: pendingSpeakerSugg.reason,
+                          }
+                        : undefined
+                    }
+                    onAcceptSpeakerSuggestion={
+                      pendingSpeakerSugg ? () => acceptSpeakerSuggestion(segment.id) : undefined
+                    }
+                    onRejectSpeakerSuggestion={
+                      pendingSpeakerSugg ? () => rejectSpeakerSuggestion(segment.id) : undefined
+                    }
+                  />
+                )}
+
+                {!showRewritten && mergeSuggestion && nextSegment && (
                   <MergeSuggestionInline
                     suggestion={mergeSuggestion}
                     firstSegment={segment}
@@ -302,6 +405,25 @@ function TranscriptListComponent({
           })
         )}
       </div>
+
+      {/* Rewrite Dialog */}
+      {rewriteState.dialogOpen && rewriteState.chapterId && (
+        <ChapterRewriteDialog
+          open={rewriteState.dialogOpen}
+          onOpenChange={(open) => setRewriteState((prev) => ({ ...prev, dialogOpen: open }))}
+          chapterId={rewriteState.chapterId}
+          onStartRewrite={handleStartRewrite}
+        />
+      )}
+
+      {/* Rewrite View */}
+      {rewriteState.viewOpen && rewriteState.chapterId && (
+        <ChapterRewriteView
+          chapterId={rewriteState.chapterId}
+          onClose={handleCloseRewriteView}
+          triggerElement={rewriteState.triggerElement}
+        />
+      )}
     </ScrollArea>
   );
 }

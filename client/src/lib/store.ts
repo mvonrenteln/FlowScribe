@@ -37,6 +37,7 @@ import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
+import { createRewriteSlice, initialRewriteState } from "./store/slices/rewriteSlice";
 import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
@@ -186,6 +187,7 @@ const initialState: InitialStoreState = {
   chapters: activeSession?.chapters ?? [],
   selectedSegmentId: activeSession?.selectedSegmentId ?? null,
   selectedChapterId: activeSession?.selectedChapterId ?? null,
+  chapterDisplayModes: {},
   currentTime: activeSession?.currentTime ?? 0,
   isPlaying: false,
   duration: 0,
@@ -193,6 +195,7 @@ const initialState: InitialStoreState = {
   history: initialHistoryState.history,
   historyIndex: initialHistoryState.historyIndex,
   isWhisperXFormat: activeSession?.isWhisperXFormat ?? false,
+  filteredSegmentIds: new Set(),
   lexiconEntries: normalizeLexiconEntriesFromGlobal(globalState),
   lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
@@ -220,6 +223,10 @@ const initialState: InitialStoreState = {
   aiChapterDetectionConfig: normalizeAIChapterDetectionConfig(
     globalState?.aiChapterDetectionConfig,
   ),
+  // Rewrite state
+  ...initialRewriteState,
+  rewriteConfig: globalState?.rewriteConfig ?? initialRewriteState.rewriteConfig,
+  rewritePrompts: globalState?.rewritePrompts ?? initialRewriteState.rewritePrompts,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -257,6 +264,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
       ...createAIChapterDetectionSlice(set, get),
+      ...createRewriteSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
     };
@@ -391,7 +399,9 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.aiSpeakerConfig !== nextGlobalPayload.aiSpeakerConfig ||
         lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig ||
         lastGlobalPayload.aiSegmentMergeConfig !== nextGlobalPayload.aiSegmentMergeConfig ||
-        lastGlobalPayload.aiChapterDetectionConfig !== nextGlobalPayload.aiChapterDetectionConfig;
+        lastGlobalPayload.aiChapterDetectionConfig !== nextGlobalPayload.aiChapterDetectionConfig ||
+        lastGlobalPayload.rewriteConfig !== nextGlobalPayload.rewriteConfig ||
+        lastGlobalPayload.rewritePrompts !== nextGlobalPayload.rewritePrompts;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(

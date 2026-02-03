@@ -109,6 +109,9 @@ export interface PersistedGlobalState {
   aiSegmentMergeConfig?: AISegmentMergeConfig;
   // AI Chapter Detection config
   aiChapterDetectionConfig?: AIChapterDetectionConfig;
+  // Chapter Rewrite config
+  rewriteConfig?: import("./slices/rewriteSlice").RewriteConfig;
+  rewritePrompts?: import("./slices/rewriteSlice").RewritePrompt[];
 }
 
 export interface RecentSessionSummary {
@@ -137,6 +140,7 @@ export interface InitialStoreState {
   chapters: Chapter[];
   selectedSegmentId: string | null;
   selectedChapterId: string | null;
+  chapterDisplayModes: Record<string, "original" | "rewritten">;
   currentTime: number;
   isPlaying: boolean;
   duration: number;
@@ -144,6 +148,8 @@ export interface InitialStoreState {
   history: HistoryState[];
   historyIndex: number;
   isWhisperXFormat: boolean;
+  // UI State: Currently filtered segment IDs (for active filters like tags, bookmarks, etc.)
+  filteredSegmentIds: Set<string>;
   lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
@@ -205,6 +211,13 @@ export interface InitialStoreState {
   aiChapterDetectionError: string | null;
   aiChapterDetectionAbortController: AbortController | null;
   aiChapterDetectionBatchLog: AIChapterDetectionBatchLogEntry[];
+  // Rewrite state
+  rewriteConfig: import("./slices/rewriteSlice").RewriteConfig;
+  rewritePrompts: import("./slices/rewriteSlice").RewritePrompt[];
+  rewriteInProgress: boolean;
+  rewriteChapterId: string | null;
+  rewriteError: string | null;
+  rewriteAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -221,7 +234,8 @@ export type TranscriptStore = InitialStoreState &
   ConfidenceSlice &
   AIRevisionSlice &
   AISegmentMergeSlice &
-  AIChapterDetectionSlice & {
+  AIChapterDetectionSlice &
+  import("./slices/rewriteSlice").RewriteSlice & {
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
   };
@@ -281,6 +295,7 @@ export interface SegmentsSlice {
     reference?: FileReference | null;
   }) => void;
   setSelectedSegmentId: (id: string | null) => void;
+  setFilteredSegmentIds: (ids: string[]) => void;
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentsTexts: (updates: Array<{ id: string; text: string }>) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;
@@ -338,6 +353,23 @@ export interface ChapterSlice {
   selectChapterById: (id: string) => Chapter | undefined;
   selectChapterForSegment: (segmentId: string) => Chapter | undefined;
   selectSegmentsInChapter: (chapterId: string) => Segment[];
+
+  // Rewrite actions
+  setChapterRewrite: (
+    chapterId: string,
+    rewrittenText: string,
+    metadata: {
+      promptId: string;
+      providerId?: string;
+      model?: string;
+    },
+  ) => void;
+  clearChapterRewrite: (chapterId: string) => void;
+  updateChapterRewrite: (chapterId: string, rewrittenText: string) => void;
+
+  // Display mode
+  chapterDisplayModes: Record<string, "original" | "rewritten">;
+  setChapterDisplayMode: (chapterId: string, mode: "original" | "rewritten") => void;
 }
 
 export interface LexiconSlice {
