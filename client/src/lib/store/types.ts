@@ -647,6 +647,10 @@ export interface AIChapterSuggestion {
   createdAt: number;
   source: "manual" | "ai";
   status: AIChapterSuggestionStatus;
+  /** Indicates if this suggestion modifies an existing chapter */
+  modificationType?: "new" | "title-change";
+  /** ID of the existing chapter being modified (if modificationType is set) */
+  existingChapterId?: string;
 }
 
 export interface AIChapterDetectionBatchIssue {

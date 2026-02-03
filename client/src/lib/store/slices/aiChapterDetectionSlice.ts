@@ -178,7 +178,13 @@ export const createAIChapterDetectionSlice = (
                 indexById.has(first) && indexById.has(last)
                   ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
                   : 0;
-              return toSuggestion({
+
+              // Check if there's an existing chapter at the exact same position
+              const existingChapter = snapshot.chapters.find(
+                (existing) => existing.startSegmentId === first,
+              );
+
+              const baseSuggestion = toSuggestion({
                 id: generateId(),
                 title: ch.title,
                 summary: ch.summary,
@@ -190,6 +196,20 @@ export const createAIChapterDetectionSlice = (
                 createdAt: Date.now(),
                 source: "ai",
               } as unknown as Chapter);
+
+              // If there's an existing chapter at the same position, mark this as a modification
+              if (existingChapter) {
+                return {
+                  ...baseSuggestion,
+                  modificationType: "title-change" as const,
+                  existingChapterId: existingChapter.id,
+                };
+              }
+
+              return {
+                ...baseSuggestion,
+                modificationType: "new" as const,
+              };
             });
 
             // append batch suggestions
@@ -205,12 +225,31 @@ export const createAIChapterDetectionSlice = (
           },
         });
 
-        const suggestions = result.chapters.map((ch) =>
-          toSuggestion({
+        const suggestions = result.chapters.map((ch) => {
+          // Check if there's an existing chapter at the exact same position
+          const existingChapter = state.chapters.find(
+            (existing) => existing.startSegmentId === ch.startSegmentId,
+          );
+
+          const baseSuggestion = toSuggestion({
             ...ch,
             id: generateId(),
-          }),
-        );
+          });
+
+          // If there's an existing chapter at the same position, mark this as a modification
+          if (existingChapter) {
+            return {
+              ...baseSuggestion,
+              modificationType: "title-change" as const,
+              existingChapterId: existingChapter.id,
+            };
+          }
+
+          return {
+            ...baseSuggestion,
+            modificationType: "new" as const,
+          };
+        });
 
         set({
           aiChapterDetectionSuggestions: suggestions,
@@ -262,38 +301,56 @@ export const createAIChapterDetectionSlice = (
       confidenceScoresVersion,
     } = state;
 
-    const incoming: Chapter = {
-      id: suggestion.id,
-      title: suggestion.title,
-      summary: suggestion.summary,
-      notes: suggestion.notes,
-      tags: suggestion.tags,
-      startSegmentId: suggestion.startSegmentId,
-      endSegmentId: suggestion.endSegmentId,
-      segmentCount: suggestion.segmentCount,
-      createdAt: Date.now(),
-      source: "ai",
-    };
+    let updatedChapters: Chapter[];
 
-    const conflict = findConflicts(state.chapters, [incoming], segments);
-    if (!conflict.ok) {
-      set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestion" });
-      return;
-    }
+    // If this is a modification of an existing chapter, update it instead of adding new
+    if (suggestion.modificationType === "title-change" && suggestion.existingChapterId) {
+      updatedChapters = state.chapters.map((ch) =>
+        ch.id === suggestion.existingChapterId
+          ? {
+              ...ch,
+              title: suggestion.title,
+              summary: suggestion.summary,
+              notes: suggestion.notes,
+              tags: suggestion.tags,
+            }
+          : ch,
+      );
+    } else {
+      // Add as new chapter
+      const incoming: Chapter = {
+        id: suggestion.id,
+        title: suggestion.title,
+        summary: suggestion.summary,
+        notes: suggestion.notes,
+        tags: suggestion.tags,
+        startSegmentId: suggestion.startSegmentId,
+        endSegmentId: suggestion.endSegmentId,
+        segmentCount: suggestion.segmentCount,
+        createdAt: Date.now(),
+        source: "ai",
+      };
 
-    const indexById = buildSegmentIndexMap(segments);
-    const normalized = normalizeChapterCounts([...state.chapters, incoming], indexById);
-    if (hasOverlappingChapters(normalized, indexById)) {
-      set({ aiChapterDetectionError: "Conflict while accepting suggestion" });
-      return;
+      const conflict = findConflicts(state.chapters, [incoming], segments);
+      if (!conflict.ok) {
+        set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestion" });
+        return;
+      }
+
+      const indexById = buildSegmentIndexMap(segments);
+      const normalized = normalizeChapterCounts([...state.chapters, incoming], indexById);
+      if (hasOverlappingChapters(normalized, indexById)) {
+        set({ aiChapterDetectionError: "Conflict while accepting suggestion" });
+        return;
+      }
+      updatedChapters = sortChaptersByStart(normalized, indexById);
     }
-    const ordered = sortChaptersByStart(normalized, indexById);
 
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,
       tags: sessionTags,
-      chapters: ordered,
+      chapters: updatedChapters,
       selectedSegmentId,
       selectedChapterId,
       currentTime,
@@ -301,7 +358,7 @@ export const createAIChapterDetectionSlice = (
     });
 
     set({
-      chapters: ordered,
+      chapters: updatedChapters,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
