@@ -10,6 +10,7 @@ import {
   X,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -64,6 +65,7 @@ export function ChapterHeader({
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
   const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
   const currentDisplayMode = chapterDisplayModes[chapter.id] || "original";
+  const { t } = useTranslation();
 
   const [expanded, setExpanded] = useState(false);
   const [titleDraft, setTitleDraft] = useState(chapter.title);
@@ -73,7 +75,7 @@ export function ChapterHeader({
   const ignoreNextTitleBlurRef = useRef(false);
   const ignoreNextSummaryBlurRef = useRef(false);
   const ignoreNextNotesBlurRef = useRef(false);
-  const [_isHovered, setIsHovered] = useState(false);
+  const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [_hasOverflow, setHasOverflow] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -295,12 +297,18 @@ export function ChapterHeader({
       <div
         className={cn("group relative mt-6 mb-2 flex items-start gap-3 py-3")}
         data-testid={`chapter-header-${chapter.id}`}
+        onMouseEnter={() => setIsHeaderHovered(true)}
+        onMouseLeave={() => setIsHeaderHovered(false)}
+        role="group"
       >
         {/* Chevron toggle - only this triggers expand/collapse */}
         <CollapsibleTrigger asChild>
           <button
             type="button"
-            className="mt-0.5 p-0.5 rounded hover:bg-muted/10 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+            className={cn(
+              "mt-0.5 p-0.5 rounded hover:bg-muted/10 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+              isHeaderHovered ? "opacity-100" : "opacity-0",
+            )}
             aria-label={expanded ? "Collapse chapter" : "Expand chapter"}
           >
             <ChevronDown
@@ -398,14 +406,6 @@ export function ChapterHeader({
                   <div
                     ref={tagRowRef}
                     className="relative flex items-center"
-                    onMouseEnter={() => setIsHovered(true)}
-                    onMouseLeave={() => setIsHovered(false)}
-                    onFocusCapture={() => setIsHovered(true)}
-                    onBlurCapture={(event) => {
-                      const nextFocused = event.relatedTarget as Node | null;
-                      if (nextFocused && event.currentTarget.contains(nextFocused)) return;
-                      setIsHovered(false);
-                    }}
                     role="group"
                     data-testid={`chapter-tags-${chapter.id}`}
                   >
@@ -413,7 +413,10 @@ export function ChapterHeader({
                       <div className="flex items-center gap-1.5">
                         <div
                           ref={tagContainerRef}
-                          className="flex items-center gap-1.5 max-w-[28ch] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity"
+                          className={cn(
+                            "flex items-center gap-1.5 max-w-[28ch] overflow-hidden transition-opacity",
+                            isHeaderHovered ? "opacity-100" : "opacity-0",
+                          )}
                         >
                           {chapterTagInfo.map((info) => (
                             <Badge
@@ -452,7 +455,10 @@ export function ChapterHeader({
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                              className={cn(
+                                "h-6 w-6 flex-shrink-0 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                                isHeaderHovered ? "opacity-100" : "opacity-0",
+                              )}
                               disabled={availableTags.length === 0}
                               data-testid={`button-add-tag-${chapter.id}`}
                               onClick={(e) => e.stopPropagation()}
@@ -492,7 +498,10 @@ export function ChapterHeader({
                           <Button
                             variant="outline"
                             size="sm"
-                            className="px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                            className={cn(
+                              "px-2 text-xs gap-1.5 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                              isHeaderHovered ? "opacity-100" : "opacity-0",
+                            )}
                             data-testid={`button-add-first-tag-${chapter.id}`}
                           >
                             <Plus className="h-3 w-3" />
@@ -532,7 +541,10 @@ export function ChapterHeader({
                     <Button
                       variant="ghost"
                       size="sm"
-                      className="h-6 px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                      className={cn(
+                        "h-6 px-2 text-xs gap-1.5 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                        isHeaderHovered ? "opacity-100" : "opacity-0",
+                      )}
                       onClick={(event) => {
                         event.stopPropagation();
                         const newMode =
@@ -541,20 +553,20 @@ export function ChapterHeader({
                       }}
                       aria-label={
                         currentDisplayMode === "original"
-                          ? "Show reformulated version"
-                          : "Show original transcript"
+                          ? t("reformulation.view.reformulatedLabel")
+                          : t("diffView.original")
                       }
                       data-testid={`button-toggle-reformulation-${chapter.id}`}
                     >
                       {currentDisplayMode === "original" ? (
                         <>
                           <Sparkles className="h-3 w-3" />
-                          <span>Reformuliert</span>
+                          <span>{t("reformulation.view.reformulatedLabel")}</span>
                         </>
                       ) : (
                         <>
                           <FileText className="h-3 w-3" />
-                          <span>Original</span>
+                          <span>{t("diffView.original")}</span>
                         </>
                       )}
                     </Button>
@@ -566,7 +578,10 @@ export function ChapterHeader({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="h-6 w-6 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                        className={cn(
+                          "h-6 w-6 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+                          isHeaderHovered ? "opacity-100" : "opacity-0",
+                        )}
                         onClick={(event) => event.stopPropagation()}
                         aria-label="Chapter options"
                         data-testid={`button-chapter-options-${chapter.id}`}

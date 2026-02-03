@@ -28,7 +28,7 @@
     "view": {
       "title": "Reformulate Chapter",
       "originalLabel": "Original ({{count}} segments)",
-      "reformulatedLabel": "Reformulated",
+      "reformulatedLabel": "Umformuliert",
       "processing": "Reformulating chapter...",
       "retry": "Try again",
       "waiting": "Waiting for reformulation...",
