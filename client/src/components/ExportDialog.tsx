@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
+import { indexById } from "@/lib/arrayUtils";
 import { buildJSONExport } from "@/lib/exportUtils";
 import type { Segment, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
@@ -65,6 +66,9 @@ const ExportDialogComponent = ({
   // Pre-compute tagsById Map once
   const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
 
+  // Pre-compute segment index map for fast range lookups
+  const segmentIndexById = useMemo(() => indexById(segments), [segments]);
+
   // Determine which segments to export
   const segmentsToExport = useFilters ? filteredSegments : segments;
 
@@ -82,14 +86,15 @@ const ExportDialogComponent = ({
       const parts: string[] = [];
 
       for (const chapter of chapters) {
+        const startIndex = segmentIndexById.get(chapter.startSegmentId) ?? -1;
+        const endIndex = segmentIndexById.get(chapter.endSegmentId) ?? -1;
+
         // Find segments in this chapter that are in segmentsToExport
-        const chapterSegments = segmentsToExport.filter(
-          (seg) =>
-            segments.findIndex((s) => s.id === chapter.startSegmentId) <=
-              segments.findIndex((s) => s.id === seg.id) &&
-            segments.findIndex((s) => s.id === seg.id) <=
-              segments.findIndex((s) => s.id === chapter.endSegmentId),
-        );
+        const chapterSegments = segmentsToExport.filter((seg) => {
+          if (startIndex === -1 || endIndex === -1) return false;
+          const segmentIndex = segmentIndexById.get(seg.id) ?? -1;
+          return segmentIndex >= startIndex && segmentIndex <= endIndex;
+        });
 
         // Skip chapters with no segments in the export
         if (chapterSegments.length === 0) {
@@ -153,7 +158,7 @@ const ExportDialogComponent = ({
         return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
       })
       .join("\n\n");
-  }, [segmentsToExport, tagsById, useRewritten, chapters, segments]);
+  }, [segmentsToExport, tagsById, useRewritten, chapters, segmentIndexById]);
 
   // Memoize the export description text
   const exportDescription = useMemo(

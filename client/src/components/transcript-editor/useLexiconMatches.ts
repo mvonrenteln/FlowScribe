@@ -12,16 +12,12 @@ export interface LexiconMatchMeta {
 interface NormalizedLexiconEntry {
   term: string;
   normalized: string;
+  normalizedLength: number;
   raw: string;
-  variants: Array<{
-    value: string;
-    normalized: string;
-    raw: string;
-  }>;
-  falsePositives: Array<{
-    value: string;
-    normalized: string;
-  }>;
+  variantRawSet: Set<string>;
+  falsePositiveRawSet: Set<string>;
+  falsePositiveNormalizedSet: Set<string>;
+  falsePositiveNormalized: string[];
 }
 
 interface ComputeLexiconMatchesOptions {
@@ -39,25 +35,41 @@ export interface LexiconMatchesResult {
 
 const normalizeLexiconEntries = (lexiconEntries: LexiconEntry[]): NormalizedLexiconEntry[] => {
   return lexiconEntries
-    .map((entry) => ({
-      term: entry.term,
-      normalized: normalizeToken(entry.term),
-      raw: entry.term.trim().toLowerCase(),
-      variants: entry.variants
+    .map((entry) => {
+      const normalized = normalizeToken(entry.term);
+      const raw = entry.term.trim().toLowerCase();
+      const variants = entry.variants
         .map((variant) => ({
-          value: variant,
           normalized: normalizeToken(variant),
           raw: variant.trim().toLowerCase(),
         }))
-        .filter((variant) => variant.normalized.length > 0),
-      falsePositives: (entry.falsePositives ?? [])
+        .filter((variant) => variant.normalized.length > 0);
+      const falsePositives = (entry.falsePositives ?? [])
         .map((value) => ({
-          value,
           normalized: normalizeToken(value),
+          raw: value.trim().toLowerCase(),
         }))
-        .filter((value) => value.normalized.length > 0),
-    }))
-    .filter((entry) => entry.normalized.length > 0);
+        .filter((value) => value.normalized.length > 0);
+
+      return {
+        term: entry.term,
+        normalized,
+        normalizedLength: normalized.length,
+        raw,
+        variantRawSet: new Set(variants.map((variant) => variant.raw).filter(Boolean)),
+        falsePositiveRawSet: new Set(falsePositives.map((value) => value.raw).filter(Boolean)),
+        falsePositiveNormalizedSet: new Set(falsePositives.map((value) => value.normalized)),
+        falsePositiveNormalized: falsePositives.map((value) => value.normalized),
+      };
+    })
+    .filter((entry) => entry.normalizedLength > 0);
+};
+
+const canReachThreshold = (aLength: number, bLength: number, threshold: number) => {
+  if (aLength === 0 || bLength === 0) return false;
+  const diff = Math.abs(aLength - bLength);
+  const maxLen = Math.max(aLength, bLength);
+  return 1 - diff / maxLen >= threshold;
 };
 
 const computeSegmentMatches = (
@@ -83,45 +95,53 @@ const computeSegmentMatches = (
     parts.forEach((part, partIndex) => {
       const normalizedPart = normalizeToken(part);
       const rawPart = part.trim().toLowerCase();
+      const normalizedPartLength = normalizedPart.length;
       if (!normalizedPart) return;
 
       lexiconEntries.forEach((entry) => {
         const rawTerm = entry.raw;
         const isExactTermMatch = rawPart === rawTerm;
+        const hasVariantMatch = entry.variantRawSet.has(rawPart);
+
+        let candidateScore = 0;
+        if (isExactTermMatch) {
+          candidateScore = 1;
+        } else if (hasVariantMatch) {
+          candidateScore = 0.99;
+        } else if (
+          canReachThreshold(normalizedPartLength, entry.normalizedLength, lexiconThreshold)
+        ) {
+          const score = similarityScore(normalizedPart, entry.normalized);
+          candidateScore = score === 1 ? 0.99 : score;
+        }
+
+        if (candidateScore < lexiconThreshold) return;
 
         if (
-          entry.falsePositives.some(
-            (value) =>
-              value.normalized === normalizedPart || value.value.trim().toLowerCase() === rawPart,
-          )
+          entry.falsePositiveRawSet.has(rawPart) ||
+          entry.falsePositiveNormalizedSet.has(normalizedPart)
         ) {
           return;
         }
 
         let bestFalsePositiveScore = 0;
-        entry.falsePositives.forEach((value) => {
-          const score = similarityScore(normalizedPart, value.normalized);
-          if (score > bestFalsePositiveScore) {
-            bestFalsePositiveScore = score;
+        if (entry.falsePositiveNormalized.length > 0) {
+          for (const falsePositive of entry.falsePositiveNormalized) {
+            if (!canReachThreshold(normalizedPartLength, falsePositive.length, lexiconThreshold)) {
+              continue;
+            }
+            const score = similarityScore(normalizedPart, falsePositive);
+            if (score > bestFalsePositiveScore) {
+              bestFalsePositiveScore = score;
+            }
+            if (bestFalsePositiveScore >= lexiconThreshold) {
+              return;
+            }
           }
-        });
-
-        if (bestFalsePositiveScore >= lexiconThreshold) {
-          return;
         }
 
-        const score = similarityScore(normalizedPart, entry.normalized);
-        const adjustedScore = score === 1 && !isExactTermMatch ? 0.99 : score;
-
-        if (adjustedScore > bestScore) {
-          bestScore = adjustedScore;
-          bestTerm = entry.term;
-          bestPartIndex = parts.length > 1 ? partIndex : undefined;
-        }
-
-        const hasVariantMatch = entry.variants.some((variant) => variant.raw === rawPart);
-        if (hasVariantMatch && !isExactTermMatch && 0.99 > bestScore) {
-          bestScore = 0.99;
+        if (candidateScore > bestScore) {
+          bestScore = candidateScore;
           bestTerm = entry.term;
           bestPartIndex = parts.length > 1 ? partIndex : undefined;
         }
@@ -197,8 +217,13 @@ export const useLexiconMatches = ({
     matches: new Map(),
   });
 
+  // Memoize normalized lexicon entries separately to avoid duplicate normalization
+  const lexiconEntriesNormalized = useMemo(
+    () => normalizeLexiconEntries(lexiconEntries),
+    [lexiconEntries],
+  );
+
   return useMemo(() => {
-    const lexiconEntriesNormalized = normalizeLexiconEntries(lexiconEntries);
     if (lexiconEntriesNormalized.length === 0) {
       const empty = {
         lexiconMatchesBySegment: new Map<string, Map<number, LexiconMatchMeta>>(),
@@ -257,5 +282,5 @@ export const useLexiconMatches = ({
       matches,
     };
     return result;
-  }, [segments, lexiconEntries, lexiconThreshold]);
+  }, [segments, lexiconEntries, lexiconEntriesNormalized, lexiconThreshold]);
 };

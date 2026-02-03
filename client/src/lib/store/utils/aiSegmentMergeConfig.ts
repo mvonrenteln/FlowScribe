@@ -2,6 +2,7 @@ import {
   MERGE_ANALYSIS_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
   MERGE_ANALYSIS_USER_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
 } from "@/lib/ai/features/segmentMerge/config";
+import { indexById } from "@/lib/arrayUtils";
 import type { AIPrompt, AISegmentMergeConfig } from "../types";
 
 export const DEFAULT_SEGMENT_MERGE_PROMPT: AIPrompt = {
@@ -39,7 +40,7 @@ const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
   const normalized = normalizePrompts(
     prompts.length ? prompts : DEFAULT_AI_SEGMENT_MERGE_CONFIG.prompts,
   );
-  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_SEGMENT_MERGE_PROMPT.id);
+  const builtInIndex = indexById(normalized).get(DEFAULT_SEGMENT_MERGE_PROMPT.id) ?? -1;
   if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_SEGMENT_MERGE_PROMPT });
     return normalized;

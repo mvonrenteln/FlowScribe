@@ -9,6 +9,7 @@
 
 import type { BatchIdMapping, BatchPairMapping, RawAIItem } from "@/lib/ai/core/batchIdMapping";
 import { extractSegmentIdsGeneric } from "@/lib/ai/core/batchIdMapping";
+import { createMergePairKey } from "@/lib/ai/core/suggestionKeys";
 import { createLogger } from "@/lib/logging";
 import type {
   MergeAnalysisSegment,
@@ -768,6 +769,7 @@ export function collectSegmentPairsWithSimpleIds(
   sameSpeakerOnly: boolean,
   mapping: BatchPairMapping,
   getSimpleId: (realId: string) => number,
+  skipPairKeys?: Set<string>,
 ): Array<{
   pairIndex: number;
   simpleIdA: number;
@@ -795,6 +797,11 @@ export function collectSegmentPairsWithSimpleIds(
 
     const gap = calculateTimeGap(segmentA, segmentB);
     if (!isTimeGapAcceptable(gap, maxTimeGap)) {
+      continue;
+    }
+
+    const pairKey = createMergePairKey([segmentA.id, segmentB.id]);
+    if (skipPairKeys?.has(pairKey)) {
       continue;
     }
 

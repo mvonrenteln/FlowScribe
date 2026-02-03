@@ -92,6 +92,27 @@ describe("computeLexiconMatches", () => {
     expect(result.lexiconMatchCount).toBe(0);
     expect(result.lexiconLowScoreMatchCount).toBe(0);
   });
+
+  it("skips similarity work when the length gap cannot reach the threshold", () => {
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-5",
+        words: [{ word: "a", start: 0, end: 1 }],
+      },
+    ];
+
+    const similaritySpy = vi.spyOn(fuzzy, "similarityScore");
+
+    computeLexiconMatches({
+      segments,
+      lexiconEntries: [{ term: "extraordinarylongword", variants: [], falsePositives: [] }],
+      lexiconThreshold: 0.9,
+    });
+
+    expect(similaritySpy).not.toHaveBeenCalled();
+    similaritySpy.mockRestore();
+  });
 });
 
 describe("useLexiconMatches", () => {
@@ -116,7 +137,7 @@ describe("useLexiconMatches", () => {
     };
 
     const similaritySpy = vi.spyOn(fuzzy, "similarityScore");
-    const lexiconEntries = [{ term: "alpha", variants: [], falsePositives: [] }];
+    const lexiconEntries = [{ term: "alphi", variants: [], falsePositives: [] }];
 
     const { rerender } = renderHook(
       ({ segments }) =>

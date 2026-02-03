@@ -53,6 +53,11 @@ Each AI feature follows this standardized structure:
 6. **Progress** and **Results** during/after execution
 7. **Result Summary**: Grouped by confidence level (High/Medium/Low)
 
+#### Batch Restart Behavior
+
+- Batch restarts **skip items that already have suggestions** for the same element.
+- To replace existing suggestions, users must **clear the suggestion list first**.
+
 #### 3. Simplified Top Navigation
 
 **Before** (overcrowded):

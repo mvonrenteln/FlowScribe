@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { useToast } from "@/hooks/use-toast";
 import {
   buildAudioRefKey,
   clearAudioHandleForAudioRef,
@@ -14,6 +16,7 @@ interface UseTranscriptInitializationParams {
   audioFile: File | null;
   audioUrl: string | null;
   audioRef: FileReference | null;
+  duration: number;
   setAudioFile: TranscriptStore["setAudioFile"];
   setAudioUrl: TranscriptStore["setAudioUrl"];
   setAudioReference: TranscriptStore["setAudioReference"];
@@ -28,11 +31,14 @@ export const useTranscriptInitialization = ({
   audioFile,
   audioUrl,
   audioRef,
+  duration,
   setAudioFile,
   setAudioUrl,
   setAudioReference,
   loadTranscript,
 }: UseTranscriptInitializationParams) => {
+  const { t } = useTranslation();
+  const { toast } = useToast();
   // Compute audio reference key for handle storage
   const audioRefKey = audioRef ? buildAudioRefKey(audioRef) : null;
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
@@ -53,7 +59,36 @@ export const useTranscriptInitialization = ({
       const parsed = parseTranscriptData(data);
       if (!parsed) {
         console.error("Unknown transcript format. Expected Whisper or WhisperX format.");
+        toast({
+          title: t("import.transcriptFormatError"),
+          description: t("import.transcriptFormatErrorDescription"),
+          variant: "destructive",
+        });
         return;
+      }
+
+      // Check transcript duration against audio duration
+      if (parsed.segments.length > 0 && duration > 0) {
+        const transcriptDuration = Math.max(...parsed.segments.map((s) => s.end));
+        const TOLERANCE = 10; // 10 seconds tolerance
+
+        if (transcriptDuration < duration - TOLERANCE) {
+          toast({
+            title: t("import.transcriptDurationWarning"),
+            description: t("import.transcriptTooShort", {
+              transcriptDuration: transcriptDuration.toFixed(1),
+              audioDuration: duration.toFixed(1),
+            }),
+          });
+        } else if (transcriptDuration > duration + TOLERANCE) {
+          toast({
+            title: t("import.transcriptDurationWarning"),
+            description: t("import.transcriptTooLong", {
+              transcriptDuration: transcriptDuration.toFixed(1),
+              audioDuration: duration.toFixed(1),
+            }),
+          });
+        }
       }
 
       loadTranscript({
@@ -62,7 +97,7 @@ export const useTranscriptInitialization = ({
         reference: reference ?? null,
       });
     },
-    [loadTranscript],
+    [loadTranscript, t, toast, duration],
   );
 
   useEffect(() => {

@@ -84,6 +84,8 @@ describe("MergePanel", () => {
     expect(startMergeAnalysis).toHaveBeenCalledWith(
       expect.objectContaining({
         segmentIds: ["seg-1", "seg-2"],
+        providerId: "default-ollama",
+        model: "llama3.2",
       }),
     );
   });
@@ -150,6 +152,8 @@ describe("MergePanel", () => {
     expect(startMergeAnalysis).toHaveBeenCalledWith(
       expect.objectContaining({
         segmentIds: ["seg-3", "seg-4"],
+        providerId: "default-ollama",
+        model: "llama3.2",
       }),
     );
   });

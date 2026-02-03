@@ -4,7 +4,7 @@
  * Tests for the text revision service helper functions.
  */
 
-import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as core from "../core";
 import { getDefaultPrompt } from "../features/revision/config";
 import {
@@ -16,13 +16,14 @@ import {
 } from "../features/revision/service";
 
 describe("Revision Service", () => {
-  const executeFeatureSpy = vi.spyOn(core, "executeFeature");
+  let executeFeatureSpy: ReturnType<typeof vi.spyOn>;
 
   beforeEach(() => {
+    executeFeatureSpy = vi.spyOn(core, "executeFeature");
     executeFeatureSpy.mockReset();
   });
 
-  afterAll(() => {
+  afterEach(() => {
     executeFeatureSpy.mockRestore();
   });
 

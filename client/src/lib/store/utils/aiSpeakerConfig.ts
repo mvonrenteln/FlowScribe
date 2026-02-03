@@ -2,6 +2,7 @@ import {
   SPEAKER_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
   SPEAKER_USER_PROMPT_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
 } from "@/lib/ai/features/speaker";
+import { indexById } from "@/lib/arrayUtils";
 import type { AIPrompt, AISpeakerConfig } from "../types";
 
 export const DEFAULT_SPEAKER_PROMPT: AIPrompt = {
@@ -34,7 +35,7 @@ const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePr
 
 const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
   const normalized = normalizePrompts(prompts.length ? prompts : DEFAULT_AI_SPEAKER_CONFIG.prompts);
-  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_SPEAKER_PROMPT.id);
+  const builtInIndex = indexById(normalized).get(DEFAULT_SPEAKER_PROMPT.id) ?? -1;
   if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_SPEAKER_PROMPT });
     return normalized;

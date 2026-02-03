@@ -42,6 +42,8 @@ interface TranscriptWordProps {
   readonly segmentText?: string;
 }
 
+const emptySuggestions: string[] = [];
+
 export const TranscriptWord = memo(
   ({
     word,
@@ -302,6 +304,13 @@ export const TranscriptWord = memo(
       </button>
     );
 
+    const suggestions = spellcheckMatch?.suggestions ?? emptySuggestions;
+    const visibleSuggestions = useMemo(
+      () => (isExpanded ? suggestions : suggestions.slice(0, 3)),
+      [isExpanded, suggestions],
+    );
+    const showMore = suggestions.length > 3;
+
     let resolvedReplacePreview: string | null = null;
     if (isCurrentMatch && replaceQuery && onReplaceCurrent) {
       if (isRegexSearch && currentMatch) {
@@ -392,10 +401,6 @@ export const TranscriptWord = memo(
     if (!isLexiconMatch && !isSpellcheckMatch) {
       return wordButton;
     }
-
-    const suggestions = spellcheckMatch?.suggestions ?? [];
-    const visibleSuggestions = isExpanded ? suggestions : suggestions.slice(0, 3);
-    const showMore = suggestions.length > 3;
 
     return (
       <TooltipProvider>

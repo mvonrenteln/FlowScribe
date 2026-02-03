@@ -12,6 +12,7 @@ import {
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
+import { findFirstIndex } from "@/lib/arrayUtils";
 
 interface PlaybackControlsProps {
   isPlaying: boolean;
@@ -52,8 +53,11 @@ export function PlaybackControls({
   const [isMuted, setIsMuted] = useState(false);
   const speedSteps = [0.5, 0.75, 1, 1.25, 1.5, 2];
   const handleSpeedChange = () => {
-    const currentIndex = speedSteps.findIndex((value) => value >= playbackRate - 0.01);
-    const nextIndex = currentIndex >= 0 ? currentIndex + 1 : speedSteps.findIndex((v) => v > 1);
+    const currentIndex = findFirstIndex(speedSteps, (value) => value >= playbackRate - 0.01);
+    let nextIndex = currentIndex + 1;
+    if (currentIndex < 0) {
+      nextIndex = findFirstIndex(speedSteps, (value) => value > 1);
+    }
     const nextRate = speedSteps[nextIndex] ?? speedSteps[0];
     onPlaybackRateChange(nextRate);
   };

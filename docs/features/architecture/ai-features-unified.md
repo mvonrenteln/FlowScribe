@@ -824,6 +824,8 @@ async function reviseSegment(text: string, speaker: string) {
 
 **Use Case:** Revise 50 segments with progress tracking
 
+**Note:** For UI-driven batch runs, always pass the selected `providerId` and `model` into the feature execution options so the user's configuration is honored.
+
 ```typescript
 import { executeBatch } from "@/lib/ai/core/aiFeatureService";
 
@@ -1790,6 +1792,12 @@ setGlobalLogLevel("debug");  // "debug", "info", "warn", "error"
 ```
 
 **Location:** `/src/lib/ai/logging/loggingService.ts`
+
+---
+
+### 1.1 Batch Log Payload Capture
+
+Batch-capable features should include request/response payloads in their batch log entries to make parse failures actionable in the UI. For each batch, capture the compiled system + user prompt as `requestPayload` and the raw provider response as `responsePayload` when available. This enables operators to inspect exactly what was sent and received without turning on full debug logging.
 
 ---
 

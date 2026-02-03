@@ -156,11 +156,9 @@ describe("aiChapterDetectionSlice integration", () => {
     const state = mockStore.getState() as TranscriptStore;
     expect(state.aiChapterDetectionIsProcessing).toBe(false);
     expect(state.aiChapterDetectionError).toBeNull();
-    // With batchSize 30 and 100 segments we get 4 batches; mock returns 3 chapters per
-    // batch so total suggestions = batches * 3
-    const batches = Math.ceil(100 / 30);
-    const expectedCount = batches * 3;
-    expect(state.aiChapterDetectionSuggestions).toHaveLength(expectedCount);
+    // With batchSize 30 and 100 segments we get 4 batches; duplicate chapter ranges
+    // are de-duplicated across batches.
+    expect(state.aiChapterDetectionSuggestions).toHaveLength(6);
 
     // spot-check first batch mapping
     const [first] = state.aiChapterDetectionSuggestions;
@@ -209,6 +207,35 @@ describe("aiChapterDetectionSlice integration", () => {
     const [first] = state.aiChapterDetectionSuggestions;
     expect(first?.startSegmentId).toBe("seg-2");
     expect(first?.endSegmentId).toBe("seg-4");
+  });
+
+  it("skips processing when all segments already have suggestions", async () => {
+    mockStore = createMockStore();
+    mockStore.set((s) => ({
+      ...s,
+      segments: buildSegments(3),
+      aiChapterDetectionSuggestions: [
+        {
+          id: "suggestion-1",
+          title: "Existing",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-3",
+          segmentCount: 3,
+          createdAt: 0,
+          source: "ai" as const,
+          status: "pending" as const,
+        },
+      ],
+    }));
+    slice = createAIChapterDetectionSlice(mockStore.set, mockStore.get);
+
+    slice.startChapterDetection({ batchSize: 10 });
+    await flushPromises();
+    await flushPromises();
+
+    const state = mockStore.getState() as TranscriptStore;
+    expect(state.aiChapterDetectionError).toMatch(/already have suggestions/i);
+    expect(mockExecuteFeature).not.toHaveBeenCalled();
   });
 
   it("appends batch suggestions incrementally when a later batch fails", async () => {

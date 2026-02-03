@@ -9,6 +9,7 @@
  */
 
 import type { StoreApi } from "zustand";
+import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import type { RevisionResult } from "@/lib/ai/features/revision";
 import { indexById } from "@/lib/arrayUtils";
 import type {
@@ -332,9 +333,19 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
     const abortController = new AbortController();
     const segments = state.segments.filter((s) => segmentIds.includes(s.id));
+    const existingSegmentKeys = buildSuggestionKeySet(state.aiRevisionSuggestions, (suggestion) =>
+      createSegmentSuggestionKey(suggestion.segmentId),
+    );
+    const segmentsToProcess = segments.filter(
+      (segment) => !existingSegmentKeys.has(createSegmentSuggestionKey(segment.id)),
+    );
 
     if (segments.length === 0) {
       set({ aiRevisionError: "No segments found" });
+      return;
+    }
+    if (segmentsToProcess.length === 0) {
+      set({ aiRevisionError: "All selected segments already have suggestions" });
       return;
     }
 
@@ -347,7 +358,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     set({
       aiRevisionIsProcessing: true,
       aiRevisionProcessedCount: 0,
-      aiRevisionTotalToProcess: segments.length,
+      aiRevisionTotalToProcess: segmentsToProcess.length,
       aiRevisionError: null,
       aiRevisionAbortController: abortController,
       aiRevisionBatchLog: [],
@@ -356,7 +367,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     // Run batch revision asynchronously - dynamic import to avoid circular dependencies
     import("@/lib/ai/features/revision").then(({ reviseSegmentsBatch }) => {
       reviseSegmentsBatch({
-        segments,
+        segments: segmentsToProcess,
         allSegments: state.segments,
         prompt: selectedPrompt,
         signal: abortController.signal,
@@ -378,7 +389,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           const currentState = get();
           if (!currentState.aiRevisionIsProcessing) return; // Cancelled
 
-          const segment = segments.find((s) => s.id === result.segmentId);
+          const segment = segmentsToProcess.find((s) => s.id === result.segmentId);
           if (!segment) return;
 
           // Check if the text is actually different
@@ -388,6 +399,14 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           if (trimmedOriginal === trimmedRevised) {
             // No changes needed for this segment, skip creating suggestion
             console.log("[AIRevision] No changes needed for segment:", result.segmentId);
+            return;
+          }
+
+          const existingKeys = buildSuggestionKeySet(
+            currentState.aiRevisionSuggestions,
+            (suggestion) => createSegmentSuggestionKey(suggestion.segmentId),
+          );
+          if (existingKeys.has(createSegmentSuggestionKey(result.segmentId))) {
             return;
           }
 

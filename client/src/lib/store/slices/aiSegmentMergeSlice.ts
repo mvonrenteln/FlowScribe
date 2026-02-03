@@ -9,6 +9,7 @@
  */
 
 import type { StoreApi } from "zustand";
+import { buildSuggestionKeySet, createMergePairKey } from "@/lib/ai/core/suggestionKeys";
 import type {
   MergeAnalysisResult,
   MergeBatchLogEntry,
@@ -164,13 +165,16 @@ export const createAISegmentMergeSlice = (
       return;
     }
 
+    const existingPairKeys = buildSuggestionKeySet(state.aiSegmentMergeSuggestions, (suggestion) =>
+      createMergePairKey(suggestion.segmentIds),
+    );
+
     set({
       aiSegmentMergeIsProcessing: true,
       aiSegmentMergeProcessedCount: 0,
       aiSegmentMergeTotalToProcess: segmentsToAnalyze.length - 1,
       aiSegmentMergeError: null,
       aiSegmentMergeAbortController: abortController,
-      aiSegmentMergeSuggestions: [], // Clear previous suggestions
       aiSegmentMergeBatchLog: [],
     });
 
@@ -183,6 +187,9 @@ export const createAISegmentMergeSlice = (
       sameSpeakerOnly: options.sameSpeakerOnly ?? true,
       enableSmoothing: options.enableSmoothing ?? config.defaultEnableSmoothing,
       batchSize: options.batchSize ?? 10,
+      providerId: options.providerId ?? config.selectedProviderId,
+      model: options.model ?? config.selectedModel,
+      skipPairKeys: existingPairKeys,
       signal: abortController.signal,
       systemPrompt: activePrompt?.systemPrompt,
       userTemplate: activePrompt?.userPromptTemplate,
@@ -196,7 +203,12 @@ export const createAISegmentMergeSlice = (
         // Update UI after each batch
         const currentState = get();
         const currentSuggestions = currentState.aiSegmentMergeSuggestions;
-        const newSuggestions = progress.batchSuggestions.map(toStoreSuggestion);
+        const existingKeys = buildSuggestionKeySet(currentSuggestions, (suggestion) =>
+          createMergePairKey(suggestion.segmentIds),
+        );
+        const newSuggestions = progress.batchSuggestions
+          .map(toStoreSuggestion)
+          .filter((suggestion) => !existingKeys.has(createMergePairKey(suggestion.segmentIds)));
         const nextBatchLog = progress.batchLogEntry
           ? [
               ...currentState.aiSegmentMergeBatchLog,
@@ -238,6 +250,13 @@ export const createAISegmentMergeSlice = (
         }
 
         const storeSuggestions = result.suggestions.map(toStoreSuggestion);
+        const existingKeys = buildSuggestionKeySet(
+          currentState.aiSegmentMergeSuggestions,
+          (suggestion) => createMergePairKey(suggestion.segmentIds),
+        );
+        const newSuggestions = storeSuggestions.filter(
+          (suggestion) => !existingKeys.has(createMergePairKey(suggestion.segmentIds)),
+        );
 
         console.log("[AISegmentMerge] Analysis complete:", {
           found: result.summary.found,
@@ -245,7 +264,7 @@ export const createAISegmentMergeSlice = (
         });
 
         set({
-          aiSegmentMergeSuggestions: storeSuggestions,
+          aiSegmentMergeSuggestions: [...currentState.aiSegmentMergeSuggestions, ...newSuggestions],
           aiSegmentMergeIsProcessing: false,
           aiSegmentMergeProcessedCount: result.summary.analyzed,
           aiSegmentMergeError:

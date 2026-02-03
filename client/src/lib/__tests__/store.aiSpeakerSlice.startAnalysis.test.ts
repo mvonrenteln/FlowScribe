@@ -83,4 +83,29 @@ describe("aiSpeakerSlice - startAnalysis", () => {
     const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
     expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-1"]);
   });
+
+  it("skips segments that already have suggestions", () => {
+    useTranscriptStore.setState({
+      aiSpeakerSuggestions: [
+        {
+          segmentId: "seg-1",
+          currentSpeaker: "SPEAKER_00",
+          suggestedSpeaker: "SPEAKER_01",
+          status: "pending",
+        },
+      ],
+      aiSpeakerConfig: {
+        ...useTranscriptStore.getState().aiSpeakerConfig,
+        batchSize: 10,
+      },
+    });
+
+    useTranscriptStore.getState().startAnalysis([], false);
+
+    expect(useTranscriptStore.getState().aiSpeakerTotalToProcess).toBe(2);
+    expect(classifySpeakersBatch).toHaveBeenCalled();
+    const mocked = vi.mocked(classifySpeakersBatch);
+    const firstCallFirstArg = mocked.mock.calls[0][0] as Segment[];
+    expect(firstCallFirstArg.map((s) => s.id)).toEqual(["seg-2", "seg-3"]);
+  });
 });

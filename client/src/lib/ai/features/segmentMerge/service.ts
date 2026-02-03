@@ -8,9 +8,10 @@
  */
 
 import { executeFeature } from "@/lib/ai";
+import { compileTemplate } from "@/lib/ai/prompts";
 import { createLogger } from "@/lib/logging";
 import { buildMergePrompt, hasEligiblePairs } from "./promptBuilder";
-import { processAIResponse } from "./responseProcessor";
+import { extractRawResponse, processAIResponse } from "./responseProcessor";
 import type {
   MergeAnalysisIssue,
   MergeAnalysisParams,
@@ -59,6 +60,9 @@ export async function analyzeMergeCandidates(
     sameSpeakerOnly,
     enableSmoothing,
     batchSize = 10,
+    providerId,
+    model,
+    skipPairKeys,
     signal,
     onProgress,
     systemPrompt,
@@ -112,9 +116,15 @@ export async function analyzeMergeCandidates(
       sameSpeakerOnly,
       enableSmoothing: enableSmoothing ? "true" : "false",
       idContext,
+      skipPairKeys,
       systemPrompt,
       userTemplate,
     });
+
+    const requestPayload = `SYSTEM\n${compileTemplate(
+      prompt.systemPrompt,
+      prompt.variables,
+    )}\n\nUSER\n${compileTemplate(prompt.userTemplate, prompt.variables)}`;
 
     // Check if we have eligible pairs
     if (!hasEligiblePairs(prompt)) {
@@ -131,6 +141,8 @@ export async function analyzeMergeCandidates(
     try {
       // Execute AI analysis for this batch
       const result = await executeFeature<RawMergeSuggestion[]>("segment-merge", prompt.variables, {
+        providerId,
+        model,
         customPrompt: {
           systemPrompt: prompt.systemPrompt,
           userPromptTemplate: prompt.userTemplate,
@@ -155,6 +167,7 @@ export async function analyzeMergeCandidates(
               ],
               batchDurationMs: retryInfo.attemptDurationMs,
               fatal: false,
+              requestPayload,
             };
             onProgress({
               batchIndex: batchIndex + 1,
@@ -171,6 +184,8 @@ export async function analyzeMergeCandidates(
         success: result.success,
         hasData: !!result.data,
       });
+
+      const responsePayload = extractRawResponse(result) ?? undefined;
 
       // Process response using new processor
       const processed = processAIResponse(result, {
@@ -200,6 +215,8 @@ export async function analyzeMergeCandidates(
         issues: processed.issues,
         batchDurationMs: Date.now() - batchStart,
         fatal: processed.issues.some((issue) => issue.level === "error"),
+        requestPayload,
+        responsePayload,
       };
 
       // Notify progress after each batch — only for batches that actually had pairs
@@ -241,6 +258,7 @@ export async function analyzeMergeCandidates(
             issues: [batchIssue],
             batchDurationMs: Date.now() - batchStart,
             fatal: true,
+            requestPayload,
           },
         });
       }
