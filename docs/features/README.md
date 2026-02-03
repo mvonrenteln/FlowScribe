@@ -18,7 +18,7 @@ This ensures:
 | **Text Editing** | ✅ Direct editing | ✅ Transcript Revision | Complete |
 | **Speakers** | ✅ Manual assignment | ✅ Speaker Classification | Complete |
 | **Segment Merge** | ✅ Click to merge | ✅ AI Suggestions | Complete |
-| **Chapters** | 📋 Manual creation | 📋 AI Detection | Design ✅, Dev pending |
+| **Chapters** | ✅ Manual creation | ✅ AI Detection + Reformulation | Complete |
 | **Multi-Track** | 📋 Manual comparison | 📋 AI Selection | Planned |
 | **Export** | 📋 Manual templates | 📋 AI Transformation | Planned |
 
@@ -36,6 +36,7 @@ This ensures:
 - [Speaker Classification](ai-speaker-classification.md) — AI-assisted speaker identification
 - [Transcript Revision](ai-transcript-revision-guide.md) — AI text correction and improvement
 - [Segment Merge](ai-segment-merge-suggestion.md) — Manual merge + AI suggestions
+- [**Chapter Reformulation**](ai-chapter-reformulation.md) — Transform transcripts into publication-ready text
 
 ### Designed Features (Development Pending)
 - [**AI Chapter Detection**](ai-chapter-detection.md) — Manual chapters + AI batch detection
@@ -72,9 +73,10 @@ This ensures:
 | Identify speakers | AI Speaker Classification |
 | Find merge candidates | AI Merge Analysis |
 | Detect chapters | AI Chapter Detection |
+| Reformulate chapters | AI Chapter Reformulation |
 | Best track selection | AI Track Recommendations |
 | Generate summary | AI Content Transformation |
 
 ---
 
-*Last Updated: January 23, 2026*
+*Last Updated: February 3, 2026*
