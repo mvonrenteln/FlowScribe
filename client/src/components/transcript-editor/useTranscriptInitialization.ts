@@ -70,7 +70,7 @@ export const useTranscriptInitialization = ({
       // Check transcript duration against audio duration
       if (parsed.segments.length > 0 && duration > 0) {
         const transcriptDuration = Math.max(...parsed.segments.map((s) => s.end));
-        const TOLERANCE = 5; // 5 seconds tolerance
+        const TOLERANCE = 10; // 10 seconds tolerance
 
         if (transcriptDuration < duration - TOLERANCE) {
           toast({
