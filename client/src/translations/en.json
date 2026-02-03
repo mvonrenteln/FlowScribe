@@ -94,5 +94,12 @@
       "regenerate": "Regenerate",
       "accept": "Accept"
     }
+  },
+  "import": {
+    "transcriptFormatError": "Invalid transcript format",
+    "transcriptFormatErrorDescription": "The file could not be read. Expected Whisper or WhisperX JSON format.",
+    "transcriptDurationWarning": "Transcript duration mismatch",
+    "transcriptTooShort": "The transcript ({{transcriptDuration}}s) is shorter than the audio ({{audioDuration}}s).",
+    "transcriptTooLong": "The transcript ({{transcriptDuration}}s) is longer than the audio ({{audioDuration}}s)."
   }
 }

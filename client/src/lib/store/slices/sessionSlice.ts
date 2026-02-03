@@ -251,6 +251,14 @@ export const createSessionSlice = (
     const state = get();
     const confidenceScoresVersion = state.confidenceScoresVersion + 1;
     const shouldClearAudio = !isSameFileReference(state.audioRef, session.audioRef);
+
+    // Abort any running AI operations before switching sessions
+    state.aiSpeakerAbortController?.abort();
+    state.aiRevisionAbortController?.abort();
+    state.aiSegmentMergeAbortController?.abort();
+    state.aiChapterDetectionAbortController?.abort();
+    state.rewriteAbortController?.abort();
+
     set({
       audioRef: session.audioRef,
       transcriptRef: session.transcriptRef,
@@ -283,6 +291,43 @@ export const createSessionSlice = (
       audioUrl: shouldClearAudio ? null : state.audioUrl,
       seekRequestTime: null,
       confidenceScoresVersion,
+      // Clear all AI suggestions and states when switching sessions
+      aiSpeakerSuggestions: [],
+      aiSpeakerIsProcessing: false,
+      aiSpeakerProcessedCount: 0,
+      aiSpeakerTotalToProcess: 0,
+      aiSpeakerError: null,
+      aiSpeakerAbortController: null,
+      aiSpeakerBatchInsights: [],
+      aiSpeakerDiscrepancyNotice: null,
+      aiSpeakerBatchLog: [],
+      aiRevisionSuggestions: [],
+      aiRevisionIsProcessing: false,
+      aiRevisionCurrentSegmentId: null,
+      aiRevisionProcessedCount: 0,
+      aiRevisionTotalToProcess: 0,
+      aiRevisionError: null,
+      aiRevisionAbortController: null,
+      aiRevisionBatchLog: [],
+      aiRevisionLastResult: null,
+      aiSegmentMergeSuggestions: [],
+      aiSegmentMergeIsProcessing: false,
+      aiSegmentMergeProcessedCount: 0,
+      aiSegmentMergeTotalToProcess: 0,
+      aiSegmentMergeError: null,
+      aiSegmentMergeAbortController: null,
+      aiSegmentMergeBatchLog: [],
+      aiChapterDetectionSuggestions: [],
+      aiChapterDetectionIsProcessing: false,
+      aiChapterDetectionProcessedBatches: 0,
+      aiChapterDetectionTotalBatches: 0,
+      aiChapterDetectionError: null,
+      aiChapterDetectionAbortController: null,
+      aiChapterDetectionBatchLog: [],
+      rewriteInProgress: false,
+      rewriteChapterId: null,
+      rewriteError: null,
+      rewriteAbortController: null,
     });
 
     // Try to restore audio handle for this session

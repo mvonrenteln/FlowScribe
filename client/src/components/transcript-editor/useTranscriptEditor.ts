@@ -185,6 +185,7 @@ export const useTranscriptEditor = () => {
       audioFile,
       audioUrl,
       audioRef,
+      duration,
       setAudioFile,
       setAudioUrl,
       setAudioReference,

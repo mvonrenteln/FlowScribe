@@ -311,7 +311,10 @@ export function WaveformPlayer({
     }
 
     const nextSignature = regionSegments
-      .map((segment) => `${segment.id}:${segment.start}:${segment.end}:${segment.speaker}`)
+      .map((segment) => {
+        const color = getSpeakerColor(segment.speaker);
+        return `${segment.id}:${segment.start}:${segment.end}:${segment.speaker}:${color}`;
+      })
       .join("|");
     if (lastShowSpeakerRegionsRef.current && regionSignatureRef.current === nextSignature) {
       return;
