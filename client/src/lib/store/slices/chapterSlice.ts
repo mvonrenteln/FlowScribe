@@ -6,6 +6,7 @@ import {
   hasOverlappingChapters,
   memoizedBuildSegmentIndexMap,
   normalizeChapterCounts,
+  recomputeChapterRangesFromStarts,
   sortChaptersByStart,
 } from "../utils/chapters";
 import { generateId } from "../utils/id";
@@ -163,6 +164,70 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
     set({
       chapters: ordered,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
+
+  moveChapterStart: (id, targetSegmentId) => {
+    const {
+      chapters,
+      segments,
+      speakers,
+      tags,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    } = get();
+    if (!chapters.length) return;
+
+    const existing = chapters.find((chapter) => chapter.id === id);
+    if (!existing) return;
+    if (existing.startSegmentId === targetSegmentId) return;
+
+    const indexById = memoizedBuildSegmentIndexMap(segments);
+    const targetIndex = indexById.get(targetSegmentId);
+    if (targetIndex === undefined) return;
+
+    const ordered = sortChaptersByStart(chapters, indexById);
+    const currentIndex = ordered.findIndex((chapter) => chapter.id === id);
+    if (currentIndex === -1) return;
+
+    const prevChapter = ordered[currentIndex - 1];
+    const nextChapter = ordered[currentIndex + 1];
+    const prevStartIndex = prevChapter ? indexById.get(prevChapter.startSegmentId) : undefined;
+    const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+
+    if (prevStartIndex !== undefined && targetIndex <= prevStartIndex) return;
+    if (nextStartIndex !== undefined && targetIndex >= nextStartIndex) return;
+    if (
+      chapters.some((chapter) => chapter.id !== id && chapter.startSegmentId === targetSegmentId)
+    ) {
+      return;
+    }
+
+    const updatedChapters = chapters.map((chapter) =>
+      chapter.id === id ? { ...chapter, startSegmentId: targetSegmentId } : chapter,
+    );
+    const recomputed = recomputeChapterRangesFromStarts(updatedChapters, segments, indexById);
+    if (hasOverlappingChapters(recomputed, indexById)) return;
+
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers,
+      tags,
+      chapters: recomputed,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      confidenceScoresVersion,
+    });
+
+    set({
+      chapters: recomputed,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
     });

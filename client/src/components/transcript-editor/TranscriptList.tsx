@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
@@ -75,6 +75,7 @@ function TranscriptListComponent({
   const pendingMergeSuggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
+  const moveChapterStart = useTranscriptStore((s) => s.moveChapterStart);
 
   // Get chapter display modes for rewritten text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
@@ -174,6 +175,13 @@ function TranscriptListComponent({
   const segmentIndexById = useSegmentIndexById();
   const filteredIndexById = useMemo(() => indexById(filteredSegments), [filteredSegments]);
   const segmentById = useMemo(() => mapById(allSegments), [allSegments]);
+
+  const handleChapterDrop = useCallback(
+    (chapterId: string, targetSegmentId: string) => {
+      moveChapterStart(chapterId, targetSegmentId);
+    },
+    [moveChapterStart],
+  );
 
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
@@ -345,6 +353,7 @@ function TranscriptListComponent({
                     onDelete={handlers.onDelete}
                     onSeek={onSeek}
                     onStartChapterHere={onStartChapterAtSegment}
+                    onChapterDrop={handleChapterDrop}
                     searchQuery={searchQuery}
                     isRegexSearch={isRegexSearch}
                     replaceQuery={replaceQuery}

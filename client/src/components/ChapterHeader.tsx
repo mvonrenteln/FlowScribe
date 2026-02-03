@@ -3,6 +3,7 @@ import {
   ChevronDown,
   Edit2,
   FileText,
+  GripVertical,
   MoreVertical,
   Plus,
   Sparkles,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import type { Chapter, ChapterUpdate, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -301,6 +303,26 @@ export function ChapterHeader({
         onMouseLeave={() => setIsHeaderHovered(false)}
         role="group"
       >
+        <button
+          type="button"
+          draggable
+          className={cn(
+            "mt-0.5 p-0.5 rounded transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+            isHeaderHovered ? "opacity-100" : "opacity-0",
+          )}
+          aria-label="Drag to move chapter boundary"
+          title="Drag to move chapter boundary"
+          onClick={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onDragStart={(event) => {
+            event.stopPropagation();
+            event.dataTransfer.setData(CHAPTER_DRAG_TYPE, chapter.id);
+            event.dataTransfer.effectAllowed = "move";
+          }}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
         {/* Chevron toggle - only this triggers expand/collapse */}
         <CollapsibleTrigger asChild>
           <button

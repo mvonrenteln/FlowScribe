@@ -126,3 +126,38 @@ export const normalizeChapterCounts = (
     }
     return { ...chapter, segmentCount: range.endIndex - range.startIndex + 1 };
   });
+
+/**
+ * Recompute chapter end boundaries so each chapter ends where the next begins.
+ * Returns chapters ordered by their start segment position.
+ */
+export const recomputeChapterRangesFromStarts = (
+  chapters: Chapter[],
+  segments: Segment[],
+  indexById: Map<string, number>,
+): Chapter[] => {
+  if (chapters.length === 0) return [];
+  const ordered = sortChaptersByStart(chapters, indexById);
+  return ordered.map((chapter, index) => {
+    const startIndex = indexById.get(chapter.startSegmentId);
+    if (startIndex === undefined) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    const nextChapter = ordered[index + 1];
+    const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+    if (nextStartIndex !== undefined && nextStartIndex <= startIndex) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    const resolvedEndIndex =
+      nextStartIndex !== undefined
+        ? Math.max(startIndex, nextStartIndex - 1)
+        : Math.max(startIndex, segments.length - 1);
+    const endSegmentId = segments[resolvedEndIndex]?.id ?? chapter.endSegmentId;
+    const segmentCount = resolvedEndIndex - startIndex + 1;
+    return {
+      ...chapter,
+      endSegmentId,
+      segmentCount,
+    };
+  });
+};

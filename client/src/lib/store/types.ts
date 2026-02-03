@@ -347,6 +347,11 @@ export interface ChapterSlice {
   startChapter: (title: string, startSegmentId: string, tags?: string[]) => string | undefined;
   updateChapter: (id: string, updates: ChapterUpdate) => void;
   deleteChapter: (id: string) => void;
+  /**
+   * Move a chapter's start boundary to a new segment id, keeping chapter ends
+   * aligned to the next chapter's start.
+   */
+  moveChapterStart: (id: string, targetSegmentId: string) => void;
   selectChapter: (id: string | null) => void;
   clearChapters: () => void;
   selectAllChapters: () => Chapter[];
