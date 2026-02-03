@@ -155,6 +155,25 @@ export function useSpellcheck({
     return `${languageKey}|${enabledKey}|${customKey}`;
   }, [effectiveSpellcheckLanguages, spellcheckCustomDictionaries, spellcheckCustomEnabled]);
 
+  const ignoredWordsSet = useMemo(() => {
+    const ignored = new Set(spellcheckIgnoreWords);
+    lexiconEntries.forEach((entry) => {
+      const term = normalizeSpellcheckTerm(entry.term);
+      if (term) {
+        ignored.add(term);
+      }
+      (entry.variants ?? []).forEach((variant) => {
+        const normalized = normalizeSpellcheckTerm(variant);
+        if (normalized) {
+          ignored.add(normalized);
+        }
+      });
+    });
+    return ignored;
+  }, [lexiconEntries, spellcheckIgnoreWords]);
+
+  const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
+
   useEffect(() => {
     const SPELLCHECK_MATCH_LIMIT = 1000;
     const runId = spellcheckRunIdRef.current + 1;
@@ -172,21 +191,6 @@ export function useSpellcheck({
       return;
     }
 
-    const ignored = new Set(spellcheckIgnoreWords);
-    lexiconEntries.forEach((entry) => {
-      const term = normalizeSpellcheckTerm(entry.term);
-      if (term) {
-        ignored.add(term);
-      }
-      (entry.variants ?? []).forEach((variant) => {
-        const normalized = normalizeSpellcheckTerm(variant);
-        if (normalized) {
-          ignored.add(normalized);
-        }
-      });
-    });
-
-    const ignoredKey = Array.from(ignored).sort().join("|");
     const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}`;
     const reuseMatches =
       previousCacheKeyRef.current === cacheKey &&
@@ -265,7 +269,7 @@ export function useSpellcheck({
             word.word,
             spellcheckers,
             spellcheckLanguageKey,
-            ignored,
+            ignoredWordsSet,
           );
           if (match) {
             wordMatches.set(wordIndex, match);
@@ -330,10 +334,10 @@ export function useSpellcheck({
       }
     };
   }, [
-    lexiconEntries,
+    ignoredKey,
+    ignoredWordsSet,
     segments,
     spellcheckEnabled,
-    spellcheckIgnoreWords,
     spellcheckLanguageKey,
     spellcheckers,
   ]);
