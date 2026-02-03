@@ -7,6 +7,7 @@
  * @module ai/features/rewrite/service
  */
 
+import { indexById } from "@/lib/arrayUtils";
 import type { Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
@@ -143,7 +144,8 @@ function buildRewriteContext(options: {
     return { summaries: [], previousText: "" };
   }
 
-  const currentIndex = allChapters.findIndex((c) => c.id === chapter.id);
+  const indexMap = indexById(allChapters);
+  const currentIndex = indexMap.get(chapter.id) ?? -1;
 
   // Summaries from all previous chapters
   const summaries = allChapters

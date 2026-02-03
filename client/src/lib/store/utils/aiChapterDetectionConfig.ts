@@ -2,6 +2,7 @@ import {
   CHAPTER_DETECTION_SYSTEM_PROMPT,
   CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
 } from "@/lib/ai/features/chapterDetection";
+import { indexById } from "@/lib/arrayUtils";
 import type { AIChapterDetectionConfig, AIPrompt, PersistedGlobalState } from "../types";
 
 export const DEFAULT_CHAPTER_DETECTION_PROMPT: AIPrompt = {
@@ -38,7 +39,7 @@ const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
   const normalized = normalizePrompts(
     prompts.length ? prompts : DEFAULT_AI_CHAPTER_DETECTION_CONFIG.prompts,
   );
-  const builtInIndex = normalized.findIndex((p) => p.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id);
+  const builtInIndex = indexById(normalized).get(DEFAULT_CHAPTER_DETECTION_PROMPT.id) ?? -1;
   if (builtInIndex === -1) {
     normalized.unshift({ ...DEFAULT_CHAPTER_DETECTION_PROMPT });
     return normalized;

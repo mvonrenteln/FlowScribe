@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { indexById, mapById } from "../arrayUtils";
+import { findFirstIndex, indexById, mapById } from "../arrayUtils";
 
 describe("arrayUtils", () => {
   it("indexById returns empty map for empty array", () => {
@@ -29,5 +29,17 @@ describe("arrayUtils", () => {
     const map = mapById([first, second, dup]);
     expect(map.get("1")).toBe(first);
     expect(map.get("2")).toBe(second);
+  });
+
+  it("findFirstIndex returns first matching index", () => {
+    const arr = [3, 6, 9, 12];
+    const index = findFirstIndex(arr, (value) => value >= 9);
+    expect(index).toBe(2);
+  });
+
+  it("findFirstIndex returns -1 when no match", () => {
+    const arr = [1, 2, 3];
+    const index = findFirstIndex(arr, (value) => value > 10);
+    expect(index).toBe(-1);
   });
 });

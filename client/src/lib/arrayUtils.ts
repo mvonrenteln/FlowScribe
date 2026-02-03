@@ -40,3 +40,23 @@ export function mapById<T extends WithId>(arr: readonly T[]): Map<string, T> {
   }
   return map;
 }
+
+/**
+ * Find the first index that matches a predicate.
+ *
+ * Returns -1 when no element matches. This avoids allocation and keeps
+ * the loop easy to inline in performance-sensitive paths.
+ *
+ * @param arr - Array to scan
+ * @param predicate - Match function
+ * @returns Index of the first matching element, or -1
+ */
+export function findFirstIndex<T>(
+  arr: readonly T[],
+  predicate: (item: T, index: number) => boolean,
+): number {
+  for (let i = 0; i < arr.length; i++) {
+    if (predicate(arr[i], i)) return i;
+  }
+  return -1;
+}

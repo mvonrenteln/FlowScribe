@@ -58,9 +58,9 @@ const SheetContent = React.forwardRef<
   SheetContentProps
 >(({ side = "right", className, children, ...props }, ref) => {
   // Avoid forwarding `aria-describedby={undefined}` to Radix (causes warnings).
-  const { ["aria-describedby"]: ariaDescribedBy, ...rest } = props as Record<string, any>;
+  const { "aria-describedby": ariaDescribedBy, ...rest } = props;
   const contentProps =
-    ariaDescribedBy === undefined ? rest : { ...rest, ["aria-describedby"]: ariaDescribedBy };
+    ariaDescribedBy === undefined ? rest : { ...rest, "aria-describedby": ariaDescribedBy };
 
   return (
     <SheetPortal>
