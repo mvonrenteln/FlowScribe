@@ -162,6 +162,8 @@ export function AISegmentMergeDialog({
       sameSpeakerOnly,
       enableSmoothing,
       batchSize: batchSize || 10,
+      providerId: selectedProviderId || undefined,
+      model: selectedModel || undefined,
     });
   };
 

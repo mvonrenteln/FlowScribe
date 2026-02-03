@@ -99,6 +99,8 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
           processed: `${entry.processedTotal}/${entry.totalExpected}`,
           issues: entry.fatal ? "FATAL" : issueSummary,
           loggedAt: entry.loggedAt ?? Date.now(),
+          requestPayload: entry.requestPayload,
+          responsePayload: entry.responsePayload,
         };
       }),
     [batchLog],
@@ -147,6 +149,8 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
       sameSpeakerOnly,
       enableSmoothing,
       batchSize: parsedBatch,
+      providerId: selectedProviderId || undefined,
+      model: selectedModel || undefined,
     });
   };
 

@@ -147,6 +147,12 @@ export interface MergeAnalysisParams {
   /** Batch size for processing segments */
   batchSize?: number;
 
+  /** Provider ID override for this analysis run */
+  providerId?: string;
+
+  /** Model override for this analysis run */
+  model?: string;
+
   /** Skip existing pair suggestions by key */
   skipPairKeys?: Set<string>;
 
@@ -200,6 +206,10 @@ export interface MergeBatchLogEntry {
   loggedAt?: number;
   batchDurationMs?: number;
   fatal?: boolean;
+  /** Full request payload (system + user prompts) for this batch */
+  requestPayload?: string;
+  /** Raw response payload from provider for this batch */
+  responsePayload?: string;
 }
 
 // ==================== Analysis Results ====================

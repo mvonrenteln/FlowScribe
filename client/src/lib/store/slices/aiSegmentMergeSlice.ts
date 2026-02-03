@@ -187,6 +187,8 @@ export const createAISegmentMergeSlice = (
       sameSpeakerOnly: options.sameSpeakerOnly ?? true,
       enableSmoothing: options.enableSmoothing ?? config.defaultEnableSmoothing,
       batchSize: options.batchSize ?? 10,
+      providerId: options.providerId ?? config.selectedProviderId,
+      model: options.model ?? config.selectedModel,
       skipPairKeys: existingPairKeys,
       signal: abortController.signal,
       systemPrompt: activePrompt?.systemPrompt,

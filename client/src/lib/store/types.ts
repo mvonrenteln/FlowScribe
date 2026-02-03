@@ -726,6 +726,8 @@ export interface AISegmentMergeSlice {
     sameSpeakerOnly?: boolean;
     enableSmoothing?: boolean;
     batchSize?: number;
+    providerId?: string;
+    model?: string;
   }) => void;
   cancelMergeAnalysis: () => void;
   acceptMergeSuggestion: (
