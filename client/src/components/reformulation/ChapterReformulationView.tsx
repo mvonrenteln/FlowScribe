@@ -47,6 +47,7 @@ export function ChapterReformulationView({
   const reformulationChapterId = useTranscriptStore((s) => s.reformulationChapterId);
   const reformulationError = useTranscriptStore((s) => s.reformulationError);
   const setChapterReformulation = useTranscriptStore((s) => s.setChapterReformulation);
+  const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
   const cancelReformulation = useTranscriptStore((s) => s.cancelReformulation);
   const startReformulation = useTranscriptStore((s) => s.startReformulation);
 
@@ -159,8 +160,19 @@ export function ChapterReformulationView({
       model: chapter.reformulationContext?.model,
     });
 
+    // Automatically switch to reformulated view after accepting
+    setChapterDisplayMode(chapterId, "reformulated");
+
     onClose();
-  }, [chapter, chapterId, reformulatedText, promptId, setChapterReformulation, onClose]);
+  }, [
+    chapter,
+    chapterId,
+    reformulatedText,
+    promptId,
+    setChapterReformulation,
+    setChapterDisplayMode,
+    onClose,
+  ]);
 
   const handleReject = useCallback(() => {
     cancelReformulation();

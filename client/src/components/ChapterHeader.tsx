@@ -1,4 +1,14 @@
-import { Check, ChevronDown, Edit2, MoreVertical, Plus, Sparkles, Trash2, X } from "lucide-react";
+import {
+  Check,
+  ChevronDown,
+  Edit2,
+  FileText,
+  MoreVertical,
+  Plus,
+  Sparkles,
+  Trash2,
+  X,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertDialog,
@@ -22,6 +32,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import type { Chapter, ChapterUpdate, Tag } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 interface ChapterHeaderProps {
@@ -49,6 +60,11 @@ export function ChapterHeader({
   autoFocus,
   onAutoFocusHandled,
 }: ChapterHeaderProps) {
+  // Get chapter display mode from store
+  const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
+  const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
+  const currentDisplayMode = chapterDisplayModes[chapter.id] || "original";
+
   const [expanded, setExpanded] = useState(false);
   const [titleDraft, setTitleDraft] = useState(chapter.title);
   const [isTitleEditing, setIsTitleEditing] = useState(false);
@@ -510,6 +526,39 @@ export function ChapterHeader({
                       </DropdownMenu>
                     )}
                   </div>
+
+                  {/* Reformulation Toggle - only shown when reformulation exists */}
+                  {chapter.reformulatedText && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-6 px-2 text-xs gap-1.5 opacity-0 group-hover:opacity-100 transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none"
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        const newMode =
+                          currentDisplayMode === "original" ? "reformulated" : "original";
+                        setChapterDisplayMode(chapter.id, newMode);
+                      }}
+                      aria-label={
+                        currentDisplayMode === "original"
+                          ? "Show reformulated version"
+                          : "Show original transcript"
+                      }
+                      data-testid={`button-toggle-reformulation-${chapter.id}`}
+                    >
+                      {currentDisplayMode === "original" ? (
+                        <>
+                          <Sparkles className="h-3 w-3" />
+                          <span>Reformuliert</span>
+                        </>
+                      ) : (
+                        <>
+                          <FileText className="h-3 w-3" />
+                          <span>Original</span>
+                        </>
+                      )}
+                    </Button>
+                  )}
 
                   {/* Options menu - aligned to the far right */}
                   <DropdownMenu>
