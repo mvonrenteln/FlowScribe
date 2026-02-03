@@ -40,6 +40,7 @@ describe("validateMergeCandidate", () => {
   });
 });
 
+import { createMergePairKey } from "@/lib/ai/core/suggestionKeys";
 import { createBatchPairMapping } from "../../../core/batchIdMapping";
 import {
   applyBasicSmoothing,
@@ -126,6 +127,50 @@ describe("segmentMerge utils", () => {
     expect(sug?.mergedText).toContain("Hello world");
     // Since smoothedText equals the concatenated original text, smoothing is considered not applied
     expect(sug?.smoothing).toBeUndefined();
+  });
+
+  it("collectSegmentPairsWithSimpleIds skips existing pair keys", () => {
+    const segments: MergeAnalysisSegment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        start: 0,
+        end: 1,
+        text: "One",
+      },
+      {
+        id: "seg-2",
+        speaker: "A",
+        start: 1.1,
+        end: 2,
+        text: "Two",
+      },
+      {
+        id: "seg-3",
+        speaker: "A",
+        start: 2.1,
+        end: 3,
+        text: "Three",
+      },
+    ];
+
+    const context = createSimpleIdContext(segments);
+    const mapping = createBatchPairMapping(segments, (segment) => segment.id);
+    const skipPairKeys = new Set([createMergePairKey(["seg-1", "seg-2"])]);
+
+    const pairs = collectSegmentPairsWithSimpleIds(
+      segments,
+      5,
+      true,
+      mapping,
+      context.getSimpleId,
+      skipPairKeys,
+    );
+
+    expect(pairs).toHaveLength(1);
+    expect(pairs[0]?.segmentA.id).toBe("seg-2");
+    expect(pairs[0]?.segmentB.id).toBe("seg-3");
+    expect(mapping.pairToIds.get(1)).toEqual(["seg-2", "seg-3"]);
   });
 
   it("drops suggestion when returned text is too different", () => {

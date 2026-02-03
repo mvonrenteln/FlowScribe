@@ -147,6 +147,9 @@ export interface MergeAnalysisParams {
   /** Batch size for processing segments */
   batchSize?: number;
 
+  /** Skip existing pair suggestions by key */
+  skipPairKeys?: Set<string>;
+
   /** Abort signal for cancellation */
   signal?: AbortSignal;
 

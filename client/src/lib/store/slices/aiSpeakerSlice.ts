@@ -8,6 +8,7 @@
 import type { StoreApi } from "zustand";
 import { summarizeAIError } from "@/lib/ai/core/errors";
 import { summarizeMessages } from "@/lib/ai/core/formatting";
+import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
 import { SPEAKER_COLORS } from "../constants";
 import type {
@@ -63,11 +64,22 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       }
       return true;
     });
+    const existingSegmentKeys = buildSuggestionKeySet(state.aiSpeakerSuggestions, (suggestion) =>
+      createSegmentSuggestionKey(suggestion.segmentId),
+    );
+    const segmentsToProcess = segmentsToAnalyze.filter(
+      (segment) => !existingSegmentKeys.has(createSegmentSuggestionKey(segment.id)),
+    );
+
+    if (segmentsToProcess.length === 0) {
+      set({ aiSpeakerError: "All selected segments already have suggestions" });
+      return;
+    }
 
     set({
       aiSpeakerIsProcessing: true,
       aiSpeakerProcessedCount: 0,
-      aiSpeakerTotalToProcess: segmentsToAnalyze.length,
+      aiSpeakerTotalToProcess: segmentsToProcess.length,
       aiSpeakerError: null,
       aiSpeakerAbortController: abortController,
       aiSpeakerBatchInsights: [],
@@ -79,7 +91,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     (async () => {
       const overallStart = Date.now();
       const batchSize = state.aiSpeakerConfig.batchSize;
-      const totalSegments = segmentsToAnalyze.length;
+      const totalSegments = segmentsToProcess.length;
       let batchIndex = 0;
       let processed = 0;
 
@@ -117,7 +129,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
           }
 
           const batchStart = Date.now();
-          const batchSegments = segmentsToAnalyze.slice(i, Math.min(i + batchSize, totalSegments));
+          const batchSegments = segmentsToProcess.slice(i, Math.min(i + batchSize, totalSegments));
 
           try {
             const result = await classifySpeakersBatch(
@@ -154,9 +166,17 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
             const stateSnapshot = get();
             if (!stateSnapshot.aiSpeakerIsProcessing) return;
 
-            if (suggestions.length > 0) {
+            const existingKeys = buildSuggestionKeySet(
+              stateSnapshot.aiSpeakerSuggestions,
+              (suggestion) => createSegmentSuggestionKey(suggestion.segmentId),
+            );
+            const uniqueSuggestions = suggestions.filter(
+              (suggestion) => !existingKeys.has(createSegmentSuggestionKey(suggestion.segmentId)),
+            );
+
+            if (uniqueSuggestions.length > 0) {
               set({
-                aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...suggestions],
+                aiSpeakerSuggestions: [...stateSnapshot.aiSpeakerSuggestions, ...uniqueSuggestions],
               });
             }
 

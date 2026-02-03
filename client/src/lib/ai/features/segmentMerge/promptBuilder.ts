@@ -26,6 +26,7 @@ export interface PromptBuildParams {
   sameSpeakerOnly: boolean;
   enableSmoothing: string;
   idContext: SimpleIdContext;
+  skipPairKeys?: Set<string>;
   /** Optional system prompt override (otherwise uses default from config) */
   systemPrompt?: string;
   /** Optional user template override (otherwise uses default from config) */
@@ -92,6 +93,7 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
     sameSpeakerOnly,
     enableSmoothing,
     idContext,
+    skipPairKeys,
     systemPrompt,
     userTemplate,
   } = params;
@@ -103,6 +105,7 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
     sameSpeakerOnly,
     idContext.mapping,
     idContext.getSimpleId,
+    skipPairKeys,
   );
 
   // Format pairs for prompt

@@ -59,6 +59,7 @@ export async function analyzeMergeCandidates(
     sameSpeakerOnly,
     enableSmoothing,
     batchSize = 10,
+    skipPairKeys,
     signal,
     onProgress,
     systemPrompt,
@@ -112,6 +113,7 @@ export async function analyzeMergeCandidates(
       sameSpeakerOnly,
       enableSmoothing: enableSmoothing ? "true" : "false",
       idContext,
+      skipPairKeys,
       systemPrompt,
       userTemplate,
     });

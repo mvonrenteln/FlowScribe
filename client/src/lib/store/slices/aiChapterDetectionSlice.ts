@@ -7,6 +7,7 @@
  */
 
 import type { StoreApi } from "zustand";
+import { buildSuggestionKeySet, createChapterSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { detectChapters } from "@/lib/ai/features/chapterDetection";
 import { mapById } from "@/lib/arrayUtils";
 import type { Chapter } from "@/types/chapter";
@@ -95,16 +96,37 @@ export const createAIChapterDetectionSlice = (
     const segmentsToDetect = useSegmentScope
       ? state.segments.filter((segment) => scopedSegmentIds?.has(segment.id))
       : state.segments;
+    const indexById = buildSegmentIndexMap(state.segments);
+    const coveredSegmentIds = new Set<string>();
+    for (const suggestion of state.aiChapterDetectionSuggestions) {
+      const startIndex = indexById.get(suggestion.startSegmentId) ?? -1;
+      const endIndex = indexById.get(suggestion.endSegmentId) ?? -1;
+      if (startIndex === -1 || endIndex === -1) continue;
+      const from = Math.min(startIndex, endIndex);
+      const to = Math.max(startIndex, endIndex);
+      for (let i = from; i <= to; i++) {
+        const segmentId = state.segments[i]?.id;
+        if (segmentId) {
+          coveredSegmentIds.add(segmentId);
+        }
+      }
+    }
+    const segmentsToProcess = segmentsToDetect.filter(
+      (segment) => !coveredSegmentIds.has(segment.id),
+    );
+    if (segmentsToProcess.length === 0) {
+      set({ aiChapterDetectionError: "All selected segments already have suggestions" });
+      return;
+    }
 
     set({
       aiChapterDetectionIsProcessing: true,
       aiChapterDetectionProcessedBatches: 0,
       aiChapterDetectionTotalBatches: Math.ceil(
-        segmentsToDetect.length / Math.max(1, config.batchSize),
+        segmentsToProcess.length / Math.max(1, config.batchSize),
       ),
       aiChapterDetectionError: null,
       aiChapterDetectionAbortController: abortController,
-      aiChapterDetectionSuggestions: [],
       aiChapterDetectionBatchLog: [],
       aiChapterDetectionConfig: config,
     });
@@ -123,7 +145,7 @@ export const createAIChapterDetectionSlice = (
           .map((t) => ({ id: t.id, label: t.name }));
 
         const result = await detectChapters({
-          segments: toDetectSegments(segmentsToDetect),
+          segments: toDetectSegments(segmentsToProcess),
           batchSize: config.batchSize,
           minChapterLength: config.minChapterLength,
           maxChapterLength: config.maxChapterLength,
@@ -171,46 +193,58 @@ export const createAIChapterDetectionSlice = (
 
             // Convert mapped items into suggestions and append incrementally
             const indexById = buildSegmentIndexMap(snapshot.segments);
-            const newSuggestions = mapped.map((ch) => {
-              const first = ch.startSegmentId;
-              const last = ch.endSegmentId;
-              const segmentCount =
-                indexById.has(first) && indexById.has(last)
-                  ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
-                  : 0;
+            const existingSuggestionKeys = buildSuggestionKeySet(
+              snapshot.aiChapterDetectionSuggestions,
+              (suggestion) =>
+                createChapterSuggestionKey(suggestion.startSegmentId, suggestion.endSegmentId),
+            );
+            const newSuggestions = mapped
+              .map((ch) => {
+                const first = ch.startSegmentId;
+                const last = ch.endSegmentId;
+                const segmentCount =
+                  indexById.has(first) && indexById.has(last)
+                    ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
+                    : 0;
 
-              // Check if there's an existing chapter at the exact same position
-              const existingChapter = snapshot.chapters.find(
-                (existing) => existing.startSegmentId === first,
-              );
+                // Check if there's an existing chapter at the exact same position
+                const existingChapter = snapshot.chapters.find(
+                  (existing) => existing.startSegmentId === first,
+                );
 
-              const baseSuggestion = toSuggestion({
-                id: generateId(),
-                title: ch.title,
-                summary: ch.summary,
-                notes: ch.notes,
-                tags: ch.tags,
-                startSegmentId: first,
-                endSegmentId: last,
-                segmentCount,
-                createdAt: Date.now(),
-                source: "ai",
-              } as unknown as Chapter);
+                const baseSuggestion = toSuggestion({
+                  id: generateId(),
+                  title: ch.title,
+                  summary: ch.summary,
+                  notes: ch.notes,
+                  tags: ch.tags,
+                  startSegmentId: first,
+                  endSegmentId: last,
+                  segmentCount,
+                  createdAt: Date.now(),
+                  source: "ai",
+                } as unknown as Chapter);
 
-              // If there's an existing chapter at the same position, mark this as a modification
-              if (existingChapter) {
+                // If there's an existing chapter at the same position, mark this as a modification
+                if (existingChapter) {
+                  return {
+                    ...baseSuggestion,
+                    modificationType: "title-change" as const,
+                    existingChapterId: existingChapter.id,
+                  };
+                }
+
                 return {
                   ...baseSuggestion,
-                  modificationType: "title-change" as const,
-                  existingChapterId: existingChapter.id,
+                  modificationType: "new" as const,
                 };
-              }
-
-              return {
-                ...baseSuggestion,
-                modificationType: "new" as const,
-              };
-            });
+              })
+              .filter(
+                (suggestion) =>
+                  !existingSuggestionKeys.has(
+                    createChapterSuggestionKey(suggestion.startSegmentId, suggestion.endSegmentId),
+                  ),
+              );
 
             // append batch suggestions
 
@@ -225,34 +259,46 @@ export const createAIChapterDetectionSlice = (
           },
         });
 
-        const suggestions = result.chapters.map((ch) => {
-          // Check if there's an existing chapter at the exact same position
-          const existingChapter = state.chapters.find(
-            (existing) => existing.startSegmentId === ch.startSegmentId,
-          );
+        const existingSuggestionKeys = buildSuggestionKeySet(
+          get().aiChapterDetectionSuggestions,
+          (suggestion) =>
+            createChapterSuggestionKey(suggestion.startSegmentId, suggestion.endSegmentId),
+        );
+        const suggestions = result.chapters
+          .map((ch) => {
+            // Check if there's an existing chapter at the exact same position
+            const existingChapter = state.chapters.find(
+              (existing) => existing.startSegmentId === ch.startSegmentId,
+            );
 
-          const baseSuggestion = toSuggestion({
-            ...ch,
-            id: generateId(),
-          });
+            const baseSuggestion = toSuggestion({
+              ...ch,
+              id: generateId(),
+            });
 
-          // If there's an existing chapter at the same position, mark this as a modification
-          if (existingChapter) {
+            // If there's an existing chapter at the same position, mark this as a modification
+            if (existingChapter) {
+              return {
+                ...baseSuggestion,
+                modificationType: "title-change" as const,
+                existingChapterId: existingChapter.id,
+              };
+            }
+
             return {
               ...baseSuggestion,
-              modificationType: "title-change" as const,
-              existingChapterId: existingChapter.id,
+              modificationType: "new" as const,
             };
-          }
-
-          return {
-            ...baseSuggestion,
-            modificationType: "new" as const,
-          };
-        });
+          })
+          .filter(
+            (suggestion) =>
+              !existingSuggestionKeys.has(
+                createChapterSuggestionKey(suggestion.startSegmentId, suggestion.endSegmentId),
+              ),
+          );
 
         set({
-          aiChapterDetectionSuggestions: suggestions,
+          aiChapterDetectionSuggestions: [...get().aiChapterDetectionSuggestions, ...suggestions],
           aiChapterDetectionIsProcessing: false,
           aiChapterDetectionAbortController: null,
           aiChapterDetectionError: result.issues.find((i) => i.level === "error")?.message ?? null,
