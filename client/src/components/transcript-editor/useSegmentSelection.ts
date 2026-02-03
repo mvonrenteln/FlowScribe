@@ -267,13 +267,13 @@ export const useSegmentSelection = ({
             }
           },
           onTextChange: (text: string) => {
-            // Check if segment belongs to chapter with reformulation
+            // Check if segment belongs to chapter with rewrite
             // Use memoized selectChapterForSegment instead of O(n²) findIndex loops
             const chapter = selectChapterForSegment(segment.id);
-            if (chapter?.reformulatedText) {
+            if (chapter?.rewrittenText) {
               toast({
-                title: "Reformulated text is based on older content",
-                description: "Consider regenerating the reformulation.",
+                title: "Rewritten text is based on older content",
+                description: "Consider regenerating the rewrite.",
               });
             }
             updateSegmentText(segment.id, text);

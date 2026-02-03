@@ -1,10 +1,10 @@
 /**
- * Chapter Reformulation Service
+ * Chapter Rewrite Service
  *
  * Service for reformulating chapters using AI.
  * Uses the unified AI module for execution.
  *
- * @module ai/features/reformulation/service
+ * @module ai/features/rewrite/service
  */
 
 import type { Segment } from "@/lib/store/types";
@@ -12,19 +12,19 @@ import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { CHAPTER_REFORMULATION_CONFIG } from "./config";
-import type { ReformulateChapterParams, ReformulationContext, ReformulationResult } from "./types";
+import type { RewriteChapterParams, RewriteContext, RewriteResult } from "./types";
 
 // ==================== Main Functions ====================
 
 /**
- * Reformulate a chapter using AI.
+ * Rewrite a chapter using AI.
  *
- * @param params - Reformulation parameters
- * @returns Reformulation result with text and metadata
+ * @param params - Rewrite parameters
+ * @returns Rewrite result with text and metadata
  *
  * @example
  * ```ts
- * const result = await reformulateChapter({
+ * const result = await rewriteChapter({
  *   chapter: { id: "1", title: "Introduction", ... },
  *   segments: [...],
  *   allChapters: [...],
@@ -34,9 +34,7 @@ import type { ReformulateChapterParams, ReformulationContext, ReformulationResul
  * });
  * ```
  */
-export async function reformulateChapter(
-  params: ReformulateChapterParams,
-): Promise<ReformulationResult> {
+export async function rewriteChapter(params: RewriteChapterParams): Promise<RewriteResult> {
   const {
     chapter,
     segments,
@@ -51,7 +49,7 @@ export async function reformulateChapter(
   } = params;
 
   // Build context (summaries + previous chapter)
-  const context = buildReformulationContext({
+  const context = buildRewriteContext({
     chapter,
     allChapters,
     includeContext,
@@ -76,7 +74,7 @@ export async function reformulateChapter(
   };
 
   // Execute feature with config prompt
-  const result = await executeFeature<string>("chapter-reformulation", variables, {
+  const result = await executeFeature<string>("chapter-rewrite", variables, {
     customPrompt: {
       systemPrompt: CHAPTER_REFORMULATION_CONFIG.systemPrompt,
       userPromptTemplate: CHAPTER_REFORMULATION_CONFIG.userPromptTemplate,
@@ -87,8 +85,8 @@ export async function reformulateChapter(
   });
 
   if (!result.success || !result.data) {
-    console.error("[Reformulation Service] Reformulation failed:", result.error);
-    throw new Error(result.error || "Failed to reformulate chapter");
+    console.error("[Rewrite Service] Rewrite failed:", result.error);
+    throw new Error(result.error || "Failed to rewrite chapter");
   }
 
   // Parse response (handles LLM artifacts)
@@ -98,29 +96,29 @@ export async function reformulateChapter(
   });
 
   if (parseResult.wasError) {
-    console.warn("[Reformulation Service] AI returned error-like response:", parseResult.warnings);
+    console.warn("[Rewrite Service] AI returned error-like response:", parseResult.warnings);
   }
 
-  const reformulatedText = parseResult.text.trim();
+  const rewrittenText = parseResult.text.trim();
 
   // Validate result
-  if (!reformulatedText) {
-    throw new Error("Reformulation returned empty text");
+  if (!rewrittenText) {
+    throw new Error("Rewrite returned empty text");
   }
 
   // Calculate word count
-  const wordCount = reformulatedText.split(/\s+/).length;
+  const wordCount = rewrittenText.split(/\s+/).length;
 
   // Warn if text is unusually long (>2x original)
   const originalWordCount = chapterContent.split(/\s+/).length;
   if (wordCount > originalWordCount * 2) {
     console.warn(
-      `[Reformulation Service] Generated text is unusually long: ${wordCount} words vs ${originalWordCount} original`,
+      `[Rewrite Service] Generated text is unusually long: ${wordCount} words vs ${originalWordCount} original`,
     );
   }
 
   return {
-    reformulatedText,
+    rewrittenText,
     wordCount,
   };
 }
@@ -128,17 +126,17 @@ export async function reformulateChapter(
 // ==================== Helper Functions ====================
 
 /**
- * Build reformulation context from previous chapters.
+ * Build rewrite context from previous chapters.
  *
  * @param options - Context building options
  * @returns Context with summaries and previous chapter text
  */
-function buildReformulationContext(options: {
+function buildRewriteContext(options: {
   chapter: Chapter;
   allChapters: Chapter[];
   includeContext: boolean;
   contextWordLimit: number;
-}): ReformulationContext {
+}): RewriteContext {
   const { chapter, allChapters, includeContext, contextWordLimit } = options;
 
   if (!includeContext) {
@@ -157,9 +155,9 @@ function buildReformulationContext(options: {
   let previousText = "";
   if (currentIndex > 0) {
     const prevChapter = allChapters[currentIndex - 1];
-    // Use reformulated text if available, otherwise use summary
-    if (prevChapter.reformulatedText) {
-      previousText = truncateToWords(prevChapter.reformulatedText, contextWordLimit);
+    // Use rewritten text if available, otherwise use summary
+    if (prevChapter.rewrittenText) {
+      previousText = truncateToWords(prevChapter.rewrittenText, contextWordLimit);
     } else if (prevChapter.summary) {
       previousText = truncateToWords(prevChapter.summary, contextWordLimit);
     }

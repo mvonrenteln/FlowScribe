@@ -296,8 +296,8 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     return result;
   },
 
-  // Reformulation methods
-  setChapterReformulation: (chapterId, reformulatedText, metadata) => {
+  // Rewrite methods
+  setChapterRewrite: (chapterId, rewrittenText, metadata) => {
     const {
       chapters,
       segments,
@@ -318,13 +318,13 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
       c.id === chapterId
         ? {
             ...c,
-            reformulatedText,
-            reformulatedAt: Date.now(),
-            reformulationPromptId: metadata.promptId,
-            reformulationContext: {
+            rewrittenText,
+            rewrittenAt: Date.now(),
+            rewritePromptId: metadata.promptId,
+            rewriteContext: {
               model: metadata.model,
               providerId: metadata.providerId,
-              wordCount: reformulatedText.split(/\s+/).length,
+              wordCount: rewrittenText.split(/\s+/).length,
             },
           }
         : c,
@@ -348,7 +348,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     });
   },
 
-  clearChapterReformulation: (chapterId) => {
+  clearChapterRewrite: (chapterId) => {
     const {
       chapters,
       segments,
@@ -366,10 +366,10 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
       c.id === chapterId
         ? {
             ...c,
-            reformulatedText: undefined,
-            reformulatedAt: undefined,
-            reformulationPromptId: undefined,
-            reformulationContext: undefined,
+            rewrittenText: undefined,
+            rewrittenAt: undefined,
+            rewritePromptId: undefined,
+            rewriteContext: undefined,
           }
         : c,
     );
@@ -392,7 +392,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     });
   },
 
-  updateChapterReformulation: (chapterId, reformulatedText) => {
+  updateChapterRewrite: (chapterId, rewrittenText) => {
     const {
       chapters,
       segments,
@@ -407,13 +407,13 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     } = get();
 
     const updatedChapters = chapters.map((c) =>
-      c.id === chapterId && c.reformulatedText
+      c.id === chapterId && c.rewrittenText
         ? {
             ...c,
-            reformulatedText,
-            reformulationContext: {
-              ...c.reformulationContext,
-              wordCount: reformulatedText.split(/\s+/).length,
+            rewrittenText,
+            rewriteContext: {
+              ...c.rewriteContext,
+              wordCount: rewrittenText.split(/\s+/).length,
             },
           }
         : c,

@@ -37,10 +37,7 @@ import { createConfidenceSlice } from "./store/slices/confidenceSlice";
 import { createHistorySlice } from "./store/slices/historySlice";
 import { createLexiconSlice } from "./store/slices/lexiconSlice";
 import { createPlaybackSlice } from "./store/slices/playbackSlice";
-import {
-  createReformulationSlice,
-  initialReformulationState,
-} from "./store/slices/reformulationSlice";
+import { createRewriteSlice, initialRewriteState } from "./store/slices/rewriteSlice";
 import { createSegmentsSlice } from "./store/slices/segmentsSlice";
 import { buildInitialHistory, createSessionSlice } from "./store/slices/sessionSlice";
 import { createSpeakersSlice } from "./store/slices/speakersSlice";
@@ -226,12 +223,10 @@ const initialState: InitialStoreState = {
   aiChapterDetectionConfig: normalizeAIChapterDetectionConfig(
     globalState?.aiChapterDetectionConfig,
   ),
-  // Reformulation state
-  ...initialReformulationState,
-  reformulationConfig:
-    globalState?.reformulationConfig ?? initialReformulationState.reformulationConfig,
-  reformulationPrompts:
-    globalState?.reformulationPrompts ?? initialReformulationState.reformulationPrompts,
+  // Rewrite state
+  ...initialRewriteState,
+  rewriteConfig: globalState?.rewriteConfig ?? initialRewriteState.rewriteConfig,
+  rewritePrompts: globalState?.rewritePrompts ?? initialRewriteState.rewritePrompts,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
@@ -269,7 +264,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createAiRevisionSelectionSlice(set, get),
       ...createAISegmentMergeSlice(set, get),
       ...createAIChapterDetectionSlice(set, get),
-      ...createReformulationSlice(set, get),
+      ...createRewriteSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
     };
@@ -405,8 +400,8 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.aiRevisionConfig !== nextGlobalPayload.aiRevisionConfig ||
         lastGlobalPayload.aiSegmentMergeConfig !== nextGlobalPayload.aiSegmentMergeConfig ||
         lastGlobalPayload.aiChapterDetectionConfig !== nextGlobalPayload.aiChapterDetectionConfig ||
-        lastGlobalPayload.reformulationConfig !== nextGlobalPayload.reformulationConfig ||
-        lastGlobalPayload.reformulationPrompts !== nextGlobalPayload.reformulationPrompts;
+        lastGlobalPayload.rewriteConfig !== nextGlobalPayload.rewriteConfig ||
+        lastGlobalPayload.rewritePrompts !== nextGlobalPayload.rewritePrompts;
 
       if (shouldUpdateEntry || globalChanged || sessionActivated) {
         storeContext.persist(

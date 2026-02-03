@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
-import { ChapterReformulationView } from "@/components/reformulation/ChapterReformulationView";
+import { ChapterRewriteView } from "@/components/rewrite/ChapterRewriteView";
 import { useTranscriptStore } from "@/lib/store";
 
 const resetStore = () => {
@@ -15,8 +15,8 @@ const resetStore = () => {
         segmentCount: 2,
         createdAt: Date.now(),
         source: "manual",
-        reformulatedText: "Reformulated text.",
-        reformulationPromptId: "prompt-1",
+        rewrittenText: "Rewritten text.",
+        rewritePromptId: "prompt-1",
       },
     ],
     segments: [
@@ -37,13 +37,13 @@ const resetStore = () => {
         words: [],
       },
     ],
-    reformulationInProgress: false,
-    reformulationChapterId: null,
-    reformulationError: null,
+    rewriteInProgress: false,
+    rewriteChapterId: null,
+    rewriteError: null,
   });
 };
 
-describe("ChapterReformulationView", () => {
+describe("ChapterRewriteView", () => {
   beforeEach(() => {
     resetStore();
   });
@@ -51,11 +51,11 @@ describe("ChapterReformulationView", () => {
   it("renders without triggering update depth errors", () => {
     render(
       <I18nProvider>
-        <ChapterReformulationView chapterId="chapter-1" onClose={() => {}} />
+        <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
       </I18nProvider>,
     );
 
-    expect(screen.getByText("Reformulate Chapter")).toBeInTheDocument();
+    expect(screen.getByText("Rewrite Chapter")).toBeInTheDocument();
     expect(screen.getByText(/Intro/)).toBeInTheDocument();
     expect(screen.getByText("Original (2 segments)")).toBeInTheDocument();
   });
@@ -64,12 +64,12 @@ describe("ChapterReformulationView", () => {
     const { container } = render(
       <I18nProvider>
         <div data-testid="local-container">
-          <ChapterReformulationView chapterId="chapter-1" onClose={() => {}} />
+          <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
         </div>
       </I18nProvider>,
     );
 
-    const view = screen.getByTestId("chapter-reformulation-view");
+    const view = screen.getByTestId("chapter-rewrite-view");
     expect(container.contains(view)).toBe(false);
     expect(document.body.contains(view)).toBe(true);
   });
@@ -77,11 +77,11 @@ describe("ChapterReformulationView", () => {
   it("renders the view above overlays with pointer events enabled", () => {
     render(
       <I18nProvider>
-        <ChapterReformulationView chapterId="chapter-1" onClose={() => {}} />
+        <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
       </I18nProvider>,
     );
 
-    const view = screen.getByTestId("chapter-reformulation-view");
+    const view = screen.getByTestId("chapter-rewrite-view");
     expect(view.className).toContain("pointer-events-auto");
     expect(view.className).toContain("z-[60]");
   });
@@ -92,7 +92,7 @@ describe("ChapterReformulationView", () => {
 
     const { unmount } = render(
       <I18nProvider>
-        <ChapterReformulationView chapterId="chapter-1" onClose={() => {}} />
+        <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
       </I18nProvider>,
     );
 

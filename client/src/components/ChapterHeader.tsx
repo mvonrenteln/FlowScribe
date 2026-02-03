@@ -43,7 +43,7 @@ interface ChapterHeaderProps {
   onOpen: () => void;
   onUpdateChapter: (id: string, updates: ChapterUpdate) => void;
   onDeleteChapter: (id: string) => void;
-  onReformulateChapter: (chapterId: string) => void;
+  onRewriteChapter: (chapterId: string) => void;
   isTranscriptEditing: boolean;
   autoFocus?: boolean;
   onAutoFocusHandled?: () => void;
@@ -56,7 +56,7 @@ export function ChapterHeader({
   onOpen,
   onUpdateChapter,
   onDeleteChapter,
-  onReformulateChapter,
+  onRewriteChapter,
   isTranscriptEditing,
   autoFocus,
   onAutoFocusHandled,
@@ -536,8 +536,8 @@ export function ChapterHeader({
                     )}
                   </div>
 
-                  {/* Reformulation Toggle - only shown when reformulation exists */}
-                  {chapter.reformulatedText && (
+                  {/* Rewrite Toggle - only shown when rewrite exists */}
+                  {chapter.rewrittenText && (
                     <Button
                       variant="ghost"
                       size="sm"
@@ -548,20 +548,20 @@ export function ChapterHeader({
                       onClick={(event) => {
                         event.stopPropagation();
                         const newMode =
-                          currentDisplayMode === "original" ? "reformulated" : "original";
+                          currentDisplayMode === "original" ? "rewritten" : "original";
                         setChapterDisplayMode(chapter.id, newMode);
                       }}
                       aria-label={
                         currentDisplayMode === "original"
-                          ? t("reformulation.view.reformulatedLabel")
+                          ? t("rewrite.view.rewrittenLabel")
                           : t("diffView.original")
                       }
-                      data-testid={`button-toggle-reformulation-${chapter.id}`}
+                      data-testid={`button-toggle-rewrite-${chapter.id}`}
                     >
                       {currentDisplayMode === "original" ? (
                         <>
                           <Sparkles className="h-3 w-3" />
-                          <span>{t("reformulation.view.reformulatedLabel")}</span>
+                          <span>{t("rewrite.view.rewrittenLabel")}</span>
                         </>
                       ) : (
                         <>
@@ -602,11 +602,11 @@ export function ChapterHeader({
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="py-1.5 text-xs"
-                        onSelect={() => onReformulateChapter(chapter.id)}
-                        data-testid={`menu-reformulate-chapter-${chapter.id}`}
+                        onSelect={() => onRewriteChapter(chapter.id)}
+                        data-testid={`menu-rewrite-chapter-${chapter.id}`}
                       >
                         <Sparkles className="h-3 w-3 mr-2" />
-                        Reformulate chapter
+                        Rewrite chapter
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="py-1.5 text-xs text-destructive"
@@ -873,8 +873,8 @@ export function ChapterHeader({
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Chapter?</AlertDialogTitle>
             <AlertDialogDescription>
-              {chapter.reformulatedText
-                ? "This chapter has a reformulation. Both will be deleted."
+              {chapter.rewrittenText
+                ? "This chapter has a rewrite. Both will be deleted."
                 : "This action cannot be undone."}
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -887,7 +887,7 @@ export function ChapterHeader({
               }}
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
-              {chapter.reformulatedText ? "Delete Both" : "Delete"}
+              {chapter.rewrittenText ? "Delete Both" : "Delete"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

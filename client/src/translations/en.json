@@ -77,15 +77,15 @@
     "oneChange": "1 change",
     "nChanges": "{{count}} changes"
   },
-  "reformulation": {
+  "rewrite": {
     "view": {
-      "title": "Reformulate Chapter",
+      "title": "Rewrite Chapter",
       "originalLabel": "Original ({{count}} segments)",
-      "reformulatedLabel": "Reformulated",
+      "rewrittenLabel": "Rewritten",
       "processing": "Reformulating chapter...",
       "retry": "Try again",
-      "waiting": "Waiting for reformulation...",
-      "wordCount": "{{reformulated}} words • {{original}} words original"
+      "waiting": "Waiting for rewrite...",
+      "wordCount": "{{rewritten}} words • {{original}} words original"
     },
     "actions": {
       "cancel": "Cancel",

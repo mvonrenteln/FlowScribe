@@ -9,8 +9,8 @@
  */
 
 import { chapterDetectionConfig } from "../features/chapterDetection/config";
-import { CHAPTER_REFORMULATION_CONFIG } from "../features/reformulation/config";
 import { textRevisionConfig } from "../features/revision/config";
+import { CHAPTER_REFORMULATION_CONFIG } from "../features/rewrite/config";
 import { segmentMergeConfig } from "../features/segmentMerge/config";
 // Import feature configs synchronously to ensure they're available immediately
 import { speakerClassificationConfig } from "../features/speaker/config";
@@ -154,8 +154,8 @@ export function registerDefaultFeatures(): void {
     registerFeature(chapterDetectionConfig);
   }
 
-  // Register chapter reformulation
-  if (!hasFeature("chapter-reformulation")) {
+  // Register chapter rewrite
+  if (!hasFeature("chapter-rewrite")) {
     registerFeature(CHAPTER_REFORMULATION_CONFIG);
   }
 }

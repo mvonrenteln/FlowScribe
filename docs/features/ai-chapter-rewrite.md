@@ -1,10 +1,10 @@
-# AI Chapter Reformulation
+# AI Chapter Rewrite
 
 *Last Updated: February 3, 2026*
 
 ## Overview
 
-**Chapter Reformulation** transforms raw transcript segments into polished, publication-ready text. The AI rewrites chapter content while preserving meaning, improving flow, removing filler words, and formatting for readability. Original transcripts remain unchanged — reformulated text is stored separately and can be viewed, edited, or discarded at any time.
+**Chapter Rewrite** transforms raw transcript segments into polished, publication-ready text. The AI rewrites chapter content while preserving meaning, improving flow, removing filler words, and formatting for readability. Original transcripts remain unchanged — rewritten text is stored separately and can be viewed, edited, or discarded at any time.
 
 This feature is perfect for creating blog posts, articles, documentation, or any content where you need readable prose instead of verbatim speech transcripts.
 
@@ -12,54 +12,54 @@ This feature is perfect for creating blog posts, articles, documentation, or any
 
 ## Manual-First Design
 
-- **Always optional**: Chapters work fully without reformulation — view and export original transcripts anytime
-- **Per-chapter control**: Reformulate individual chapters or skip entirely
-- **Easy reversal**: Toggle between original and reformulated views instantly; clear reformulations without affecting transcripts
-- **Manual editing**: Edit reformulated text directly in the side-by-side view before accepting
+- **Always optional**: Chapters work fully without rewrite — view and export original transcripts anytime
+- **Per-chapter control**: Rewrite individual chapters or skip entirely
+- **Easy reversal**: Toggle between original and rewritten views instantly; clear rewrites without affecting transcripts
+- **Manual editing**: Edit rewritten text directly in the side-by-side view before accepting
 
 ---
 
 ## How It Works
 
-### 1. Starting a Reformulation
+### 1. Starting a Rewrite
 
-1. Click the **"Reformulate"** button on any chapter header
-2. Choose a reformulation style from the prompt library:
+1. Click the **"Rewrite"** button on any chapter header
+2. Choose a rewrite style from the prompt library:
    - **Blog Post**: Conversational, engaging tone with natural paragraphs
    - **Article**: Structured, professional formatting with clear sections
    - **Documentation**: Technical, precise language with examples highlighted
    - **Custom**: Create your own prompts in Settings
-3. Click **"Start Reformulation"**
+3. Click **"Start Rewrite"**
 
 The AI processes the chapter in the background while you continue working.
 
 ### 2. Reviewing Results
 
-The reformulation view opens automatically when processing completes:
+The rewrite view opens automatically when processing completes:
 
-- **Side-by-side comparison**: Original transcript (left) vs. reformulated text (right)
-- **Live editing**: Click any paragraph to edit reformulated text directly
+- **Side-by-side comparison**: Original transcript (left) vs. rewritten text (right)
+- **Live editing**: Click any paragraph to edit rewritten text directly
 - **Search highlighting**: Your search terms highlight in both versions
 - **Metadata**: See word count, model used, and timestamp
 
 ### 3. Accepting or Discarding
 
-- **Accept**: Saves reformulated text to the chapter; toggle display mode in transcript view
+- **Accept**: Saves rewritten text to the chapter; toggle display mode in transcript view
 - **Discard**: Closes view without saving; original transcript remains
-- **Re-reformulate**: Run again with a different prompt; overwrites previous reformulation
+- **Re-rewrite**: Run again with a different prompt; overwrites previous rewrite
 
 ---
 
 ## Display Modes
 
-After accepting a reformulation, chapters can display in two modes:
+After accepting a rewrite, chapters can display in two modes:
 
 ### Original Mode (Default)
 - Shows word-by-word transcript segments as usual
 - All editing, playback, and timing features work normally
-- Reformulated text is hidden but preserved
+- Rewritten text is hidden but preserved
 
-### Reformulated Mode
+### Rewritten Mode
 - Displays polished text as continuous paragraphs
 - Hides individual transcript segments (except chapter header)
 - Search, bookmarks, and navigation still work
@@ -69,7 +69,7 @@ After accepting a reformulation, chapters can display in two modes:
 
 ---
 
-## Reformulation Context
+## Rewrite Context
 
 To improve coherence across chapter boundaries, the AI can include context:
 
@@ -77,42 +77,42 @@ To improve coherence across chapter boundaries, the AI can include context:
 - **Chapter metadata**: Title, summary, tags (if set)
 - **Contextual continuity**: AI maintains consistent tone and style
 
-Configure context settings in **Settings → AI Features → Chapter Reformulation**.
+Configure context settings in **Settings → AI Features → Chapter Rewrite**.
 
 ---
 
-## Editing Reformulated Text
+## Editing Rewritten Text
 
 ### In the Review View (Before Accepting)
-1. Click any paragraph in the reformulated column
+1. Click any paragraph in the rewritten column
 2. Edit text inline with full Markdown support
 3. Changes save automatically when you click outside
 4. **Undo/Redo**: Standard shortcuts work (Cmd+Z / Ctrl+Z)
 
 ### After Accepting
-1. Open chapter header menu → **"Edit Reformulation"**
+1. Open chapter header menu → **"Edit Rewrite"**
 2. Side-by-side view reopens with accepted text
 3. Edit paragraphs as before
 4. Click **"Update"** to save changes
 
 ---
 
-## Exporting Reformulated Chapters
+## Exporting Rewritten Chapters
 
 When exporting transcripts:
 
 1. Open **Export Dialog** (Cmd+E / Ctrl+E)
-2. Choose **"Include Reformulated Text"** option
+2. Choose **"Include Rewritten Text"** option
 3. Select export format:
-   - **Markdown**: Chapters as headings with reformulated paragraphs
-   - **Plain Text**: Continuous reformulated prose
-   - **JSON**: Both original segments and reformulated text in metadata
+   - **Markdown**: Chapters as headings with rewritten paragraphs
+   - **Plain Text**: Continuous rewritten prose
+   - **JSON**: Both original segments and rewritten text in metadata
 
-Chapters without reformulations export original transcripts automatically.
+Chapters without rewrites export original transcripts automatically.
 
 ---
 
-## Reformulation Prompts
+## Rewrite Prompts
 
 ### Built-in Prompts
 
@@ -126,7 +126,7 @@ FlowScribe includes three default styles optimized for different use cases:
 
 ### Custom Prompts
 
-Create your own reformulation styles in **Settings → AI Features → Reformulation**:
+Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 
 1. Click **"Add Custom Prompt"**
 2. Name your style (e.g., "Press Release", "Social Media")
@@ -134,9 +134,9 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
    - Specify tone, format, and structure
    - Include examples or templates
    - Request specific formatting (lists, headings, etc.)
-4. Save and select from the reformulation dialog
+4. Save and select from the rewrite dialog
 
-**Quick Access**: Pin frequently-used prompts to appear in the reformulation dialog dropdown.
+**Quick Access**: Pin frequently-used prompts to appear in the rewrite dialog dropdown.
 
 ---
 
@@ -148,8 +148,8 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 
 ### Provider Settings
 - **Default provider**: Choose AI service (OpenAI, Anthropic, etc.)
-- **Default model**: Select model for reformulation (e.g., GPT-4, Claude Sonnet)
-- Override per reformulation in the dialog
+- **Default model**: Select model for rewrite (e.g., GPT-4, Claude Sonnet)
+- Override per rewrite in the dialog
 
 ### Prompt Management
 - **Default prompt**: Sets which style appears first in dialog
@@ -171,23 +171,23 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 
 ### Before Reformulating
 - **Clean up speakers**: Assign correct speakers for better context
-- **Fix major errors**: Reformulation improves flow but doesn't fix misheard words
-- **Set chapter boundaries**: Logical chapters produce better reformulations
+- **Fix major errors**: Rewrite improves flow but doesn't fix misheard words
+- **Set chapter boundaries**: Logical chapters produce better rewrites
 
 ### Choosing Prompts
 - **Blog Post**: Best for conversational content with personal stories
 - **Article**: Choose when you need section headings and formal structure
 - **Documentation**: Use for technical content with code or step-by-step instructions
 
-### Editing Reformulations
+### Editing Rewrites
 - **Fix factual errors**: AI may rephrase incorrectly — verify technical details
 - **Adjust tone**: Edit paragraphs to match your voice
 - **Add transitions**: Insert connective phrases between paragraphs if needed
 
 ### Exporting
-- **Review first**: Check reformulated text before exporting to final format
-- **Toggle views**: Compare original vs. reformulated to ensure accuracy
-- **Mix modes**: Export some chapters reformulated, others original
+- **Review first**: Check rewritten text before exporting to final format
+- **Toggle views**: Compare original vs. rewritten to ensure accuracy
+- **Mix modes**: Export some chapters rewritten, others original
 
 ---
 
@@ -196,14 +196,14 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 | Action | macOS | Windows/Linux |
 |--------|-------|---------------|
 | Export transcript | `Cmd+E` | `Ctrl+E` |
-| Close reformulation view | `Esc` | `Esc` |
+| Close rewrite view | `Esc` | `Esc` |
 | Save paragraph edit | Click outside or `Cmd+Enter` | Click outside or `Ctrl+Enter` |
 
 ---
 
 ## Troubleshooting
 
-### Reformulation is too verbose
+### Rewrite is too verbose
 - Try a different prompt (e.g., switch from Blog to Article)
 - Edit custom prompt to request "concise" or "brief" output
 - Manually trim paragraphs in the edit view
@@ -213,9 +213,9 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 - Increase context word limit (up to 1000 words)
 - Add chapter summaries manually for better AI continuity
 
-### Reformulation doesn't match my style
+### Rewrite doesn't match my style
 - Create a custom prompt with examples of your preferred style
-- Edit reformulated text paragraph-by-paragraph
+- Edit rewritten text paragraph-by-paragraph
 - Use "voice" keywords in prompts (e.g., "technical but friendly")
 
 ### Processing stuck or slow
@@ -227,8 +227,8 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 
 ## Data & Privacy
 
-- **Original transcripts**: Never modified or overwritten by reformulation
-- **Reformulated text**: Stored locally in browser storage alongside chapters
+- **Original transcripts**: Never modified or overwritten by rewrite
+- **Rewritten text**: Stored locally in browser storage alongside chapters
 - **API requests**: Chapter text sent to chosen AI provider (see provider privacy policies)
 - **Context data**: Only adjacent chapter summaries sent; full transcript never uploaded at once
 
@@ -236,10 +236,10 @@ Create your own reformulation styles in **Settings → AI Features → Reformula
 
 ## Coming Soon
 
-- **Batch reformulation**: Process all chapters at once with progress tracking
+- **Batch rewrite**: Process all chapters at once with progress tracking
 - **Style templates**: Import/export custom prompt libraries
-- **Diff view**: Highlight what changed between original and reformulated
-- **Version history**: Keep multiple reformulation versions per chapter
+- **Diff view**: Highlight what changed between original and rewritten
+- **Version history**: Keep multiple rewrite versions per chapter
 
 ---
 

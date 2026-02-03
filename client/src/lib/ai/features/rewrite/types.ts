@@ -1,23 +1,23 @@
 /**
- * Chapter Reformulation Types
+ * Chapter Rewrite Types
  *
- * Type definitions for the chapter reformulation feature.
+ * Type definitions for the chapter rewrite feature.
  *
- * @module ai/features/reformulation/types
+ * @module ai/features/rewrite/types
  */
 
 import type { Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
 
 /**
- * Reformulation prompt configuration.
+ * Rewrite prompt configuration.
  */
-export interface ReformulationPrompt {
+export interface RewritePrompt {
   /** Unique identifier */
   id: string;
   /** Display name */
   name: string;
-  /** Instructions for reformulation (inserted into user prompt) */
+  /** Instructions for rewrite (inserted into user prompt) */
   instructions: string;
   /** Whether this is a built-in prompt */
   isBuiltin?: boolean;
@@ -26,15 +26,15 @@ export interface ReformulationPrompt {
 /**
  * Parameters for reformulating a chapter.
  */
-export interface ReformulateChapterParams {
-  /** Chapter to reformulate */
+export interface RewriteChapterParams {
+  /** Chapter to rewrite */
   chapter: Chapter;
   /** Segments in the chapter */
   segments: Segment[];
   /** All chapters (for context) */
   allChapters: Chapter[];
-  /** Reformulation prompt to use */
-  prompt: ReformulationPrompt;
+  /** Rewrite prompt to use */
+  prompt: RewritePrompt;
   /** AI provider ID (optional, uses default if not specified) */
   providerId?: string;
   /** Model to use (optional, uses provider default if not specified) */
@@ -50,19 +50,19 @@ export interface ReformulateChapterParams {
 }
 
 /**
- * Result of a reformulation operation.
+ * Result of a rewrite operation.
  */
-export interface ReformulationResult {
-  /** Reformulated text */
-  reformulatedText: string;
-  /** Word count of reformulated text */
+export interface RewriteResult {
+  /** Rewritten text */
+  rewrittenText: string;
+  /** Word count of rewritten text */
   wordCount: number;
 }
 
 /**
- * Context for reformulation (previous chapters).
+ * Context for rewrite (previous chapters).
  */
-export interface ReformulationContext {
+export interface RewriteContext {
   /** Summaries from previous chapters */
   summaries: string[];
   /** Text from previous chapter (truncated) */

@@ -57,7 +57,7 @@ const ExportDialogComponent = ({
 }: ExportDialogProps) => {
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
-  const [useReformulated, setUseReformulated] = useState(false);
+  const [useRewritten, setUseRewritten] = useState(false);
 
   // Get chapters from store
   const chapters = useTranscriptStore((state) => state.chapters);
@@ -77,8 +77,8 @@ const ExportDialogComponent = ({
   const exportedSRT = useMemo(() => formatSRT(segmentsToExport), [segmentsToExport]);
 
   const exportedTXT = useMemo(() => {
-    // If useReformulated is enabled and there are chapters, try chapter-based export
-    if (useReformulated && chapters.length > 0) {
+    // If useRewritten is enabled and there are chapters, try chapter-based export
+    if (useRewritten && chapters.length > 0) {
       const parts: string[] = [];
 
       for (const chapter of chapters) {
@@ -88,9 +88,9 @@ const ExportDialogComponent = ({
           parts.push(`\n${chapter.summary}\n`);
         }
 
-        // Use reformulated text if available, otherwise fall back to segments
-        if (chapter.reformulatedText) {
-          parts.push(chapter.reformulatedText);
+        // Use rewritten text if available, otherwise fall back to segments
+        if (chapter.rewrittenText) {
+          parts.push(chapter.rewrittenText);
         } else {
           // Find segments in this chapter
           const chapterSegments = segmentsToExport.filter(
@@ -148,7 +148,7 @@ const ExportDialogComponent = ({
         return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
       })
       .join("\n\n");
-  }, [segmentsToExport, tagsById, useReformulated, chapters, segments]);
+  }, [segmentsToExport, tagsById, useRewritten, chapters, segments]);
 
   // Memoize the export description text
   const exportDescription = useMemo(
@@ -261,14 +261,14 @@ const ExportDialogComponent = ({
             {format === "txt" && chapters.length > 0 && (
               <div className="flex items-center gap-2">
                 <Checkbox
-                  id="use-reformulated"
-                  checked={useReformulated}
-                  onCheckedChange={(checked) => setUseReformulated(checked === true)}
+                  id="use-rewritten"
+                  checked={useRewritten}
+                  onCheckedChange={(checked) => setUseRewritten(checked === true)}
                 />
-                <Label htmlFor="use-reformulated" className="cursor-pointer">
-                  <span className="font-medium">Use reformulated text (where available)</span>
+                <Label htmlFor="use-rewritten" className="cursor-pointer">
+                  <span className="font-medium">Use rewritten text (where available)</span>
                   <p className="text-sm text-muted-foreground">
-                    Organize by chapters and use reformulated text when available
+                    Organize by chapters and use rewritten text when available
                   </p>
                 </Label>
               </div>

@@ -27,7 +27,7 @@ describe("ChapterHeader", () => {
     onOpen: vi.fn(),
     onUpdateChapter: vi.fn(),
     onDeleteChapter: vi.fn(),
-    onReformulateChapter: vi.fn(),
+    onRewriteChapter: vi.fn(),
     isTranscriptEditing: true,
   };
 

@@ -109,9 +109,9 @@ export interface PersistedGlobalState {
   aiSegmentMergeConfig?: AISegmentMergeConfig;
   // AI Chapter Detection config
   aiChapterDetectionConfig?: AIChapterDetectionConfig;
-  // Chapter Reformulation config
-  reformulationConfig?: import("./slices/reformulationSlice").ReformulationConfig;
-  reformulationPrompts?: import("./slices/reformulationSlice").ReformulationPrompt[];
+  // Chapter Rewrite config
+  rewriteConfig?: import("./slices/rewriteSlice").RewriteConfig;
+  rewritePrompts?: import("./slices/rewriteSlice").RewritePrompt[];
 }
 
 export interface RecentSessionSummary {
@@ -140,7 +140,7 @@ export interface InitialStoreState {
   chapters: Chapter[];
   selectedSegmentId: string | null;
   selectedChapterId: string | null;
-  chapterDisplayModes: Record<string, "original" | "reformulated">;
+  chapterDisplayModes: Record<string, "original" | "rewritten">;
   currentTime: number;
   isPlaying: boolean;
   duration: number;
@@ -211,13 +211,13 @@ export interface InitialStoreState {
   aiChapterDetectionError: string | null;
   aiChapterDetectionAbortController: AbortController | null;
   aiChapterDetectionBatchLog: AIChapterDetectionBatchLogEntry[];
-  // Reformulation state
-  reformulationConfig: import("./slices/reformulationSlice").ReformulationConfig;
-  reformulationPrompts: import("./slices/reformulationSlice").ReformulationPrompt[];
-  reformulationInProgress: boolean;
-  reformulationChapterId: string | null;
-  reformulationError: string | null;
-  reformulationAbortController: AbortController | null;
+  // Rewrite state
+  rewriteConfig: import("./slices/rewriteSlice").RewriteConfig;
+  rewritePrompts: import("./slices/rewriteSlice").RewritePrompt[];
+  rewriteInProgress: boolean;
+  rewriteChapterId: string | null;
+  rewriteError: string | null;
+  rewriteAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -235,7 +235,7 @@ export type TranscriptStore = InitialStoreState &
   AIRevisionSlice &
   AISegmentMergeSlice &
   AIChapterDetectionSlice &
-  import("./slices/reformulationSlice").ReformulationSlice & {
+  import("./slices/rewriteSlice").RewriteSlice & {
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
   };
@@ -354,22 +354,22 @@ export interface ChapterSlice {
   selectChapterForSegment: (segmentId: string) => Chapter | undefined;
   selectSegmentsInChapter: (chapterId: string) => Segment[];
 
-  // Reformulation actions
-  setChapterReformulation: (
+  // Rewrite actions
+  setChapterRewrite: (
     chapterId: string,
-    reformulatedText: string,
+    rewrittenText: string,
     metadata: {
       promptId: string;
       providerId?: string;
       model?: string;
     },
   ) => void;
-  clearChapterReformulation: (chapterId: string) => void;
-  updateChapterReformulation: (chapterId: string, reformulatedText: string) => void;
+  clearChapterRewrite: (chapterId: string) => void;
+  updateChapterRewrite: (chapterId: string, rewrittenText: string) => void;
 
   // Display mode
-  chapterDisplayModes: Record<string, "original" | "reformulated">;
-  setChapterDisplayMode: (chapterId: string, mode: "original" | "reformulated") => void;
+  chapterDisplayModes: Record<string, "original" | "rewritten">;
+  setChapterDisplayMode: (chapterId: string, mode: "original" | "rewritten") => void;
 }
 
 export interface LexiconSlice {

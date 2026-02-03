@@ -1,5 +1,5 @@
 /**
- * Tests for Chapter Reformulation Actions in ChapterSlice
+ * Tests for Chapter Rewrite Actions in ChapterSlice
  */
 
 import { beforeEach, describe, expect, it } from "vitest";
@@ -27,7 +27,7 @@ type TestStore = Pick<
   ChapterSlice &
   HistorySlice;
 
-describe("ChapterSlice Reformulation", () => {
+describe("ChapterSlice Rewrite", () => {
   let store: ReturnType<typeof create<TestStore>>;
   let testChapter: Chapter;
 
@@ -60,43 +60,43 @@ describe("ChapterSlice Reformulation", () => {
     }));
   });
 
-  describe("setChapterReformulation", () => {
-    it("should set reformulated text and metadata", () => {
-      const reformulatedText = "This is the reformulated text.";
+  describe("setChapterRewrite", () => {
+    it("should set rewritten text and metadata", () => {
+      const rewrittenText = "This is the rewritten text.";
       const metadata = {
         promptId: "builtin-summarize",
         providerId: "openai",
         model: "gpt-4",
       };
 
-      store.getState().setChapterReformulation("chapter-1", reformulatedText, metadata);
+      store.getState().setChapterRewrite("chapter-1", rewrittenText, metadata);
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(chapter?.reformulatedText).toBe(reformulatedText);
-      expect(chapter?.reformulationPromptId).toBe(metadata.promptId);
-      expect(chapter?.reformulationContext).toMatchObject({
+      expect(chapter?.rewrittenText).toBe(rewrittenText);
+      expect(chapter?.rewritePromptId).toBe(metadata.promptId);
+      expect(chapter?.rewriteContext).toMatchObject({
         providerId: metadata.providerId,
         model: metadata.model,
         wordCount: 5,
       });
-      expect(chapter?.reformulatedAt).toBeDefined();
+      expect(chapter?.rewrittenAt).toBeDefined();
     });
 
     it("should calculate word count correctly", () => {
-      const reformulatedText = "One two three four five.";
+      const rewrittenText = "One two three four five.";
 
-      store.getState().setChapterReformulation("chapter-1", reformulatedText, {
+      store.getState().setChapterRewrite("chapter-1", rewrittenText, {
         promptId: "test-prompt",
       });
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(chapter?.reformulationContext?.wordCount).toBe(5);
+      expect(chapter?.rewriteContext?.wordCount).toBe(5);
     });
 
     it("should add to history", () => {
       const initialHistoryLength = store.getState().history.length;
 
-      store.getState().setChapterReformulation("chapter-1", "Reformulated text", {
+      store.getState().setChapterRewrite("chapter-1", "Rewritten text", {
         promptId: "test-prompt",
       });
 
@@ -107,7 +107,7 @@ describe("ChapterSlice Reformulation", () => {
     it("should do nothing for non-existent chapter", () => {
       const initialChapters = store.getState().chapters;
 
-      store.getState().setChapterReformulation("non-existent", "Text", {
+      store.getState().setChapterRewrite("non-existent", "Text", {
         promptId: "test-prompt",
       });
 
@@ -115,28 +115,28 @@ describe("ChapterSlice Reformulation", () => {
     });
   });
 
-  describe("clearChapterReformulation", () => {
+  describe("clearChapterRewrite", () => {
     beforeEach(() => {
-      // Set up a chapter with reformulation
-      store.getState().setChapterReformulation("chapter-1", "Reformulated text", {
+      // Set up a chapter with rewrite
+      store.getState().setChapterRewrite("chapter-1", "Rewritten text", {
         promptId: "test-prompt",
         providerId: "test-provider",
         model: "test-model",
       });
     });
 
-    it("should clear reformulated text and metadata", () => {
-      store.getState().clearChapterReformulation("chapter-1");
+    it("should clear rewritten text and metadata", () => {
+      store.getState().clearChapterRewrite("chapter-1");
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(chapter?.reformulatedText).toBeUndefined();
-      expect(chapter?.reformulatedAt).toBeUndefined();
-      expect(chapter?.reformulationPromptId).toBeUndefined();
-      expect(chapter?.reformulationContext).toBeUndefined();
+      expect(chapter?.rewrittenText).toBeUndefined();
+      expect(chapter?.rewrittenAt).toBeUndefined();
+      expect(chapter?.rewritePromptId).toBeUndefined();
+      expect(chapter?.rewriteContext).toBeUndefined();
     });
 
     it("should preserve other chapter properties", () => {
-      store.getState().clearChapterReformulation("chapter-1");
+      store.getState().clearChapterRewrite("chapter-1");
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
       expect(chapter?.title).toBe("Test Chapter");
@@ -147,56 +147,56 @@ describe("ChapterSlice Reformulation", () => {
     it("should add to history", () => {
       const initialHistoryLength = store.getState().history.length;
 
-      store.getState().clearChapterReformulation("chapter-1");
+      store.getState().clearChapterRewrite("chapter-1");
 
       const historyLength = store.getState().history.length;
       expect(historyLength).toBeGreaterThan(initialHistoryLength);
     });
   });
 
-  describe("updateChapterReformulation", () => {
+  describe("updateChapterRewrite", () => {
     beforeEach(() => {
-      // Set up a chapter with reformulation
-      store.getState().setChapterReformulation("chapter-1", "Original reformulated text", {
+      // Set up a chapter with rewrite
+      store.getState().setChapterRewrite("chapter-1", "Original rewritten text", {
         promptId: "test-prompt",
       });
     });
 
-    it("should update reformulated text", () => {
-      const newText = "Updated reformulated text with more words.";
+    it("should update rewritten text", () => {
+      const newText = "Updated rewritten text with more words.";
 
-      store.getState().updateChapterReformulation("chapter-1", newText);
+      store.getState().updateChapterRewrite("chapter-1", newText);
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(chapter?.reformulatedText).toBe(newText);
+      expect(chapter?.rewrittenText).toBe(newText);
     });
 
     it("should update word count", () => {
       const newText = "One two three.";
 
-      store.getState().updateChapterReformulation("chapter-1", newText);
+      store.getState().updateChapterRewrite("chapter-1", newText);
 
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(chapter?.reformulationContext?.wordCount).toBe(3);
+      expect(chapter?.rewriteContext?.wordCount).toBe(3);
     });
 
-    it("should preserve other reformulation metadata", () => {
+    it("should preserve other rewrite metadata", () => {
       const chapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      const originalPromptId = chapter?.reformulationPromptId;
-      const originalReformulatedAt = chapter?.reformulatedAt;
+      const originalPromptId = chapter?.rewritePromptId;
+      const originalRewrittenAt = chapter?.rewrittenAt;
 
-      store.getState().updateChapterReformulation("chapter-1", "New text");
+      store.getState().updateChapterRewrite("chapter-1", "New text");
 
       const updatedChapter = store.getState().chapters.find((c) => c.id === "chapter-1");
-      expect(updatedChapter?.reformulationPromptId).toBe(originalPromptId);
-      expect(updatedChapter?.reformulatedAt).toBe(originalReformulatedAt);
+      expect(updatedChapter?.rewritePromptId).toBe(originalPromptId);
+      expect(updatedChapter?.rewrittenAt).toBe(originalRewrittenAt);
     });
 
-    it("should do nothing if chapter has no reformulation", () => {
-      store.getState().clearChapterReformulation("chapter-1");
+    it("should do nothing if chapter has no rewrite", () => {
+      store.getState().clearChapterRewrite("chapter-1");
       const chaptersBeforeUpdate = store.getState().chapters;
 
-      store.getState().updateChapterReformulation("chapter-1", "New text");
+      store.getState().updateChapterRewrite("chapter-1", "New text");
 
       const chaptersAfterUpdate = store.getState().chapters;
       expect(chaptersAfterUpdate).toEqual(chaptersBeforeUpdate);
@@ -205,7 +205,7 @@ describe("ChapterSlice Reformulation", () => {
     it("should add to history", () => {
       const initialHistoryLength = store.getState().history.length;
 
-      store.getState().updateChapterReformulation("chapter-1", "Updated text");
+      store.getState().updateChapterRewrite("chapter-1", "Updated text");
 
       const historyLength = store.getState().history.length;
       expect(historyLength).toBeGreaterThan(initialHistoryLength);
@@ -214,15 +214,15 @@ describe("ChapterSlice Reformulation", () => {
 
   describe("setChapterDisplayMode", () => {
     it("should set display mode for chapter", () => {
-      store.getState().setChapterDisplayMode("chapter-1", "reformulated");
+      store.getState().setChapterDisplayMode("chapter-1", "rewritten");
 
       const displayMode = store.getState().chapterDisplayModes["chapter-1"];
-      expect(displayMode).toBe("reformulated");
+      expect(displayMode).toBe("rewritten");
     });
 
     it("should toggle display mode", () => {
-      store.getState().setChapterDisplayMode("chapter-1", "reformulated");
-      expect(store.getState().chapterDisplayModes["chapter-1"]).toBe("reformulated");
+      store.getState().setChapterDisplayMode("chapter-1", "rewritten");
+      expect(store.getState().chapterDisplayModes["chapter-1"]).toBe("rewritten");
 
       store.getState().setChapterDisplayMode("chapter-1", "original");
       expect(store.getState().chapterDisplayModes["chapter-1"]).toBe("original");
@@ -243,11 +243,11 @@ describe("ChapterSlice Reformulation", () => {
         chapters: [...state.chapters, chapter2],
       }));
 
-      store.getState().setChapterDisplayMode("chapter-1", "reformulated");
+      store.getState().setChapterDisplayMode("chapter-1", "rewritten");
       store.getState().setChapterDisplayMode("chapter-2", "original");
 
       const modes = store.getState().chapterDisplayModes;
-      expect(modes["chapter-1"]).toBe("reformulated");
+      expect(modes["chapter-1"]).toBe("rewritten");
       expect(modes["chapter-2"]).toBe("original");
     });
   });

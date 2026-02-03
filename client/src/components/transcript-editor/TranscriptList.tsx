@@ -5,9 +5,9 @@ import { useTranscriptStore } from "@/lib/store";
 import { sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
-import { ChapterReformulationDialog } from "../reformulation/ChapterReformulationDialog";
-import { ChapterReformulationView } from "../reformulation/ChapterReformulationView";
-import { ReformulatedTextDisplay } from "../reformulation/ReformulatedTextDisplay";
+import { ChapterRewriteDialog } from "../rewrite/ChapterRewriteDialog";
+import { ChapterRewriteView } from "../rewrite/ChapterRewriteView";
+import { RewrittenTextDisplay } from "../rewrite/RewrittenTextDisplay";
 import { TranscriptSegment } from "../TranscriptSegment";
 import { ChapterSuggestionInline } from "./ChapterSuggestionInline";
 import { MergeSuggestionInline } from "./MergeSuggestionInline";
@@ -76,11 +76,11 @@ function TranscriptListComponent({
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
 
-  // Get chapter display modes for reformulated text
+  // Get chapter display modes for rewritten text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
 
-  // Reformulation dialog and view state - consolidated into single state object
-  const [reformulationState, setReformulationState] = useState<{
+  // Rewrite dialog and view state - consolidated into single state object
+  const [rewriteState, setRewriteState] = useState<{
     dialogOpen: boolean;
     viewOpen: boolean;
     chapterId: string | null;
@@ -92,8 +92,8 @@ function TranscriptListComponent({
     triggerElement: null,
   });
 
-  const handleReformulateChapter = (chapterId: string) => {
-    setReformulationState({
+  const handleRewriteChapter = (chapterId: string) => {
+    setRewriteState({
       dialogOpen: true,
       viewOpen: false,
       chapterId,
@@ -101,16 +101,16 @@ function TranscriptListComponent({
     });
   };
 
-  const handleStartReformulation = () => {
-    setReformulationState((prev) => ({
+  const handleStartRewrite = () => {
+    setRewriteState((prev) => ({
       ...prev,
       dialogOpen: false,
       viewOpen: true,
     }));
   };
 
-  const handleCloseReformulationView = () => {
-    setReformulationState({
+  const handleCloseRewriteView = () => {
+    setRewriteState({
       dialogOpen: false,
       viewOpen: false,
       chapterId: null,
@@ -180,25 +180,25 @@ function TranscriptListComponent({
     return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
   }, [chapters, segmentIndexById]);
 
-  // Build a set of segment IDs that should be hidden (because they're in a reformulated chapter)
+  // Build a set of segment IDs that should be hidden (because they're in a rewritten chapter)
   // Optimized: filter chapters first to avoid processing all chapters on every render
-  const reformulatedChapters = useMemo(
+  const rewrittenChapters = useMemo(
     () =>
       chapters.filter(
-        (ch) => chapterDisplayModes[ch.id] === "reformulated" && ch.reformulatedText !== undefined,
+        (ch) => chapterDisplayModes[ch.id] === "rewritten" && ch.rewrittenText !== undefined,
       ),
     [chapters, chapterDisplayModes],
   );
 
   const hiddenSegmentIds = useMemo(() => {
     const hidden = new Set<string>();
-    // Only process chapters that are actually reformulated and displayed as such
-    for (const chapter of reformulatedChapters) {
+    // Only process chapters that are actually rewritten and displayed as such
+    for (const chapter of rewrittenChapters) {
       const startIndex = segmentIndexById.get(chapter.startSegmentId);
       const endIndex = segmentIndexById.get(chapter.endSegmentId);
       if (startIndex !== undefined && endIndex !== undefined) {
         // Build segment IDs from indices without accessing segments array
-        // All segments except the first one (where reformulated text is shown)
+        // All segments except the first one (where rewritten text is shown)
         for (let i = startIndex + 1; i <= endIndex; i++) {
           const segment = segments[i];
           if (segment) hidden.add(segment.id);
@@ -206,7 +206,7 @@ function TranscriptListComponent({
       }
     }
     return hidden;
-  }, [reformulatedChapters, segmentIndexById, segments]);
+  }, [rewrittenChapters, segmentIndexById, segments]);
 
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
@@ -260,16 +260,16 @@ function TranscriptListComponent({
             const chapter = chapterByStartId.get(segment.id);
             const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
 
-            // Check if this segment should be hidden (part of reformulated chapter)
+            // Check if this segment should be hidden (part of rewritten chapter)
             if (hiddenSegmentIds.has(segment.id)) {
               return null;
             }
 
-            // Check if we should show reformulated text for this chapter
+            // Check if we should show rewritten text for this chapter
             const displayMode = chapter
               ? chapterDisplayModes[chapter.id] || "original"
               : "original";
-            const showReformulated = displayMode === "reformulated" && chapter?.reformulatedText;
+            const showRewritten = displayMode === "rewritten" && chapter?.rewrittenText;
 
             return (
               <Fragment key={segment.id}>
@@ -295,14 +295,14 @@ function TranscriptListComponent({
                     isTranscriptEditing={isTranscriptEditing}
                     autoFocus={isChapterFocusTarget}
                     onAutoFocusHandled={onChapterFocusRequestHandled}
-                    onReformulateChapter={handleReformulateChapter}
+                    onRewriteChapter={handleRewriteChapter}
                   />
                 )}
 
-                {showReformulated && chapter?.reformulatedText ? (
-                  <ReformulatedTextDisplay
+                {showRewritten && chapter?.rewrittenText ? (
+                  <RewrittenTextDisplay
                     chapterId={chapter.id}
-                    text={chapter.reformulatedText}
+                    text={chapter.rewrittenText}
                     searchQuery={searchQuery}
                     isRegexSearch={isRegexSearch}
                   />
@@ -388,7 +388,7 @@ function TranscriptListComponent({
                   />
                 )}
 
-                {!showReformulated && mergeSuggestion && nextSegment && (
+                {!showRewritten && mergeSuggestion && nextSegment && (
                   <MergeSuggestionInline
                     suggestion={mergeSuggestion}
                     firstSegment={segment}
@@ -406,22 +406,22 @@ function TranscriptListComponent({
         )}
       </div>
 
-      {/* Reformulation Dialog */}
-      {reformulationState.dialogOpen && reformulationState.chapterId && (
-        <ChapterReformulationDialog
-          open={reformulationState.dialogOpen}
-          onOpenChange={(open) => setReformulationState((prev) => ({ ...prev, dialogOpen: open }))}
-          chapterId={reformulationState.chapterId}
-          onStartReformulation={handleStartReformulation}
+      {/* Rewrite Dialog */}
+      {rewriteState.dialogOpen && rewriteState.chapterId && (
+        <ChapterRewriteDialog
+          open={rewriteState.dialogOpen}
+          onOpenChange={(open) => setRewriteState((prev) => ({ ...prev, dialogOpen: open }))}
+          chapterId={rewriteState.chapterId}
+          onStartRewrite={handleStartRewrite}
         />
       )}
 
-      {/* Reformulation View */}
-      {reformulationState.viewOpen && reformulationState.chapterId && (
-        <ChapterReformulationView
-          chapterId={reformulationState.chapterId}
-          onClose={handleCloseReformulationView}
-          triggerElement={reformulationState.triggerElement}
+      {/* Rewrite View */}
+      {rewriteState.viewOpen && rewriteState.chapterId && (
+        <ChapterRewriteView
+          chapterId={rewriteState.chapterId}
+          onClose={handleCloseRewriteView}
+          triggerElement={rewriteState.triggerElement}
         />
       )}
     </ScrollArea>

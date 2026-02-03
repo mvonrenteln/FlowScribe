@@ -1,7 +1,7 @@
 /**
- * ReformulatedParagraph Component
+ * RewrittenParagraph Component
  *
- * Displays a single paragraph of reformulated text with edit capability.
+ * Displays a single paragraph of rewritten text with edit capability.
  * Follows the same UX pattern as TranscriptSegment (double-click to edit).
  */
 
@@ -11,7 +11,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
-interface ReformulatedParagraphProps {
+interface RewrittenParagraphProps {
   /** Paragraph text content */
   text: string;
   /** Called when text is changed */
@@ -60,13 +60,13 @@ function renderTextWithHighlights(
   return parts;
 }
 
-export function ReformulatedParagraph({
+export function RewrittenParagraph({
   text,
   onTextChange,
   isSelected = false,
   onSelect,
   searchMatches = [],
-}: ReformulatedParagraphProps) {
+}: RewrittenParagraphProps) {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
   const [draftText, setDraftText] = useState(text);
@@ -222,11 +222,11 @@ export function ReformulatedParagraph({
         <div className="mt-2 flex items-center justify-end gap-2">
           <Button size="sm" variant="ghost" onClick={handleCancelEdit} className="h-7 px-2 text-xs">
             <X className="mr-1 h-3 w-3" />
-            {t("reformulation.actions.cancel")}
+            {t("rewrite.actions.cancel")}
           </Button>
           <Button size="sm" variant="default" onClick={handleSaveEdit} className="h-7 px-2 text-xs">
             <Check className="mr-1 h-3 w-3" />
-            {t("reformulation.actions.save")}
+            {t("rewrite.actions.save")}
           </Button>
         </div>
       </div>

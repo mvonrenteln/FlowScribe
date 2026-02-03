@@ -1,8 +1,8 @@
 /**
- * ChapterReformulationView Component
+ * ChapterRewriteView Component
  *
- * Split-view for chapter reformulation with original segments on the left
- * and reformulated text on the right. Includes Accept/Reject/Regenerate actions.
+ * Split-view for chapter rewrite with original segments on the left
+ * and rewritten text on the right. Includes Accept/Reject/Regenerate actions.
  */
 
 import { Check, Loader2, RotateCw, X, XCircle } from "lucide-react";
@@ -13,10 +13,10 @@ import { Button } from "@/components/ui/button";
 import { useSegmentIndexById, useTranscriptStore } from "@/lib/store";
 import { getChapterRangeIndices } from "@/lib/store/utils/chapters";
 import { cn } from "@/lib/utils";
-import { ReformulatedTextDisplay } from "./ReformulatedTextDisplay";
+import { RewrittenTextDisplay } from "./RewrittenTextDisplay";
 
-interface ChapterReformulationViewProps {
-  /** Chapter ID being reformulated */
+interface ChapterRewriteViewProps {
+  /** Chapter ID being rewritten */
   chapterId: string;
   /** Called when user closes the view */
   onClose: () => void;
@@ -24,11 +24,11 @@ interface ChapterReformulationViewProps {
   triggerElement?: HTMLElement | null;
 }
 
-export function ChapterReformulationView({
+export function ChapterRewriteView({
   chapterId,
   onClose,
   triggerElement,
-}: ChapterReformulationViewProps) {
+}: ChapterRewriteViewProps) {
   const { t } = useTranslation();
   const chapters = useTranscriptStore((s) => s.chapters);
   const segments = useTranscriptStore((s) => s.segments);
@@ -43,15 +43,15 @@ export function ChapterReformulationView({
     if (!range) return [];
     return segments.slice(range.startIndex, range.endIndex + 1);
   }, [chapter, indexById, segments]);
-  const reformulationInProgress = useTranscriptStore((s) => s.reformulationInProgress);
-  const reformulationChapterId = useTranscriptStore((s) => s.reformulationChapterId);
-  const reformulationError = useTranscriptStore((s) => s.reformulationError);
-  const setChapterReformulation = useTranscriptStore((s) => s.setChapterReformulation);
+  const rewriteInProgress = useTranscriptStore((s) => s.rewriteInProgress);
+  const rewriteChapterId = useTranscriptStore((s) => s.rewriteChapterId);
+  const rewriteError = useTranscriptStore((s) => s.rewriteError);
+  const setChapterRewrite = useTranscriptStore((s) => s.setChapterRewrite);
   const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
-  const cancelReformulation = useTranscriptStore((s) => s.cancelReformulation);
-  const startReformulation = useTranscriptStore((s) => s.startReformulation);
+  const cancelRewrite = useTranscriptStore((s) => s.cancelRewrite);
+  const startRewrite = useTranscriptStore((s) => s.startRewrite);
 
-  const [reformulatedText, setReformulatedText] = useState<string>("");
+  const [rewrittenText, setRewrittenText] = useState<string>("");
   const [promptId, setPromptId] = useState<string>("");
   const [isMounted, setIsMounted] = useState(false);
 
@@ -59,16 +59,16 @@ export function ChapterReformulationView({
   const dialogRef = useRef<HTMLDivElement>(null);
   const closeButtonRef = useRef<HTMLButtonElement>(null);
 
-  // Check if reformulation is in progress for this chapter
-  const isProcessing = reformulationInProgress && reformulationChapterId === chapterId;
+  // Check if rewrite is in progress for this chapter
+  const isProcessing = rewriteInProgress && rewriteChapterId === chapterId;
 
-  // Update reformulated text when chapter updates
+  // Update rewritten text when chapter updates
   useEffect(() => {
-    if (chapter?.reformulatedText) {
-      setReformulatedText(chapter.reformulatedText);
-      setPromptId(chapter.reformulationPromptId || "");
+    if (chapter?.rewrittenText) {
+      setRewrittenText(chapter.rewrittenText);
+      setPromptId(chapter.rewritePromptId || "");
     }
-  }, [chapter?.reformulatedText, chapter?.reformulationPromptId]);
+  }, [chapter?.rewrittenText, chapter?.rewritePromptId]);
 
   useEffect(() => {
     setIsMounted(true);
@@ -152,32 +152,32 @@ export function ChapterReformulationView({
   }, [isMounted]);
 
   const handleAccept = useCallback(() => {
-    if (!chapter || !reformulatedText) return;
+    if (!chapter || !rewrittenText) return;
 
-    setChapterReformulation(chapterId, reformulatedText, {
+    setChapterRewrite(chapterId, rewrittenText, {
       promptId,
-      providerId: chapter.reformulationContext?.providerId,
-      model: chapter.reformulationContext?.model,
+      providerId: chapter.rewriteContext?.providerId,
+      model: chapter.rewriteContext?.model,
     });
 
-    // Automatically switch to reformulated view after accepting
-    setChapterDisplayMode(chapterId, "reformulated");
+    // Automatically switch to rewritten view after accepting
+    setChapterDisplayMode(chapterId, "rewritten");
 
     onClose();
   }, [
     chapter,
     chapterId,
-    reformulatedText,
+    rewrittenText,
     promptId,
-    setChapterReformulation,
+    setChapterRewrite,
     setChapterDisplayMode,
     onClose,
   ]);
 
   const handleReject = useCallback(() => {
-    cancelReformulation();
+    cancelRewrite();
     onClose();
-  }, [cancelReformulation, onClose]);
+  }, [cancelRewrite, onClose]);
 
   // Escape key handler (must be after handleReject definition)
   useEffect(() => {
@@ -195,8 +195,8 @@ export function ChapterReformulationView({
 
   const handleRegenerate = useCallback(() => {
     if (!promptId) return;
-    startReformulation(chapterId, promptId);
-  }, [chapterId, promptId, startReformulation]);
+    startRewrite(chapterId, promptId);
+  }, [chapterId, promptId, startRewrite]);
 
   if (!chapter || !isMounted) {
     return null;
@@ -207,18 +207,18 @@ export function ChapterReformulationView({
       ref={dialogRef}
       role="dialog"
       aria-modal="true"
-      aria-labelledby="reformulation-view-title"
-      aria-describedby="reformulation-view-description"
+      aria-labelledby="rewrite-view-title"
+      aria-describedby="rewrite-view-description"
       className="fixed inset-0 z-[60] flex flex-col bg-background pointer-events-auto"
-      data-testid="chapter-reformulation-view"
+      data-testid="chapter-rewrite-view"
     >
       {/* Header */}
       <div className="flex items-center justify-between border-b border-border bg-muted/30 px-4 py-3">
         <div className="flex items-center gap-2">
-          <h2 id="reformulation-view-title" className="text-lg font-semibold">
-            {t("reformulation.view.title")}
+          <h2 id="rewrite-view-title" className="text-lg font-semibold">
+            {t("rewrite.view.title")}
           </h2>
-          <span id="reformulation-view-description" className="text-sm text-muted-foreground">
+          <span id="rewrite-view-description" className="text-sm text-muted-foreground">
             — {chapter.title}
           </span>
         </div>
@@ -228,7 +228,7 @@ export function ChapterReformulationView({
           variant="ghost"
           size="icon"
           onClick={handleReject}
-          aria-label={t("reformulation.view.close", { defaultValue: "Schließen" })}
+          aria-label={t("rewrite.view.close", { defaultValue: "Schließen" })}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -240,7 +240,7 @@ export function ChapterReformulationView({
         <div className="flex w-1/2 flex-col border-r border-border">
           <div className="border-b border-border bg-muted/20 px-4 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">
-              {t("reformulation.view.originalLabel", { count: chapterSegments.length })}
+              {t("rewrite.view.originalLabel", { count: chapterSegments.length })}
             </h3>
           </div>
 
@@ -258,11 +258,11 @@ export function ChapterReformulationView({
           </div>
         </div>
 
-        {/* Right: Reformulated Text */}
+        {/* Right: Rewritten Text */}
         <div className="flex w-1/2 flex-col">
           <div className="border-b border-border bg-muted/20 px-4 py-2">
             <h3 className="text-sm font-medium text-muted-foreground">
-              {t("reformulation.view.reformulatedLabel")}
+              {t("rewrite.view.rewrittenLabel")}
             </h3>
           </div>
 
@@ -271,27 +271,25 @@ export function ChapterReformulationView({
               <div className="flex h-full items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <Loader2 className="h-8 w-8 animate-spin text-primary" />
-                  <p className="text-sm text-muted-foreground">
-                    {t("reformulation.view.processing")}
-                  </p>
+                  <p className="text-sm text-muted-foreground">{t("rewrite.view.processing")}</p>
                 </div>
               </div>
-            ) : reformulationError ? (
+            ) : rewriteError ? (
               <div className="flex h-full items-center justify-center">
                 <div className="flex flex-col items-center gap-3">
                   <XCircle className="h-8 w-8 text-destructive" />
-                  <p className="text-sm text-destructive">{reformulationError}</p>
+                  <p className="text-sm text-destructive">{rewriteError}</p>
                   <Button size="sm" variant="outline" onClick={handleRegenerate}>
                     <RotateCw className="mr-2 h-3 w-3" />
-                    {t("reformulation.view.retry")}
+                    {t("rewrite.view.retry")}
                   </Button>
                 </div>
               </div>
-            ) : reformulatedText ? (
-              <ReformulatedTextDisplay chapterId={chapterId} text={reformulatedText} />
+            ) : rewrittenText ? (
+              <RewrittenTextDisplay chapterId={chapterId} text={rewrittenText} />
             ) : (
               <div className="flex h-full items-center justify-center">
-                <p className="text-sm text-muted-foreground">{t("reformulation.view.waiting")}</p>
+                <p className="text-sm text-muted-foreground">{t("rewrite.view.waiting")}</p>
               </div>
             )}
           </div>
@@ -301,9 +299,9 @@ export function ChapterReformulationView({
       {/* Footer Actions */}
       <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-3">
         <div className="text-sm text-muted-foreground">
-          {reformulatedText &&
-            t("reformulation.view.wordCount", {
-              reformulated: reformulatedText.split(/\s+/).length,
+          {rewrittenText &&
+            t("rewrite.view.wordCount", {
+              rewritten: rewrittenText.split(/\s+/).length,
               original: chapterSegments.reduce((sum, s) => sum + s.text.split(/\s+/).length, 0),
             })}
         </div>
@@ -316,7 +314,7 @@ export function ChapterReformulationView({
             className="min-w-24"
           >
             <XCircle className="mr-2 h-4 w-4" />
-            {t("reformulation.actions.reject")}
+            {t("rewrite.actions.reject")}
           </Button>
 
           <Button
@@ -326,17 +324,17 @@ export function ChapterReformulationView({
             className="min-w-24"
           >
             <RotateCw className={cn("mr-2 h-4 w-4", isProcessing && "animate-spin")} />
-            {t("reformulation.actions.regenerate")}
+            {t("rewrite.actions.regenerate")}
           </Button>
 
           <Button
             variant="default"
             onClick={handleAccept}
-            disabled={isProcessing || !reformulatedText || !!reformulationError}
+            disabled={isProcessing || !rewrittenText || !!rewriteError}
             className="min-w-24"
           >
             <Check className="mr-2 h-4 w-4" />
-            {t("reformulation.actions.accept")}
+            {t("rewrite.actions.accept")}
           </Button>
         </div>
       </div>

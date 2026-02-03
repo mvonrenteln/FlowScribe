@@ -189,13 +189,13 @@ describe("Feature Registry", () => {
   });
 
   describe("registerDefaultFeatures", () => {
-    it("should register built-in features including chapter reformulation", () => {
+    it("should register built-in features including chapter rewrite", () => {
       registerDefaultFeatures();
 
       expect(hasFeature("speaker-classification")).toBe(true);
       expect(hasFeature("text-revision")).toBe(true);
       expect(hasFeature("segment-merge")).toBe(true);
-      expect(hasFeature("chapter-reformulation")).toBe(true);
+      expect(hasFeature("chapter-rewrite")).toBe(true);
     });
   });
 });

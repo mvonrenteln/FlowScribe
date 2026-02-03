@@ -6,13 +6,13 @@ import { useTranscriptStore } from "@/lib/store";
 vi.mock("@/components/ChapterHeader", () => ({
   ChapterHeader: ({
     chapter,
-    onReformulateChapter,
+    onRewriteChapter,
   }: {
     chapter: { id: string };
-    onReformulateChapter: (id: string) => void;
+    onRewriteChapter: (id: string) => void;
   }) => (
-    <button type="button" onClick={() => onReformulateChapter(chapter.id)}>
-      Reformulate {chapter.id}
+    <button type="button" onClick={() => onRewriteChapter(chapter.id)}>
+      Rewrite {chapter.id}
     </button>
   ),
 }));
@@ -30,17 +30,17 @@ const resetStore = () => {
     aiRevisionLastResult: null,
     aiSpeakerSuggestions: [],
     aiSegmentMergeSuggestions: [],
-    reformulationInProgress: false,
-    reformulationChapterId: null,
-    reformulationError: null,
-    reformulationPrompts: [
+    rewriteInProgress: false,
+    rewriteChapterId: null,
+    rewriteError: null,
+    rewritePrompts: [
       {
         id: "prompt-1",
         name: "Default Prompt",
         instructions: "Rewrite the chapter.",
       },
     ],
-    reformulationConfig: {
+    rewriteConfig: {
       includeContext: true,
       contextWordLimit: 500,
       quickAccessPromptIds: [],
@@ -51,12 +51,12 @@ const resetStore = () => {
   });
 };
 
-describe("TranscriptList reformulation dialog", () => {
+describe("TranscriptList rewrite dialog", () => {
   beforeEach(() => {
     resetStore();
   });
 
-  it("unmounts the reformulation dialog after closing", async () => {
+  it("unmounts the rewrite dialog after closing", async () => {
     const user = userEvent.setup();
     const segment = {
       id: "seg-1",
@@ -143,16 +143,16 @@ describe("TranscriptList reformulation dialog", () => {
 
     render(<TranscriptList {...props} />);
 
-    const openButton = screen.getByRole("button", { name: `Reformulate ${chapter.id}` });
+    const openButton = screen.getByRole("button", { name: `Rewrite ${chapter.id}` });
     await user.click(openButton);
 
-    expect(screen.getByText("Reformulate Chapter")).toBeInTheDocument();
+    expect(screen.getByText("Rewrite Chapter")).toBeInTheDocument();
 
     const cancelButton = screen.getByRole("button", { name: /cancel/i });
     await user.click(cancelButton);
 
     await waitFor(() => {
-      expect(screen.queryByText("Reformulate Chapter")).not.toBeInTheDocument();
+      expect(screen.queryByText("Rewrite Chapter")).not.toBeInTheDocument();
     });
   });
 });

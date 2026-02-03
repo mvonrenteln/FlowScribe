@@ -75,10 +75,10 @@ Notes:
 
 ---
 
-## Reformulate chapter compare view (developer note)
+## Rewrite chapter compare view (developer note)
 
 - The full-screen compare view renders in a portal attached to `document.body` to avoid pointer-event locks from dialogs or scroll containers.
-- If you adjust reformulation flows, ensure the prompt dialog closes before the compare view opens so the view remains interactive.
+- If you adjust rewrite flows, ensure the prompt dialog closes before the compare view opens so the view remains interactive.
 
 ---
 

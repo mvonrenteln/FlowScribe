@@ -1,7 +1,7 @@
 /**
- * Chapter Reformulation Dialog
+ * Chapter Rewrite Dialog
  *
- * Dialog for selecting a reformulation prompt and starting chapter reformulation.
+ * Dialog for selecting a rewrite prompt and starting chapter rewrite.
  */
 
 import { Loader2, Sparkles } from "lucide-react";
@@ -26,27 +26,27 @@ import {
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 
-interface ChapterReformulationDialogProps {
+interface ChapterRewriteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chapterId: string;
-  onStartReformulation: () => void;
+  onStartRewrite: () => void;
 }
 
-export function ChapterReformulationDialog({
+export function ChapterRewriteDialog({
   open,
   onOpenChange,
   chapterId,
-  onStartReformulation,
-}: ChapterReformulationDialogProps) {
-  const prompts = useTranscriptStore((s) => s.reformulationPrompts);
-  const quickAccessIds = useTranscriptStore((s) => s.reformulationConfig.quickAccessPromptIds);
-  const defaultPromptId = useTranscriptStore((s) => s.reformulationConfig.defaultPromptId);
-  const reformulationConfig = useTranscriptStore((s) => s.reformulationConfig);
-  const startReformulation = useTranscriptStore((s) => s.startReformulation);
-  const isProcessing = useTranscriptStore((s) => s.reformulationInProgress);
-  const processingChapterId = useTranscriptStore((s) => s.reformulationChapterId);
-  const updateReformulationConfig = useTranscriptStore((s) => s.updateReformulationConfig);
+  onStartRewrite,
+}: ChapterRewriteDialogProps) {
+  const prompts = useTranscriptStore((s) => s.rewritePrompts);
+  const quickAccessIds = useTranscriptStore((s) => s.rewriteConfig.quickAccessPromptIds);
+  const defaultPromptId = useTranscriptStore((s) => s.rewriteConfig.defaultPromptId);
+  const rewriteConfig = useTranscriptStore((s) => s.rewriteConfig);
+  const startRewrite = useTranscriptStore((s) => s.startRewrite);
+  const isProcessing = useTranscriptStore((s) => s.rewriteInProgress);
+  const processingChapterId = useTranscriptStore((s) => s.rewriteChapterId);
+  const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
   // Local state
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
@@ -62,10 +62,10 @@ export function ChapterReformulationDialog({
     : undefined;
 
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
-    () => reformulationConfig.selectedProviderId ?? defaultProvider?.id,
+    () => rewriteConfig.selectedProviderId ?? defaultProvider?.id,
   );
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
-    () => reformulationConfig.selectedModel ?? defaultModel,
+    () => rewriteConfig.selectedModel ?? defaultModel,
   );
 
   useEffect(() => {
@@ -95,25 +95,25 @@ export function ChapterReformulationDialog({
     if (!selectedPromptId) return;
 
     // Update config with selections
-    updateReformulationConfig({
+    updateRewriteConfig({
       selectedProviderId: selectedProvider,
       selectedModel,
     });
 
-    // Start reformulation to set processing state
-    startReformulation(chapterId, selectedPromptId);
+    // Start rewrite to set processing state
+    startRewrite(chapterId, selectedPromptId);
 
     // Close dialog and open view - parent component handles the transition
-    onStartReformulation();
+    onStartRewrite();
     onOpenChange(false);
   }, [
     selectedPromptId,
     selectedProvider,
     selectedModel,
     chapterId,
-    updateReformulationConfig,
-    startReformulation,
-    onStartReformulation,
+    updateRewriteConfig,
+    startRewrite,
+    onStartRewrite,
     onOpenChange,
   ]);
 
@@ -123,7 +123,7 @@ export function ChapterReformulationDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Reformulate Chapter
+            Rewrite Chapter
           </DialogTitle>
           <DialogDescription>
             Select a prompt and start reformulating the chapter.

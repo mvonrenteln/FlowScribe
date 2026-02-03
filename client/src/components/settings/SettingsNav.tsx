@@ -12,7 +12,7 @@ import { cn } from "@/lib/utils";
 export type SettingsSection =
   | "ai-server"
   | "ai-prompts"
-  | "chapter-reformulation"
+  | "chapter-rewrite"
   | "appearance"
   | "spellcheck"
   | "glossary"
@@ -39,8 +39,8 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
     icon: FileText,
   },
   {
-    id: "chapter-reformulation",
-    label: "Chapter Reformulation",
+    id: "chapter-rewrite",
+    label: "Chapter Rewrite",
     description: "Chapter transformation prompts",
     icon: Sparkles,
   },

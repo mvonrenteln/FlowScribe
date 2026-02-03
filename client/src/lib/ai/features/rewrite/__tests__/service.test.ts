@@ -1,5 +1,5 @@
 /**
- * Tests for Chapter Reformulation Service
+ * Tests for Chapter Rewrite Service
  */
 
 import { describe, expect, it } from "vitest";

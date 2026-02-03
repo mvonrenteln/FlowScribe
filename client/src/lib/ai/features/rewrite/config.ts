@@ -1,33 +1,33 @@
 /**
- * Chapter Reformulation Configuration
+ * Chapter Rewrite Configuration
  *
- * Feature configuration, prompts, and schemas for chapter reformulation.
+ * Feature configuration, prompts, and schemas for chapter rewrite.
  *
- * @module ai/features/reformulation/config
+ * @module ai/features/rewrite/config
  */
 
 import type { AIFeatureConfig } from "../../core/types";
-import type { ReformulationPrompt } from "./types";
+import type { RewritePrompt } from "./types";
 
 // ==================== Feature Configuration ====================
 
 export const CHAPTER_REFORMULATION_CONFIG: AIFeatureConfig = {
-  id: "chapter-reformulation",
-  name: "Chapter Reformulation",
+  id: "chapter-rewrite",
+  name: "Chapter Rewrite",
   category: "text",
 
   systemPrompt: `You are an expert editor transforming transcript text.
-Your task is to reformulate the provided chapter content according to the given instructions.
+Your task is to rewrite the provided chapter content according to the given instructions.
 
 GUIDELINES:
 - Maintain factual accuracy from the original
 - Preserve key points and meaning
 - Adapt style according to the prompt instructions
 - Ensure smooth flow and coherence
-- Output ONLY the reformulated text, no explanations
+- Output ONLY the rewritten text, no explanations
 
 OUTPUT FORMAT:
-Return only the reformulated text. No markdown, no quotes, no explanations.`,
+Return only the rewritten text. No markdown, no quotes, no explanations.`,
 
   userPromptTemplate: `# Context
 
@@ -87,13 +87,13 @@ Tags: {{chapterTags}}
     "customInstructions",
   ],
 
-  // No schema for reformulation - output is plain text
+  // No schema for rewrite - output is plain text
   responseSchema: undefined,
 };
 
 // ==================== Built-in Prompts ====================
 
-export const BUILTIN_REFORMULATION_PROMPTS: ReformulationPrompt[] = [
+export const BUILTIN_REFORMULATION_PROMPTS: RewritePrompt[] = [
   {
     id: "builtin-summarize",
     name: "Summarize",
@@ -118,19 +118,19 @@ export const BUILTIN_REFORMULATION_PROMPTS: ReformulationPrompt[] = [
 ];
 
 /**
- * Get the default reformulation prompt.
+ * Get the default rewrite prompt.
  */
-export function getDefaultReformulationPrompt(): ReformulationPrompt {
+export function getDefaultRewritePrompt(): RewritePrompt {
   return BUILTIN_REFORMULATION_PROMPTS[0];
 }
 
 /**
  * Find a prompt by ID.
  */
-export function findReformulationPrompt(
+export function findRewritePrompt(
   id: string,
-  customPrompts: ReformulationPrompt[] = [],
-): ReformulationPrompt | undefined {
+  customPrompts: RewritePrompt[] = [],
+): RewritePrompt | undefined {
   return (
     BUILTIN_REFORMULATION_PROMPTS.find((p) => p.id === id) || customPrompts.find((p) => p.id === id)
   );

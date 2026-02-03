@@ -1,4 +1,4 @@
-import type { ReformulationConfig, ReformulationPrompt } from "../slices/reformulationSlice";
+import type { RewriteConfig, RewritePrompt } from "../slices/rewriteSlice";
 import type {
   AIChapterDetectionConfig,
   AIRevisionConfig,
@@ -25,8 +25,8 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
   aiChapterDetectionConfig: AIChapterDetectionConfig;
-  reformulationConfig: ReformulationConfig;
-  reformulationPrompts: ReformulationPrompt[];
+  rewriteConfig: RewriteConfig;
+  rewritePrompts: RewritePrompt[];
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -45,6 +45,6 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
   aiChapterDetectionConfig: state.aiChapterDetectionConfig,
-  reformulationConfig: state.reformulationConfig,
-  reformulationPrompts: state.reformulationPrompts,
+  rewriteConfig: state.rewriteConfig,
+  rewritePrompts: state.rewritePrompts,
 });

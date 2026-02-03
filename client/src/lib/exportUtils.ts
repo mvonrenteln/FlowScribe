@@ -12,11 +12,11 @@ export interface JSONExportChapter {
   segmentCount: number;
   createdAt: number;
   source: string;
-  // Reformulation fields
-  reformulatedText?: string;
-  reformulatedAt?: number;
-  reformulationPromptId?: string;
-  reformulationContext?: {
+  // Rewrite fields
+  rewrittenText?: string;
+  rewrittenAt?: number;
+  rewritePromptId?: string;
+  rewriteContext?: {
     model?: string;
     providerId?: string;
     wordCount?: number;
@@ -54,11 +54,11 @@ export function buildJSONExport(
             segmentCount: chapter.segmentCount,
             createdAt: chapter.createdAt,
             source: chapter.source,
-            ...(chapter.reformulatedText && {
-              reformulatedText: chapter.reformulatedText,
-              reformulatedAt: chapter.reformulatedAt,
-              reformulationPromptId: chapter.reformulationPromptId,
-              reformulationContext: chapter.reformulationContext,
+            ...(chapter.rewrittenText && {
+              rewrittenText: chapter.rewrittenText,
+              rewrittenAt: chapter.rewrittenAt,
+              rewritePromptId: chapter.rewritePromptId,
+              rewriteContext: chapter.rewriteContext,
             }),
           })),
         }

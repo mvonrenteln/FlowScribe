@@ -13,7 +13,7 @@ import type {
   Tag,
   TranscriptStore,
 } from "@/lib/store/types";
-import type { ReformulationConfig } from "../slices/reformulationSlice";
+import type { RewriteConfig } from "../slices/rewriteSlice";
 
 export interface PersistenceSelection {
   sessionKey: string;
@@ -44,7 +44,7 @@ export interface PersistenceSelection {
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
   aiChapterDetectionConfig: AIChapterDetectionConfig;
-  reformulationConfig: ReformulationConfig;
+  rewriteConfig: RewriteConfig;
 }
 
 /**
@@ -90,7 +90,7 @@ export const selectPersistenceState = (state: TranscriptStore): PersistenceSelec
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
   aiChapterDetectionConfig: state.aiChapterDetectionConfig,
-  reformulationConfig: state.reformulationConfig,
+  rewriteConfig: state.rewriteConfig,
 });
 
 export const arePersistenceSelectionsEqual = (
@@ -124,4 +124,4 @@ export const arePersistenceSelectionsEqual = (
   left.aiRevisionConfig === right.aiRevisionConfig &&
   left.aiSegmentMergeConfig === right.aiSegmentMergeConfig &&
   left.aiChapterDetectionConfig === right.aiChapterDetectionConfig &&
-  left.reformulationConfig === right.reformulationConfig;
+  left.rewriteConfig === right.rewriteConfig;

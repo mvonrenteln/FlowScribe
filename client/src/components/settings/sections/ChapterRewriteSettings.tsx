@@ -1,7 +1,7 @@
 /**
- * Chapter Reformulation Settings
+ * Chapter Rewrite Settings
  *
- * Configuration UI for chapter reformulation prompts and settings.
+ * Configuration UI for chapter rewrite prompts and settings.
  */
 
 import { AlertCircle, Check, ChevronDown, ChevronUp, Plus, Sparkles, Trash2 } from "lucide-react";
@@ -15,23 +15,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-import type { ReformulationPrompt } from "@/lib/ai/features/reformulation/types";
+import type { RewritePrompt } from "@/lib/ai/features/rewrite/types";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
-export function ChapterReformulationSettings() {
-  const prompts = useTranscriptStore((s) => s.reformulationPrompts);
-  const config = useTranscriptStore((s) => s.reformulationConfig);
-  const addPrompt = useTranscriptStore((s) => s.addReformulationPrompt);
-  const updatePrompt = useTranscriptStore((s) => s.updateReformulationPrompt);
-  const deletePrompt = useTranscriptStore((s) => s.deleteReformulationPrompt);
-  const setDefaultPrompt = useTranscriptStore((s) => s.setDefaultReformulationPrompt);
-  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessReformulationPrompt);
-  const updateConfig = useTranscriptStore((s) => s.updateReformulationConfig);
+export function ChapterRewriteSettings() {
+  const prompts = useTranscriptStore((s) => s.rewritePrompts);
+  const config = useTranscriptStore((s) => s.rewriteConfig);
+  const addPrompt = useTranscriptStore((s) => s.addRewritePrompt);
+  const updatePrompt = useTranscriptStore((s) => s.updateRewritePrompt);
+  const deletePrompt = useTranscriptStore((s) => s.deleteRewritePrompt);
+  const setDefaultPrompt = useTranscriptStore((s) => s.setDefaultRewritePrompt);
+  const toggleQuickAccess = useTranscriptStore((s) => s.toggleQuickAccessRewritePrompt);
+  const updateConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
   const [editingId, setEditingId] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [newPrompt, setNewPrompt] = useState<Partial<ReformulationPrompt>>({
+  const [newPrompt, setNewPrompt] = useState<Partial<RewritePrompt>>({
     name: "",
     instructions: "",
   });
@@ -50,7 +50,7 @@ export function ChapterReformulationSettings() {
   }, [newPrompt, addPrompt]);
 
   const handleSaveEdit = useCallback(
-    (id: string, updates: Partial<ReformulationPrompt>) => {
+    (id: string, updates: Partial<RewritePrompt>) => {
       updatePrompt(id, updates);
       setEditingId(null);
     },
@@ -69,9 +69,9 @@ export function ChapterReformulationSettings() {
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-medium">Chapter Reformulation</h3>
+        <h3 className="text-lg font-medium">Chapter Rewrite</h3>
         <p className="text-sm text-muted-foreground">
-          Configure prompts and settings for chapter reformulation.
+          Configure prompts and settings for chapter rewrite.
         </p>
       </div>
 
@@ -152,7 +152,7 @@ export function ChapterReformulationSettings() {
                     value={newPrompt.instructions || ""}
                     onChange={(e) => setNewPrompt({ ...newPrompt, instructions: e.target.value })}
                     rows={6}
-                    placeholder="Describe how the text should be reformulated..."
+                    placeholder="Describe how the text should be rewritten..."
                     className="font-mono text-sm"
                   />
                 </div>

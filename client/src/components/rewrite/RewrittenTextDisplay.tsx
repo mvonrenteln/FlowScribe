@@ -1,19 +1,19 @@
 /**
- * ReformulatedTextDisplay Component
+ * RewrittenTextDisplay Component
  *
- * Displays reformulated chapter text as editable paragraphs.
+ * Displays rewritten chapter text as editable paragraphs.
  * Paragraphs are split by double newlines (\n\n).
  */
 
 import { useCallback, useMemo, useState } from "react";
 import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
 import { useTranscriptStore } from "@/lib/store";
-import { ReformulatedParagraph } from "./ReformulatedParagraph";
+import { RewrittenParagraph } from "./RewrittenParagraph";
 
-interface ReformulatedTextDisplayProps {
+interface RewrittenTextDisplayProps {
   /** Chapter ID */
   chapterId: string;
-  /** Reformulated text */
+  /** Rewritten text */
   text: string;
   /** Search query for highlighting */
   searchQuery?: string;
@@ -21,14 +21,14 @@ interface ReformulatedTextDisplayProps {
   isRegexSearch?: boolean;
 }
 
-export function ReformulatedTextDisplay({
+export function RewrittenTextDisplay({
   chapterId,
   text,
   searchQuery = "",
   isRegexSearch = false,
-}: ReformulatedTextDisplayProps) {
+}: RewrittenTextDisplayProps) {
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
-  const updateChapterReformulation = useTranscriptStore((s) => s.updateChapterReformulation);
+  const updateChapterRewrite = useTranscriptStore((s) => s.updateChapterRewrite);
 
   // Split text into paragraphs by double newline
   const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
@@ -53,15 +53,15 @@ export function ReformulatedTextDisplay({
       updatedParagraphs[index] = newText;
       const updatedText = updatedParagraphs.join("\n\n");
 
-      updateChapterReformulation(chapterId, updatedText);
+      updateChapterRewrite(chapterId, updatedText);
     },
-    [chapterId, paragraphs, updateChapterReformulation],
+    [chapterId, paragraphs, updateChapterRewrite],
   );
 
   if (paragraphs.length === 0) {
     return (
       <div className="flex h-full items-center justify-center text-muted-foreground">
-        <p className="text-sm">No reformulated text available.</p>
+        <p className="text-sm">No rewritten text available.</p>
       </div>
     );
   }
@@ -69,7 +69,7 @@ export function ReformulatedTextDisplay({
   return (
     <div className="space-y-4 p-4">
       {paragraphs.map((paragraph, index) => (
-        <ReformulatedParagraph
+        <RewrittenParagraph
           key={`${index}-${paragraph.slice(0, 50)}`}
           text={paragraph}
           onTextChange={(newText) => handleParagraphChange(index, newText)}
