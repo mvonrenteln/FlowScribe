@@ -246,31 +246,20 @@ export function useSpellcheck({
       return;
     }
 
-    const scheduleIdleCheck = (callback: (deadline?: { timeRemaining: () => number }) => void) => {
-      const requestIdle = (
-        globalThis as typeof globalThis & {
-          requestIdleCallback?: (
-            cb: (deadline?: { timeRemaining: () => number }) => void,
-          ) => number;
-        }
-      ).requestIdleCallback;
-      if (requestIdle) {
-        return requestIdle(callback);
-      }
-      return globalThis.setTimeout(() => callback(), 0);
-    };
+    const CHUNK_SIZE = 5; // Very small chunks to stay under 16ms budget
+    const CHUNK_DELAY = 0; // Process as fast as possible but yield between chunks
+    let timeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const processChunk = (deadline?: { timeRemaining: () => number }) => {
+    const processChunk = () => {
       if (cancelled || spellcheckRunIdRef.current !== runId) return;
-      let timeRemaining = deadline?.timeRemaining?.() ?? 0;
       let iterations = 0;
 
-      while (segmentIndex < segmentsToProcess.length && (iterations < 120 || timeRemaining > 4)) {
+      while (segmentIndex < segmentsToProcess.length && iterations < CHUNK_SIZE) {
         const segment = segmentsToProcess[segmentIndex];
         const words = segment.words;
         const wordMatches = matches.get(segment.id) ?? new Map<number, SpellcheckMatchMeta>();
 
-        while (wordIndex < words.length) {
+        while (wordIndex < words.length && iterations < CHUNK_SIZE) {
           const word = words[wordIndex];
           const match = getSpellcheckMatch(
             word.word,
@@ -293,8 +282,6 @@ export function useSpellcheck({
           wordIndex += 1;
           iterations += 1;
           processedSinceUpdate += 1;
-          timeRemaining = deadline?.timeRemaining?.() ?? 0;
-          if (iterations >= 120 && timeRemaining <= 4) break;
         }
 
         if (wordMatches.size > 0) {
@@ -309,14 +296,16 @@ export function useSpellcheck({
         }
       }
 
-      if (processedSinceUpdate >= 240 || segmentIndex >= segmentsToProcess.length) {
+      // Update UI every 25 processed words or when done
+      if (processedSinceUpdate >= 25 || segmentIndex >= segmentsToProcess.length) {
         setSpellcheckMatchesBySegment(new Map(matches));
         previousMatchesRef.current = new Map(matches);
         processedSinceUpdate = 0;
       }
 
+      // Schedule next chunk with delay or finish
       if (segmentIndex < segmentsToProcess.length) {
-        scheduleIdleCheck(processChunk);
+        timeoutId = setTimeout(processChunk, CHUNK_DELAY);
       } else if (matches.size === 0) {
         setSpellcheckMatchesBySegment(new Map());
         previousMatchesRef.current = new Map();
@@ -331,10 +320,14 @@ export function useSpellcheck({
       }
     };
 
-    scheduleIdleCheck(processChunk);
+    // Start processing with initial delay to avoid blocking mount
+    timeoutId = setTimeout(processChunk, CHUNK_DELAY);
 
     return () => {
       cancelled = true;
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
     };
   }, [
     lexiconEntries,
