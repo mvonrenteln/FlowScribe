@@ -82,6 +82,20 @@ const ExportDialogComponent = ({
       const parts: string[] = [];
 
       for (const chapter of chapters) {
+        // Find segments in this chapter that are in segmentsToExport
+        const chapterSegments = segmentsToExport.filter(
+          (seg) =>
+            segments.findIndex((s) => s.id === chapter.startSegmentId) <=
+              segments.findIndex((s) => s.id === seg.id) &&
+            segments.findIndex((s) => s.id === seg.id) <=
+              segments.findIndex((s) => s.id === chapter.endSegmentId),
+        );
+
+        // Skip chapters with no segments in the export
+        if (chapterSegments.length === 0) {
+          continue;
+        }
+
         // Chapter header
         parts.push(`# ${chapter.title}`);
         if (chapter.summary) {
@@ -92,15 +106,6 @@ const ExportDialogComponent = ({
         if (chapter.rewrittenText) {
           parts.push(chapter.rewrittenText);
         } else {
-          // Find segments in this chapter
-          const chapterSegments = segmentsToExport.filter(
-            (seg) =>
-              segments.findIndex((s) => s.id === chapter.startSegmentId) <=
-                segments.findIndex((s) => s.id === seg.id) &&
-              segments.findIndex((s) => s.id === seg.id) <=
-                segments.findIndex((s) => s.id === chapter.endSegmentId),
-          );
-
           const formatTime = (seconds: number): string => {
             const mins = Math.floor(seconds / 60);
             const secs = Math.floor(seconds % 60);
