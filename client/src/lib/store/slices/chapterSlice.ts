@@ -15,6 +15,15 @@ type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 /**
+ * Cache for selectSegmentsInChapter results.
+ * Key format: `${chapterId}:${filteredSegmentIds.size}:${segments.length}`
+ */
+const segmentsInChapterCache = new Map<
+  string,
+  ReturnType<ChapterSlice["selectSegmentsInChapter"]>
+>();
+
+/**
  * Zustand slice for manual chapter CRUD and lookup selectors.
  */
 export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterSlice => ({
@@ -247,19 +256,44 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
   selectSegmentsInChapter: (chapterId) => {
     const { chapters, segments, filteredSegmentIds } = get();
+
+    // Build cache key from relevant state
+    const cacheKey = `${chapterId}:${filteredSegmentIds.size}:${segments.length}`;
+    const cached = segmentsInChapterCache.get(cacheKey);
+    if (cached !== undefined) return cached;
+
     const chapter = chapters.find((item) => item.id === chapterId);
-    if (!chapter) return [];
+    if (!chapter) {
+      segmentsInChapterCache.set(cacheKey, []);
+      return [];
+    }
+
     const indexById = memoizedBuildSegmentIndexMap(segments);
     const range = getChapterRangeIndices(chapter, indexById);
-    if (!range) return [];
+    if (!range) {
+      segmentsInChapterCache.set(cacheKey, []);
+      return [];
+    }
+
     const allSegments = segments.slice(range.startIndex, range.endIndex + 1);
 
     // If filters are active (filteredSegmentIds is not empty), only return filtered segments
+    let result: typeof allSegments;
     if (filteredSegmentIds.size > 0) {
-      return allSegments.filter((seg) => filteredSegmentIds.has(seg.id));
+      result = allSegments.filter((seg) => filteredSegmentIds.has(seg.id));
+    } else {
+      result = allSegments;
     }
 
-    return allSegments;
+    // Cache result (limit cache size to prevent memory leaks)
+    if (segmentsInChapterCache.size > 100) {
+      // Clear old entries (simple LRU-like behavior)
+      const firstKey = segmentsInChapterCache.keys().next().value;
+      if (firstKey !== undefined) segmentsInChapterCache.delete(firstKey);
+    }
+    segmentsInChapterCache.set(cacheKey, result);
+
+    return result;
   },
 
   // Reformulation methods
@@ -406,11 +440,15 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   chapterDisplayModes: {},
 
   setChapterDisplayMode: (chapterId, mode) => {
-    set((state) => ({
+    const current = get().chapterDisplayModes;
+    // Skip update if mode is already set to this value
+    if (current[chapterId] === mode) return;
+
+    set({
       chapterDisplayModes: {
-        ...state.chapterDisplayModes,
+        ...current,
         [chapterId]: mode,
       },
-    }));
+    });
   },
 });

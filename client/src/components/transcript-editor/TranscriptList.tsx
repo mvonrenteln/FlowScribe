@@ -79,29 +79,43 @@ function TranscriptListComponent({
   // Get chapter display modes for reformulated text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
 
-  // Reformulation dialog and view state
-  const [reformulationDialogOpen, setReformulationDialogOpen] = useState(false);
-  const [reformulationViewOpen, setReformulationViewOpen] = useState(false);
-  const [reformulationChapterId, setReformulationChapterId] = useState<string | null>(null);
-  const [triggerElement, setTriggerElement] = useState<HTMLElement | null>(null);
+  // Reformulation dialog and view state - consolidated into single state object
+  const [reformulationState, setReformulationState] = useState<{
+    dialogOpen: boolean;
+    viewOpen: boolean;
+    chapterId: string | null;
+    triggerElement: HTMLElement | null;
+  }>({
+    dialogOpen: false,
+    viewOpen: false,
+    chapterId: null,
+    triggerElement: null,
+  });
 
   const handleReformulateChapter = (chapterId: string) => {
-    // Capture the currently focused element as the trigger
-    setTriggerElement(document.activeElement as HTMLElement);
-    setReformulationChapterId(chapterId);
-    setReformulationDialogOpen(true);
+    setReformulationState({
+      dialogOpen: true,
+      viewOpen: false,
+      chapterId,
+      triggerElement: document.activeElement as HTMLElement,
+    });
   };
 
   const handleStartReformulation = () => {
-    // Close dialog and immediately open view - no setTimeout/RAF needed
-    setReformulationDialogOpen(false);
-    setReformulationViewOpen(true);
+    setReformulationState((prev) => ({
+      ...prev,
+      dialogOpen: false,
+      viewOpen: true,
+    }));
   };
 
   const handleCloseReformulationView = () => {
-    setReformulationViewOpen(false);
-    setReformulationChapterId(null);
-    setTriggerElement(null);
+    setReformulationState({
+      dialogOpen: false,
+      viewOpen: false,
+      chapterId: null,
+      triggerElement: null,
+    });
   };
 
   // AI Chapter Detection
@@ -167,25 +181,32 @@ function TranscriptListComponent({
   }, [chapters, segmentIndexById]);
 
   // Build a set of segment IDs that should be hidden (because they're in a reformulated chapter)
+  // Optimized: filter chapters first to avoid processing all chapters on every render
+  const reformulatedChapters = useMemo(
+    () =>
+      chapters.filter(
+        (ch) => chapterDisplayModes[ch.id] === "reformulated" && ch.reformulatedText !== undefined,
+      ),
+    [chapters, chapterDisplayModes],
+  );
+
   const hiddenSegmentIds = useMemo(() => {
     const hidden = new Set<string>();
-    for (const chapter of chapters) {
-      const displayMode = chapterDisplayModes[chapter.id] || "original";
-      if (displayMode === "reformulated" && chapter.reformulatedText) {
-        // Add all segment IDs in this chapter except the first one (where we'll show the reformulated text)
-        const startIndex = segmentIndexById.get(chapter.startSegmentId);
-        const endIndex = segmentIndexById.get(chapter.endSegmentId);
-        if (startIndex !== undefined && endIndex !== undefined) {
-          // Iterate through the full segments array using the correct indices
-          for (let i = startIndex + 1; i <= endIndex; i++) {
-            const segment = segments[i];
-            if (segment) hidden.add(segment.id);
-          }
+    // Only process chapters that are actually reformulated and displayed as such
+    for (const chapter of reformulatedChapters) {
+      const startIndex = segmentIndexById.get(chapter.startSegmentId);
+      const endIndex = segmentIndexById.get(chapter.endSegmentId);
+      if (startIndex !== undefined && endIndex !== undefined) {
+        // Build segment IDs from indices without accessing segments array
+        // All segments except the first one (where reformulated text is shown)
+        for (let i = startIndex + 1; i <= endIndex; i++) {
+          const segment = segments[i];
+          if (segment) hidden.add(segment.id);
         }
       }
     }
     return hidden;
-  }, [chapters, chapterDisplayModes, segmentIndexById, segments]);
+  }, [reformulatedChapters, segmentIndexById, segments]);
 
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
@@ -386,21 +407,21 @@ function TranscriptListComponent({
       </div>
 
       {/* Reformulation Dialog */}
-      {reformulationDialogOpen && reformulationChapterId && (
+      {reformulationState.dialogOpen && reformulationState.chapterId && (
         <ChapterReformulationDialog
-          open={reformulationDialogOpen}
-          onOpenChange={setReformulationDialogOpen}
-          chapterId={reformulationChapterId}
+          open={reformulationState.dialogOpen}
+          onOpenChange={(open) => setReformulationState((prev) => ({ ...prev, dialogOpen: open }))}
+          chapterId={reformulationState.chapterId}
           onStartReformulation={handleStartReformulation}
         />
       )}
 
       {/* Reformulation View */}
-      {reformulationViewOpen && reformulationChapterId && (
+      {reformulationState.viewOpen && reformulationState.chapterId && (
         <ChapterReformulationView
-          chapterId={reformulationChapterId}
+          chapterId={reformulationState.chapterId}
           onClose={handleCloseReformulationView}
-          triggerElement={triggerElement}
+          triggerElement={reformulationState.triggerElement}
         />
       )}
     </ScrollArea>
