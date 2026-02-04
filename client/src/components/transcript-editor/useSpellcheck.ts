@@ -46,6 +46,7 @@ export function useSpellcheck({
   const previousCacheKeyRef = useRef<string | null>(null);
   const previousSpellcheckersRef = useRef(spellcheckers);
   const previousRunCompletedRef = useRef(false);
+  const previousIgnoredWordsRef = useRef<Set<string>>(new Set());
 
   // When custom dictionaries are enabled, they replace built-in languages
   const effectiveSpellcheckLanguages = useMemo(
@@ -174,12 +175,43 @@ export function useSpellcheck({
 
   const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
 
+  const isSuperset = useCallback((subset: Set<string>, superset: Set<string>) => {
+    if (subset.size > superset.size) return false;
+    for (const value of subset) {
+      if (!superset.has(value)) return false;
+    }
+    return true;
+  }, []);
+
+  const filterMatchesForSegment = useCallback(
+    (segment: Segment, matches: Map<number, SpellcheckMatchMeta>, ignored: Set<string>) => {
+      if (matches.size === 0) return matches;
+      let didChange = false;
+      const nextMatches = new Map<number, SpellcheckMatchMeta>();
+      matches.forEach((value, index) => {
+        const word = segment.words[index]?.word;
+        if (!word) {
+          didChange = true;
+          return;
+        }
+        const normalized = normalizeSpellcheckTerm(word);
+        if (normalized && ignored.has(normalized)) {
+          didChange = true;
+          return;
+        }
+        nextMatches.set(index, value);
+      });
+      return didChange ? nextMatches : matches;
+    },
+    [],
+  );
+
   useEffect(() => {
     const SPELLCHECK_MATCH_LIMIT = 1000;
     const runId = spellcheckRunIdRef.current + 1;
     spellcheckRunIdRef.current = runId;
     setSpellcheckMatchLimitReached(false);
-    previousRunCompletedRef.current = false;
+    const previousRunCompleted = previousRunCompletedRef.current;
 
     if (!spellcheckEnabled || spellcheckers.length === 0 || segments.length === 0) {
       setSpellcheckMatchesBySegment(new Map());
@@ -188,14 +220,25 @@ export function useSpellcheck({
       previousCacheKeyRef.current = null;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
+      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
+    previousRunCompletedRef.current = false;
+
     const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}`;
+    const previousIgnoredWords = previousIgnoredWordsRef.current;
+    const ignoredWordsExpanded = isSuperset(previousIgnoredWords, ignoredWordsSet);
+    const canReuseForIgnoreChange =
+      ignoredWordsExpanded &&
+      previousRunCompleted &&
+      previousSpellcheckersRef.current === spellcheckers &&
+      previousSegmentsRef.current.length > 0;
+
     const reuseMatches =
       previousCacheKeyRef.current === cacheKey &&
       previousSpellcheckersRef.current === spellcheckers &&
-      previousRunCompletedRef.current;
+      previousRunCompleted;
     const matches = new Map<string, Map<number, SpellcheckMatchMeta>>();
     const segmentsToProcess: Segment[] = [];
     let matchCount = 0;
@@ -204,7 +247,29 @@ export function useSpellcheck({
     let processedSinceUpdate = 0;
     let cancelled = false;
 
-    if (reuseMatches) {
+    if (canReuseForIgnoreChange) {
+      const previousSegmentsById = new Map(
+        previousSegmentsRef.current.map((segment) => [segment.id, segment]),
+      );
+      segments.forEach((segment) => {
+        const previousSegment = previousSegmentsById.get(segment.id);
+        if (segment.confirmed) {
+          return;
+        }
+        if (previousSegment === segment) {
+          const previousMatches = previousMatchesRef.current.get(segment.id);
+          if (previousMatches) {
+            const filtered = filterMatchesForSegment(segment, previousMatches, ignoredWordsSet);
+            if (filtered.size > 0) {
+              matches.set(segment.id, filtered);
+              matchCount += filtered.size;
+            }
+          }
+          return;
+        }
+        segmentsToProcess.push(segment);
+      });
+    } else if (reuseMatches) {
       const previousSegmentsById = new Map(
         previousSegmentsRef.current.map((segment) => [segment.id, segment]),
       );
@@ -230,6 +295,7 @@ export function useSpellcheck({
     previousSegmentsRef.current = segments;
     previousCacheKeyRef.current = cacheKey;
     previousSpellcheckersRef.current = spellcheckers;
+    previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
 
     if (matchCount >= SPELLCHECK_MATCH_LIMIT) {
       setSpellcheckMatchesBySegment(new Map(matches));
@@ -238,6 +304,7 @@ export function useSpellcheck({
       previousCacheKeyRef.current = cacheKey;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
+      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
@@ -247,6 +314,7 @@ export function useSpellcheck({
       previousCacheKeyRef.current = cacheKey;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
+      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
@@ -316,11 +384,13 @@ export function useSpellcheck({
         previousCacheKeyRef.current = cacheKey;
         previousSpellcheckersRef.current = spellcheckers;
         previousRunCompletedRef.current = true;
+        previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       } else {
         previousMatchesRef.current = new Map(matches);
         previousCacheKeyRef.current = cacheKey;
         previousSpellcheckersRef.current = spellcheckers;
         previousRunCompletedRef.current = true;
+        previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       }
     };
 
@@ -334,8 +404,10 @@ export function useSpellcheck({
       }
     };
   }, [
+    filterMatchesForSegment,
     ignoredKey,
     ignoredWordsSet,
+    isSuperset,
     segments,
     spellcheckEnabled,
     spellcheckLanguageKey,

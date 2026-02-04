@@ -34,9 +34,7 @@ export function ChapterRewriteView({
     () => chapters.find((item) => item.id === chapterId),
     [chapters, chapterId],
   );
-  const chapterSegments = useTranscriptStore(
-    (state) => state.selectSegmentsInChapter(chapterId),
-  );
+  const chapterSegments = useTranscriptStore((state) => state.selectSegmentsInChapter(chapterId));
   const rewriteInProgress = useTranscriptStore((s) => s.rewriteInProgress);
   const rewriteChapterId = useTranscriptStore((s) => s.rewriteChapterId);
   const rewriteError = useTranscriptStore((s) => s.rewriteError);

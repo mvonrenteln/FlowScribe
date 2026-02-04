@@ -127,6 +127,7 @@ The following measures are prioritized by impact and implementation effort. Each
 - Introduced `confidenceScoresVersion` to avoid recomputing thresholds when scores don't change.
 - Skipped auto-threshold computation when a manual threshold is set.
 - Cached and reused spellcheck/lexicon results for unchanged segments during merge/undo.
+- Filtered cached spellcheck matches when ignore/glossary actions expand the ignore set, avoiding full recomputation.
 - Skipped normalization work when search/tag filters are inactive.
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
 - Skipped WaveSurfer region rebuilds when segment timing and speaker metadata are unchanged.
