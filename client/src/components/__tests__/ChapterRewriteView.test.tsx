@@ -40,6 +40,8 @@ const resetStore = () => {
     rewriteInProgress: false,
     rewriteChapterId: null,
     rewriteError: null,
+    filteredSegmentIds: new Set(),
+    filtersActive: false,
   });
 };
 
@@ -100,5 +102,62 @@ describe("ChapterRewriteView", () => {
 
     expect(document.body.style.pointerEvents).toBe("");
     expect(document.documentElement.style.pointerEvents).toBe("");
+  });
+
+  it("filters original segments when filters are active", () => {
+    useTranscriptStore.setState({
+      chapters: [
+        {
+          id: "chapter-1",
+          title: "Intro",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-3",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "manual",
+          rewrittenText: "Rewritten text.",
+          rewritePromptId: "prompt-1",
+        },
+      ],
+      segments: [
+        {
+          id: "seg-1",
+          speaker: "Speaker 1",
+          start: 0,
+          end: 1,
+          text: "Hello world.",
+          words: [],
+        },
+        {
+          id: "seg-2",
+          speaker: "Speaker 2",
+          start: 1,
+          end: 2,
+          text: "Second segment.",
+          words: [],
+        },
+        {
+          id: "seg-3",
+          speaker: "Speaker 3",
+          start: 2,
+          end: 3,
+          text: "Third segment.",
+          words: [],
+        },
+      ],
+      filteredSegmentIds: new Set(["seg-2"]),
+      filtersActive: true,
+    });
+
+    render(
+      <I18nProvider>
+        <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
+      </I18nProvider>,
+    );
+
+    expect(screen.getByText("Original (1 segments)")).toBeInTheDocument();
+    expect(screen.getByText("Second segment.")).toBeInTheDocument();
+    expect(screen.queryByText("Hello world.")).not.toBeInTheDocument();
+    expect(screen.queryByText("Third segment.")).not.toBeInTheDocument();
   });
 });

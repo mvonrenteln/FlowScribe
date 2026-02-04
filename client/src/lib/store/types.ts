@@ -150,6 +150,11 @@ export interface InitialStoreState {
   isWhisperXFormat: boolean;
   // UI State: Currently filtered segment IDs (for active filters like tags, bookmarks, etc.)
   filteredSegmentIds: Set<string>;
+  /**
+   * True when any transcript filter/search is active. Needed to distinguish
+   * "no filters" from "filters active but no segments match".
+   */
+  filtersActive: boolean;
   lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
@@ -295,7 +300,7 @@ export interface SegmentsSlice {
     reference?: FileReference | null;
   }) => void;
   setSelectedSegmentId: (id: string | null) => void;
-  setFilteredSegmentIds: (ids: string[]) => void;
+  setFilteredSegmentIds: (ids: string[], filtersActive: boolean) => void;
   updateSegmentText: (id: string, text: string) => void;
   updateSegmentsTexts: (updates: Array<{ id: string; text: string }>) => void;
   updateSegmentSpeaker: (id: string, speaker: string) => void;

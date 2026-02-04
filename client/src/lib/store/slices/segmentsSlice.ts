@@ -203,16 +203,25 @@ export const createSegmentsSlice = (
       return { selectedSegmentId: id, history };
     }),
 
-  setFilteredSegmentIds: (ids) => {
+  setFilteredSegmentIds: (ids, filtersActive) => {
+    const nextFiltersActive = Boolean(filtersActive);
+    // When filters are not active, we intentionally ignore `ids` and clear the
+    // filtered set. The effective filtered IDs depend on `filtersActive`, not
+    // just the `ids` array passed into this function.
+    const next = nextFiltersActive ? new Set(ids) : new Set<string>();
     const current = get().filteredSegmentIds;
-    const next = new Set(ids);
+    const currentFiltersActive = get().filtersActive;
 
     // Skip update if sets are equal (shallow equality check)
-    if (current.size === next.size && Array.from(next).every((id) => current.has(id))) {
+    if (
+      currentFiltersActive === nextFiltersActive &&
+      current.size === next.size &&
+      Array.from(next).every((id) => current.has(id))
+    ) {
       return;
     }
 
-    set({ filteredSegmentIds: next });
+    set({ filteredSegmentIds: next, filtersActive: nextFiltersActive });
   },
 
   updateSegmentText: (id, text) => {

@@ -17,7 +17,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 /**
  * Cache for selectSegmentsInChapter results.
- * Key format: `${chapterId}:${filteredSegmentIds.size}:${segments.length}`
+ * Key format: `${chapterId}:${filtersActive}:${filteredSegmentIds.size}:${segments.length}`
  */
 const segmentsInChapterCache = new Map<
   string,
@@ -320,10 +320,10 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   },
 
   selectSegmentsInChapter: (chapterId) => {
-    const { chapters, segments, filteredSegmentIds } = get();
+    const { chapters, segments, filteredSegmentIds, filtersActive } = get();
 
     // Build cache key from relevant state
-    const cacheKey = `${chapterId}:${filteredSegmentIds.size}:${segments.length}`;
+    const cacheKey = `${chapterId}:${filtersActive ? "1" : "0"}:${filteredSegmentIds.size}:${segments.length}`;
     const cached = segmentsInChapterCache.get(cacheKey);
     if (cached !== undefined) return cached;
 
@@ -342,9 +342,9 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
 
     const allSegments = segments.slice(range.startIndex, range.endIndex + 1);
 
-    // If filters are active (filteredSegmentIds is not empty), only return filtered segments
+    // If filters are active, only return filtered segments (even if empty).
     let result: typeof allSegments;
-    if (filteredSegmentIds.size > 0) {
+    if (filtersActive) {
       result = allSegments.filter((seg) => filteredSegmentIds.has(seg.id));
     } else {
       result = allSegments;
