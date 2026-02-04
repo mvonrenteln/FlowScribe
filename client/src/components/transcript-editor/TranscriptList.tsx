@@ -1,4 +1,4 @@
-import { Fragment, useMemo, useState } from "react";
+import { Fragment, useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
@@ -75,6 +75,7 @@ function TranscriptListComponent({
   const pendingMergeSuggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
   const acceptMergeSuggestion = useTranscriptStore((s) => s.acceptMergeSuggestion);
   const rejectMergeSuggestion = useTranscriptStore((s) => s.rejectMergeSuggestion);
+  const moveChapterStart = useTranscriptStore((s) => s.moveChapterStart);
 
   // Get chapter display modes for rewritten text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
@@ -175,6 +176,13 @@ function TranscriptListComponent({
   const filteredIndexById = useMemo(() => indexById(filteredSegments), [filteredSegments]);
   const segmentById = useMemo(() => mapById(allSegments), [allSegments]);
 
+  const handleChapterDrop = useCallback(
+    (chapterId: string, targetSegmentId: string) => {
+      moveChapterStart(chapterId, targetSegmentId);
+    },
+    [moveChapterStart],
+  );
+
   const chapterByStartId = useMemo(() => {
     const sortedChapters = sortChaptersByStart(chapters, segmentIndexById);
     return new Map(sortedChapters.map((chapter) => [chapter.startSegmentId, chapter]));
@@ -234,7 +242,11 @@ function TranscriptListComponent({
 
   return (
     <ScrollArea className="flex-1">
-      <div ref={containerRef} className="max-w-4xl mx-auto p-4 space-y-2">
+      <div
+        ref={containerRef}
+        className="max-w-4xl mx-auto p-4 space-y-2"
+        data-transcript-container="true"
+      >
         {filteredSegments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-lg font-medium mb-2">{emptyState.title}</p>
@@ -345,6 +357,7 @@ function TranscriptListComponent({
                     onDelete={handlers.onDelete}
                     onSeek={onSeek}
                     onStartChapterHere={onStartChapterAtSegment}
+                    onChapterDrop={handleChapterDrop}
                     searchQuery={searchQuery}
                     isRegexSearch={isRegexSearch}
                     replaceQuery={replaceQuery}

@@ -196,6 +196,7 @@ const initialState: InitialStoreState = {
   historyIndex: initialHistoryState.historyIndex,
   isWhisperXFormat: activeSession?.isWhisperXFormat ?? false,
   filteredSegmentIds: new Set(),
+  filtersActive: false,
   lexiconEntries: normalizeLexiconEntriesFromGlobal(globalState),
   lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),

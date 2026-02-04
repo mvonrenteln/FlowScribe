@@ -10,8 +10,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
-import { useSegmentIndexById, useTranscriptStore } from "@/lib/store";
-import { getChapterRangeIndices } from "@/lib/store/utils/chapters";
+import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 import { RewrittenTextDisplay } from "./RewrittenTextDisplay";
 
@@ -31,18 +30,11 @@ export function ChapterRewriteView({
 }: ChapterRewriteViewProps) {
   const { t } = useTranslation();
   const chapters = useTranscriptStore((s) => s.chapters);
-  const segments = useTranscriptStore((s) => s.segments);
-  const indexById = useSegmentIndexById();
   const chapter = useMemo(
     () => chapters.find((item) => item.id === chapterId),
     [chapters, chapterId],
   );
-  const chapterSegments = useMemo(() => {
-    if (!chapter) return [];
-    const range = getChapterRangeIndices(chapter, indexById);
-    if (!range) return [];
-    return segments.slice(range.startIndex, range.endIndex + 1);
-  }, [chapter, indexById, segments]);
+  const chapterSegments = useTranscriptStore((state) => state.selectSegmentsInChapter(chapterId));
   const rewriteInProgress = useTranscriptStore((s) => s.rewriteInProgress);
   const rewriteChapterId = useTranscriptStore((s) => s.rewriteChapterId);
   const rewriteError = useTranscriptStore((s) => s.rewriteError);

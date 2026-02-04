@@ -3,6 +3,7 @@ import {
   ChevronDown,
   Edit2,
   FileText,
+  GripVertical,
   MoreVertical,
   Plus,
   Sparkles,
@@ -32,6 +33,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import type { Chapter, ChapterUpdate, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
@@ -81,6 +83,7 @@ export function ChapterHeader({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
+  const dragPreviewCleanupRef = useRef<number | null>(null);
   // Check if tags overflow - recheck when tags change
   // eslint-disable-next-line react-hooks/exhaustive-deps, lint/correctness/useExhaustiveDependencies
   useEffect(() => {
@@ -185,6 +188,9 @@ export function ChapterHeader({
     return () => {
       if (focusFrameRef.current) {
         cancelAnimationFrame(focusFrameRef.current);
+      }
+      if (dragPreviewCleanupRef.current) {
+        cancelAnimationFrame(dragPreviewCleanupRef.current);
       }
     };
   }, []);
@@ -292,6 +298,23 @@ export function ChapterHeader({
     onOpen();
   };
 
+  // Build a drag image that mirrors the transcript width and chapter title.
+  const buildDragPreview = (width: number, title: string) => {
+    const preview = document.createElement("div");
+    preview.className =
+      "pointer-events-none select-none rounded-md border border-border bg-muted/80 px-3 py-2 shadow-sm";
+    preview.style.width = `${Math.max(240, Math.floor(width))}px`;
+    preview.style.position = "absolute";
+    preview.style.top = "-9999px";
+    preview.style.left = "-9999px";
+
+    const titleEl = document.createElement("div");
+    titleEl.className = "text-sm font-medium text-foreground truncate";
+    titleEl.textContent = title || "New Chapter";
+    preview.appendChild(titleEl);
+    return preview;
+  };
+
   return (
     <Collapsible open={expanded} onOpenChange={setExpanded}>
       <div
@@ -301,6 +324,40 @@ export function ChapterHeader({
         onMouseLeave={() => setIsHeaderHovered(false)}
         role="group"
       >
+        <button
+          type="button"
+          draggable
+          className={cn(
+            "mt-0.5 p-0.5 rounded transition-opacity focus-visible:ring-0 focus:ring-0 focus:outline-none",
+            isHeaderHovered ? "opacity-100" : "opacity-0",
+          )}
+          aria-label="Drag to move chapter boundary"
+          title="Drag to move chapter boundary"
+          onClick={(event) => event.stopPropagation()}
+          onMouseDown={(event) => event.stopPropagation()}
+          onDragStart={(event) => {
+            event.stopPropagation();
+            event.dataTransfer.setData(CHAPTER_DRAG_TYPE, chapter.id);
+            event.dataTransfer.effectAllowed = "move";
+            const container = (event.currentTarget as HTMLElement).closest(
+              "[data-transcript-container]",
+            ) as HTMLElement | null;
+            const containerWidth = container?.getBoundingClientRect().width ?? 640;
+            const preview = buildDragPreview(containerWidth, chapter.title);
+            document.body.appendChild(preview);
+            event.dataTransfer.setDragImage(preview, 24, 18);
+            if (dragPreviewCleanupRef.current) {
+              cancelAnimationFrame(dragPreviewCleanupRef.current);
+            }
+            dragPreviewCleanupRef.current = requestAnimationFrame(() => {
+              preview.remove();
+              dragPreviewCleanupRef.current = null;
+            });
+          }}
+        >
+          <GripVertical className="h-4 w-4" />
+        </button>
+
         {/* Chevron toggle - only this triggers expand/collapse */}
         <CollapsibleTrigger asChild>
           <button

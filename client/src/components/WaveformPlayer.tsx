@@ -185,6 +185,8 @@ export function WaveformPlayer({
     setIsLoading(true);
     setIsReady(false);
     initialSeekAppliedRef.current = false;
+    regionSignatureRef.current = null;
+    lastShowSpeakerRegionsRef.current = false;
 
     // Create regions plugin (always enabled)
     const regions = RegionsPlugin.create();

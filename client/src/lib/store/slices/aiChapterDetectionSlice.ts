@@ -11,19 +11,20 @@ import { buildSuggestionKeySet, createChapterSuggestionKey } from "@/lib/ai/core
 import { detectChapters } from "@/lib/ai/features/chapterDetection";
 import { mapById } from "@/lib/arrayUtils";
 import type { Chapter } from "@/types/chapter";
+import { SPEAKER_COLORS } from "../constants";
 import type {
   AIChapterDetectionBatchLogEntry,
   AIChapterDetectionConfig,
   AIChapterDetectionSlice,
   AIChapterSuggestion,
   Segment,
+  Tag,
   TranscriptStore,
 } from "../types";
 import { normalizeAIChapterDetectionConfig } from "../utils/aiChapterDetectionConfig";
 import {
   buildSegmentIndexMap,
-  hasOverlappingChapters,
-  normalizeChapterCounts,
+  recomputeChapterRangesFromStarts,
   sortChaptersByStart,
 } from "../utils/chapters";
 import { generateId } from "../utils/id";
@@ -58,20 +59,111 @@ const toSuggestion = (chapter: Chapter): AIChapterSuggestion => ({
   status: "pending",
 });
 
-const findConflicts = (
+const normalizeIncomingChapters = (
+  incoming: Chapter[],
+  segments: Segment[],
+  indexById: Map<string, number>,
+): Chapter[] => {
+  const ordered = sortChaptersByStart(incoming, indexById);
+  return ordered.map((chapter, index) => {
+    const startIndex = indexById.get(chapter.startSegmentId);
+    const endIndex = indexById.get(chapter.endSegmentId);
+    if (startIndex === undefined || endIndex === undefined) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    const nextChapter = ordered[index + 1];
+    const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+    const maxEndIndex =
+      nextStartIndex !== undefined ? Math.max(startIndex, nextStartIndex - 1) : endIndex;
+    const resolvedEndIndex = Math.min(endIndex, maxEndIndex);
+    if (resolvedEndIndex < startIndex) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    return {
+      ...chapter,
+      endSegmentId: segments[resolvedEndIndex]?.id ?? chapter.endSegmentId,
+      segmentCount: resolvedEndIndex - startIndex + 1,
+    };
+  });
+};
+
+const mergeChaptersByStart = (
   existing: Chapter[],
   incoming: Chapter[],
   segments: Segment[],
-): { ok: boolean; message?: string } => {
+): Chapter[] => {
   const indexById = buildSegmentIndexMap(segments);
-  const combined = normalizeChapterCounts([...existing, ...incoming], indexById);
-  const hasOverlap = hasOverlappingChapters(combined, indexById);
-  if (!hasOverlap) return { ok: true };
-  return {
-    ok: false,
-    message:
-      "Detected chapters would overlap existing chapters. Reject conflicting suggestions or clear chapters before accepting.",
-  };
+  const normalizedIncoming = normalizeIncomingChapters(incoming, segments, indexById);
+  const merged = [...existing];
+  for (const incomingChapter of normalizedIncoming) {
+    const existingIndex = merged.findIndex(
+      (chapter) => chapter.startSegmentId === incomingChapter.startSegmentId,
+    );
+    if (existingIndex === -1) {
+      merged.push(incomingChapter);
+      continue;
+    }
+    const current = merged[existingIndex];
+    merged[existingIndex] = {
+      ...current,
+      title: incomingChapter.title,
+      summary: incomingChapter.summary,
+      notes: incomingChapter.notes,
+      tags: incomingChapter.tags,
+      source: current.source,
+    };
+  }
+
+  const recomputed = recomputeChapterRangesFromStarts(merged, segments, indexById);
+  return sortChaptersByStart(recomputed, indexById);
+};
+
+/**
+ * Resolve AI-suggested chapter tags into real session tag IDs.
+ * Creates missing tags by name and returns the updated tag list and resolved IDs.
+ */
+const resolveChapterTags = (
+  rawTags: string[] | undefined,
+  existingTags: Tag[],
+): { tags: Tag[]; resolvedTagIds: string[] | undefined } => {
+  if (!rawTags || rawTags.length === 0) {
+    return { tags: existingTags, resolvedTagIds: undefined };
+  }
+
+  const byId = new Map(existingTags.map((tag) => [tag.id, tag]));
+  const byName = new Map(existingTags.map((tag) => [tag.name.trim().toLowerCase(), tag]));
+
+  let nextTags = existingTags;
+  const resolved: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawTag of rawTags) {
+    const normalized = String(rawTag ?? "").trim();
+    if (!normalized) continue;
+
+    let tag = byId.get(normalized);
+    if (!tag) {
+      tag = byName.get(normalized.toLowerCase());
+    }
+
+    if (!tag) {
+      tag = {
+        id: generateId(),
+        name: normalized,
+        color: SPEAKER_COLORS[nextTags.length % SPEAKER_COLORS.length],
+      };
+      nextTags = [...nextTags, tag];
+      byId.set(tag.id, tag);
+      byName.set(tag.name.trim().toLowerCase(), tag);
+    }
+
+    if (!seen.has(tag.id)) {
+      seen.add(tag.id);
+      resolved.push(tag.id);
+    }
+  }
+
+  return { tags: nextTags, resolvedTagIds: resolved.length ? resolved : undefined };
 };
 
 export const createAIChapterDetectionSlice = (
@@ -347,6 +439,8 @@ export const createAIChapterDetectionSlice = (
       confidenceScoresVersion,
     } = state;
 
+    const { tags: nextTags, resolvedTagIds } = resolveChapterTags(suggestion.tags, sessionTags);
+
     let updatedChapters: Chapter[];
 
     // If this is a modification of an existing chapter, update it instead of adding new
@@ -358,7 +452,7 @@ export const createAIChapterDetectionSlice = (
               title: suggestion.title,
               summary: suggestion.summary,
               notes: suggestion.notes,
-              tags: suggestion.tags,
+              tags: resolvedTagIds,
             }
           : ch,
       );
@@ -369,7 +463,7 @@ export const createAIChapterDetectionSlice = (
         title: suggestion.title,
         summary: suggestion.summary,
         notes: suggestion.notes,
-        tags: suggestion.tags,
+        tags: resolvedTagIds,
         startSegmentId: suggestion.startSegmentId,
         endSegmentId: suggestion.endSegmentId,
         segmentCount: suggestion.segmentCount,
@@ -377,25 +471,13 @@ export const createAIChapterDetectionSlice = (
         source: "ai",
       };
 
-      const conflict = findConflicts(state.chapters, [incoming], segments);
-      if (!conflict.ok) {
-        set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestion" });
-        return;
-      }
-
-      const indexById = buildSegmentIndexMap(segments);
-      const normalized = normalizeChapterCounts([...state.chapters, incoming], indexById);
-      if (hasOverlappingChapters(normalized, indexById)) {
-        set({ aiChapterDetectionError: "Conflict while accepting suggestion" });
-        return;
-      }
-      updatedChapters = sortChaptersByStart(normalized, indexById);
+      updatedChapters = mergeChaptersByStart(state.chapters, [incoming], segments);
     }
 
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,
-      tags: sessionTags,
+      tags: nextTags,
       chapters: updatedChapters,
       selectedSegmentId,
       selectedChapterId,
@@ -405,6 +487,7 @@ export const createAIChapterDetectionSlice = (
 
     set({
       chapters: updatedChapters,
+      tags: nextTags,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
@@ -440,12 +523,20 @@ export const createAIChapterDetectionSlice = (
       confidenceScoresVersion,
     } = state;
 
+    let nextTags = sessionTags;
+    const resolvedBySuggestionId = new Map<string, string[] | undefined>();
+    for (const suggestion of pending) {
+      const resolved = resolveChapterTags(suggestion.tags, nextTags);
+      nextTags = resolved.tags;
+      resolvedBySuggestionId.set(suggestion.id, resolved.resolvedTagIds);
+    }
+
     const incoming: Chapter[] = pending.map((s) => ({
       id: s.id,
       title: s.title,
       summary: s.summary,
       notes: s.notes,
-      tags: s.tags,
+      tags: resolvedBySuggestionId.get(s.id),
       startSegmentId: s.startSegmentId,
       endSegmentId: s.endSegmentId,
       segmentCount: s.segmentCount,
@@ -453,24 +544,12 @@ export const createAIChapterDetectionSlice = (
       source: "ai",
     }));
 
-    const conflict = findConflicts(state.chapters, incoming, segments);
-    if (!conflict.ok) {
-      set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestions" });
-      return;
-    }
-
-    const indexById = buildSegmentIndexMap(segments);
-    const normalized = normalizeChapterCounts([...state.chapters, ...incoming], indexById);
-    if (hasOverlappingChapters(normalized, indexById)) {
-      set({ aiChapterDetectionError: "Conflict while accepting suggestions" });
-      return;
-    }
-    const ordered = sortChaptersByStart(normalized, indexById);
+    const ordered = mergeChaptersByStart(state.chapters, incoming, segments);
 
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,
-      tags: sessionTags,
+      tags: nextTags,
       chapters: ordered,
       selectedSegmentId,
       selectedChapterId,
@@ -480,6 +559,7 @@ export const createAIChapterDetectionSlice = (
 
     set({
       chapters: ordered,
+      tags: nextTags,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(

@@ -2,6 +2,7 @@ import { Check, Sparkles, X } from "lucide-react";
 import { memo, useCallback, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import { mark } from "@/lib/logging";
 import type { SearchMatch, Segment, Speaker, Tag } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
@@ -56,6 +57,7 @@ interface TranscriptSegmentProps {
   readonly onReplaceCurrent?: () => void;
   readonly onMatchClick?: (index: number) => void;
   readonly findMatchIndex?: (segmentId: string, startIndex: number) => number;
+  readonly onChapterDrop?: (chapterId: string, targetSegmentId: string) => void;
   /** Pending AI revision for this segment */
   readonly pendingRevision?: {
     revisedText: string;
@@ -149,6 +151,7 @@ function TranscriptSegmentComponent({
   onReplaceCurrent,
   onMatchClick,
   findMatchIndex,
+  onChapterDrop,
   pendingRevision,
   onAcceptRevision,
   onRejectRevision,
@@ -162,6 +165,7 @@ function TranscriptSegmentComponent({
   void onSelectOnly;
   const segmentRef = useRef<HTMLElement>(null);
   const [selectedWordIndex, setSelectedWordIndex] = useState<number | null>(null);
+  const [isChapterDragOver, setIsChapterDragOver] = useState(false);
   if (import.meta.env.DEV) {
     try {
       const key = `render-segment-${segment.id}`;
@@ -243,6 +247,27 @@ function TranscriptSegmentComponent({
         isActive && "bg-accent/50",
         !isSelected && !isActive && "hover-elevate",
       )}
+      onDragOver={(event) => {
+        if (!onChapterDrop) return;
+        if (!event.dataTransfer.types.includes(CHAPTER_DRAG_TYPE)) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
+        setIsChapterDragOver(true);
+      }}
+      onDragLeave={() => {
+        if (!onChapterDrop) return;
+        setIsChapterDragOver(false);
+      }}
+      onDrop={(event) => {
+        if (!onChapterDrop) return;
+        if (!event.dataTransfer.types.includes(CHAPTER_DRAG_TYPE)) return;
+        event.preventDefault();
+        const chapterId = event.dataTransfer.getData(CHAPTER_DRAG_TYPE);
+        setIsChapterDragOver(false);
+        if (chapterId) {
+          onChapterDrop(chapterId, segment.id);
+        }
+      }}
       onClick={(event) => {
         // Only trigger the single-click selection path for primary single clicks.
         if (event.button === 0 && event.detail === 1) {
@@ -258,6 +283,13 @@ function TranscriptSegmentComponent({
       // biome-ignore lint/a11y/noNoninteractiveTabindex: Segment needs to be focusable for keyboard navigation
       tabIndex={0} // NOSONAR
     >
+      {isChapterDragOver && (
+        <div
+          className="absolute -top-2 left-0 right-0 h-1 rounded-full bg-muted-foreground/50 pointer-events-none"
+          data-testid="chapter-drop-indicator"
+          aria-hidden="true"
+        />
+      )}
       <div className="flex items-start gap-3">
         <div className="w-1 self-stretch rounded-full" style={{ backgroundColor: speakerColor }} />
 
@@ -477,6 +509,7 @@ const arePropsEqual = (prev: TranscriptSegmentProps, next: TranscriptSegmentProp
     prev.searchQuery === next.searchQuery &&
     prev.isRegexSearch === next.isRegexSearch &&
     prev.replaceQuery === next.replaceQuery &&
+    prev.onChapterDrop === next.onChapterDrop &&
     prev.currentMatch === next.currentMatch &&
     prev.pendingRevision === next.pendingRevision &&
     prev.pendingSpeakerSuggestion === next.pendingSpeakerSuggestion &&

@@ -585,6 +585,7 @@ const chapterValidationRules: ValidationRule<ChapterSuggestion>[] = [
 ✅ **Manual-First:** Chapters exist independent of AI  
 ✅ **Coexistence:** Manual chapters and AI proposals/accepted results can coexist; user chooses what to keep  
 ⚠️ **Manual vs. AI:** If conflict during acceptance, surface to user; do not silently overwrite manual chapters  
+✅ **AI Replace-on-Accept:** Accepting AI suggestions replaces overlapping AI chapters from prior runs (manual conflicts still block)  
 ⚠️ **SimpleID Mapping:** Critical for batch processing — must roundtrip correctly
 
 ---

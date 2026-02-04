@@ -30,6 +30,13 @@ This guide walks you through the core workflow: load audio, refine the transcrip
 
 ![Inline editing](screenshots/inline-editing.png)
 
+## 3.1) Adjust Chapter Boundaries
+
+- Chapters behave like book sections: a chapter ends where the next one begins.
+- Hover a chapter header to reveal the grip handle (six dots).
+- Drag the handle to a target segment to move the chapter boundary.
+- The previous chapter expands or contracts automatically.
+
 ## 4) Manage Speakers & Tags
 
 ### Speakers
@@ -168,4 +175,3 @@ Notes:
 - If a numeric capture like `$10` is used and there are only 1–9 captures, the replacement logic falls back to treating `$10` as `$1` followed by the literal `0` when appropriate.
 
 For implementation details, see the `applyReplacementTemplate` logic in `client/src/components/transcript-editor/useSearchAndReplace.ts`.
-

@@ -108,23 +108,22 @@ describe("aiChapterDetectionSlice", () => {
     expect(s.historyIndex).toBe(1);
   });
 
-  it("acceptAllChapterSuggestions refuses overlaps with existing chapters", () => {
+  it("acceptAllChapterSuggestions reconciles adjacent chapter boundaries", () => {
     mockStore.set({
-      chapters: [
-        {
-          id: "manual-1",
-          title: "Manual",
-          startSegmentId: "seg-1",
-          endSegmentId: "seg-3",
-          segmentCount: 3,
-          createdAt: Date.now(),
-          source: "manual",
-        },
-      ],
       aiChapterDetectionSuggestions: [
         {
           id: "s-1",
-          title: "Overlap",
+          title: "Chapter 1",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-2",
+          segmentCount: 2,
+          createdAt: Date.now(),
+          source: "ai",
+          status: "pending",
+        },
+        {
+          id: "s-2",
+          title: "Chapter 2",
           startSegmentId: "seg-2",
           endSegmentId: "seg-4",
           segmentCount: 3,
@@ -137,8 +136,120 @@ describe("aiChapterDetectionSlice", () => {
 
     slice.acceptAllChapterSuggestions();
     const s = mockStore.getState() as TranscriptStore;
-    expect(s.chapters?.length).toBe(1);
-    expect(s.aiChapterDetectionError).toMatch(/overlap/i);
+    expect(s.aiChapterDetectionError).toBeNull();
+    expect(s.chapters?.length).toBe(2);
+    const first = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-1");
+    const second = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-2");
+    expect(first?.endSegmentId).toBe("seg-1");
+    expect(second?.startSegmentId).toBe("seg-2");
+  });
+
+  it("acceptAllChapterSuggestions keeps overlapping chapters by start and recomputes ends", () => {
+    mockStore.set({
+      chapters: [
+        {
+          id: "ai-1",
+          title: "Old AI",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-3",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "ai",
+        },
+      ],
+      aiChapterDetectionSuggestions: [
+        {
+          id: "s-1",
+          title: "New AI",
+          startSegmentId: "seg-2",
+          endSegmentId: "seg-4",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "ai",
+          status: "pending",
+        },
+      ],
+    });
+
+    slice.acceptAllChapterSuggestions();
+    const s = mockStore.getState() as TranscriptStore;
+    expect(s.aiChapterDetectionError).toBeNull();
+    expect(s.chapters?.length).toBe(2);
+    const first = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-1");
+    const second = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-2");
+    expect(first?.endSegmentId).toBe("seg-1");
+    expect(second?.startSegmentId).toBe("seg-2");
+  });
+
+  it("acceptChapterSuggestion keeps overlapping chapters by start and recomputes ends", () => {
+    mockStore.set({
+      chapters: [
+        {
+          id: "ai-1",
+          title: "Old AI",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-3",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "ai",
+        },
+      ],
+      aiChapterDetectionSuggestions: [
+        {
+          id: "s-1",
+          title: "New AI",
+          startSegmentId: "seg-2",
+          endSegmentId: "seg-4",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "ai",
+          status: "pending",
+        },
+      ],
+    });
+
+    slice.acceptChapterSuggestion("s-1");
+    const s = mockStore.getState() as TranscriptStore;
+    expect(s.aiChapterDetectionError).toBeNull();
+    expect(s.chapters?.length).toBe(2);
+    const first = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-1");
+    const second = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-2");
+    expect(first?.endSegmentId).toBe("seg-1");
+    expect(second?.startSegmentId).toBe("seg-2");
+  });
+
+  it("acceptAllChapterSuggestions updates chapter when start matches", () => {
+    mockStore.set({
+      chapters: [
+        {
+          id: "manual-1",
+          title: "Manual",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-2",
+          segmentCount: 2,
+          createdAt: Date.now(),
+          source: "manual",
+        },
+      ],
+      aiChapterDetectionSuggestions: [
+        {
+          id: "s-1",
+          title: "Updated",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-3",
+          segmentCount: 3,
+          createdAt: Date.now(),
+          source: "ai",
+          status: "pending",
+        },
+      ],
+    });
+
+    slice.acceptAllChapterSuggestions();
+    const s = mockStore.getState() as TranscriptStore;
+    const updated = s.chapters?.find((chapter) => chapter.startSegmentId === "seg-1");
+    expect(updated?.title).toBe("Updated");
+    expect(updated?.id).toBe("manual-1");
   });
 
   it("addChapterDetectionPrompt appends a custom prompt", () => {

@@ -54,6 +54,7 @@ const seedStore = () => {
     selectedSegmentId: "seg-1",
     selectedChapterId: null,
     filteredSegmentIds: new Set(),
+    filtersActive: false,
     history: [
       {
         segments,
@@ -92,6 +93,7 @@ describe("ChapterSlice with Filtering", () => {
 
       // No filters active
       expect(useTranscriptStore.getState().filteredSegmentIds.size).toBe(0);
+      expect(useTranscriptStore.getState().filtersActive).toBe(false);
 
       // Should return all 4 segments
       const segmentsInChapter = useTranscriptStore.getState().selectSegmentsInChapter(chapterId);
@@ -111,7 +113,7 @@ describe("ChapterSlice with Filtering", () => {
       });
 
       // Simulate active filter: only show segments with tag-1
-      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"]);
+      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"], true);
 
       // Should return only the 2 filtered segments
       const segmentsInChapter = useTranscriptStore.getState().selectSegmentsInChapter(chapterId);
@@ -129,7 +131,7 @@ describe("ChapterSlice with Filtering", () => {
       });
 
       // Simulate filter: only show seg-1 and seg-2
-      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"]);
+      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"], true);
 
       // Should return empty array (no filtered segments in this chapter)
       const segmentsInChapter = useTranscriptStore.getState().selectSegmentsInChapter(chapterId);
@@ -146,35 +148,61 @@ describe("ChapterSlice with Filtering", () => {
       });
 
       // Simulate filter: show seg-1, seg-2, seg-4 (but not seg-3)
-      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2", "seg-4"]);
+      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2", "seg-4"], true);
 
       // Should return 3 segments
       const segmentsInChapter = useTranscriptStore.getState().selectSegmentsInChapter(chapterId);
       expect(segmentsInChapter).toHaveLength(3);
       expect(segmentsInChapter.map((s) => s.id)).toEqual(["seg-1", "seg-2", "seg-4"]);
     });
+
+    it("returns empty array when filters are active but no segments match", () => {
+      const chapterId = useTranscriptStore.getState().startChapter("Test Chapter", "seg-1");
+      if (!chapterId) throw new Error("Failed to create chapter");
+
+      useTranscriptStore.getState().updateChapter(chapterId, {
+        endSegmentId: "seg-4",
+      });
+
+      useTranscriptStore.getState().setFilteredSegmentIds([], true);
+
+      const segmentsInChapter = useTranscriptStore.getState().selectSegmentsInChapter(chapterId);
+      expect(segmentsInChapter).toHaveLength(0);
+    });
   });
 
   describe("setFilteredSegmentIds", () => {
     it("updates filteredSegmentIds correctly", () => {
       const ids = ["seg-1", "seg-3"];
-      useTranscriptStore.getState().setFilteredSegmentIds(ids);
+      useTranscriptStore.getState().setFilteredSegmentIds(ids, true);
 
       const filtered = useTranscriptStore.getState().filteredSegmentIds;
       expect(filtered.size).toBe(2);
       expect(filtered.has("seg-1")).toBe(true);
       expect(filtered.has("seg-3")).toBe(true);
       expect(filtered.has("seg-2")).toBe(false);
+      expect(useTranscriptStore.getState().filtersActive).toBe(true);
     });
 
     it("clears filteredSegmentIds when empty array is passed", () => {
       // First set some IDs
-      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"]);
+      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1", "seg-2"], true);
       expect(useTranscriptStore.getState().filteredSegmentIds.size).toBe(2);
+      expect(useTranscriptStore.getState().filtersActive).toBe(true);
 
       // Then clear
-      useTranscriptStore.getState().setFilteredSegmentIds([]);
+      useTranscriptStore.getState().setFilteredSegmentIds([], false);
       expect(useTranscriptStore.getState().filteredSegmentIds.size).toBe(0);
+      expect(useTranscriptStore.getState().filtersActive).toBe(false);
+    });
+
+    it("keeps filters active when empty array is passed with active flag", () => {
+      useTranscriptStore.getState().setFilteredSegmentIds(["seg-1"], true);
+      expect(useTranscriptStore.getState().filtersActive).toBe(true);
+
+      useTranscriptStore.getState().setFilteredSegmentIds([], true);
+      expect(useTranscriptStore.getState().filteredSegmentIds.size).toBe(0);
+      expect(useTranscriptStore.getState().filtersActive).toBe(true);
     });
   });
 });

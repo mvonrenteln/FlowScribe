@@ -1,6 +1,6 @@
 # AI Chapter Detection
 
-*Last Updated: January 26, 2026*
+*Last Updated: February 4, 2026*
 
 ## Overview
 
@@ -56,6 +56,7 @@ Notes:
 - Suggestions are preview-only until you accept them.
 - If something looks wrong, you can reject or edit the suggested chapter before applying it.
 - Accepting or rejecting a suggestion removes it from the suggestions list and the inline preview.
+- When you accept a suggestion, any new tag labels are created as normal tags and appear in the tag overview.
 
 ---
 

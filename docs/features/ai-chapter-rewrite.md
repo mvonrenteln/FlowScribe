@@ -29,9 +29,10 @@ This feature is perfect for creating blog posts, articles, documentation, or any
    - **Article**: Structured, professional formatting with clear sections
    - **Documentation**: Technical, precise language with examples highlighted
    - **Custom**: Create your own prompts in Settings
-3. Click **"Start Rewrite"**
+3. Click **"Rewrite Chapter"**
 
 The AI processes the chapter in the background while you continue working.
+Active transcript filters (including tag filters and search) are respected, so only visible segments are sent.
 
 ### 2. Reviewing Results
 
@@ -46,7 +47,7 @@ The rewrite view opens automatically when processing completes:
 
 - **Accept**: Saves rewritten text to the chapter; toggle display mode in transcript view
 - **Discard**: Closes view without saving; original transcript remains
-- **Re-rewrite**: Run again with a different prompt; overwrites previous rewrite
+- **Re-rewrite**: Run again with the same prompt; this replaces the previous rewrite
 
 ---
 
@@ -55,11 +56,13 @@ The rewrite view opens automatically when processing completes:
 After accepting a rewrite, chapters can display in two modes:
 
 ### Original Mode (Default)
+
 - Shows word-by-word transcript segments as usual
 - All editing, playback, and timing features work normally
 - Rewritten text is hidden but preserved
 
 ### Rewritten Mode
+
 - Displays polished text as continuous paragraphs
 - Hides individual transcript segments (except chapter header)
 - Search, bookmarks, and navigation still work
@@ -84,12 +87,14 @@ Configure context settings in **Settings → AI Features → Chapter Rewrite**.
 ## Editing Rewritten Text
 
 ### In the Review View (Before Accepting)
+
 1. Click any paragraph in the rewritten column
 2. Edit text inline with full Markdown support
 3. Changes save automatically when you click outside
 4. **Undo/Redo**: Standard shortcuts work (Cmd+Z / Ctrl+Z)
 
 ### After Accepting
+
 1. Open chapter header menu → **"Edit Rewrite"**
 2. Side-by-side view reopens with accepted text
 3. Edit paragraphs as before
@@ -119,7 +124,7 @@ Chapters without rewrites export original transcripts automatically.
 FlowScribe includes three default styles optimized for different use cases:
 
 | Prompt | Best For | Style |
-|--------|----------|-------|
+| -------- | ---------- | ------- |
 | **Blog Post** | Personal blogs, newsletters | Conversational, engaging, first-person friendly |
 | **Article** | Publications, medium.com | Structured sections, professional tone |
 | **Documentation** | Tutorials, how-tos, guides | Clear instructions, code examples formatted |
@@ -143,15 +148,18 @@ Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 ## Settings Reference
 
 ### Context Settings
+
 - **Include context**: Enable/disable previous chapter context (default: enabled)
 - **Context word limit**: Max words from previous chapter (default: 500)
 
 ### Provider Settings
+
 - **Default provider**: Choose AI service (OpenAI, Anthropic, etc.)
 - **Default model**: Select model for rewrite (e.g., GPT-4, Claude Sonnet)
 - Override per rewrite in the dialog
 
 ### Prompt Management
+
 - **Default prompt**: Sets which style appears first in dialog
 - **Quick access**: Choose up to 5 prompts for dropdown
 - **Custom prompts**: Add, edit, or delete your own styles
@@ -170,21 +178,25 @@ Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 ## Tips & Best Practices
 
 ### Before Reformulating
+
 - **Clean up speakers**: Assign correct speakers for better context
 - **Fix major errors**: Rewrite improves flow but doesn't fix misheard words
 - **Set chapter boundaries**: Logical chapters produce better rewrites
 
 ### Choosing Prompts
+
 - **Blog Post**: Best for conversational content with personal stories
 - **Article**: Choose when you need section headings and formal structure
 - **Documentation**: Use for technical content with code or step-by-step instructions
 
 ### Editing Rewrites
+
 - **Fix factual errors**: AI may rephrase incorrectly — verify technical details
 - **Adjust tone**: Edit paragraphs to match your voice
 - **Add transitions**: Insert connective phrases between paragraphs if needed
 
 ### Exporting
+
 - **Review first**: Check rewritten text before exporting to final format
 - **Toggle views**: Compare original vs. rewritten to ensure accuracy
 - **Mix modes**: Export some chapters rewritten, others original
@@ -194,7 +206,7 @@ Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 ## Keyboard Shortcuts
 
 | Action | macOS | Windows/Linux |
-|--------|-------|---------------|
+| -------- | ------- | --------------- |
 | Export transcript | `Cmd+E` | `Ctrl+E` |
 | Close rewrite view | `Esc` | `Esc` |
 | Save paragraph edit | Click outside or `Cmd+Enter` | Click outside or `Ctrl+Enter` |
@@ -204,21 +216,25 @@ Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 ## Troubleshooting
 
 ### Rewrite is too verbose
+
 - Try a different prompt (e.g., switch from Blog to Article)
 - Edit custom prompt to request "concise" or "brief" output
 - Manually trim paragraphs in the edit view
 
 ### Lost context between chapters
+
 - Enable context in Settings if disabled
 - Increase context word limit (up to 1000 words)
 - Add chapter summaries manually for better AI continuity
 
 ### Rewrite doesn't match my style
+
 - Create a custom prompt with examples of your preferred style
 - Edit rewritten text paragraph-by-paragraph
 - Use "voice" keywords in prompts (e.g., "technical but friendly")
 
 ### Processing stuck or slow
+
 - Check AI provider status (API may be experiencing issues)
 - Try a faster model (e.g., GPT-3.5 instead of GPT-4)
 - Cancel and retry if processing exceeds 30 seconds

@@ -6,7 +6,7 @@ const loadSpellcheckersMock = vi.fn().mockResolvedValue([]);
 const getSpellcheckMatchMock = vi.fn();
 const baseSpellcheckLanguages = ["en"] as const;
 const baseSpellcheckCustomDictionaries = [] as const;
-const baseSpellcheckIgnoreWords = [] as const;
+const baseSpellcheckIgnoreWords: string[] = [];
 const baseLexiconEntries = [] as const;
 const loadSpellcheckCustomDictionariesMock = vi.fn();
 
@@ -234,6 +234,70 @@ describe("useSpellcheck", () => {
     await waitFor(
       () => {
         expect(result.current.spellcheckMatchesBySegment.size).toBe(2);
+        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it("filters cached matches when ignored words expand", async () => {
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Wrd",
+      words: [{ word: "Wrd", start: 0, end: 1 }],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+    const initialIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords: initialIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)).toEqual({
+          suggestions: ["Word"],
+        });
+      },
+      { timeout: 1000 },
+    );
+
+    getSpellcheckMatchMock.mockClear();
+    const updatedIgnoreWords = ["wrd"] as string[];
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords: updatedIgnoreWords,
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
         expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
       },
       { timeout: 1000 },

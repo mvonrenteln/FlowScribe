@@ -183,6 +183,76 @@ describe("chapterSlice", () => {
     expect(useTranscriptStore.getState().chapters[0]?.id).toBe(id);
   });
 
+  it("moves chapter start and recomputes adjacent ranges", () => {
+    useTranscriptStore.setState({
+      ...useTranscriptStore.getState(),
+      chapters: [
+        {
+          id: "chapter-1",
+          title: "Chapter 1",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-1",
+          segmentCount: 1,
+          createdAt: 1,
+          source: "manual",
+        },
+        {
+          id: "chapter-2",
+          title: "Chapter 2",
+          startSegmentId: "seg-2",
+          endSegmentId: "seg-3",
+          segmentCount: 2,
+          createdAt: 2,
+          source: "manual",
+        },
+      ],
+      selectedChapterId: "chapter-2",
+    });
+
+    useTranscriptStore.getState().moveChapterStart("chapter-2", "seg-3");
+
+    const state = useTranscriptStore.getState();
+    const ch1 = state.chapters.find((c) => c.id === "chapter-1");
+    const ch2 = state.chapters.find((c) => c.id === "chapter-2");
+    expect(ch1?.endSegmentId).toBe("seg-2");
+    expect(ch1?.segmentCount).toBe(2);
+    expect(ch2?.startSegmentId).toBe("seg-3");
+    expect(ch2?.endSegmentId).toBe("seg-3");
+    expect(ch2?.segmentCount).toBe(1);
+  });
+
+  it("rejects chapter start moves that cross another chapter start", () => {
+    useTranscriptStore.setState({
+      ...useTranscriptStore.getState(),
+      chapters: [
+        {
+          id: "chapter-1",
+          title: "Chapter 1",
+          startSegmentId: "seg-1",
+          endSegmentId: "seg-1",
+          segmentCount: 1,
+          createdAt: 1,
+          source: "manual",
+        },
+        {
+          id: "chapter-2",
+          title: "Chapter 2",
+          startSegmentId: "seg-2",
+          endSegmentId: "seg-3",
+          segmentCount: 2,
+          createdAt: 2,
+          source: "manual",
+        },
+      ],
+      selectedChapterId: "chapter-2",
+    });
+
+    useTranscriptStore.getState().moveChapterStart("chapter-2", "seg-1");
+
+    const ch2 = useTranscriptStore.getState().chapters.find((c) => c.id === "chapter-2");
+    expect(ch2?.startSegmentId).toBe("seg-2");
+  });
+
   it("selectors: selectChapterForSegment and selectSegmentsInChapter behave correctly", () => {
     // create a chapter starting at seg-2 which should cover seg-2..seg-3
     const createdId = useTranscriptStore.getState().startChapter("Part", "seg-2");

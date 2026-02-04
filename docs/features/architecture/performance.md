@@ -96,6 +96,7 @@ The following measures are prioritized by impact and implementation effort. Each
    - Implementation details:
      - Add a diff check that inspects changed keys on segments and only triggers WaveSurfer updates for audio-related changes.
      - Ensure cleanup on unmount and guard against zoom/state bleed in initialization effects.
+     - Reset cached region signatures when audio reloads so regions always rebuild for the new WaveSurfer instance.
    - Tests: Manual test: merge text-only segments while speaker regions hidden; confirm no waveform reprocess.
    - Risk/Notes: Medium; WaveSurfer initialization is fragile—verify cleanup on unmount.
 
@@ -127,6 +128,7 @@ The following measures are prioritized by impact and implementation effort. Each
 - Introduced `confidenceScoresVersion` to avoid recomputing thresholds when scores don't change.
 - Skipped auto-threshold computation when a manual threshold is set.
 - Cached and reused spellcheck/lexicon results for unchanged segments during merge/undo.
+- Filtered cached spellcheck matches when ignore/glossary actions expand the ignore set, avoiding full recomputation.
 - Skipped normalization work when search/tag filters are inactive.
 - Avoided WaveSurfer region rebuilds for text-only segment changes when speaker regions are hidden.
 - Skipped WaveSurfer region rebuilds when segment timing and speaker metadata are unchanged.

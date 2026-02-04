@@ -271,6 +271,76 @@ describe("WaveformPlayer", () => {
     expect(regionsMock.instance.clearRegions).toHaveBeenCalledTimes(1);
   });
 
+  it("rebuilds regions after audio reload even when segments are unchanged", async () => {
+    const { rerender } = render(
+      <WaveformPlayer
+        {...baseProps}
+        audioUrl="audio.mp3"
+        showSpeakerRegions
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "Speaker 1",
+            start: 0,
+            end: 2,
+            text: "Hello",
+            words: [],
+            tags: [],
+          },
+        ]}
+        speakers={[
+          {
+            id: "spk-1",
+            name: "Speaker 1",
+            color: "hsl(200, 50%, 40%)",
+          },
+        ]}
+      />,
+    );
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    await waitFor(() => {
+      expect(regionsMock.instance.addRegion).toHaveBeenCalledTimes(1);
+    });
+
+    rerender(
+      <WaveformPlayer
+        {...baseProps}
+        audioUrl="audio-reloaded.mp3"
+        showSpeakerRegions
+        segments={[
+          {
+            id: "seg-1",
+            speaker: "Speaker 1",
+            start: 0,
+            end: 2,
+            text: "Hello",
+            words: [],
+            tags: [],
+          },
+        ]}
+        speakers={[
+          {
+            id: "spk-1",
+            name: "Speaker 1",
+            color: "hsl(200, 50%, 40%)",
+          },
+        ]}
+      />,
+    );
+
+    act(() => {
+      waveSurferMock.handlers.get("ready")?.();
+    });
+
+    await waitFor(() => {
+      expect(regionsMock.instance.addRegion).toHaveBeenCalledTimes(2);
+    });
+  });
+
   it("skips region rebuilds when speaker regions are hidden", async () => {
     const { rerender } = render(
       <WaveformPlayer

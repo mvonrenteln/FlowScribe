@@ -21,6 +21,29 @@ type ChapterReplacement =
     };
 
 /**
+ * Remove AI suggestions that reference deleted/merged segment ids.
+ */
+const pruneAISuggestionsForRemovedSegments = (
+  state: Pick<
+    TranscriptStore,
+    | "aiSpeakerSuggestions"
+    | "aiRevisionSuggestions"
+    | "aiSegmentMergeSuggestions"
+    | "aiChapterDetectionSuggestions"
+  >,
+  removedIds: Set<string>,
+) => ({
+  aiSpeakerSuggestions: state.aiSpeakerSuggestions.filter((s) => !removedIds.has(s.segmentId)),
+  aiRevisionSuggestions: state.aiRevisionSuggestions.filter((s) => !removedIds.has(s.segmentId)),
+  aiSegmentMergeSuggestions: state.aiSegmentMergeSuggestions.filter(
+    (s) => !s.segmentIds.some((id) => removedIds.has(id)),
+  ),
+  aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
+    (s) => !removedIds.has(s.startSegmentId) && !removedIds.has(s.endSegmentId),
+  ),
+});
+
+/**
  * Remap chapter segment ids after segment operations (split/merge/delete)
  * and filter out chapters that no longer reference valid segments.
  */
@@ -203,16 +226,25 @@ export const createSegmentsSlice = (
       return { selectedSegmentId: id, history };
     }),
 
-  setFilteredSegmentIds: (ids) => {
+  setFilteredSegmentIds: (ids, filtersActive) => {
+    const nextFiltersActive = Boolean(filtersActive);
+    // When filters are not active, we intentionally ignore `ids` and clear the
+    // filtered set. The effective filtered IDs depend on `filtersActive`, not
+    // just the `ids` array passed into this function.
+    const next = nextFiltersActive ? new Set(ids) : new Set<string>();
     const current = get().filteredSegmentIds;
-    const next = new Set(ids);
+    const currentFiltersActive = get().filtersActive;
 
     // Skip update if sets are equal (shallow equality check)
-    if (current.size === next.size && Array.from(next).every((id) => current.has(id))) {
+    if (
+      currentFiltersActive === nextFiltersActive &&
+      current.size === next.size &&
+      Array.from(next).every((id) => current.has(id))
+    ) {
       return;
     }
 
-    set({ filteredSegmentIds: next });
+    set({ filteredSegmentIds: next, filtersActive: nextFiltersActive });
   },
 
   updateSegmentText: (id, text) => {
@@ -470,6 +502,10 @@ export const createSegmentsSlice = (
       currentTime,
       selectedChapterId,
       confidenceScoresVersion,
+      aiSpeakerSuggestions,
+      aiRevisionSuggestions,
+      aiSegmentMergeSuggestions,
+      aiChapterDetectionSuggestions,
     } = get();
     const indexMap = indexById(segments);
     const index1 = indexMap.get(id1) ?? -1;
@@ -504,6 +540,16 @@ export const createSegmentsSlice = (
       newSegments,
     );
 
+    const suggestionUpdates = pruneAISuggestionsForRemovedSegments(
+      {
+        aiSpeakerSuggestions,
+        aiRevisionSuggestions,
+        aiSegmentMergeSuggestions,
+        aiChapterDetectionSuggestions,
+      },
+      new Set([first.id, second.id]),
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
@@ -523,6 +569,7 @@ export const createSegmentsSlice = (
       chapters: updatedChapters,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
+      ...suggestionUpdates,
     });
     return merged.id;
   },
@@ -575,6 +622,10 @@ export const createSegmentsSlice = (
       selectedChapterId,
       currentTime,
       confidenceScoresVersion,
+      aiSpeakerSuggestions,
+      aiRevisionSuggestions,
+      aiSegmentMergeSuggestions,
+      aiChapterDetectionSuggestions,
     } = get();
     const newSegments = segments.filter((s) => s.id !== id);
     if (newSegments.length === segments.length) return;
@@ -611,6 +662,16 @@ export const createSegmentsSlice = (
       newSegments,
     );
 
+    const suggestionUpdates = pruneAISuggestionsForRemovedSegments(
+      {
+        aiSpeakerSuggestions,
+        aiRevisionSuggestions,
+        aiSegmentMergeSuggestions,
+        aiChapterDetectionSuggestions,
+      },
+      new Set([id]),
+    );
+
     const nextHistory = addToHistory(history, historyIndex, {
       segments: newSegments,
       speakers,
@@ -631,6 +692,7 @@ export const createSegmentsSlice = (
       selectedSegmentId: nextSelectedSegmentId,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
+      ...suggestionUpdates,
     });
   },
 });

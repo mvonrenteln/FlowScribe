@@ -314,9 +314,40 @@ export const useTranscriptEditor = () => {
 
   // Update filtered segment IDs in store whenever filters change
   const setFilteredSegmentIds = useTranscriptStore((s) => s.setFilteredSegmentIds);
+  const filtersActive = useMemo(
+    () =>
+      Boolean(
+        filterSpeakerId ||
+          filterLowConfidence ||
+          filterBookmarked ||
+          filterLexicon ||
+          filterLexiconLowScore ||
+          filterSpellcheck ||
+          filterTagIds.length > 0 ||
+          filterNotTagIds.length > 0 ||
+          filterNoTags ||
+          searchQuery.trim().length > 0,
+      ),
+    [
+      filterSpeakerId,
+      filterLowConfidence,
+      filterBookmarked,
+      filterLexicon,
+      filterLexiconLowScore,
+      filterSpellcheck,
+      filterTagIds,
+      filterNotTagIds,
+      filterNoTags,
+      searchQuery,
+    ],
+  );
+
   useEffect(() => {
-    setFilteredSegmentIds(filteredSegments.map((seg) => seg.id));
-  }, [filteredSegments, setFilteredSegmentIds]);
+    setFilteredSegmentIds(
+      filteredSegments.map((seg) => seg.id),
+      filtersActive,
+    );
+  }, [filteredSegments, filtersActive, setFilteredSegmentIds]);
 
   // Tag select handler - optimized for performance
   const handleTagSelect = useCallback(
