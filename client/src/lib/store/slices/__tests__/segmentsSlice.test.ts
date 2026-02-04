@@ -11,12 +11,20 @@ type Segment = {
   tags?: unknown[];
 };
 type Chapter = { id: string; startSegmentId: string; endSegmentId: string; title?: string };
+type AISpeakerSuggestion = { segmentId: string };
+type AIRevisionSuggestion = { segmentId: string };
+type AISegmentMergeSuggestion = { segmentIds: string[] };
+type AIChapterSuggestion = { startSegmentId: string; endSegmentId: string };
 
 type StoreState = {
   segments: Segment[];
   speakers: unknown[];
   tags: unknown[];
   chapters: Chapter[];
+  aiSpeakerSuggestions: AISpeakerSuggestion[];
+  aiRevisionSuggestions: AIRevisionSuggestion[];
+  aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
+  aiChapterDetectionSuggestions: AIChapterSuggestion[];
   history: unknown[];
   historyIndex: number;
   selectedSegmentId: string | null;
@@ -31,6 +39,10 @@ const makeStore = (initialSegments: Segment[], initialChapters: Chapter[]) => {
     speakers: [],
     tags: [],
     chapters: initialChapters,
+    aiSpeakerSuggestions: [],
+    aiRevisionSuggestions: [],
+    aiSegmentMergeSuggestions: [],
+    aiChapterDetectionSuggestions: [],
     history: [],
     historyIndex: 0,
     selectedSegmentId: null,
@@ -289,5 +301,63 @@ describe("segmentsSlice chapter updates", () => {
     const state = store.getState();
     expect(state.segments.length).toBe(0);
     expect(state.chapters.length).toBe(0);
+  });
+
+  it("prunes AI suggestions that reference a deleted segment", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const s2: Segment = { id: "s2", start: 1, end: 2, words: [{ word: "b", start: 1, end: 2 }] };
+    const store = makeStore([s1, s2], []);
+    const before = store.getState();
+    before.aiSpeakerSuggestions = [{ segmentId: "s1" }, { segmentId: "s2" }];
+    before.aiRevisionSuggestions = [{ segmentId: "s1" }];
+    before.aiSegmentMergeSuggestions = [{ segmentIds: ["s1", "s2"] }, { segmentIds: ["s2"] }];
+    before.aiChapterDetectionSuggestions = [
+      { startSegmentId: "s1", endSegmentId: "s2" },
+      { startSegmentId: "s2", endSegmentId: "s2" },
+    ];
+
+    store.slice.deleteSegment("s1");
+
+    const next = store.getState();
+    expect(next.aiSpeakerSuggestions).toEqual([{ segmentId: "s2" }]);
+    expect(next.aiRevisionSuggestions).toEqual([]);
+    expect(next.aiSegmentMergeSuggestions).toEqual([{ segmentIds: ["s2"] }]);
+    expect(next.aiChapterDetectionSuggestions).toEqual([
+      { startSegmentId: "s2", endSegmentId: "s2" },
+    ]);
+    expect(next.segments.map((s: Segment) => s.id)).toEqual(["s2"]);
+    expect(next.segments.map((s: Segment) => s.id)).not.toEqual(
+      before.segments.map((s: Segment) => s.id),
+    );
+  });
+
+  it("prunes AI suggestions that reference segments merged manually", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const s2: Segment = { id: "s2", start: 1, end: 2, words: [{ word: "b", start: 1, end: 2 }] };
+    const s3: Segment = { id: "s3", start: 2, end: 3, words: [{ word: "c", start: 2, end: 3 }] };
+    const store = makeStore([s1, s2, s3], []);
+
+    const state = store.getState();
+    state.aiSpeakerSuggestions = [{ segmentId: "s1" }, { segmentId: "s3" }];
+    state.aiRevisionSuggestions = [{ segmentId: "s2" }];
+    state.aiSegmentMergeSuggestions = [
+      { segmentIds: ["s1", "s2"] },
+      { segmentIds: ["s2", "s3"] },
+      { segmentIds: ["s3"] },
+    ];
+    state.aiChapterDetectionSuggestions = [
+      { startSegmentId: "s1", endSegmentId: "s2" },
+      { startSegmentId: "s3", endSegmentId: "s3" },
+    ];
+
+    store.slice.mergeSegments("s1", "s2");
+
+    const next = store.getState();
+    expect(next.aiSpeakerSuggestions).toEqual([{ segmentId: "s3" }]);
+    expect(next.aiRevisionSuggestions).toEqual([]);
+    expect(next.aiSegmentMergeSuggestions).toEqual([{ segmentIds: ["s3"] }]);
+    expect(next.aiChapterDetectionSuggestions).toEqual([
+      { startSegmentId: "s3", endSegmentId: "s3" },
+    ]);
   });
 });

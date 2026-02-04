@@ -326,6 +326,10 @@ rejectSuggestion(suggestionId: string)
 applySuggestions(suggestions: SegmentMergeSuggestion[], mode: 'accepted' | 'all-high')
 ```
 
+Suggestions are pruned whenever segments are deleted or manually merged, so any
+merge suggestion that references removed segment IDs is removed from state to
+avoid stale UI entries.
+
 ---
 
 ## 7. UI Components
@@ -605,4 +609,3 @@ logging.debug('segmentMerge', {
 - [AI Features Unified](./ai-features-unified.md) - Core architecture, patterns, APIs
 - [User Guide](../ai-segment-merge-suggestion.md) - End-user documentation
 - [PR Details](./PR_segment_merge.md) - Implementation details for this feature
-
