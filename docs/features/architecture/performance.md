@@ -96,6 +96,7 @@ The following measures are prioritized by impact and implementation effort. Each
    - Implementation details:
      - Add a diff check that inspects changed keys on segments and only triggers WaveSurfer updates for audio-related changes.
      - Ensure cleanup on unmount and guard against zoom/state bleed in initialization effects.
+     - Reset cached region signatures when audio reloads so regions always rebuild for the new WaveSurfer instance.
    - Tests: Manual test: merge text-only segments while speaker regions hidden; confirm no waveform reprocess.
    - Risk/Notes: Medium; WaveSurfer initialization is fragile—verify cleanup on unmount.
 
