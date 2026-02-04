@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChapterHeader } from "@/components/ChapterHeader";
+import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import type { Chapter, Tag } from "@/lib/store";
 
 const mockChapter: Chapter = {
@@ -304,5 +305,47 @@ describe("ChapterHeader", () => {
     fireEvent.click(titleButton);
 
     expect(onOpen).toHaveBeenCalled();
+  });
+
+  it("builds a transcript-width drag preview when dragging the handle", () => {
+    render(
+      <div data-transcript-container="true">
+        <ChapterHeader {...defaultProps} />
+      </div>,
+    );
+
+    const container = document.querySelector("[data-transcript-container]") as HTMLElement | null;
+    if (!container) {
+      throw new Error("Transcript container not found");
+    }
+    container.getBoundingClientRect = () =>
+      ({
+        width: 720,
+        height: 0,
+        top: 0,
+        left: 0,
+        bottom: 0,
+        right: 0,
+        x: 0,
+        y: 0,
+        toJSON: () => {},
+      }) as DOMRect;
+
+    const setData = vi.fn();
+    const setDragImage = vi.fn();
+    const dataTransfer = {
+      setData,
+      setDragImage,
+      effectAllowed: "",
+    } as unknown as DataTransfer;
+
+    const handle = screen.getByLabelText("Drag to move chapter boundary");
+    fireEvent.dragStart(handle, { dataTransfer });
+
+    expect(setData).toHaveBeenCalledWith(CHAPTER_DRAG_TYPE, "chapter-1");
+    expect(setDragImage).toHaveBeenCalled();
+    const preview = setDragImage.mock.calls[0]?.[0] as HTMLElement | undefined;
+    expect(preview?.textContent).toContain("Test Chapter");
+    expect(preview?.style.width).toBe("720px");
   });
 });

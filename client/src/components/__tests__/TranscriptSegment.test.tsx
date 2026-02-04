@@ -2,6 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { TranscriptSegment } from "@/components/TranscriptSegment";
+import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import type { Segment, Speaker, Tag } from "@/lib/store";
 
 const speakers: Speaker[] = [
@@ -846,6 +847,44 @@ describe("TranscriptSegment", () => {
     const matchWord = screen.getByTestId("word-seg-1-1");
     expect(matchWord.querySelector("span")?.className).toContain("bg-amber-100/70");
     expect(matchWord).toHaveTextContent("Welt");
+  });
+
+  it("renders the chapter drop indicator between segments during drag over", () => {
+    render(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        onChapterDrop={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByTestId("chapter-drop-indicator")).toBeNull();
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    const dataTransfer = {
+      types: [CHAPTER_DRAG_TYPE],
+      dropEffect: "",
+    } as unknown as DataTransfer;
+
+    fireEvent.dragOver(segmentCard, { dataTransfer });
+
+    const indicator = screen.getByTestId("chapter-drop-indicator");
+    expect(indicator).toHaveClass("-top-2");
+    expect(indicator).toHaveClass("left-0");
+    expect(indicator).toHaveClass("right-0");
+    expect(indicator).toHaveClass("h-1");
+    expect(indicator).toHaveClass("bg-muted-foreground/50");
   });
 
   it("applies a glossary suggestion from the tooltip", async () => {

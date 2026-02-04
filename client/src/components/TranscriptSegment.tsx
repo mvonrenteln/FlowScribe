@@ -245,7 +245,6 @@ function TranscriptSegmentComponent({
         "group relative p-3 rounded-md border transition-colors cursor-pointer",
         isSelected && "ring-2 ring-ring",
         isActive && "bg-accent/50",
-        isChapterDragOver && "ring-2 ring-primary/60",
         !isSelected && !isActive && "hover-elevate",
       )}
       onDragOver={(event) => {
@@ -286,7 +285,8 @@ function TranscriptSegmentComponent({
     >
       {isChapterDragOver && (
         <div
-          className="absolute left-3 right-3 top-0 h-0.5 rounded-full bg-primary shadow-sm"
+          className="absolute -top-2 left-0 right-0 h-1 rounded-full bg-muted-foreground/50 pointer-events-none"
+          data-testid="chapter-drop-indicator"
           aria-hidden="true"
         />
       )}

@@ -10,6 +10,10 @@ Moving a chapter marker changes the boundary between the previous chapter and th
 - The previous chapter expands or contracts so it ends right before the new start.
 - The dragged chapter still ends at the start of the next chapter.
 - Moving across another chapter's start is disallowed to prevent overlaps.
+- While dragging, the cursor preview shows a muted, bordered box with the chapter title and
+  matches the transcript width for clearer alignment.
+- The drop indicator line renders between segments (outside the card) so the target boundary is
+  visually centered in the gap.
 
 ## Implementation notes
 
@@ -17,6 +21,8 @@ Moving a chapter marker changes the boundary between the previous chapter and th
 - Segments accept drops only for that drag type.
 - The store action `moveChapterStart` validates the target and recomputes chapter ranges so
   `endSegmentId` stays aligned to the next chapter's start.
+- The transcript list root exposes `data-transcript-container` so the drag preview can size to
+  the same width.
 
 ## Debugging
 
