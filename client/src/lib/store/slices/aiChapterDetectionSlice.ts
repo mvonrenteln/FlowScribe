@@ -22,8 +22,7 @@ import type {
 import { normalizeAIChapterDetectionConfig } from "../utils/aiChapterDetectionConfig";
 import {
   buildSegmentIndexMap,
-  hasOverlappingChapters,
-  normalizeChapterCounts,
+  recomputeChapterRangesFromStarts,
   sortChaptersByStart,
 } from "../utils/chapters";
 import { generateId } from "../utils/id";
@@ -58,20 +57,63 @@ const toSuggestion = (chapter: Chapter): AIChapterSuggestion => ({
   status: "pending",
 });
 
-const findConflicts = (
+const normalizeIncomingChapters = (
+  incoming: Chapter[],
+  segments: Segment[],
+  indexById: Map<string, number>,
+): Chapter[] => {
+  const ordered = sortChaptersByStart(incoming, indexById);
+  return ordered.map((chapter, index) => {
+    const startIndex = indexById.get(chapter.startSegmentId);
+    const endIndex = indexById.get(chapter.endSegmentId);
+    if (startIndex === undefined || endIndex === undefined) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    const nextChapter = ordered[index + 1];
+    const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+    const maxEndIndex =
+      nextStartIndex !== undefined ? Math.max(startIndex, nextStartIndex - 1) : endIndex;
+    const resolvedEndIndex = Math.min(endIndex, maxEndIndex);
+    if (resolvedEndIndex < startIndex) {
+      return { ...chapter, segmentCount: 0 };
+    }
+    return {
+      ...chapter,
+      endSegmentId: segments[resolvedEndIndex]?.id ?? chapter.endSegmentId,
+      segmentCount: resolvedEndIndex - startIndex + 1,
+    };
+  });
+};
+
+const mergeChaptersByStart = (
   existing: Chapter[],
   incoming: Chapter[],
   segments: Segment[],
-): { ok: boolean; message?: string } => {
+): Chapter[] => {
   const indexById = buildSegmentIndexMap(segments);
-  const combined = normalizeChapterCounts([...existing, ...incoming], indexById);
-  const hasOverlap = hasOverlappingChapters(combined, indexById);
-  if (!hasOverlap) return { ok: true };
-  return {
-    ok: false,
-    message:
-      "Detected chapters would overlap existing chapters. Reject conflicting suggestions or clear chapters before accepting.",
-  };
+  const normalizedIncoming = normalizeIncomingChapters(incoming, segments, indexById);
+  const merged = [...existing];
+  for (const incomingChapter of normalizedIncoming) {
+    const existingIndex = merged.findIndex(
+      (chapter) => chapter.startSegmentId === incomingChapter.startSegmentId,
+    );
+    if (existingIndex === -1) {
+      merged.push(incomingChapter);
+      continue;
+    }
+    const current = merged[existingIndex];
+    merged[existingIndex] = {
+      ...current,
+      title: incomingChapter.title,
+      summary: incomingChapter.summary,
+      notes: incomingChapter.notes,
+      tags: incomingChapter.tags,
+      source: current.source,
+    };
+  }
+
+  const recomputed = recomputeChapterRangesFromStarts(merged, segments, indexById);
+  return sortChaptersByStart(recomputed, indexById);
 };
 
 export const createAIChapterDetectionSlice = (
@@ -377,19 +419,7 @@ export const createAIChapterDetectionSlice = (
         source: "ai",
       };
 
-      const conflict = findConflicts(state.chapters, [incoming], segments);
-      if (!conflict.ok) {
-        set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestion" });
-        return;
-      }
-
-      const indexById = buildSegmentIndexMap(segments);
-      const normalized = normalizeChapterCounts([...state.chapters, incoming], indexById);
-      if (hasOverlappingChapters(normalized, indexById)) {
-        set({ aiChapterDetectionError: "Conflict while accepting suggestion" });
-        return;
-      }
-      updatedChapters = sortChaptersByStart(normalized, indexById);
+      updatedChapters = mergeChaptersByStart(state.chapters, [incoming], segments);
     }
 
     const nextHistory = addToHistory(history, historyIndex, {
@@ -453,19 +483,7 @@ export const createAIChapterDetectionSlice = (
       source: "ai",
     }));
 
-    const conflict = findConflicts(state.chapters, incoming, segments);
-    if (!conflict.ok) {
-      set({ aiChapterDetectionError: conflict.message ?? "Conflict while accepting suggestions" });
-      return;
-    }
-
-    const indexById = buildSegmentIndexMap(segments);
-    const normalized = normalizeChapterCounts([...state.chapters, ...incoming], indexById);
-    if (hasOverlappingChapters(normalized, indexById)) {
-      set({ aiChapterDetectionError: "Conflict while accepting suggestions" });
-      return;
-    }
-    const ordered = sortChaptersByStart(normalized, indexById);
+    const ordered = mergeChaptersByStart(state.chapters, incoming, segments);
 
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
