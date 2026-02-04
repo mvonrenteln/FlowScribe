@@ -353,4 +353,34 @@ describe("aiChapterDetectionSlice integration", () => {
     state = mockStore.getState() as TranscriptStore;
     expect(state.aiChapterDetectionSuggestions).toHaveLength(0);
   });
+
+  it("creates missing tags when accepting chapter suggestions", () => {
+    const suggestion = {
+      id: "chapter-1",
+      title: "Intro",
+      summary: "Summary",
+      notes: "Notes",
+      tags: ["Keep", "NewTag"],
+      startSegmentId: "seg-1",
+      endSegmentId: "seg-2",
+      segmentCount: 2,
+      createdAt: 0,
+      source: "ai" as const,
+      status: "pending" as const,
+    };
+
+    mockStore.set({
+      aiChapterDetectionSuggestions: [suggestion],
+      chapters: [],
+    });
+
+    slice.acceptChapterSuggestion("chapter-1");
+
+    const state = mockStore.getState() as TranscriptStore;
+    const newTag = state.tags.find((tag) => tag.name === "NewTag");
+    expect(newTag).toBeDefined();
+    expect(state.chapters).toHaveLength(1);
+    expect(state.chapters[0]?.tags).toContain("keep");
+    expect(state.chapters[0]?.tags).toContain(newTag?.id);
+  });
 });

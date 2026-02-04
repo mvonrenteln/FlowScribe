@@ -11,12 +11,14 @@ import { buildSuggestionKeySet, createChapterSuggestionKey } from "@/lib/ai/core
 import { detectChapters } from "@/lib/ai/features/chapterDetection";
 import { mapById } from "@/lib/arrayUtils";
 import type { Chapter } from "@/types/chapter";
+import { SPEAKER_COLORS } from "../constants";
 import type {
   AIChapterDetectionBatchLogEntry,
   AIChapterDetectionConfig,
   AIChapterDetectionSlice,
   AIChapterSuggestion,
   Segment,
+  Tag,
   TranscriptStore,
 } from "../types";
 import { normalizeAIChapterDetectionConfig } from "../utils/aiChapterDetectionConfig";
@@ -114,6 +116,54 @@ const mergeChaptersByStart = (
 
   const recomputed = recomputeChapterRangesFromStarts(merged, segments, indexById);
   return sortChaptersByStart(recomputed, indexById);
+};
+
+/**
+ * Resolve AI-suggested chapter tags into real session tag IDs.
+ * Creates missing tags by name and returns the updated tag list and resolved IDs.
+ */
+const resolveChapterTags = (
+  rawTags: string[] | undefined,
+  existingTags: Tag[],
+): { tags: Tag[]; resolvedTagIds: string[] | undefined } => {
+  if (!rawTags || rawTags.length === 0) {
+    return { tags: existingTags, resolvedTagIds: undefined };
+  }
+
+  const byId = new Map(existingTags.map((tag) => [tag.id, tag]));
+  const byName = new Map(existingTags.map((tag) => [tag.name.trim().toLowerCase(), tag]));
+
+  let nextTags = existingTags;
+  const resolved: string[] = [];
+  const seen = new Set<string>();
+
+  for (const rawTag of rawTags) {
+    const normalized = String(rawTag ?? "").trim();
+    if (!normalized) continue;
+
+    let tag = byId.get(normalized);
+    if (!tag) {
+      tag = byName.get(normalized.toLowerCase());
+    }
+
+    if (!tag) {
+      tag = {
+        id: generateId(),
+        name: normalized,
+        color: SPEAKER_COLORS[nextTags.length % SPEAKER_COLORS.length],
+      };
+      nextTags = [...nextTags, tag];
+      byId.set(tag.id, tag);
+      byName.set(tag.name.trim().toLowerCase(), tag);
+    }
+
+    if (!seen.has(tag.id)) {
+      seen.add(tag.id);
+      resolved.push(tag.id);
+    }
+  }
+
+  return { tags: nextTags, resolvedTagIds: resolved.length ? resolved : undefined };
 };
 
 export const createAIChapterDetectionSlice = (
@@ -389,6 +439,8 @@ export const createAIChapterDetectionSlice = (
       confidenceScoresVersion,
     } = state;
 
+    const { tags: nextTags, resolvedTagIds } = resolveChapterTags(suggestion.tags, sessionTags);
+
     let updatedChapters: Chapter[];
 
     // If this is a modification of an existing chapter, update it instead of adding new
@@ -400,7 +452,7 @@ export const createAIChapterDetectionSlice = (
               title: suggestion.title,
               summary: suggestion.summary,
               notes: suggestion.notes,
-              tags: suggestion.tags,
+              tags: resolvedTagIds,
             }
           : ch,
       );
@@ -411,7 +463,7 @@ export const createAIChapterDetectionSlice = (
         title: suggestion.title,
         summary: suggestion.summary,
         notes: suggestion.notes,
-        tags: suggestion.tags,
+        tags: resolvedTagIds,
         startSegmentId: suggestion.startSegmentId,
         endSegmentId: suggestion.endSegmentId,
         segmentCount: suggestion.segmentCount,
@@ -425,7 +477,7 @@ export const createAIChapterDetectionSlice = (
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,
-      tags: sessionTags,
+      tags: nextTags,
       chapters: updatedChapters,
       selectedSegmentId,
       selectedChapterId,
@@ -435,6 +487,7 @@ export const createAIChapterDetectionSlice = (
 
     set({
       chapters: updatedChapters,
+      tags: nextTags,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
@@ -470,12 +523,20 @@ export const createAIChapterDetectionSlice = (
       confidenceScoresVersion,
     } = state;
 
+    let nextTags = sessionTags;
+    const resolvedBySuggestionId = new Map<string, string[] | undefined>();
+    for (const suggestion of pending) {
+      const resolved = resolveChapterTags(suggestion.tags, nextTags);
+      nextTags = resolved.tags;
+      resolvedBySuggestionId.set(suggestion.id, resolved.resolvedTagIds);
+    }
+
     const incoming: Chapter[] = pending.map((s) => ({
       id: s.id,
       title: s.title,
       summary: s.summary,
       notes: s.notes,
-      tags: s.tags,
+      tags: resolvedBySuggestionId.get(s.id),
       startSegmentId: s.startSegmentId,
       endSegmentId: s.endSegmentId,
       segmentCount: s.segmentCount,
@@ -488,7 +549,7 @@ export const createAIChapterDetectionSlice = (
     const nextHistory = addToHistory(history, historyIndex, {
       segments,
       speakers,
-      tags: sessionTags,
+      tags: nextTags,
       chapters: ordered,
       selectedSegmentId,
       selectedChapterId,
@@ -498,6 +559,7 @@ export const createAIChapterDetectionSlice = (
 
     set({
       chapters: ordered,
+      tags: nextTags,
       history: nextHistory.history,
       historyIndex: nextHistory.historyIndex,
       aiChapterDetectionSuggestions: state.aiChapterDetectionSuggestions.filter(
