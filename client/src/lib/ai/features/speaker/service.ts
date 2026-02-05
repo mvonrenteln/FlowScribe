@@ -12,7 +12,7 @@ import {
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import type { AIFeatureOptions } from "../../core";
-import { executeFeature, runConcurrentOrdered } from "../../core";
+import { executeFeature, runBatchCoordinator } from "../../core";
 import { extractJSON } from "../../parsing";
 
 import { speakerClassificationConfig } from "./config";
@@ -156,38 +156,47 @@ export async function classifySpeakersBatch(
 
   const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
 
-  const tasks = Array.from({ length: totalBatches }, (_, batchIndex) => async () => {
-    const start = batchIndex * batchSize;
-    const end = Math.min(start + batchSize, segments.length);
-    const batchSegments = segments.slice(start, end);
-
-    try {
-      const batchResults = await classifySpeakers(batchSegments, availableSpeakers, {
-        ...classifyOptions,
-        signal,
-      });
-
-      return {
-        status: "success" as const,
-        batchIndex,
-        batchSegments,
-        batchResults,
-        end,
-      };
-    } catch (error) {
-      return {
-        status: "failed" as const,
-        batchIndex,
-        batchSegments,
-        end,
-        error: error instanceof Error ? error.message : String(error),
-      };
-    }
-  });
-
-  await runConcurrentOrdered(tasks, {
+  await runBatchCoordinator({
+    inputs: Array.from({ length: totalBatches }, (_, batchIndex) => batchIndex),
     concurrency,
     signal,
+    prepareYieldEvery: 10,
+    emitYieldEvery: 10,
+    prepare: (batchIndex) => {
+      const start = batchIndex * batchSize;
+      const end = Math.min(start + batchSize, segments.length);
+      const batchSegments = segments.slice(start, end);
+
+      return {
+        batchIndex,
+        batchSegments,
+        end,
+      };
+    },
+    execute: async (prepared) => {
+      try {
+        const batchResults = await classifySpeakers(prepared.batchSegments, availableSpeakers, {
+          ...classifyOptions,
+          signal,
+        });
+
+        return {
+          status: "success" as const,
+          batchIndex: prepared.batchIndex,
+          batchSegments: prepared.batchSegments,
+          batchResults,
+          end: prepared.end,
+        };
+      } catch (error) {
+        return {
+          status: "failed" as const,
+          batchIndex: prepared.batchIndex,
+          batchSegments: prepared.batchSegments,
+          end: prepared.end,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
     onItemComplete: (_, outcome) => {
       processedBatches++;
 

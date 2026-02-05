@@ -258,4 +258,80 @@ describe("runBatchCoordinator", () => {
     expect(result.preparedCount).toBe(2);
     expect(emitted).toEqual([0, 2]);
   });
+
+  it("emits errors in original order and reports progress against prepared count", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const emitted: number[] = [];
+      const errorIndices: number[] = [];
+      const progress: Array<{ processed: number; total: number }> = [];
+
+      const promise = runBatchCoordinator({
+        inputs: [0, 1, 2],
+        prepare: (value) => ({ value }),
+        execute: async (prepared) => {
+          const delay = prepared.value === 0 ? 30 : prepared.value === 1 ? 10 : 0;
+          return new Promise((resolve, reject) =>
+            setTimeout(() => {
+              if (prepared.value === 1) {
+                reject(new Error("boom"));
+                return;
+              }
+              resolve(`ok-${prepared.value}`);
+            }, delay),
+          );
+        },
+        concurrency: 2,
+        prepareYieldEvery: 1000,
+        emitYieldEvery: 1000,
+        onItemComplete: (index) => emitted.push(index),
+        onItemError: (index) => {
+          emitted.push(index);
+          errorIndices.push(index);
+        },
+        onProgress: (processed, total) => progress.push({ processed, total }),
+      });
+
+      await vi.runAllTimersAsync();
+      const results = await promise;
+
+      expect(emitted).toEqual([0, 1, 2]);
+      expect(progress).toEqual([
+        { processed: 1, total: 3 },
+        { processed: 2, total: 3 },
+        { processed: 3, total: 3 },
+      ]);
+      expect(errorIndices).toEqual([1]);
+      expect(results.results.some((entry) => entry?.status === "rejected")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops scheduling executions when aborted before execute phase", async () => {
+    const controller = new AbortController();
+    const executed: number[] = [];
+
+    const result = await runBatchCoordinator({
+      inputs: [0, 1, 2],
+      prepare: (value) => {
+        if (value === 1) {
+          controller.abort();
+        }
+        return { value };
+      },
+      execute: async (prepared) => {
+        executed.push(prepared.value);
+        return `ok-${prepared.value}`;
+      },
+      concurrency: 2,
+      signal: controller.signal,
+      prepareYieldEvery: 1000,
+      emitYieldEvery: 1000,
+    });
+
+    expect(result.preparedCount).toBe(2);
+    expect(executed).toEqual([]);
+  });
 });

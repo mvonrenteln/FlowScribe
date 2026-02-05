@@ -5,8 +5,13 @@
  */
 
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
+import * as settingsStorage from "@/lib/settings/settingsStorage";
 import * as core from "../core";
-import { classifySpeakers, parseRawResponse } from "../features/speaker/service";
+import {
+  classifySpeakers,
+  classifySpeakersBatch,
+  parseRawResponse,
+} from "../features/speaker/service";
 import type { BatchSegment } from "../features/speaker/types";
 
 describe("Speaker Service", () => {
@@ -36,6 +41,131 @@ describe("Speaker Service", () => {
       await expect(
         classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
       ).rejects.toThrow("Timeout");
+    });
+  });
+
+  describe("classifySpeakersBatch", () => {
+    it("emits batch completion and progress in order under concurrent execution", async () => {
+      vi.useFakeTimers();
+
+      const settingsSpy = vi.spyOn(settingsStorage, "initializeSettings").mockReturnValue({
+        ...settingsStorage.DEFAULT_SETTINGS,
+        enableConcurrentRequests: true,
+        maxConcurrentRequests: 2,
+      });
+
+      try {
+        let callIndex = 0;
+        executeFeatureMock.mockImplementation(() => {
+          const delay = callIndex === 0 ? 30 : callIndex === 1 ? 10 : 0;
+          callIndex += 1;
+          return new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  data: [{ tag: "Alice", confidence: 0.9 }],
+                  metadata: {
+                    featureId: "speaker-classification",
+                    providerId: "test",
+                    model: "llama3.2",
+                    durationMs: delay,
+                  },
+                }),
+              delay,
+            ),
+          );
+        });
+
+        const batchOrder: string[] = [];
+        const progress: number[] = [];
+
+        const promise = classifySpeakersBatch(
+          [
+            { id: "1", speaker: "[Unknown]", text: "Hello" },
+            { id: "2", speaker: "[Unknown]", text: "World" },
+            { id: "3", speaker: "[Unknown]", text: "Again" },
+          ],
+          ["Alice", "Bob"],
+          {
+            batchSize: 1,
+            onBatchComplete: (results) =>
+              batchOrder.push(results.map((r) => r.segmentId).join(",")),
+            onProgress: (processed) => progress.push(processed),
+          },
+        );
+
+        await vi.runAllTimersAsync();
+        await promise;
+
+        expect(batchOrder).toEqual(["1", "2", "3"]);
+        expect(progress).toEqual([1, 2, 3]);
+      } finally {
+        settingsSpy.mockRestore();
+        vi.useRealTimers();
+      }
+    });
+
+    it("records failed batches and unchanged assignments", async () => {
+      const settingsSpy = vi.spyOn(settingsStorage, "initializeSettings").mockReturnValue({
+        ...settingsStorage.DEFAULT_SETTINGS,
+        enableConcurrentRequests: false,
+        maxConcurrentRequests: 1,
+      });
+
+      try {
+        executeFeatureMock
+          .mockResolvedValueOnce({
+            success: true,
+            data: [{ tag: "Alice", confidence: 0.9 }],
+            metadata: {
+              featureId: "speaker-classification",
+              providerId: "test",
+              model: "llama3.2",
+              durationMs: 1,
+            },
+          })
+          .mockResolvedValueOnce({
+            success: false,
+            error: "Timeout",
+            metadata: {
+              featureId: "speaker-classification",
+              providerId: "test",
+              model: "llama3.2",
+              durationMs: 1,
+            },
+          })
+          .mockResolvedValueOnce({
+            success: true,
+            data: [{ tag: "Alice", confidence: 0.9 }],
+            metadata: {
+              featureId: "speaker-classification",
+              providerId: "test",
+              model: "llama3.2",
+              durationMs: 1,
+            },
+          });
+
+        const batchResults = await classifySpeakersBatch(
+          [
+            { id: "1", speaker: "[Unknown]", text: "Hello" },
+            { id: "2", speaker: "[Unknown]", text: "World" },
+            { id: "3", speaker: "Alice", text: "Again" },
+          ],
+          ["Alice", "Bob"],
+          { batchSize: 1 },
+        );
+
+        expect(batchResults.summary).toEqual({
+          total: 3,
+          classified: 1,
+          unchanged: 1,
+          failed: 1,
+        });
+        expect(batchResults.issues.some((issue) => issue.level === "error")).toBe(true);
+      } finally {
+        settingsSpy.mockRestore();
+      }
     });
   });
 

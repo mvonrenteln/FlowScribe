@@ -12,7 +12,7 @@ import {
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import { computeTextChanges, summarizeChanges } from "../../../diffUtils";
-import { executeFeature, runConcurrentOrdered } from "../../core";
+import { executeFeature, runBatchCoordinator } from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { compileTemplate } from "../../prompts";
 
@@ -131,56 +131,66 @@ export async function reviseSegmentsBatch(
 
   const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
 
-  const tasks = segments.map((segment) => async () => {
-    const indexInfo = segmentIndex.get(segment.id);
-    const globalIndex = indexInfo?.index ?? -1;
-    const previousSegment = globalIndex > 0 ? allSegments[globalIndex - 1] : undefined;
-    const nextSegment =
-      globalIndex < allSegments.length - 1 ? allSegments[globalIndex + 1] : undefined;
-    const itemStart = Date.now();
-
-    try {
-      const result = await reviseSegment({
-        segment,
-        prompt,
-        previousSegment,
-        nextSegment,
-        signal,
-        providerId,
-        model,
-      });
-
-      if (result.changes.length === 0) {
-        return {
-          status: "unchanged" as const,
-          segmentId: segment.id,
-          loggedAt: Date.now(),
-          durationMs: Date.now() - itemStart,
-        };
-      }
-
-      return {
-        status: "revised" as const,
-        segmentId: segment.id,
-        loggedAt: Date.now(),
-        durationMs: Date.now() - itemStart,
-        result,
-      };
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      return {
-        status: "failed" as const,
-        segmentId: segment.id,
-        loggedAt: Date.now(),
-        durationMs: Date.now() - itemStart,
-        error: message,
-      };
-    }
-  });
-
-  await runConcurrentOrdered(tasks, {
+  await runBatchCoordinator({
+    inputs: segments,
     concurrency,
     signal,
+    prepareYieldEvery: 10,
+    emitYieldEvery: 10,
+    prepare: (segment) => {
+      const indexInfo = segmentIndex.get(segment.id);
+      const globalIndex = indexInfo?.index ?? -1;
+      const previousSegment = globalIndex > 0 ? allSegments[globalIndex - 1] : undefined;
+      const nextSegment =
+        globalIndex < allSegments.length - 1 ? allSegments[globalIndex + 1] : undefined;
+
+      return {
+        segment,
+        previousSegment,
+        nextSegment,
+      };
+    },
+    execute: async (prepared) => {
+      const itemStart = Date.now();
+
+      try {
+        const result = await reviseSegment({
+          segment: prepared.segment,
+          prompt,
+          previousSegment: prepared.previousSegment,
+          nextSegment: prepared.nextSegment,
+          signal,
+          providerId,
+          model,
+        });
+
+        if (result.changes.length === 0) {
+          return {
+            status: "unchanged" as const,
+            segmentId: prepared.segment.id,
+            loggedAt: Date.now(),
+            durationMs: Date.now() - itemStart,
+          };
+        }
+
+        return {
+          status: "revised" as const,
+          segmentId: prepared.segment.id,
+          loggedAt: Date.now(),
+          durationMs: Date.now() - itemStart,
+          result,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          status: "failed" as const,
+          segmentId: prepared.segment.id,
+          loggedAt: Date.now(),
+          durationMs: Date.now() - itemStart,
+          error: message,
+        };
+      }
+    },
     onItemComplete: (_, outcome) => {
       processed++;
 
