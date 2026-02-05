@@ -11,6 +11,7 @@ import {
   filterItems,
   filterSegments,
   prepareBatch,
+  runBatchCoordinator,
   runConcurrentOrdered,
   sliceBatch,
 } from "../core/batch";
@@ -234,5 +235,27 @@ describe("runConcurrentOrdered", () => {
     } finally {
       vi.useRealTimers();
     }
+  });
+});
+
+describe("runBatchCoordinator", () => {
+  it("prepares items, skips nulls, and emits in original order", async () => {
+    const emitted: number[] = [];
+
+    const result = await runBatchCoordinator({
+      inputs: [1, 2, 3, 4],
+      prepare: (value, index) => (value % 2 === 0 ? null : { value, index }),
+      execute: async (prepared) => {
+        await new Promise((resolve) => setTimeout(resolve, prepared.value === 1 ? 10 : 0));
+        return `ok-${prepared.value}`;
+      },
+      concurrency: 2,
+      prepareYieldEvery: 1000,
+      emitYieldEvery: 1000,
+      onItemComplete: (index) => emitted.push(index),
+    });
+
+    expect(result.preparedCount).toBe(2);
+    expect(emitted).toEqual([0, 2]);
   });
 });

@@ -36,6 +36,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 export const initialAISegmentMergeState = {
   aiSegmentMergeSuggestions: [] as AISegmentMergeSuggestion[],
   aiSegmentMergeIsProcessing: false,
+  aiSegmentMergeIsCancelling: false,
   aiSegmentMergeProcessedCount: 0,
   aiSegmentMergeTotalToProcess: 0,
   aiSegmentMergeConfig: normalizeAISegmentMergeConfig(),
@@ -171,6 +172,7 @@ export const createAISegmentMergeSlice = (
 
     set({
       aiSegmentMergeIsProcessing: true,
+      aiSegmentMergeIsCancelling: false,
       aiSegmentMergeProcessedCount: 0,
       aiSegmentMergeTotalToProcess: segmentsToAnalyze.length - 1,
       aiSegmentMergeError: null,
@@ -266,17 +268,28 @@ export const createAISegmentMergeSlice = (
         set({
           aiSegmentMergeSuggestions: [...currentState.aiSegmentMergeSuggestions, ...newSuggestions],
           aiSegmentMergeIsProcessing: false,
+          aiSegmentMergeIsCancelling: false,
           aiSegmentMergeProcessedCount: result.summary.analyzed,
           aiSegmentMergeError:
             result.issues.length > 0 ? result.issues.map((i) => i.message).join("; ") : null,
+          aiSegmentMergeAbortController: null,
         });
       })
       .catch((error: Error) => {
-        if (error.name === "AbortError") return;
+        if (error.name === "AbortError") {
+          set({
+            aiSegmentMergeIsProcessing: false,
+            aiSegmentMergeIsCancelling: false,
+            aiSegmentMergeAbortController: null,
+          });
+          return;
+        }
         console.error("[AISegmentMerge] Analysis error:", error);
         set({
           aiSegmentMergeError: error.message ?? "Analysis failed",
           aiSegmentMergeIsProcessing: false,
+          aiSegmentMergeIsCancelling: false,
+          aiSegmentMergeAbortController: null,
         });
       });
   },
@@ -287,8 +300,7 @@ export const createAISegmentMergeSlice = (
       state.aiSegmentMergeAbortController.abort();
     }
     set({
-      aiSegmentMergeIsProcessing: false,
-      aiSegmentMergeAbortController: null,
+      aiSegmentMergeIsCancelling: true,
     });
   },
 

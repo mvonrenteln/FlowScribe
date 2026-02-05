@@ -30,6 +30,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 export const initialAISpeakerState = {
   aiSpeakerSuggestions: [] as AISpeakerSuggestion[],
   aiSpeakerIsProcessing: false,
+  aiSpeakerIsCancelling: false,
   aiSpeakerProcessedCount: 0,
   aiSpeakerTotalToProcess: 0,
   aiSpeakerConfig: normalizeAISpeakerConfig(),
@@ -78,6 +79,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
 
     set({
       aiSpeakerIsProcessing: true,
+      aiSpeakerIsCancelling: false,
       aiSpeakerProcessedCount: 0,
       aiSpeakerTotalToProcess: segmentsToProcess.length,
       aiSpeakerError: null,
@@ -263,11 +265,23 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       } catch (error) {
         if (!abortController.signal.aborted) {
           const err = error instanceof Error ? error : new Error(String(error));
-          set({ aiSpeakerError: summarizeAIError(err), aiSpeakerIsProcessing: false });
+          const currentState = get();
+          if (currentState.aiSpeakerAbortController !== abortController) return;
+          set({
+            aiSpeakerError: summarizeAIError(err),
+            aiSpeakerIsProcessing: false,
+            aiSpeakerIsCancelling: false,
+            aiSpeakerAbortController: null,
+          });
         }
       } finally {
-        if (!abortController.signal.aborted) {
-          set({ aiSpeakerIsProcessing: false });
+        const currentState = get();
+        if (currentState.aiSpeakerAbortController === abortController) {
+          set({
+            aiSpeakerIsProcessing: false,
+            aiSpeakerIsCancelling: false,
+            aiSpeakerAbortController: null,
+          });
         }
       }
     })();
@@ -280,8 +294,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     }
     // Keep existing suggestions, just stop processing
     set({
-      aiSpeakerIsProcessing: false,
-      aiSpeakerAbortController: null,
+      aiSpeakerIsCancelling: true,
     });
   },
 

@@ -200,6 +200,8 @@ export interface OrderedConcurrencyOptions<T> {
   onItemError?: (index: number, error: Error) => void;
   /** Called when progress updates (emitted count, total) */
   onProgress?: (processed: number, total: number) => void;
+  /** Yield to the main thread after this many emissions (default: 50) */
+  yieldEvery?: number;
 }
 
 /**
@@ -215,13 +217,15 @@ export async function runConcurrentOrdered<T>(
   const total = tasks.length;
   const results: Array<PromiseSettledResult<T> | undefined> = new Array(total);
   const concurrency = Math.max(1, options.concurrency);
+  const yieldEvery = Math.max(1, options.yieldEvery ?? 50);
 
   let active = 0;
   let nextIndex = 0;
   let nextToEmit = 0;
   let stopScheduling = false;
+  let emittedSinceYield = 0;
 
-  const emitReady = () => {
+  const emitReady = async () => {
     while (nextToEmit < total && results[nextToEmit]) {
       const result = results[nextToEmit];
       if (result?.status === "fulfilled") {
@@ -231,6 +235,11 @@ export async function runConcurrentOrdered<T>(
       }
       options.onProgress?.(nextToEmit + 1, total);
       nextToEmit++;
+      emittedSinceYield++;
+      if (emittedSinceYield >= yieldEvery) {
+        emittedSinceYield = 0;
+        await yieldToMainThread();
+      }
     }
   };
 
@@ -256,7 +265,7 @@ export async function runConcurrentOrdered<T>(
             if (options.signal?.aborted) {
               stopScheduling = true;
             }
-            emitReady();
+            void emitReady();
             if ((nextIndex >= total || stopScheduling) && active === 0) {
               resolve(results);
               return;
@@ -283,4 +292,120 @@ function toError(reason: unknown): Error {
   if (reason instanceof Error) return reason;
   if (typeof reason === "string") return new Error(reason);
   return new Error("Unknown error");
+}
+
+export interface BatchCoordinatorOptions<TInput, TPrepared, TResult> {
+  /** Inputs to prepare */
+  inputs: TInput[];
+  /** Prepare a work item (return null to skip) */
+  prepare: (input: TInput, index: number) => TPrepared | null;
+  /** Execute a prepared work item */
+  execute: (prepared: TPrepared, index: number) => Promise<TResult>;
+  /** Maximum number of concurrent executions */
+  concurrency: number;
+  /** Abort signal for cancellation */
+  signal?: AbortSignal;
+  /** Yield to the main thread after this many prepare steps (default: 50) */
+  prepareYieldEvery?: number;
+  /** Yield to the main thread after this many completion emissions (default: 50) */
+  emitYieldEvery?: number;
+  /** Called after each prepared item */
+  onPrepared?: (preparedCount: number, total: number) => void;
+  /** Called when a prepared item completes, in prepared order */
+  onItemComplete?: (index: number, result: TResult) => void;
+  /** Called when a prepared item errors, in prepared order */
+  onItemError?: (index: number, error: Error) => void;
+  /** Called when progress updates (processed, totalPrepared) */
+  onProgress?: (processed: number, totalPrepared: number) => void;
+}
+
+export interface BatchCoordinatorResult<TResult> {
+  /** All results, aligned with prepared order */
+  results: Array<PromiseSettledResult<TResult> | undefined>;
+  /** Number of prepared items */
+  preparedCount: number;
+}
+
+/**
+ * Optional batch coordinator that separates preparation from execution,
+ * yielding to the main thread to keep the UI responsive.
+ */
+export async function runBatchCoordinator<TInput, TPrepared, TResult>(
+  options: BatchCoordinatorOptions<TInput, TPrepared, TResult>,
+): Promise<BatchCoordinatorResult<TResult>> {
+  const {
+    inputs,
+    prepare,
+    execute,
+    concurrency,
+    signal,
+    prepareYieldEvery = 50,
+    emitYieldEvery = 50,
+    onPrepared,
+    onItemComplete,
+    onItemError,
+    onProgress,
+  } = options;
+
+  const prepared: Array<{ index: number; value: TPrepared }> = [];
+  const total = inputs.length;
+
+  for (let i = 0; i < total; i++) {
+    if (signal?.aborted) {
+      break;
+    }
+    const preparedItem = prepare(inputs[i], i);
+    if (preparedItem !== null) {
+      prepared.push({ index: i, value: preparedItem });
+      onPrepared?.(prepared.length, total);
+    }
+    if (i > 0 && i % prepareYieldEvery === 0) {
+      await yieldToMainThread();
+    }
+  }
+
+  const tasks = prepared.map((item) => () => execute(item.value, item.index));
+  const results = await runConcurrentOrdered(tasks, {
+    concurrency,
+    signal,
+    yieldEvery: emitYieldEvery,
+    onItemComplete: (preparedIndex, result) => {
+      const originalIndex = prepared[preparedIndex]?.index ?? preparedIndex;
+      onItemComplete?.(originalIndex, result);
+    },
+    onItemError: (preparedIndex, error) => {
+      const originalIndex = prepared[preparedIndex]?.index ?? preparedIndex;
+      onItemError?.(originalIndex, error);
+    },
+    onProgress,
+  });
+
+  return { results, preparedCount: prepared.length };
+}
+
+/**
+ * Yield execution back to the main thread / event loop, allowing pending UI work
+ * or other queued tasks to run before continuing.
+ *
+ * In browsers, this prefers window.requestAnimationFrame (when available) to
+ * schedule continuation at the next repaint; otherwise it falls back to
+ * setTimeout(..., 0) which schedules a macrotask on the event loop.
+ *
+ * Useful for breaking up long-running work, letting the renderer update, or
+ * avoiding UI jank by yielding control between iterations of an async loop.
+ *
+ * Note: requestAnimationFrame can be throttled or paused in background tabs,
+ * and neither mechanism guarantees precise timing — only that control is yielded.
+ *
+ * @returns A Promise that resolves after yielding to the main thread.
+ */
+export async function yieldToMainThread(): Promise<void> {
+  if (typeof window !== "undefined" && "requestAnimationFrame" in window) {
+    await new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => resolve());
+    });
+    return;
+  }
+
+  await new Promise<void>((resolve) => setTimeout(resolve, 0));
 }

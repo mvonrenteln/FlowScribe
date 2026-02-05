@@ -35,6 +35,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
 
   const suggestions = useTranscriptStore((s) => s.aiSpeakerSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiSpeakerIsProcessing);
+  const isCancelling = useTranscriptStore((s) => s.aiSpeakerIsCancelling);
   const processedCount = useTranscriptStore((s) => s.aiSpeakerProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiSpeakerTotalToProcess);
   const config = useTranscriptStore((s) => s.aiSpeakerConfig);
@@ -125,6 +126,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
 
       <AIBatchControlSection
         isProcessing={isProcessing}
+        isCancelling={isCancelling}
         processedCount={processedCount}
         totalToProcess={totalToProcess}
         error={error}

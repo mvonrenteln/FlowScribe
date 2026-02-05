@@ -13,6 +13,8 @@ export {
 } from "./aiFeatureService";
 // Batch Processing
 export {
+  type BatchCoordinatorOptions,
+  type BatchCoordinatorResult,
   buildMap,
   calculateBatches,
   type FilterOptions,
@@ -20,8 +22,10 @@ export {
   filterSegments,
   type OrderedConcurrencyOptions,
   prepareBatch,
+  runBatchCoordinator,
   runConcurrentOrdered,
   sliceBatch,
+  yieldToMainThread,
 } from "./batch";
 // Batch ID Mapping
 export {

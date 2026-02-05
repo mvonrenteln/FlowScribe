@@ -49,6 +49,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
     selectedModel: storedModel,
   } = useTranscriptStore((s) => s.aiRevisionConfig);
   const isProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
+  const isCancelling = useTranscriptStore((s) => s.aiRevisionIsCancelling);
   const processedCount = useTranscriptStore((s) => s.aiRevisionProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiRevisionTotalToProcess);
   const error = useTranscriptStore((s) => s.aiRevisionError);
@@ -142,6 +143,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
 
       <AIBatchControlSection
         isProcessing={isProcessing}
+        isCancelling={isCancelling}
         processedCount={processedCount}
         totalToProcess={totalToProcess}
         error={error}

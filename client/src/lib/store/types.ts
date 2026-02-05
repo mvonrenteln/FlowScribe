@@ -168,6 +168,7 @@ export interface InitialStoreState {
   // AI Speaker state
   aiSpeakerSuggestions: AISpeakerSuggestion[];
   aiSpeakerIsProcessing: boolean;
+  aiSpeakerIsCancelling: boolean;
   aiSpeakerProcessedCount: number;
   aiSpeakerTotalToProcess: number;
   aiSpeakerConfig: AISpeakerConfig;
@@ -183,6 +184,7 @@ export interface InitialStoreState {
   // AI Revision state
   aiRevisionSuggestions: AIRevisionSuggestion[];
   aiRevisionIsProcessing: boolean;
+  aiRevisionIsCancelling: boolean;
   aiRevisionCurrentSegmentId: string | null;
   aiRevisionProcessedCount: number;
   aiRevisionTotalToProcess: number;
@@ -201,6 +203,7 @@ export interface InitialStoreState {
   // AI Segment Merge state
   aiSegmentMergeSuggestions: AISegmentMergeSuggestion[];
   aiSegmentMergeIsProcessing: boolean;
+  aiSegmentMergeIsCancelling: boolean;
   aiSegmentMergeProcessedCount: number;
   aiSegmentMergeTotalToProcess: number;
   aiSegmentMergeConfig: AISegmentMergeConfig;
@@ -210,6 +213,7 @@ export interface InitialStoreState {
   // AI Chapter Detection state
   aiChapterDetectionSuggestions: AIChapterSuggestion[];
   aiChapterDetectionIsProcessing: boolean;
+  aiChapterDetectionIsCancelling: boolean;
   aiChapterDetectionProcessedBatches: number;
   aiChapterDetectionTotalBatches: number;
   aiChapterDetectionConfig: AIChapterDetectionConfig;
