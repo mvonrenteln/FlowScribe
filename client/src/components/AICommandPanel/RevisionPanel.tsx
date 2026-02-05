@@ -38,7 +38,6 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState("");
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
-  const [batchSize, setBatchSize] = useState("10");
   const logDrawerRef = useRef<HTMLDivElement>(null);
 
   const segments = useTranscriptStore((s) => s.segments);
@@ -124,7 +123,6 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         isProcessing={isProcessing}
         promptValue={effectivePromptId}
         promptOptions={prompts}
-        batchSize={batchSize}
         onProviderChange={(value) => {
           selectProvider(value);
           updateRevisionConfig({
@@ -137,8 +135,8 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
           updateRevisionConfig({ selectedModel: value || undefined });
         }}
         onPromptChange={setSelectedPromptId}
-        onBatchSizeChange={setBatchSize}
         onOpenSettings={onOpenSettings}
+        showBatchSize={false}
       />
 
       <AIBatchControlSection

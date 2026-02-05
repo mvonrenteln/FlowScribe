@@ -26,15 +26,16 @@ interface AIConfigurationSectionProps {
   isProcessing: boolean;
   promptValue: string;
   promptOptions: PromptOption[];
-  batchSize: string;
+  batchSize?: string;
   batchSizeLabel?: string;
   batchSizeMin?: number;
   batchSizeMax?: number;
   batchSizeHelp?: string;
+  showBatchSize?: boolean;
   onProviderChange: (value: string) => void;
   onModelChange: (value: string) => void;
   onPromptChange: (value: string) => void;
-  onBatchSizeChange: (value: string) => void;
+  onBatchSizeChange?: (value: string) => void;
   onOpenSettings?: () => void;
 }
 
@@ -46,15 +47,16 @@ export function AIConfigurationSection({
   isProcessing,
   promptValue,
   promptOptions,
-  batchSize,
+  batchSize = "1",
   batchSizeLabel = "Batch Size",
   batchSizeMin = 1,
   batchSizeMax = 50,
   batchSizeHelp = "Number of segments to process in each batch (1-50)",
+  showBatchSize = true,
   onProviderChange,
   onModelChange,
   onPromptChange,
-  onBatchSizeChange,
+  onBatchSizeChange = () => {},
   onOpenSettings,
 }: AIConfigurationSectionProps) {
   const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
@@ -143,62 +145,81 @@ export function AIConfigurationSection({
         </Select>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground cursor-help">
-          {batchSizeLabel}
-        </Label>
-        <div className="flex items-center gap-2">
-          <div className="flex-1">
-            <TooltipProvider>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <Input
-                    id={`${id}-batch-size`}
-                    type="number"
-                    min={batchSizeMin}
-                    max={batchSizeMax}
-                    value={batchSize}
-                    onChange={(e) => {
-                      const value = e.target.value;
-                      // Allow empty and intermediate numeric input (so users can type multi-digit numbers).
-                      // Only accept digits to avoid invalid characters from typing.
-                      if (value === "" || /^\d*$/.test(value)) {
-                        onBatchSizeChange(value);
-                      }
-                    }}
-                    onBlur={(e) => {
-                      const value = e.target.value;
-                      // If empty, reset to min
-                      if (value === "") {
-                        onBatchSizeChange(String(batchSizeMin));
-                        return;
-                      }
-                      const num = Number(value);
-                      if (Number.isNaN(num)) {
-                        onBatchSizeChange(String(batchSizeMin));
-                        return;
-                      }
-                      // Clamp to bounds
-                      if (num < batchSizeMin) {
-                        onBatchSizeChange(String(batchSizeMin));
-                      } else if (num > batchSizeMax) {
-                        onBatchSizeChange(String(batchSizeMax));
-                      } else {
-                        onBatchSizeChange(String(num));
-                      }
-                    }}
-                    disabled={isProcessing}
-                    className="text-sm"
-                  />
-                </TooltipTrigger>
-                <TooltipContent>
-                  <p>{batchSizeHelp}</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          </div>
+      {showBatchSize ? (
+        <div className="flex flex-col gap-1">
+          <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground cursor-help">
+            {batchSizeLabel}
+          </Label>
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      id={`${id}-batch-size`}
+                      type="number"
+                      min={batchSizeMin}
+                      max={batchSizeMax}
+                      value={batchSize}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Allow empty and intermediate numeric input (so users can type multi-digit numbers).
+                        // Only accept digits to avoid invalid characters from typing.
+                        if (value === "" || /^\d*$/.test(value)) {
+                          onBatchSizeChange(value);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        const value = e.target.value;
+                        // If empty, reset to min
+                        if (value === "") {
+                          onBatchSizeChange(String(batchSizeMin));
+                          return;
+                        }
+                        const num = Number(value);
+                        if (Number.isNaN(num)) {
+                          onBatchSizeChange(String(batchSizeMin));
+                          return;
+                        }
+                        // Clamp to bounds
+                        if (num < batchSizeMin) {
+                          onBatchSizeChange(String(batchSizeMin));
+                        } else if (num > batchSizeMax) {
+                          onBatchSizeChange(String(batchSizeMax));
+                        } else {
+                          onBatchSizeChange(String(num));
+                        }
+                      }}
+                      disabled={isProcessing}
+                      className="text-sm"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>{batchSizeHelp}</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
 
-          {onOpenSettings ? (
+            {onOpenSettings ? (
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button variant="ghost" size="icon" onClick={onOpenSettings}>
+                      <Settings2 className="h-4 w-4" />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    <p>Configure AI providers and prompts</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : null}
+          </div>
+        </div>
+      ) : (
+        onOpenSettings && (
+          <div className="flex justify-end">
             <TooltipProvider>
               <Tooltip>
                 <TooltipTrigger asChild>
@@ -211,9 +232,9 @@ export function AIConfigurationSection({
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
-          ) : null}
-        </div>
-      </div>
+          </div>
+        )
+      )}
 
       {settings && settings.aiProviders.length === 0 && (
         <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
