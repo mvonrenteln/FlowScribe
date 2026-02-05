@@ -7,7 +7,7 @@
  * @module ai/features/chapterDetection/service
  */
 
-import { executeFeature } from "@/lib/ai/core/aiFeatureService";
+import { executeFeature, runBatchCoordinator } from "@/lib/ai/core";
 import type { AIFeatureOptions } from "@/lib/ai/core/types";
 import { compileTemplate } from "@/lib/ai/prompts";
 import type { PromptVariables } from "@/lib/ai/prompts/types";
@@ -121,166 +121,231 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
 
   const detected: DetectChaptersResult["chapters"] = [];
   let previousChapterSummaryBlock = "";
+  let processedBatches = 0;
+  const totalBatches = batches.length;
+  const concurrency = 1;
 
-  for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
-    if (signal?.aborted) {
-      issues.push({ level: "warn", message: "Chapter detection cancelled by user" });
-      break;
-    }
-
-    const batchSegments = batches[batchIndex] ?? [];
-    const batchStart = Date.now();
-    const mapping = createChapterBatchMapping({
-      batchIndex,
-      totalBatches: batches.length,
-      segments: batchSegments,
-    });
-
-    const variables: PromptVariables = {
-      batchIndex: batchIndex + 1,
-      totalBatches: batches.length,
-      batchSize: batchSegments.length,
-      minChapterLength,
-      maxChapterLength,
-      tagsAvailable: formatTagsForPrompt(tagsAvailable),
-      segments: formatSegmentsForPrompt(batchSegments, mapping),
-      previousChapter: previousChapterSummaryBlock,
-    };
-
-    const systemPrompt = customPrompt?.systemPrompt ?? chapterDetectionConfig.systemPrompt;
-    const userPromptTemplate =
-      customPrompt?.userPromptTemplate ?? chapterDetectionConfig.userPromptTemplate;
-    const requestPayload = `SYSTEM\n${compileTemplate(systemPrompt, variables)}\n\nUSER\n${compileTemplate(
-      userPromptTemplate,
-      variables,
-    )}`;
-
-    const result = await executeFeature<ChapterDetectionResponse>("chapter-detection", variables, {
-      providerId,
-      model,
-      signal,
-      customPrompt,
-      onRetry: (retryInfo) => {
-        // Report retry attempt in batch log
-        const retryLogEntry: ChapterDetectionBatchLogEntry = {
-          batchIndex,
-          batchSize: batchSegments.length,
-          rawItemCount: 0,
-          suggestionCount: 0,
-          processedTotal: batchIndex + 1,
-          totalExpected: batches.length,
-          issues: [
-            {
-              level: "warn",
-              message: `Retry ${retryInfo.attempt} - ${retryInfo.errorMessage}`,
-            },
-          ],
-          loggedAt: Date.now(),
-          batchDurationMs: retryInfo.attemptDurationMs,
-          elapsedMs: Date.now() - createdAt,
-          fatal: false,
-          requestPayload,
-        };
-        batchLog.push(retryLogEntry);
-        onBatchLog?.(retryLogEntry);
-      },
-    });
-
-    if (!result.success || !result.data) {
-      const batchIssues: ChapterDetectionIssue[] = [
-        {
-          level: "error",
-          message: result.error ?? `Batch ${batchIndex + 1} failed`,
-          context: { batchIndex },
-        },
-      ];
-      issues.push(...batchIssues);
-      const logEntry: ChapterDetectionBatchLogEntry = {
+  await runBatchCoordinator({
+    inputs: Array.from({ length: totalBatches }, (_, index) => index),
+    concurrency,
+    signal,
+    prepareYieldEvery: 5,
+    emitYieldEvery: 5,
+    prepare: (batchIndex) => {
+      const batchSegments = batches[batchIndex] ?? [];
+      const mapping = createChapterBatchMapping({
         batchIndex,
-        batchSize: batchSegments.length,
-        rawItemCount: 0,
-        suggestionCount: 0,
-        processedTotal: batchIndex + 1,
-        totalExpected: batches.length,
-        issues: batchIssues,
-        loggedAt: Date.now(),
-        batchDurationMs: Date.now() - batchStart,
-        elapsedMs: Date.now() - createdAt,
-        fatal: true,
-        requestPayload,
-        responsePayload:
-          typeof result.rawResponse === "string"
-            ? result.rawResponse
-            : result.rawResponse
-              ? JSON.stringify(result.rawResponse)
-              : undefined,
-      };
-      batchLog.push(logEntry);
-      onBatchLog?.(logEntry);
-      onProgress?.(batchIndex + 1, batches.length);
-      continue;
-    }
-
-    const mapped = mapResponseToRealSegmentIds(result.data, mapping, globalMapping);
-    // Notify caller about per-batch mapped chapters so they can be applied incrementally.
-    onBatchComplete?.(batchIndex, mapped);
-    const indexById = new Map(batchSegments.map((s, idx) => [s.id, idx]));
-
-    for (const ch of mapped) {
-      const first = ch.startSegmentId;
-      const last = ch.endSegmentId;
-      if (!first || !last) continue;
-
-      detected.push({
-        id: `ai-chapter-${createdAt}-${batchIndex}-${detected.length}`,
-        title: ch.title,
-        summary: ch.summary,
-        notes: ch.notes,
-        tags: ch.tags,
-        startSegmentId: first,
-        endSegmentId: last,
-        segmentCount:
-          indexById.has(first) && indexById.has(last)
-            ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
-            : 0,
-        createdAt,
-        source: "ai",
+        totalBatches,
+        segments: batchSegments,
       });
-    }
 
-    const lastDetected = detected[detected.length - 1];
-    previousChapterSummaryBlock = lastDetected
-      ? `PREVIOUS CHAPTER CONTEXT
-------------------------
-Title: ${lastDetected.title}
-Summary: ${lastDetected.summary ?? "(none)"}
-`
-      : "";
+      return {
+        batchIndex,
+        batchSegments,
+        mapping,
+      };
+    },
+    execute: async (prepared) => {
+      const batchStart = Date.now();
+      const variables: PromptVariables = {
+        batchIndex: prepared.batchIndex + 1,
+        totalBatches,
+        batchSize: prepared.batchSegments.length,
+        minChapterLength,
+        maxChapterLength,
+        tagsAvailable: formatTagsForPrompt(tagsAvailable),
+        segments: formatSegmentsForPrompt(prepared.batchSegments, prepared.mapping),
+        previousChapter: previousChapterSummaryBlock,
+      };
 
-    onProgress?.(batchIndex + 1, batches.length);
+      const systemPrompt = customPrompt?.systemPrompt ?? chapterDetectionConfig.systemPrompt;
+      const userPromptTemplate =
+        customPrompt?.userPromptTemplate ?? chapterDetectionConfig.userPromptTemplate;
+      const requestPayload = `SYSTEM\n${compileTemplate(
+        systemPrompt,
+        variables,
+      )}\n\nUSER\n${compileTemplate(userPromptTemplate, variables)}`;
 
-    const logEntry: ChapterDetectionBatchLogEntry = {
-      batchIndex,
-      batchSize: batchSegments.length,
-      rawItemCount: Array.isArray(result.data.chapters) ? result.data.chapters.length : 0,
-      suggestionCount: mapped.length,
-      processedTotal: batchIndex + 1,
-      totalExpected: batches.length,
-      issues: [],
-      loggedAt: Date.now(),
-      batchDurationMs: Date.now() - batchStart,
-      elapsedMs: Date.now() - createdAt,
-      fatal: false,
-      requestPayload,
-      responsePayload:
+      let result: Awaited<ReturnType<typeof executeFeature<ChapterDetectionResponse>>>;
+      try {
+        result = await executeFeature<ChapterDetectionResponse>("chapter-detection", variables, {
+          providerId,
+          model,
+          signal,
+          customPrompt,
+          onRetry: (retryInfo) => {
+            const retryLogEntry: ChapterDetectionBatchLogEntry = {
+              batchIndex: prepared.batchIndex,
+              batchSize: prepared.batchSegments.length,
+              rawItemCount: 0,
+              suggestionCount: 0,
+              processedTotal: prepared.batchIndex + 1,
+              totalExpected: totalBatches,
+              issues: [
+                {
+                  level: "warn",
+                  message: `Retry ${retryInfo.attempt} - ${retryInfo.errorMessage}`,
+                },
+              ],
+              loggedAt: Date.now(),
+              batchDurationMs: retryInfo.attemptDurationMs,
+              elapsedMs: Date.now() - createdAt,
+              fatal: false,
+              requestPayload,
+            };
+            batchLog.push(retryLogEntry);
+            onBatchLog?.(retryLogEntry);
+          },
+        });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        const batchIssues: ChapterDetectionIssue[] = [
+          {
+            level: "error",
+            message,
+            context: { batchIndex: prepared.batchIndex },
+          },
+        ];
+
+        return {
+          status: "failed" as const,
+          batchIndex: prepared.batchIndex,
+          batchSize: prepared.batchSegments.length,
+          mapped: [],
+          issues: batchIssues,
+          rawItemCount: 0,
+          requestPayload,
+          responsePayload: undefined,
+          batchDurationMs: Date.now() - batchStart,
+        };
+      }
+
+      const responsePayload =
         typeof result.rawResponse === "string"
           ? result.rawResponse
           : result.rawResponse
             ? JSON.stringify(result.rawResponse)
-            : undefined,
-    };
-    batchLog.push(logEntry);
-    onBatchLog?.(logEntry);
+            : undefined;
+
+      if (!result.success || !result.data) {
+        const batchIssues: ChapterDetectionIssue[] = [
+          {
+            level: "error",
+            message: result.error ?? `Batch ${prepared.batchIndex + 1} failed`,
+            context: { batchIndex: prepared.batchIndex },
+          },
+        ];
+
+        return {
+          status: "failed" as const,
+          batchIndex: prepared.batchIndex,
+          batchSize: prepared.batchSegments.length,
+          mapped: [],
+          issues: batchIssues,
+          rawItemCount: 0,
+          requestPayload,
+          responsePayload,
+          batchDurationMs: Date.now() - batchStart,
+        };
+      }
+
+      const mapped = mapResponseToRealSegmentIds(result.data, prepared.mapping, globalMapping);
+      const indexById = new Map(prepared.batchSegments.map((s, idx) => [s.id, idx]));
+
+      for (const ch of mapped) {
+        const first = ch.startSegmentId;
+        const last = ch.endSegmentId;
+        if (!first || !last) continue;
+
+        detected.push({
+          id: `ai-chapter-${createdAt}-${prepared.batchIndex}-${detected.length}`,
+          title: ch.title,
+          summary: ch.summary,
+          notes: ch.notes,
+          tags: ch.tags,
+          startSegmentId: first,
+          endSegmentId: last,
+          segmentCount:
+            indexById.has(first) && indexById.has(last)
+              ? Math.max(0, (indexById.get(last) ?? 0) - (indexById.get(first) ?? 0) + 1)
+              : 0,
+          createdAt,
+          source: "ai",
+        });
+      }
+
+      const lastDetected = detected[detected.length - 1];
+      previousChapterSummaryBlock = lastDetected
+        ? `PREVIOUS CHAPTER CONTEXT
+------------------------
+Title: ${lastDetected.title}
+Summary: ${lastDetected.summary ?? "(none)"}
+`
+        : "";
+
+      return {
+        status: "success" as const,
+        batchIndex: prepared.batchIndex,
+        batchSize: prepared.batchSegments.length,
+        mapped,
+        issues: [],
+        rawItemCount: Array.isArray(result.data.chapters) ? result.data.chapters.length : 0,
+        requestPayload,
+        responsePayload,
+        batchDurationMs: Date.now() - batchStart,
+      };
+    },
+    onItemComplete: (_, outcome) => {
+      processedBatches++;
+
+      if (outcome.status === "failed") {
+        issues.push(...outcome.issues);
+        const logEntry: ChapterDetectionBatchLogEntry = {
+          batchIndex: outcome.batchIndex,
+          batchSize: outcome.batchSize,
+          rawItemCount: outcome.rawItemCount,
+          suggestionCount: outcome.mapped.length,
+          processedTotal: processedBatches,
+          totalExpected: totalBatches,
+          issues: outcome.issues,
+          loggedAt: Date.now(),
+          batchDurationMs: outcome.batchDurationMs,
+          elapsedMs: Date.now() - createdAt,
+          fatal: true,
+          requestPayload: outcome.requestPayload,
+          responsePayload: outcome.responsePayload,
+        };
+        batchLog.push(logEntry);
+        onBatchLog?.(logEntry);
+        onProgress?.(processedBatches, totalBatches);
+        return;
+      }
+
+      onBatchComplete?.(outcome.batchIndex, outcome.mapped);
+      onProgress?.(processedBatches, totalBatches);
+
+      const logEntry: ChapterDetectionBatchLogEntry = {
+        batchIndex: outcome.batchIndex,
+        batchSize: outcome.batchSize,
+        rawItemCount: outcome.rawItemCount,
+        suggestionCount: outcome.mapped.length,
+        processedTotal: processedBatches,
+        totalExpected: totalBatches,
+        issues: [],
+        loggedAt: Date.now(),
+        batchDurationMs: outcome.batchDurationMs,
+        elapsedMs: Date.now() - createdAt,
+        fatal: false,
+        requestPayload: outcome.requestPayload,
+        responsePayload: outcome.responsePayload,
+      };
+      batchLog.push(logEntry);
+      onBatchLog?.(logEntry);
+    },
+  });
+
+  if (signal?.aborted) {
+    issues.push({ level: "warn", message: "Chapter detection cancelled by user" });
   }
 
   return { chapters: detected, issues, batchLog };
