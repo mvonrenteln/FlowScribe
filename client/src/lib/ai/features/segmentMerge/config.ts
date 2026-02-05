@@ -88,17 +88,17 @@ If no merges are suggested, return an empty array: []`;
 
 // ==================== User Prompt Template ====================
 
-export const MERGE_ANALYSIS_USER_TEMPLATE = `Analyze these transcript segment pairs for potential merges.
+export const MERGE_ANALYSIS_USER_TEMPLATE = `Analyze consecutive transcript segments for potential merges.
 
 CONTEXT:
 - Maximum time gap allowed: {{maxTimeGap}} seconds
 - Text smoothing: {{#if enableSmoothing}}ENABLED - provide smoothed merged text{{else}}DISABLED{{/if}}
 
-NOTE: These pairs have been pre-filtered based on speaker and time gap criteria.
+NOTE: Only consider consecutive segments in the order provided.
 Your task is to evaluate the CONTENT and determine if merging makes semantic sense.
 
-SEGMENT PAIRS TO ANALYZE:
-{{segmentPairs}}
+SEGMENTS FOR CONTEXT:
+{{segments}}
 
 {{#if enableSmoothing}}
 SMOOTHING INSTRUCTIONS:
@@ -116,18 +116,14 @@ Return your merge suggestions as a JSON array.`;
 
 // ==================== User Prompt Template (Simple) ====================
 
-export const MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE = `Analyze these pre-filtered transcript segment pairs for potential merges.
+export const MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE = `Analyze consecutive transcript segments for potential merges.
 
 CONTEXT:
 - Maximum time gap allowed: {{maxTimeGap}} seconds
 - Text smoothing: {{#if enableSmoothing}}ENABLED - provide smoothed merged text{{else}}DISABLED{{/if}}
 
 IMPORTANT:
-Only consider the segment pairs listed below. They already satisfy speaker and time-gap requirements.
-Use the full segment list afterward only for additional context when crafting explanations.
-
-SEGMENT PAIRS TO ANALYZE:
-{{segmentPairs}}
+Only consider consecutive segments in the order provided.
 
 SEGMENTS FOR CONTEXT:
 {{segments}}
@@ -190,7 +186,7 @@ export const segmentMergeConfig: AIFeatureConfig = {
   icon: "git-merge",
   requiresConfirmation: true,
 
-  availablePlaceholders: ["segmentPairs", "segments", "maxTimeGap", "enableSmoothing"],
+  availablePlaceholders: ["segments", "maxTimeGap", "enableSmoothing"],
 
   responseSchema: mergeResponseSchema,
 };

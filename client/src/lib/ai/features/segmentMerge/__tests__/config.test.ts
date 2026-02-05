@@ -25,7 +25,7 @@ describe("segmentMergeConfig - structural checks", () => {
 
   it("has a response schema and placeholders", () => {
     expect(segmentMergeConfig.responseSchema).toBeDefined();
-    expect(segmentMergeConfig.availablePlaceholders).toContain("segmentPairs");
+    expect(segmentMergeConfig.availablePlaceholders).toContain("segments");
   });
 });
 
@@ -36,12 +36,12 @@ describe("prompt helper functions", () => {
     expect(getMergeUserTemplate(100)).toBeDefined();
   });
 
-  it("always references pre-filtered segment pairs", () => {
+  it("references segments for context", () => {
     const simpleTemplate = getMergeUserTemplate(5);
     const fullTemplate = getMergeUserTemplate(50);
 
-    expect(simpleTemplate).toContain("{{segmentPairs}}");
-    expect(fullTemplate).toContain("{{segmentPairs}}");
+    expect(simpleTemplate).toContain("{{segments}}");
+    expect(fullTemplate).toContain("{{segments}}");
   });
 });
 

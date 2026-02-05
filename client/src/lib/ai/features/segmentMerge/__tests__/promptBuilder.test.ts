@@ -54,14 +54,13 @@ describe("Prompt Builder", () => {
         idContext,
       });
 
-      expect(prompt.variables.segmentPairs).toBeTruthy();
       expect(prompt.variables.segmentPairsJson).toBeTruthy();
       expect(prompt.variables.segments).toBeTruthy();
       expect(prompt.variables.maxTimeGap).toBe("2");
       expect(prompt.variables.enableSmoothing).toBe("true");
     });
 
-    it("should use simple IDs in formatted text", () => {
+    it("should use simple IDs in formatted segments", () => {
       const segments = [
         createSegment({ id: "complex-uuid-123", text: "First", start: 0, end: 1 }),
         createSegment({ id: "complex-uuid-456", text: "Second", start: 1.5, end: 2.5 }),
@@ -77,9 +76,10 @@ describe("Prompt Builder", () => {
       });
 
       // Should contain simple IDs (1, 2) not complex UUIDs
-      expect(prompt.variables.segmentPairs).toContain("1");
-      expect(prompt.variables.segmentPairs).toContain("2");
-      expect(prompt.variables.segmentPairs).not.toContain("complex-uuid");
+      const formattedSegments = prompt.variables.segments as string;
+      expect(formattedSegments).toContain("1");
+      expect(formattedSegments).toContain("2");
+      expect(formattedSegments).not.toContain("complex-uuid");
     });
 
     it("should include real IDs in pair mapping JSON", () => {
@@ -162,7 +162,6 @@ describe("Prompt Builder", () => {
       });
 
       expect(prompt.pairCount).toBe(0);
-      expect(prompt.variables.segmentPairs).toBe("");
     });
   });
 
