@@ -4,13 +4,14 @@
  * Tests for core batch processing functions.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildMap,
   calculateBatches,
   filterItems,
   filterSegments,
   prepareBatch,
+  runConcurrentOrdered,
   sliceBatch,
 } from "../core/batch";
 
@@ -203,5 +204,35 @@ describe("calculateBatches", () => {
     const batches = calculateBatches(3, 10);
     expect(batches).toHaveLength(1);
     expect(batches[0]).toEqual({ index: 0, start: 0, end: 3, size: 3 });
+  });
+});
+
+describe("runConcurrentOrdered", () => {
+  it("emits callbacks in input order even when tasks finish out of order", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const order: number[] = [];
+      const tasks = [
+        () => new Promise((resolve) => setTimeout(() => resolve("first"), 30)),
+        () => new Promise((resolve) => setTimeout(() => resolve("second"), 10)),
+        () => new Promise((resolve) => setTimeout(() => resolve("third"), 0)),
+      ];
+
+      const resultPromise = runConcurrentOrdered(tasks, {
+        concurrency: 2,
+        onItemComplete: (index) => order.push(index),
+      });
+
+      await vi.runAllTimersAsync();
+      const results = await resultPromise;
+
+      expect(order).toEqual([0, 1, 2]);
+      expect(results[0]?.status).toBe("fulfilled");
+      expect(results[1]?.status).toBe("fulfilled");
+      expect(results[2]?.status).toBe("fulfilled");
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });

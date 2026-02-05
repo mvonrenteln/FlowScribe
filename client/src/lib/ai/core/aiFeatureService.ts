@@ -10,8 +10,12 @@
 
 import type { PromptVariables, SimpleSchema } from "@/lib/ai";
 import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
-import { initializeSettings } from "@/lib/settings/settingsStorage";
+import {
+  getEffectiveAIRequestConcurrency,
+  initializeSettings,
+} from "@/lib/settings/settingsStorage";
 import type { ChatMessage } from "../providers/types";
+import { runConcurrentOrdered } from "./batch";
 import { AICancellationError, isCancellationError, toAIError } from "./errors";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
@@ -507,45 +511,19 @@ export async function executeBatch<TOutput>(
   callbacks: BatchCallbacks<TOutput> = {},
 ): Promise<AIBatchResult<TOutput>> {
   const startTime = Date.now();
-  const results: AIFeatureResult<TOutput>[] = [];
+  const results: Array<AIFeatureResult<TOutput> | undefined> = new Array(inputs.length);
 
   let succeeded = 0;
   let failed = 0;
+  let completed = 0;
 
-  for (let i = 0; i < inputs.length; i++) {
-    // Check for cancellation
-    if (options.signal?.aborted) {
-      // Mark remaining as cancelled
-      for (let j = i; j < inputs.length; j++) {
-        results.push({
-          success: false,
-          error: "Operation cancelled",
-          metadata: {
-            featureId,
-            providerId: "cancelled",
-            model: "cancelled",
-            durationMs: 0,
-          },
-        });
-        failed++;
-      }
-      break;
-    }
+  const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
 
+  const tasks = inputs.map((input) => async (): Promise<AIFeatureResult<TOutput>> => {
     try {
-      const result = await executeFeature<TOutput>(featureId, inputs[i], options);
-      results.push(result);
-
-      if (result.success) {
-        succeeded++;
-      } else {
-        failed++;
-        callbacks.onItemError?.(i, new Error(result.error ?? "Unknown error"));
-      }
-
-      callbacks.onItemComplete?.(i, result);
+      return await executeFeature<TOutput>(featureId, input, options);
     } catch (error) {
-      const errorResult: AIFeatureResult<TOutput> = {
+      return {
         success: false,
         error: error instanceof Error ? error.message : String(error),
         metadata: {
@@ -555,18 +533,65 @@ export async function executeBatch<TOutput>(
           durationMs: 0,
         },
       };
-      results.push(errorResult);
-      failed++;
-
-      callbacks.onItemError?.(i, error instanceof Error ? error : new Error(String(error)));
-      callbacks.onItemComplete?.(i, errorResult);
     }
+  });
 
-    callbacks.onProgress?.(i + 1, inputs.length);
+  await runConcurrentOrdered(tasks, {
+    concurrency,
+    signal: options.signal,
+    onItemComplete: (index, result) => {
+      results[index] = result;
+      completed++;
+
+      if (result.success) {
+        succeeded++;
+      } else {
+        failed++;
+        callbacks.onItemError?.(index, new Error(result.error ?? "Unknown error"));
+      }
+
+      callbacks.onItemComplete?.(index, result);
+      callbacks.onProgress?.(completed, inputs.length);
+    },
+    onItemError: (index, error) => {
+      const errorResult: AIFeatureResult<TOutput> = {
+        success: false,
+        error: error.message,
+        metadata: {
+          featureId,
+          providerId: "error",
+          model: "error",
+          durationMs: 0,
+        },
+      };
+      results[index] = errorResult;
+      completed++;
+      failed++;
+      callbacks.onItemError?.(index, error);
+      callbacks.onItemComplete?.(index, errorResult);
+      callbacks.onProgress?.(completed, inputs.length);
+    },
+  });
+
+  if (options.signal?.aborted) {
+    for (let i = 0; i < inputs.length; i++) {
+      if (results[i]) continue;
+      results[i] = {
+        success: false,
+        error: "Operation cancelled",
+        metadata: {
+          featureId,
+          providerId: "cancelled",
+          model: "cancelled",
+          durationMs: 0,
+        },
+      };
+      failed++;
+    }
   }
 
   return {
-    results,
+    results: results.filter((result): result is AIFeatureResult<TOutput> => Boolean(result)),
     summary: {
       total: inputs.length,
       succeeded,

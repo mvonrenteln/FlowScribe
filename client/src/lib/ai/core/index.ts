@@ -18,7 +18,9 @@ export {
   type FilterOptions,
   filterItems,
   filterSegments,
+  type OrderedConcurrencyOptions,
   prepareBatch,
+  runConcurrentOrdered,
   sliceBatch,
 } from "./batch";
 // Batch ID Mapping

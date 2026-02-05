@@ -186,3 +186,101 @@ export function calculateBatches(
 
   return batches;
 }
+
+// ==================== Concurrency ====================
+
+export interface OrderedConcurrencyOptions<T> {
+  /** Maximum number of tasks running concurrently */
+  concurrency: number;
+  /** Abort signal for cancellation */
+  signal?: AbortSignal;
+  /** Called when a task completes, in input order */
+  onItemComplete?: (index: number, result: T) => void;
+  /** Called when a task fails, in input order */
+  onItemError?: (index: number, error: Error) => void;
+  /** Called when progress updates (emitted count, total) */
+  onProgress?: (processed: number, total: number) => void;
+}
+
+/**
+ * Run async tasks with limited concurrency while preserving completion order.
+ *
+ * Tasks execute in parallel up to the provided concurrency, but callbacks
+ * are emitted strictly in input order to keep batch logs deterministic.
+ */
+export async function runConcurrentOrdered<T>(
+  tasks: Array<() => Promise<T>>,
+  options: OrderedConcurrencyOptions<T>,
+): Promise<Array<PromiseSettledResult<T> | undefined>> {
+  const total = tasks.length;
+  const results: Array<PromiseSettledResult<T> | undefined> = new Array(total);
+  const concurrency = Math.max(1, options.concurrency);
+
+  let active = 0;
+  let nextIndex = 0;
+  let nextToEmit = 0;
+  let stopScheduling = false;
+
+  const emitReady = () => {
+    while (nextToEmit < total && results[nextToEmit]) {
+      const result = results[nextToEmit];
+      if (result?.status === "fulfilled") {
+        options.onItemComplete?.(nextToEmit, result.value);
+      } else if (result?.status === "rejected") {
+        options.onItemError?.(nextToEmit, toError(result.reason));
+      }
+      options.onProgress?.(nextToEmit + 1, total);
+      nextToEmit++;
+    }
+  };
+
+  return new Promise((resolve) => {
+    const schedule = () => {
+      if (options.signal?.aborted) {
+        stopScheduling = true;
+      }
+
+      while (!stopScheduling && active < concurrency && nextIndex < total) {
+        const currentIndex = nextIndex++;
+        active++;
+
+        tasks[currentIndex]()
+          .then((value) => {
+            results[currentIndex] = { status: "fulfilled", value };
+          })
+          .catch((reason) => {
+            results[currentIndex] = { status: "rejected", reason };
+          })
+          .finally(() => {
+            active--;
+            if (options.signal?.aborted) {
+              stopScheduling = true;
+            }
+            emitReady();
+            if ((nextIndex >= total || stopScheduling) && active === 0) {
+              resolve(results);
+              return;
+            }
+            schedule();
+          });
+      }
+
+      if ((nextIndex >= total || stopScheduling) && active === 0) {
+        resolve(results);
+      }
+    };
+
+    if (total === 0) {
+      resolve(results);
+      return;
+    }
+
+    schedule();
+  });
+}
+
+function toError(reason: unknown): Error {
+  if (reason instanceof Error) return reason;
+  if (typeof reason === "string") return new Error(reason);
+  return new Error("Unknown error");
+}

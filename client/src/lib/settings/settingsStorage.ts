@@ -22,9 +22,25 @@ export interface PersistedSettings {
 
   /** Number of retries when AI response cannot be parsed (default: 3) */
   parseRetryCount?: number;
+
+  /** Enable parallel AI requests for batch operations (default: false) */
+  enableConcurrentRequests?: boolean;
+
+  /** Maximum number of concurrent AI requests when parallel mode is enabled */
+  maxConcurrentRequests?: number;
 }
 
 // ==================== Default Settings ====================
+
+export const AI_CONCURRENCY_LIMITS = {
+  min: 1,
+  max: 6,
+};
+
+export const DEFAULT_AI_CONCURRENCY = {
+  enabled: false,
+  maxConcurrent: 2,
+};
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
   version: SETTINGS_VERSION,
@@ -40,6 +56,8 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   ],
   defaultAIProviderId: "default-ollama",
   parseRetryCount: 3,
+  enableConcurrentRequests: DEFAULT_AI_CONCURRENCY.enabled,
+  maxConcurrentRequests: DEFAULT_AI_CONCURRENCY.maxConcurrent,
 };
 
 // ==================== Storage Functions ====================
@@ -102,6 +120,32 @@ export function writeSettings(settings: PersistedSettings): boolean {
     console.error("[Settings] Failed to write settings", error);
     return false;
   }
+}
+
+/**
+ * Normalize AI concurrency settings with defaults and bounds.
+ */
+export function getAIConcurrencySettings(settings: PersistedSettings): {
+  enabled: boolean;
+  maxConcurrent: number;
+} {
+  const enabled = settings.enableConcurrentRequests ?? DEFAULT_AI_CONCURRENCY.enabled;
+  const rawMax = settings.maxConcurrentRequests ?? DEFAULT_AI_CONCURRENCY.maxConcurrent;
+  const normalizedMax = Number.isFinite(rawMax) ? rawMax : DEFAULT_AI_CONCURRENCY.maxConcurrent;
+  const maxConcurrent = Math.min(
+    AI_CONCURRENCY_LIMITS.max,
+    Math.max(AI_CONCURRENCY_LIMITS.min, normalizedMax),
+  );
+
+  return { enabled, maxConcurrent };
+}
+
+/**
+ * Get the effective concurrency used for AI batch requests.
+ */
+export function getEffectiveAIRequestConcurrency(settings: PersistedSettings): number {
+  const { enabled, maxConcurrent } = getAIConcurrencySettings(settings);
+  return enabled ? maxConcurrent : AI_CONCURRENCY_LIMITS.min;
 }
 
 /**

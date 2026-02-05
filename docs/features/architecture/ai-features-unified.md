@@ -1,6 +1,6 @@
 # AI Features: Unified Architecture & Implementation Guide
 
-*Last Updated: January 4, 2026*
+*Last Updated: February 5, 2026*
 *Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Refactoring Complete ✅*
 
 ---
@@ -620,6 +620,11 @@ All AI features fall into one of these categories:
 - Sequential or parallel AI requests
 - Progress tracking required
 - Used for: Full transcript operations, bulk changes
+
+**Parallel Batch Execution (Optional)**
+- Controlled by global AI settings
+- Uses ordered concurrency so batch logs and suggestions remain deterministic
+- Features with cross-batch dependencies (e.g., chapter detection) remain sequential
 
 #### Pattern: Streaming vs. Complete
 

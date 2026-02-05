@@ -5,6 +5,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import * as settingsStorage from "@/lib/settings/settingsStorage";
 import * as core from "../core";
 import { getDefaultPrompt } from "../features/revision/config";
 import {
@@ -92,6 +93,67 @@ describe("Revision Service", () => {
           providerId: "batch-provider",
           model: "batch-model",
         });
+      }
+    });
+
+    it("emits batch log and results in segment order when running concurrently", async () => {
+      vi.useFakeTimers();
+
+      const settingsSpy = vi.spyOn(settingsStorage, "initializeSettings").mockReturnValue({
+        ...settingsStorage.DEFAULT_SETTINGS,
+        enableConcurrentRequests: true,
+        maxConcurrentRequests: 2,
+      });
+
+      try {
+        executeFeatureSpy.mockImplementation((_featureId, variables) => {
+          const text = (variables as { text: string }).text;
+          const delay = text === "first" ? 30 : text === "second" ? 10 : 0;
+          return new Promise((resolve) =>
+            setTimeout(
+              () =>
+                resolve({
+                  success: true,
+                  data: `${text}-revised`,
+                  metadata: {
+                    featureId: "text-revision",
+                    providerId: "test-provider",
+                    model: "test-model",
+                    durationMs: delay,
+                  },
+                }),
+              delay,
+            ),
+          );
+        });
+
+        const batchLog: string[] = [];
+        const resultIds: string[] = [];
+
+        const promise = reviseSegmentsBatch({
+          segments: [
+            { id: "1", text: "first" },
+            { id: "2", text: "second" },
+            { id: "3", text: "third" },
+          ],
+          allSegments: [
+            { id: "1", text: "first" },
+            { id: "2", text: "second" },
+            { id: "3", text: "third" },
+          ],
+          prompt: getDefaultPrompt(),
+          onItemComplete: (entry) => batchLog.push(entry.segmentId),
+          onResult: (result) => resultIds.push(result.segmentId),
+        });
+
+        await vi.runAllTimersAsync();
+        await promise;
+
+        expect(batchLog).toEqual(["1", "2", "3"]);
+        expect(resultIds).toEqual(["1", "2", "3"]);
+      } finally {
+        settingsSpy.mockRestore();
+        vi.useRealTimers();
       }
     });
   });
