@@ -13,9 +13,14 @@ import {
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import type { AIFeatureOptions } from "../../core";
-import { AIError, executeFeature, runBatchCoordinator, toAIError } from "../../core";
+import {
+  AIError,
+  executeFeature,
+  formatResponsePayload,
+  runBatchCoordinator,
+  toAIError,
+} from "../../core";
 import { extractJSON } from "../../parsing";
-
 import { speakerClassificationConfig } from "./config";
 import type {
   BatchIssue,
@@ -263,26 +268,6 @@ export async function classifySpeakersBatch(
 }
 
 // ==================== Response Parsing ====================
-
-function formatResponsePayload(rawResponse: unknown, fallback?: string): string | undefined {
-  if (typeof rawResponse === "string") {
-    const trimmed = rawResponse.trim();
-    if (trimmed.length > 0) {
-      return trimmed;
-    }
-  }
-  if (rawResponse !== undefined) {
-    try {
-      return JSON.stringify(rawResponse);
-    } catch {
-      // Ignore serialization errors and fall back to fallback text.
-    }
-  }
-  if (typeof fallback === "string" && fallback.trim().length > 0) {
-    return fallback.trim();
-  }
-  return undefined;
-}
 
 /**
  * Parse raw AI response into speaker suggestions.

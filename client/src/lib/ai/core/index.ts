@@ -78,6 +78,8 @@ export {
   registerFeature,
   unregisterFeature,
 } from "./featureRegistry";
+// Response payload formatting helper
+export { formatResponsePayload } from "./formatResponsePayload";
 // Formatting
 export {
   type Summarizable,

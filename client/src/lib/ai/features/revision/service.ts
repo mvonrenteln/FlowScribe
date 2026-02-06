@@ -12,7 +12,13 @@ import {
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import { computeTextChanges, summarizeChanges } from "../../../diffUtils";
-import { AIError, executeFeature, runBatchCoordinator, toAIError } from "../../core";
+import {
+  AIError,
+  executeFeature,
+  formatResponsePayload,
+  runBatchCoordinator,
+  toAIError,
+} from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { compileTemplate } from "../../prompts";
 
@@ -293,31 +299,6 @@ export async function reviseSegmentsBatch(
 }
 
 // ==================== Helper Functions ====================
-
-function formatResponsePayload(rawResponse: unknown, fallback?: string): string | undefined {
-  if (typeof rawResponse === "string") {
-    const trimmed = rawResponse.trim();
-    if (trimmed) return trimmed;
-  }
-
-  if (rawResponse !== undefined && rawResponse !== null) {
-    try {
-      const stringified = JSON.stringify(rawResponse);
-      if (stringified && stringified !== "null") {
-        return stringified;
-      }
-    } catch {
-      // ignore serialization issues and fall back
-    }
-  }
-
-  if (fallback) {
-    const trimmedFallback = fallback.trim();
-    if (trimmedFallback) return trimmedFallback;
-  }
-
-  return undefined;
-}
 
 function getErrorResponsePayload(error: AIError): string | undefined {
   const details = error.details;
