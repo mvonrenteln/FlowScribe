@@ -21,6 +21,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -35,7 +36,10 @@ import { Switch } from "@/components/ui/switch";
 import { createProvider, createProviderConfig, validateProviderConfig } from "@/lib/ai/providers";
 import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types";
 import {
+  AI_CONCURRENCY_LIMITS,
   addProviderToSettings,
+  DEFAULT_AI_CONCURRENCY,
+  getAIConcurrencySettings,
   initializeSettings,
   type PersistedSettings,
   removeProviderFromSettings,
@@ -505,8 +509,18 @@ export function AIServerSettings() {
     writeSettings(settings);
   }, [settings]);
 
+  const concurrencySettings = getAIConcurrencySettings(settings);
+
   const handleParseRetryCountChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, parseRetryCount: value }));
+  }, []);
+
+  const handleConcurrentRequestsChange = useCallback((enabled: boolean) => {
+    setSettings((prev) => ({ ...prev, enableConcurrentRequests: enabled }));
+  }, []);
+
+  const handleConcurrentLimitChange = useCallback((value: number) => {
+    setSettings((prev) => ({ ...prev, maxConcurrentRequests: value }));
   }, []);
 
   const handleAddProvider = useCallback((data: ProviderFormData) => {
@@ -689,6 +703,60 @@ export function AIServerSettings() {
           </div>
           <p className="text-xs text-muted-foreground">
             Number of retries when AI response cannot be parsed. Set to 0 to disable retries.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <div className="flex items-center gap-2">
+            <Checkbox
+              id="ai-parallel-requests"
+              checked={concurrencySettings.enabled}
+              onCheckedChange={(checked) => handleConcurrentRequestsChange(Boolean(checked))}
+              data-testid="checkbox-ai-parallel-requests"
+            />
+            <Label htmlFor="ai-parallel-requests" className="cursor-pointer">
+              Enable parallel AI requests
+            </Label>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Runs AI batch operations with limited concurrency. Keep disabled if your provider
+            rate-limits aggressively.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ai-concurrency-limit">Max Concurrent Requests</Label>
+          <div className="flex items-center gap-4">
+            <Input
+              id="ai-concurrency-limit"
+              type="number"
+              min={AI_CONCURRENCY_LIMITS.min}
+              max={AI_CONCURRENCY_LIMITS.max}
+              value={
+                concurrencySettings.enabled
+                  ? concurrencySettings.maxConcurrent
+                  : DEFAULT_AI_CONCURRENCY.maxConcurrent
+              }
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (
+                  !Number.isNaN(value) &&
+                  value >= AI_CONCURRENCY_LIMITS.min &&
+                  value <= AI_CONCURRENCY_LIMITS.max
+                ) {
+                  handleConcurrentLimitChange(value);
+                }
+              }}
+              disabled={!concurrencySettings.enabled}
+              className="w-24"
+              data-testid="input-ai-concurrency-limit"
+            />
+            <span className="text-sm text-muted-foreground">
+              ({AI_CONCURRENCY_LIMITS.min}-{AI_CONCURRENCY_LIMITS.max})
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Limits how many AI requests run in parallel when enabled.
           </p>
         </div>
       </div>

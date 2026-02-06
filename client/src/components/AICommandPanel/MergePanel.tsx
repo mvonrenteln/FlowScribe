@@ -32,10 +32,11 @@ interface MergePanelProps {
   onOpenSettings: () => void;
 }
 
-export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelProps) {
+export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<MergePanelProps>) {
   const segments = useTranscriptStore((s) => s.segments);
   const suggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiSegmentMergeIsProcessing);
+  const isCancelling = useTranscriptStore((s) => s.aiSegmentMergeIsCancelling);
   const processedCount = useTranscriptStore((s) => s.aiSegmentMergeProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiSegmentMergeTotalToProcess);
   const config = useTranscriptStore((s) => s.aiSegmentMergeConfig);
@@ -326,6 +327,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: MergePanelPro
 
       <AIBatchControlSection
         isProcessing={isProcessing}
+        isCancelling={isCancelling}
         processedCount={processedCount}
         totalToProcess={totalToProcess}
         progressUnitLabel="segment pairs"

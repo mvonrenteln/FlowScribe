@@ -20,10 +20,11 @@ interface ChapterPanelProps {
   onOpenSettings: () => void;
 }
 
-export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: ChapterPanelProps) {
+export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<ChapterPanelProps>) {
   const segments = useTranscriptStore((s) => s.segments);
   const suggestions = useTranscriptStore((s) => s.aiChapterDetectionSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiChapterDetectionIsProcessing);
+  const isCancelling = useTranscriptStore((s) => s.aiChapterDetectionIsCancelling);
   const processedBatches = useTranscriptStore((s) => s.aiChapterDetectionProcessedBatches);
   const totalBatches = useTranscriptStore((s) => s.aiChapterDetectionTotalBatches);
   const config = useTranscriptStore((s) => s.aiChapterDetectionConfig);
@@ -197,6 +198,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: ChapterPane
 
       <AIBatchControlSection
         isProcessing={isProcessing}
+        isCancelling={isCancelling}
         processedCount={processedBatches}
         totalToProcess={totalBatches}
         progressUnitLabel="batches"

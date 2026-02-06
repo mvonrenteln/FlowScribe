@@ -1,6 +1,6 @@
 # AI Features: Unified Architecture & Implementation Guide
 
-*Last Updated: January 4, 2026*
+*Last Updated: February 5, 2026*
 *Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Refactoring Complete ✅*
 
 ---
@@ -620,6 +620,50 @@ All AI features fall into one of these categories:
 - Sequential or parallel AI requests
 - Progress tracking required
 - Used for: Full transcript operations, bulk changes
+
+**Parallel Batch Execution (Optional)**
+- Controlled by global AI settings
+- Uses ordered concurrency so batch logs and suggestions remain deterministic
+- Features with cross-batch dependencies (e.g., chapter detection) remain sequential
+
+#### Optional: Batch Coordinator (Responsiveness)
+
+Some AI features can precompute work plans (e.g., batches) and then execute requests in parallel. To keep the UI responsive, use the optional batch coordinator which:
+- Separates preparation from execution
+- Yields to the main thread during both phases
+- Emits results in input order for deterministic batch logs
+
+**Core API (recommended for heavy batch jobs):**
+
+```ts
+import { runBatchCoordinator } from "@/lib/ai/core/batch";
+
+await runBatchCoordinator({
+  inputs,
+  prepare: (input, index) => /* return prepared work or null */,
+  execute: (prepared, index) => /* async work */,
+  concurrency: 2,
+  prepareYieldEvery: 50,
+  emitYieldEvery: 50,
+  onPrepared: (count, total) => {},
+  onItemComplete: (index, result) => {},
+  onItemError: (index, error) => {},
+  onProgress: (processed, totalPrepared) => {},
+});
+```
+
+Use this for batch features where long synchronous preparation or ordered emissions can otherwise block the UI.
+
+#### Global AI Concurrency Settings
+
+Batch AI requests can run in parallel with a bounded concurrency limit:
+
+- Global toggle in **Settings → AI Providers → Global AI Settings**
+- When enabled, AI batch requests run concurrently
+- Logs and suggestions remain ordered
+- Keep disabled for providers that rate-limit aggressively
+
+Features with cross-batch dependencies (e.g., chapter detection) should stay sequential.
 
 #### Pattern: Streaming vs. Complete
 

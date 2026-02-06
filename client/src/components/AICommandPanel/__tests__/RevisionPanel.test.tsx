@@ -58,6 +58,14 @@ describe("RevisionPanel", () => {
     expect(screen.getByText("All: 1 segment")).toBeInTheDocument();
   });
 
+  it("does not render a batch size input", () => {
+    setStoreState({ segments: baseSegments });
+
+    render(<RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+
+    expect(screen.queryByLabelText(/batch size/i)).not.toBeInTheDocument();
+  });
+
   it("navigates to the segment when a revision result is clicked", async () => {
     const user = userEvent.setup();
     const setSelectedSegmentId = vi.fn();

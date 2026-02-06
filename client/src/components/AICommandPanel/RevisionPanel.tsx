@@ -38,7 +38,6 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState("");
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
-  const [batchSize, setBatchSize] = useState("10");
   const logDrawerRef = useRef<HTMLDivElement>(null);
 
   const segments = useTranscriptStore((s) => s.segments);
@@ -49,6 +48,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
     selectedModel: storedModel,
   } = useTranscriptStore((s) => s.aiRevisionConfig);
   const isProcessing = useTranscriptStore((s) => s.aiRevisionIsProcessing);
+  const isCancelling = useTranscriptStore((s) => s.aiRevisionIsCancelling);
   const processedCount = useTranscriptStore((s) => s.aiRevisionProcessedCount);
   const totalToProcess = useTranscriptStore((s) => s.aiRevisionTotalToProcess);
   const error = useTranscriptStore((s) => s.aiRevisionError);
@@ -123,7 +123,6 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         isProcessing={isProcessing}
         promptValue={effectivePromptId}
         promptOptions={prompts}
-        batchSize={batchSize}
         onProviderChange={(value) => {
           selectProvider(value);
           updateRevisionConfig({
@@ -136,12 +135,13 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
           updateRevisionConfig({ selectedModel: value || undefined });
         }}
         onPromptChange={setSelectedPromptId}
-        onBatchSizeChange={setBatchSize}
         onOpenSettings={onOpenSettings}
+        showBatchSize={false}
       />
 
       <AIBatchControlSection
         isProcessing={isProcessing}
+        isCancelling={isCancelling}
         processedCount={processedCount}
         totalToProcess={totalToProcess}
         error={error}

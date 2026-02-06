@@ -1,4 +1,4 @@
-import { AlertCircle } from "lucide-react";
+import { AlertCircle, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,24 +13,28 @@ interface BatchAction {
 
 interface AIBatchControlSectionProps {
   isProcessing: boolean;
+  isCancelling?: boolean;
   processedCount: number;
   totalToProcess: number;
   progressUnitLabel?: string;
   error?: string | null;
   startAction: BatchAction;
   stopAction: BatchAction;
+  cancellingLabel?: string;
   secondaryAction?: BatchAction;
   children?: ReactNode;
 }
 
 export function AIBatchControlSection({
   isProcessing,
+  isCancelling = false,
   processedCount,
   totalToProcess,
   progressUnitLabel = "segments",
   error,
   startAction,
   stopAction,
+  cancellingLabel = "Cancelling...",
   secondaryAction,
   children,
 }: AIBatchControlSectionProps) {
@@ -66,9 +70,10 @@ export function AIBatchControlSection({
             onClick={stopAction.onClick}
             variant={stopAction.variant ?? "outline"}
             className="flex-1"
+            disabled={isCancelling}
           >
-            {stopAction.icon}
-            {stopAction.label}
+            {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : stopAction.icon}
+            {isCancelling ? cancellingLabel : stopAction.label}
           </Button>
         ) : (
           <Button

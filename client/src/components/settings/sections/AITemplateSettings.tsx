@@ -66,14 +66,14 @@ const DEFAULT_SEGMENT_MERGE_SYSTEM_PROMPT = `You analyze transcript segments to 
 
 Your task is to evaluate the CONTENT and determine if merging makes semantic sense.`;
 
-const DEFAULT_SEGMENT_MERGE_USER_PROMPT = `Analyze these pre-filtered transcript segment pairs for potential merges.
+const DEFAULT_SEGMENT_MERGE_USER_PROMPT = `Analyze consecutive transcript segments for potential merges.
 
 CONTEXT:
 - Maximum time gap allowed: {{maxTimeGap}} seconds
 - Text smoothing: {{enableSmoothing}}
 
-SEGMENT PAIRS TO ANALYZE:
-{{segmentPairs}}
+SEGMENTS FOR CONTEXT:
+{{segments}}
 
 Return merge suggestions as a JSON array.`;
 
@@ -89,7 +89,6 @@ const PLACEHOLDER_HELP = {
     { placeholder: "{{nextText}}", description: "Next segment text (optional)" },
   ],
   "segment-merge": [
-    { placeholder: "{{segmentPairs}}", description: "Pre-filtered segment pairs to analyze" },
     { placeholder: "{{segments}}", description: "All segments for context" },
     { placeholder: "{{maxTimeGap}}", description: "Maximum time gap in seconds" },
     { placeholder: "{{enableSmoothing}}", description: "Whether smoothing is enabled" },

@@ -66,7 +66,7 @@ const result = await executeBatch<string>(
 |---------|-------|--------|--------|
 | `text-revision` | `{ text, speaker, previousText?, nextText? }` | `string` | ✅ Yes |
 | `speaker-classification` | `{ speakers, segments }` | `SpeakerSuggestion[]` | ✅ Yes |
-| `segment-merge` | `{ segmentPairs, maxTimeGap, enableSmoothing }` | `MergeSuggestion[]` | ✅ Yes |
+| `segment-merge` | `{ segments, maxTimeGap, enableSmoothing }` | `MergeSuggestion[]` | ✅ Yes |
 
 ---
 
@@ -392,4 +392,3 @@ import { parseResponse } from "@/lib/ai/parsing/responseParser";
 ---
 
 *Quick Reference - Updated January 4, 2026*
-

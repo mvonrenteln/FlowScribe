@@ -7,8 +7,12 @@
  * @module ai/features/revision/service
  */
 
+import {
+  getEffectiveAIRequestConcurrency,
+  initializeSettings,
+} from "@/lib/settings/settingsStorage";
 import { computeTextChanges, summarizeChanges } from "../../../diffUtils";
-import { executeFeature } from "../../core";
+import { executeFeature, runBatchCoordinator } from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { compileTemplate } from "../../prompts";
 
@@ -120,79 +124,113 @@ export async function reviseSegmentsBatch(
   const issues: RevisionIssue[] = [];
   let unchanged = 0;
   let failed = 0;
+  let processed = 0;
 
   // Create index for context lookup
   const segmentIndex = new Map(allSegments.map((s, i) => [s.id, { segment: s, index: i }]));
 
-  for (let i = 0; i < segments.length; i++) {
-    // Check for cancellation
-    if (signal?.aborted) {
-      issues.push({
-        level: "warn",
-        message: "Revision cancelled by user",
-        context: { processed: i, total: segments.length },
-      });
-      break;
-    }
+  const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
 
-    const segment = segments[i];
-    const indexInfo = segmentIndex.get(segment.id);
-    const globalIndex = indexInfo?.index ?? -1;
+  await runBatchCoordinator({
+    inputs: segments,
+    concurrency,
+    signal,
+    prepareYieldEvery: 10,
+    emitYieldEvery: 10,
+    prepare: (segment) => {
+      const indexInfo = segmentIndex.get(segment.id);
+      const globalIndex = indexInfo?.index ?? -1;
+      const previousSegment = globalIndex > 0 ? allSegments[globalIndex - 1] : undefined;
+      const nextSegment =
+        globalIndex < allSegments.length - 1 ? allSegments[globalIndex + 1] : undefined;
 
-    // Get context segments
-    const previousSegment = globalIndex > 0 ? allSegments[globalIndex - 1] : undefined;
-    const nextSegment =
-      globalIndex < allSegments.length - 1 ? allSegments[globalIndex + 1] : undefined;
-
-    const itemStart = Date.now();
-    try {
-      const result = await reviseSegment({
+      return {
         segment,
-        prompt,
         previousSegment,
         nextSegment,
-        signal,
-        providerId,
-        model,
-      });
+      };
+    },
+    execute: async (prepared) => {
+      const itemStart = Date.now();
 
-      if (result.changes.length === 0) {
-        unchanged++;
-        onItemComplete?.({
-          segmentId: segment.id,
-          status: "unchanged",
-          loggedAt: Date.now(),
-          durationMs: Date.now() - itemStart,
+      try {
+        const result = await reviseSegment({
+          segment: prepared.segment,
+          prompt,
+          previousSegment: prepared.previousSegment,
+          nextSegment: prepared.nextSegment,
+          signal,
+          providerId,
+          model,
         });
-      } else {
-        results.push(result);
-        onResult?.(result);
-        onItemComplete?.({
-          segmentId: segment.id,
-          status: "revised",
+
+        if (result.changes.length === 0) {
+          return {
+            status: "unchanged" as const,
+            segmentId: prepared.segment.id,
+            loggedAt: Date.now(),
+            durationMs: Date.now() - itemStart,
+          };
+        }
+
+        return {
+          status: "revised" as const,
+          segmentId: prepared.segment.id,
           loggedAt: Date.now(),
           durationMs: Date.now() - itemStart,
+          result,
+        };
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        return {
+          status: "failed" as const,
+          segmentId: prepared.segment.id,
+          loggedAt: Date.now(),
+          durationMs: Date.now() - itemStart,
+          error: message,
+        };
+      }
+    },
+    onItemComplete: (_, outcome) => {
+      processed++;
+
+      if (outcome.status === "revised" && outcome.result) {
+        results.push(outcome.result);
+        onResult?.(outcome.result);
+      }
+
+      if (outcome.status === "unchanged") {
+        unchanged++;
+      }
+
+      if (outcome.status === "failed") {
+        failed++;
+        issues.push({
+          level: "error",
+          message: `Failed to revise segment: ${outcome.error}`,
+          segmentId: outcome.segmentId,
         });
       }
-    } catch (error) {
-      failed++;
-      const message = error instanceof Error ? error.message : String(error);
-      issues.push({
-        level: "error",
-        message: `Failed to revise segment: ${message}`,
-        segmentId: segment.id,
-      });
-      const entry: RevisionBatchLogEntry = {
-        segmentId: segment.id,
-        status: "failed",
-        loggedAt: Date.now(),
-        durationMs: Date.now() - itemStart,
-        error: message,
-      };
-      onItemComplete?.(entry);
-    }
 
-    onProgress?.(i + 1, segments.length);
+      const entry: RevisionBatchLogEntry = {
+        segmentId: outcome.segmentId,
+        status: outcome.status,
+        loggedAt: outcome.loggedAt,
+        durationMs: outcome.durationMs,
+        error: outcome.status === "failed" ? outcome.error : undefined,
+      };
+
+      onItemComplete?.(entry);
+      onProgress?.(processed, segments.length);
+    },
+  });
+
+  if (signal?.aborted) {
+    issues.push({
+      level: "warn",
+      message: "Revision cancelled by user",
+      context: { processed, total: segments.length },
+    });
   }
 
   return {

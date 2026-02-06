@@ -7,8 +7,12 @@
  * @module ai/features/speaker/service
  */
 
+import {
+  getEffectiveAIRequestConcurrency,
+  initializeSettings,
+} from "@/lib/settings/settingsStorage";
 import type { AIFeatureOptions } from "../../core";
-import { executeFeature } from "../../core";
+import { executeFeature, runBatchCoordinator } from "../../core";
 import { extractJSON } from "../../parsing";
 
 import { speakerClassificationConfig } from "./config";
@@ -146,50 +150,88 @@ export async function classifySpeakersBatch(
   const allIssues: BatchIssue[] = [];
   let unchanged = 0;
   let failed = 0;
+  let processedBatches = 0;
 
   const totalBatches = Math.ceil(segments.length / batchSize);
 
-  for (let batchIndex = 0; batchIndex < totalBatches; batchIndex++) {
-    // Check for cancellation
-    if (signal?.aborted) {
-      allIssues.push({
-        level: "warn",
-        message: "Classification cancelled by user",
-        context: { processedBatches: batchIndex, totalBatches },
-      });
-      break;
-    }
+  const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
 
-    const start = batchIndex * batchSize;
-    const end = Math.min(start + batchSize, segments.length);
-    const batchSegments = segments.slice(start, end);
+  await runBatchCoordinator({
+    inputs: Array.from({ length: totalBatches }, (_, batchIndex) => batchIndex),
+    concurrency,
+    signal,
+    prepareYieldEvery: 10,
+    emitYieldEvery: 10,
+    prepare: (batchIndex) => {
+      const start = batchIndex * batchSize;
+      const end = Math.min(start + batchSize, segments.length);
+      const batchSegments = segments.slice(start, end);
 
-    try {
-      const batchResults = await classifySpeakers(batchSegments, availableSpeakers, {
-        ...classifyOptions,
-        signal,
-      });
+      return {
+        batchIndex,
+        batchSegments,
+        end,
+      };
+    },
+    execute: async (prepared) => {
+      try {
+        const batchResults = await classifySpeakers(prepared.batchSegments, availableSpeakers, {
+          ...classifyOptions,
+          signal,
+        });
 
-      // Count unchanged (segments not in results)
-      const classifiedIds = new Set(batchResults.map((r) => r.segmentId));
-      for (const seg of batchSegments) {
-        if (!classifiedIds.has(seg.id)) {
-          unchanged++;
+        return {
+          status: "success" as const,
+          batchIndex: prepared.batchIndex,
+          batchSegments: prepared.batchSegments,
+          batchResults,
+          end: prepared.end,
+        };
+      } catch (error) {
+        return {
+          status: "failed" as const,
+          batchIndex: prepared.batchIndex,
+          batchSegments: prepared.batchSegments,
+          end: prepared.end,
+          error: error instanceof Error ? error.message : String(error),
+        };
+      }
+    },
+    onItemComplete: (_, outcome) => {
+      processedBatches++;
+
+      if (outcome.status === "success") {
+        const classifiedIds = new Set(outcome.batchResults.map((r) => r.segmentId));
+        for (const seg of outcome.batchSegments) {
+          if (!classifiedIds.has(seg.id)) {
+            unchanged++;
+          }
         }
+
+        allResults.push(...outcome.batchResults);
+        onBatchComplete?.(outcome.batchResults);
+      } else {
+        failed += outcome.batchSegments.length;
+        allIssues.push({
+          level: "error",
+          message: `Batch ${outcome.batchIndex + 1} failed: ${outcome.error}`,
+          context: {
+            batchIndex: outcome.batchIndex,
+            segmentIds: outcome.batchSegments.map((s) => s.id),
+          },
+        });
       }
 
-      allResults.push(...batchResults);
-      onBatchComplete?.(batchResults);
-    } catch (error) {
-      failed += batchSegments.length;
-      allIssues.push({
-        level: "error",
-        message: `Batch ${batchIndex + 1} failed: ${error instanceof Error ? error.message : String(error)}`,
-        context: { batchIndex, segmentIds: batchSegments.map((s) => s.id) },
-      });
-    }
+      onProgress?.(outcome.end, segments.length);
+    },
+  });
 
-    onProgress?.(end, segments.length);
+  if (signal?.aborted) {
+    allIssues.push({
+      level: "warn",
+      message: "Classification cancelled by user",
+      context: { processedBatches, totalBatches },
+    });
   }
 
   return {

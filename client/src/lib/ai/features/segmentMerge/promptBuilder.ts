@@ -12,7 +12,6 @@ import { getMergeSystemPrompt, getMergeUserTemplate } from "./config";
 import type { MergeAnalysisSegment } from "./types";
 import {
   collectSegmentPairsWithSimpleIds,
-  formatSegmentPairsWithSimpleIds,
   formatSegmentsWithSimpleIds,
   type SimpleIdContext,
 } from "./utils";
@@ -108,9 +107,6 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
     skipPairKeys,
   );
 
-  // Format pairs for prompt
-  const segmentPairsText = formatSegmentPairsWithSimpleIds(pairsWithSimpleIds);
-
   // Format segments for prompt
   const segmentsFormatted = formatSegmentsWithSimpleIds(segments, idContext.getSimpleId);
 
@@ -119,7 +115,6 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
 
   // Build variables
   const variables: PromptVariables = {
-    segmentPairs: segmentPairsText,
     segmentPairsJson: pairMappingJson,
     segments: segmentsFormatted,
     maxTimeGap: maxTimeGap.toString(),
@@ -158,6 +153,5 @@ function buildPairMappingJson(pairs: ReturnType<typeof collectSegmentPairsWithSi
  * Check if prompt has eligible pairs
  */
 export function hasEligiblePairs(prompt: BuiltPrompt): boolean {
-  const segmentPairs = prompt.variables.segmentPairs as string;
-  return prompt.pairCount > 0 && segmentPairs.trim().length > 0;
+  return prompt.pairCount > 0;
 }

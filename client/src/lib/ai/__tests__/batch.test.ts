@@ -4,13 +4,15 @@
  * Tests for core batch processing functions.
  */
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   buildMap,
   calculateBatches,
   filterItems,
   filterSegments,
   prepareBatch,
+  runBatchCoordinator,
+  runConcurrentOrdered,
   sliceBatch,
 } from "../core/batch";
 
@@ -203,5 +205,133 @@ describe("calculateBatches", () => {
     const batches = calculateBatches(3, 10);
     expect(batches).toHaveLength(1);
     expect(batches[0]).toEqual({ index: 0, start: 0, end: 3, size: 3 });
+  });
+});
+
+describe("runConcurrentOrdered", () => {
+  it("emits callbacks in input order even when tasks finish out of order", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const order: number[] = [];
+      const tasks = [
+        () => new Promise((resolve) => setTimeout(() => resolve("first"), 30)),
+        () => new Promise((resolve) => setTimeout(() => resolve("second"), 10)),
+        () => new Promise((resolve) => setTimeout(() => resolve("third"), 0)),
+      ];
+
+      const resultPromise = runConcurrentOrdered(tasks, {
+        concurrency: 2,
+        onItemComplete: (index) => order.push(index),
+      });
+
+      await vi.runAllTimersAsync();
+      const results = await resultPromise;
+
+      expect(order).toEqual([0, 1, 2]);
+      expect(results[0]?.status).toBe("fulfilled");
+      expect(results[1]?.status).toBe("fulfilled");
+      expect(results[2]?.status).toBe("fulfilled");
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
+
+describe("runBatchCoordinator", () => {
+  it("prepares items, skips nulls, and emits in original order", async () => {
+    const emitted: number[] = [];
+
+    const result = await runBatchCoordinator({
+      inputs: [1, 2, 3, 4],
+      prepare: (value, index) => (value % 2 === 0 ? null : { value, index }),
+      execute: async (prepared) => {
+        await new Promise((resolve) => setTimeout(resolve, prepared.value === 1 ? 10 : 0));
+        return `ok-${prepared.value}`;
+      },
+      concurrency: 2,
+      prepareYieldEvery: 1000,
+      emitYieldEvery: 1000,
+      onItemComplete: (index) => emitted.push(index),
+    });
+
+    expect(result.preparedCount).toBe(2);
+    expect(emitted).toEqual([0, 2]);
+  });
+
+  it("emits errors in original order and reports progress against prepared count", async () => {
+    vi.useFakeTimers();
+
+    try {
+      const emitted: number[] = [];
+      const errorIndices: number[] = [];
+      const progress: Array<{ processed: number; total: number }> = [];
+
+      const promise = runBatchCoordinator({
+        inputs: [0, 1, 2],
+        prepare: (value) => ({ value }),
+        execute: async (prepared) => {
+          const delay = prepared.value === 0 ? 30 : prepared.value === 1 ? 10 : 0;
+          return new Promise((resolve, reject) =>
+            setTimeout(() => {
+              if (prepared.value === 1) {
+                reject(new Error("boom"));
+                return;
+              }
+              resolve(`ok-${prepared.value}`);
+            }, delay),
+          );
+        },
+        concurrency: 2,
+        prepareYieldEvery: 1000,
+        emitYieldEvery: 1000,
+        onItemComplete: (index) => emitted.push(index),
+        onItemError: (index) => {
+          emitted.push(index);
+          errorIndices.push(index);
+        },
+        onProgress: (processed, total) => progress.push({ processed, total }),
+      });
+
+      await vi.runAllTimersAsync();
+      const results = await promise;
+
+      expect(emitted).toEqual([0, 1, 2]);
+      expect(progress).toEqual([
+        { processed: 1, total: 3 },
+        { processed: 2, total: 3 },
+        { processed: 3, total: 3 },
+      ]);
+      expect(errorIndices).toEqual([1]);
+      expect(results.results.some((entry) => entry?.status === "rejected")).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it("stops scheduling executions when aborted before execute phase", async () => {
+    const controller = new AbortController();
+    const executed: number[] = [];
+
+    const result = await runBatchCoordinator({
+      inputs: [0, 1, 2],
+      prepare: (value) => {
+        if (value === 1) {
+          controller.abort();
+        }
+        return { value };
+      },
+      execute: async (prepared) => {
+        executed.push(prepared.value);
+        return `ok-${prepared.value}`;
+      },
+      concurrency: 2,
+      signal: controller.signal,
+      prepareYieldEvery: 1000,
+      emitYieldEvery: 1000,
+    });
+
+    expect(result.preparedCount).toBe(2);
+    expect(executed).toEqual([]);
   });
 });

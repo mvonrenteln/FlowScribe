@@ -36,6 +36,7 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 export const initialAIChapterDetectionState = {
   aiChapterDetectionSuggestions: [] as AIChapterSuggestion[],
   aiChapterDetectionIsProcessing: false,
+  aiChapterDetectionIsCancelling: false,
   aiChapterDetectionProcessedBatches: 0,
   aiChapterDetectionTotalBatches: 0,
   aiChapterDetectionConfig: normalizeAIChapterDetectionConfig(),
@@ -213,6 +214,7 @@ export const createAIChapterDetectionSlice = (
 
     set({
       aiChapterDetectionIsProcessing: true,
+      aiChapterDetectionIsCancelling: false,
       aiChapterDetectionProcessedBatches: 0,
       aiChapterDetectionTotalBatches: Math.ceil(
         segmentsToProcess.length / Math.max(1, config.batchSize),
@@ -392,6 +394,7 @@ export const createAIChapterDetectionSlice = (
         set({
           aiChapterDetectionSuggestions: [...get().aiChapterDetectionSuggestions, ...suggestions],
           aiChapterDetectionIsProcessing: false,
+          aiChapterDetectionIsCancelling: false,
           aiChapterDetectionAbortController: null,
           aiChapterDetectionError: result.issues.find((i) => i.level === "error")?.message ?? null,
           aiChapterDetectionBatchLog: result.batchLog.length
@@ -401,8 +404,18 @@ export const createAIChapterDetectionSlice = (
       } catch (error) {
         const snapshot = get();
         if (!snapshot.aiChapterDetectionIsProcessing) return;
+        if (error instanceof Error && error.name === "AbortError") {
+          set({
+            aiChapterDetectionIsProcessing: false,
+            aiChapterDetectionIsCancelling: false,
+            aiChapterDetectionAbortController: null,
+            aiChapterDetectionError: null,
+          });
+          return;
+        }
         set({
           aiChapterDetectionIsProcessing: false,
+          aiChapterDetectionIsCancelling: false,
           aiChapterDetectionAbortController: null,
           aiChapterDetectionError: error instanceof Error ? error.message : String(error),
         });
@@ -416,9 +429,7 @@ export const createAIChapterDetectionSlice = (
       state.aiChapterDetectionAbortController.abort();
     }
     set({
-      aiChapterDetectionIsProcessing: false,
-      aiChapterDetectionAbortController: null,
-      aiChapterDetectionError: null,
+      aiChapterDetectionIsCancelling: true,
     });
   },
 

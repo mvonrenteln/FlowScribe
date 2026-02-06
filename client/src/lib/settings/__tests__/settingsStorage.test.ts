@@ -4,9 +4,13 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  AI_CONCURRENCY_LIMITS,
   addProviderToSettings,
+  DEFAULT_AI_CONCURRENCY,
   DEFAULT_SETTINGS,
+  getAIConcurrencySettings,
   getDefaultProvider,
+  getEffectiveAIRequestConcurrency,
   initializeSettings,
   type PersistedSettings,
   readSettings,
@@ -69,6 +73,53 @@ describe("settingsStorage", () => {
 
       const stored = JSON.parse(localStorageMock["flowscribe:settings"]);
       expect(stored.version).toBe(DEFAULT_SETTINGS.version);
+    });
+  });
+
+  describe("getAIConcurrencySettings", () => {
+    it("returns defaults when settings are missing", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        enableConcurrentRequests: undefined,
+        maxConcurrentRequests: undefined,
+      };
+
+      const result = getAIConcurrencySettings(settings);
+      expect(result.enabled).toBe(DEFAULT_AI_CONCURRENCY.enabled);
+      expect(result.maxConcurrent).toBe(DEFAULT_AI_CONCURRENCY.maxConcurrent);
+    });
+
+    it("clamps max concurrent requests to limits", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        enableConcurrentRequests: true,
+        maxConcurrentRequests: 99,
+      };
+
+      const result = getAIConcurrencySettings(settings);
+      expect(result.maxConcurrent).toBe(AI_CONCURRENCY_LIMITS.max);
+    });
+  });
+
+  describe("getEffectiveAIRequestConcurrency", () => {
+    it("returns 1 when parallel mode is disabled", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        enableConcurrentRequests: false,
+        maxConcurrentRequests: 4,
+      };
+
+      expect(getEffectiveAIRequestConcurrency(settings)).toBe(1);
+    });
+
+    it("returns the configured concurrency when enabled", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        enableConcurrentRequests: true,
+        maxConcurrentRequests: 4,
+      };
+
+      expect(getEffectiveAIRequestConcurrency(settings)).toBe(4);
     });
   });
 

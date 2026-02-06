@@ -147,6 +147,9 @@ export interface MergeAnalysisParams {
   /** Batch size for processing segments */
   batchSize?: number;
 
+  /** Optional concurrency override for batch execution */
+  batchConcurrency?: number;
+
   /** Provider ID override for this analysis run */
   providerId?: string;
 
