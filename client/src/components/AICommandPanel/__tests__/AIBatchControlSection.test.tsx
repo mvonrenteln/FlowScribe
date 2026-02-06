@@ -1,14 +1,15 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { AIBatchControlSection } from "../AIBatchControlSection";
+import { renderWithI18n } from "./testUtils";
 
 describe("AIBatchControlSection", () => {
   it("renders start action when idle", async () => {
     const user = userEvent.setup();
     const handleStart = vi.fn();
 
-    render(
+    renderWithI18n(
       <AIBatchControlSection
         isProcessing={false}
         processedCount={0}
@@ -31,7 +32,7 @@ describe("AIBatchControlSection", () => {
   });
 
   it("renders stop action and progress when processing", () => {
-    render(
+    renderWithI18n(
       <AIBatchControlSection
         isProcessing={true}
         processedCount={3}

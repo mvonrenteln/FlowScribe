@@ -1,11 +1,12 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { userEvent } from "@testing-library/user-event";
 import { describe, expect, it, vi } from "vitest";
 import { ScopeSection } from "../ScopeSection";
+import { renderWithI18n } from "./testUtils";
 
 describe("ScopeSection", () => {
   it("displays 'All' when not filtered", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={150}
         isFiltered={false}
@@ -19,7 +20,7 @@ describe("ScopeSection", () => {
   });
 
   it("displays 'Filtered' when filtered", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={50}
         isFiltered={true}
@@ -33,7 +34,7 @@ describe("ScopeSection", () => {
   });
 
   it("handles singular 'segment' for count of 1", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={1}
         isFiltered={false}
@@ -50,7 +51,7 @@ describe("ScopeSection", () => {
     const user = userEvent.setup();
     const handleChange = vi.fn();
 
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={100}
         isFiltered={false}
@@ -67,7 +68,7 @@ describe("ScopeSection", () => {
   });
 
   it("checkbox is checked when excludeConfirmed is true", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={100}
         isFiltered={false}
@@ -82,7 +83,7 @@ describe("ScopeSection", () => {
   });
 
   it("checkbox is unchecked when excludeConfirmed is false", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={100}
         isFiltered={false}
@@ -97,7 +98,7 @@ describe("ScopeSection", () => {
   });
 
   it("uses unique id for checkbox/label association", () => {
-    render(
+    renderWithI18n(
       <ScopeSection
         scopedSegmentCount={100}
         isFiltered={false}

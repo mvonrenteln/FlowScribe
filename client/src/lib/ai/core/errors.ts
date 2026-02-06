@@ -7,6 +7,15 @@
  * @module ai/core/errors
  */
 
+import { getI18nInstance } from "@/i18n/config";
+import {
+  AIProviderAuthError,
+  AIProviderConnectionError,
+  AIProviderError,
+  AIProviderRateLimitError,
+} from "../providers/types";
+import { summarizeMessages } from "./formatting";
+
 // Re-export provider errors
 export {
   AIProviderAuthError,
@@ -14,6 +23,8 @@ export {
   AIProviderError,
   AIProviderRateLimitError,
 } from "../providers/types";
+
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 // ==================== Base AI Error ====================
 
@@ -54,7 +65,7 @@ export class AIParseError extends AIError {
   }
 
   toUserMessage(): string {
-    return "The AI returned an unexpected response format. Please try again.";
+    return t("aiErrors.parse");
   }
 }
 
@@ -75,7 +86,7 @@ export class AIValidationError extends AIError {
   }
 
   toUserMessage(): string {
-    return "The AI response was invalid. Please try again with different input.";
+    return t("aiErrors.validation");
   }
 }
 
@@ -89,7 +100,7 @@ export class AICancellationError extends AIError {
   }
 
   toUserMessage(): string {
-    return "The operation was cancelled.";
+    return t("aiErrors.cancelled");
   }
 }
 
@@ -103,7 +114,7 @@ export class AIConfigurationError extends AIError {
   }
 
   toUserMessage(): string {
-    return "AI is not configured. Please add an AI provider in Settings.";
+    return t("aiErrors.configuration");
   }
 }
 
@@ -120,7 +131,77 @@ export class AIFeatureNotFoundError extends AIError {
   }
 
   toUserMessage(): string {
-    return "The requested AI feature is not available.";
+    return t("aiErrors.featureNotFound");
+  }
+}
+
+/**
+ * Error thrown when provider authentication fails.
+ */
+export class AIAuthError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.auth"), "AUTH_ERROR", details);
+    this.name = "AIAuthError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.auth");
+  }
+}
+
+/**
+ * Error thrown when provider rate limits requests.
+ */
+export class AIRateLimitError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.rateLimit"), "RATE_LIMIT", details);
+    this.name = "AIRateLimitError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.rateLimit");
+  }
+}
+
+/**
+ * Error thrown when a request is rejected by the provider.
+ */
+export class AIRequestError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.request"), "REQUEST_ERROR", details);
+    this.name = "AIRequestError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.request");
+  }
+}
+
+/**
+ * Error thrown when provider returns a server-side failure.
+ */
+export class AIProviderUnavailableError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.providerUnavailable"), "PROVIDER_ERROR", details);
+    this.name = "AIProviderUnavailableError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.providerUnavailable");
+  }
+}
+
+/**
+ * Error thrown when provider cannot be reached.
+ */
+export class AIConnectionError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.connection"), "CONNECTION_ERROR", details);
+    this.name = "AIConnectionError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.connection");
   }
 }
 
@@ -129,12 +210,26 @@ export class AIFeatureNotFoundError extends AIError {
 /**
  * Check if an error is a cancellation error.
  */
+function isTimeoutMessage(message: string): boolean {
+  const lowered = message.toLowerCase();
+  return (
+    lowered.includes("timeout") ||
+    lowered.includes("timed out") ||
+    lowered.includes("etimedout") ||
+    lowered.includes("deadline") ||
+    lowered.includes("time limit")
+  );
+}
+
 export function isCancellationError(error: unknown): boolean {
   if (error instanceof AICancellationError) {
     return true;
   }
   if (error instanceof Error) {
-    return error.name === "AbortError" || error.message.includes("cancelled");
+    if (error.name === "AbortError") {
+      return !isTimeoutMessage(error.message);
+    }
+    return error.message.includes("cancelled");
   }
   return false;
 }
@@ -147,8 +242,62 @@ export function toAIError(error: unknown): AIError {
     return error;
   }
 
+  if (error instanceof AIProviderAuthError) {
+    return new AIAuthError({
+      providerType: error.providerType,
+      ...error.details,
+    });
+  }
+
+  if (error instanceof AIProviderRateLimitError) {
+    return new AIRateLimitError({
+      providerType: error.providerType,
+      retryAfter: error.retryAfter,
+      ...error.details,
+    });
+  }
+
+  if (error instanceof AIProviderConnectionError) {
+    const statusCode = error.statusCode;
+    if (typeof statusCode === "number") {
+      if (statusCode >= 400 && statusCode < 500) {
+        return new AIRequestError({
+          providerType: error.providerType,
+          statusCode,
+          ...error.details,
+        });
+      }
+      if (statusCode >= 500) {
+        return new AIProviderUnavailableError({
+          providerType: error.providerType,
+          statusCode,
+          ...error.details,
+        });
+      }
+    }
+
+    return new AIConnectionError({
+      providerType: error.providerType,
+      statusCode,
+      ...error.details,
+    });
+  }
+
+  if (error instanceof AIProviderError) {
+    return new AIProviderUnavailableError({
+      providerType: error.providerType,
+      ...error.details,
+    });
+  }
+
   if (error instanceof Error) {
     if (error.name === "AbortError") {
+      if (isTimeoutMessage(error.message)) {
+        return new AIConnectionError({
+          reason: "timeout",
+          originalError: error.message,
+        });
+      }
       return new AICancellationError();
     }
     return new AIError(error.message, "UNKNOWN_ERROR", {
@@ -169,5 +318,40 @@ export function getErrorMessage(error: unknown): string {
 
 // ==================== Error Summarization ====================
 
-// Re-export from formatting module
-export { summarizeError as summarizeAIError } from "./formatting";
+const HARD_ERROR_CODES = new Set<string>([
+  "AUTH_ERROR",
+  "RATE_LIMIT",
+  "REQUEST_ERROR",
+  "PROVIDER_ERROR",
+  "CONNECTION_ERROR",
+]);
+
+/**
+ * Check if an error code should trigger a toast.
+ */
+export function isHardAIErrorCode(code?: string | null): boolean {
+  if (!code) return false;
+  return HARD_ERROR_CODES.has(code);
+}
+
+/**
+ * Summarize an AI error into a short, user-friendly message.
+ */
+export function summarizeAIError(error: Error): string {
+  const aiError = toAIError(error);
+  const baseMessage = aiError.toUserMessage();
+
+  if ("details" in aiError && aiError.details && typeof aiError.details === "object") {
+    const details = aiError.details as Record<string, unknown>;
+    const issues = details.issues;
+
+    if (Array.isArray(issues) && issues.length > 0) {
+      const summary = summarizeMessages(issues);
+      if (summary) {
+        return `${baseMessage}: ${summary}`;
+      }
+    }
+  }
+
+  return baseMessage;
+}

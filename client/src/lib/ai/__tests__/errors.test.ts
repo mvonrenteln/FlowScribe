@@ -6,17 +6,28 @@
 
 import { describe, expect, it } from "vitest";
 import {
+  AIAuthError,
   AICancellationError,
   AIConfigurationError,
+  AIConnectionError,
   AIError,
   AIFeatureNotFoundError,
   AIParseError,
+  AIProviderUnavailableError,
+  AIRateLimitError,
+  AIRequestError,
   AIValidationError,
   getErrorMessage,
   isCancellationError,
+  isHardAIErrorCode,
   summarizeAIError,
   toAIError,
 } from "../core/errors";
+import {
+  AIProviderAuthError,
+  AIProviderConnectionError,
+  AIProviderRateLimitError,
+} from "../providers/types";
 
 describe("AIError", () => {
   it("should create error with message and code", () => {
@@ -112,6 +123,12 @@ describe("isCancellationError", () => {
     expect(isCancellationError(abortError)).toBe(true);
   });
 
+  it("should return false for timeout AbortError", () => {
+    const abortError = new Error("Request timed out");
+    abortError.name = "AbortError";
+    expect(isCancellationError(abortError)).toBe(false);
+  });
+
   it("should return true for error with cancelled in message", () => {
     expect(isCancellationError(new Error("Operation cancelled"))).toBe(true);
   });
@@ -141,11 +158,50 @@ describe("toAIError", () => {
     expect(result).toBeInstanceOf(AICancellationError);
   });
 
+  it("should convert timeout AbortError to AIConnectionError", () => {
+    const abortError = new Error("Operation timed out");
+    abortError.name = "AbortError";
+    const result = toAIError(abortError);
+    expect(result).toBeInstanceOf(AIConnectionError);
+  });
+
   it("should convert regular Error to AIError", () => {
     const error = new Error("Regular error");
     const result = toAIError(error);
     expect(result).toBeInstanceOf(AIError);
     expect(result.message).toBe("Regular error");
+  });
+
+  it("should map provider auth errors to AIAuthError", () => {
+    const error = new AIProviderAuthError("Auth failed", "openai");
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIAuthError);
+    expect(result.toUserMessage()).toContain("Authentication failed");
+  });
+
+  it("should map provider rate limit errors to AIRateLimitError", () => {
+    const error = new AIProviderRateLimitError("Rate limit", "openai");
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIRateLimitError);
+    expect(result.toUserMessage()).toContain("Rate limit");
+  });
+
+  it("should map 4xx connection errors to AIRequestError", () => {
+    const error = new AIProviderConnectionError("Bad request", "openai", 400);
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIRequestError);
+  });
+
+  it("should map 5xx connection errors to AIProviderUnavailableError", () => {
+    const error = new AIProviderConnectionError("Server error", "openai", 503);
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIProviderUnavailableError);
+  });
+
+  it("should map connection errors without status to AIConnectionError", () => {
+    const error = new AIProviderConnectionError("Network down", "openai");
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIConnectionError);
   });
 
   it("should convert string to AIError", () => {
@@ -210,5 +266,21 @@ describe("summarizeAIError", () => {
   it("should handle empty issues array", () => {
     const error = new AIError("Failed", "TEST", { issues: [] });
     expect(summarizeAIError(error)).toBe("Failed");
+  });
+});
+
+describe("isHardAIErrorCode", () => {
+  it("should flag hard error codes", () => {
+    expect(isHardAIErrorCode("AUTH_ERROR")).toBe(true);
+    expect(isHardAIErrorCode("RATE_LIMIT")).toBe(true);
+    expect(isHardAIErrorCode("REQUEST_ERROR")).toBe(true);
+    expect(isHardAIErrorCode("PROVIDER_ERROR")).toBe(true);
+    expect(isHardAIErrorCode("CONNECTION_ERROR")).toBe(true);
+  });
+
+  it("should ignore non-hard error codes", () => {
+    expect(isHardAIErrorCode("PARSE_ERROR")).toBe(false);
+    expect(isHardAIErrorCode("UNKNOWN_ERROR")).toBe(false);
+    expect(isHardAIErrorCode(undefined)).toBe(false);
   });
 });

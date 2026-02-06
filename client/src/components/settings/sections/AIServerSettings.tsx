@@ -37,9 +37,12 @@ import { createProvider, createProviderConfig, validateProviderConfig } from "@/
 import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types";
 import {
   AI_CONCURRENCY_LIMITS,
+  AI_REQUEST_TIMEOUT_LIMITS,
   addProviderToSettings,
   DEFAULT_AI_CONCURRENCY,
+  DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
   getAIConcurrencySettings,
+  getAIRequestTimeoutMs,
   initializeSettings,
   type PersistedSettings,
   removeProviderFromSettings,
@@ -510,6 +513,9 @@ export function AIServerSettings() {
   }, [settings]);
 
   const concurrencySettings = getAIConcurrencySettings(settings);
+  const effectiveTimeoutMs = getAIRequestTimeoutMs(settings);
+  const effectiveTimeoutSeconds =
+    effectiveTimeoutMs === 0 ? 0 : Math.round(effectiveTimeoutMs / 1000);
 
   const handleParseRetryCountChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, parseRetryCount: value }));
@@ -521,6 +527,10 @@ export function AIServerSettings() {
 
   const handleConcurrentLimitChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, maxConcurrentRequests: value }));
+  }, []);
+
+  const handleRequestTimeoutChange = useCallback((value: number) => {
+    setSettings((prev) => ({ ...prev, aiRequestTimeoutSeconds: value }));
   }, []);
 
   const handleAddProvider = useCallback((data: ProviderFormData) => {
@@ -703,6 +713,40 @@ export function AIServerSettings() {
           </div>
           <p className="text-xs text-muted-foreground">
             Number of retries when AI response cannot be parsed. Set to 0 to disable retries.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ai-request-timeout">Request Timeout (seconds)</Label>
+          <div className="flex items-center gap-4">
+            <Input
+              id="ai-request-timeout"
+              type="number"
+              min={0}
+              max={AI_REQUEST_TIMEOUT_LIMITS.max}
+              value={
+                settings.aiRequestTimeoutSeconds ??
+                (effectiveTimeoutSeconds || DEFAULT_AI_REQUEST_TIMEOUT_SECONDS)
+              }
+              onChange={(e) => {
+                const value = parseInt(e.target.value, 10);
+                if (Number.isNaN(value)) return;
+                if (
+                  value === 0 ||
+                  (value >= AI_REQUEST_TIMEOUT_LIMITS.min && value <= AI_REQUEST_TIMEOUT_LIMITS.max)
+                ) {
+                  handleRequestTimeoutChange(value);
+                }
+              }}
+              className="w-24"
+              data-testid="input-ai-request-timeout"
+            />
+            <span className="text-sm text-muted-foreground">
+              (0 to disable, {AI_REQUEST_TIMEOUT_LIMITS.min}-{AI_REQUEST_TIMEOUT_LIMITS.max})
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Maximum time to wait for an AI request before timing out.
           </p>
         </div>
 

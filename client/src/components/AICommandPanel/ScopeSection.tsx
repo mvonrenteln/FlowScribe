@@ -1,3 +1,4 @@
+import { useTranslation } from "react-i18next";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Label } from "@/components/ui/label";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -17,15 +18,20 @@ export function ScopeSection({
   onExcludeConfirmedChange,
   id,
 }: ScopeSectionProps) {
+  const { t } = useTranslation();
   const checkboxId = `${id}-exclude-confirmed`;
+  const scopeLabel = isFiltered ? t("aiBatch.scope.filtered") : t("aiBatch.scope.all");
+  const countLabel =
+    scopedSegmentCount === 1
+      ? t("aiBatch.scope.count", { count: scopedSegmentCount, label: scopeLabel })
+      : t("aiBatch.scope.count_plural", { count: scopedSegmentCount, label: scopeLabel });
 
   return (
     <section className="space-y-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">Scope</h3>
-      <div className="text-sm text-foreground">
-        {isFiltered ? "Filtered" : "All"}: {scopedSegmentCount} segment
-        {scopedSegmentCount === 1 ? "" : "s"}
-      </div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        {t("aiBatch.scope.title")}
+      </h3>
+      <div className="text-sm text-foreground">{countLabel}</div>
       <div className="flex items-center gap-2 text-sm text-muted-foreground">
         <TooltipProvider>
           <Tooltip>
@@ -40,12 +46,12 @@ export function ScopeSection({
                   htmlFor={checkboxId}
                   className="text-sm text-muted-foreground cursor-pointer"
                 >
-                  Exclude confirmed
+                  {t("aiBatch.scope.excludeConfirmed")}
                 </Label>
               </div>
             </TooltipTrigger>
             <TooltipContent>
-              <p>Skip segments that are already marked as confirmed</p>
+              <p>{t("aiBatch.scope.excludeConfirmedHelp")}</p>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

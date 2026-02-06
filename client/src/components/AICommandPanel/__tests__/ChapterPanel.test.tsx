@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { createBaseState, resetStore } from "@/lib/__tests__/storeTestUtils";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, TranscriptStore } from "@/lib/store/types";
 import { ChapterPanel } from "../ChapterPanel";
+import { renderWithI18n } from "./testUtils";
 
 const baseSegments: Segment[] = [
   {
@@ -60,7 +61,7 @@ describe("ChapterPanel", () => {
       seekToTime,
     });
 
-    render(<ChapterPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(<ChapterPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
 
     const button = screen.getByRole("button", { name: /introduction/i });
     await act(async () => {
@@ -93,7 +94,7 @@ describe("ChapterPanel", () => {
       updateChapterDetectionConfig,
     });
 
-    render(<ChapterPanel filteredSegmentIds={["seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(<ChapterPanel filteredSegmentIds={["seg-2"]} onOpenSettings={vi.fn()} />);
 
     const button = screen.getByRole("button", { name: /start batch/i });
     await act(async () => {

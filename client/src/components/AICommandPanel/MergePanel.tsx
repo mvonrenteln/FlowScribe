@@ -1,5 +1,6 @@
 import { Check, ChevronDown, ChevronRight, Info, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
@@ -33,6 +34,7 @@ interface MergePanelProps {
 }
 
 export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<MergePanelProps>) {
+  const { t } = useTranslation();
   const segments = useTranscriptStore((s) => s.segments);
   const suggestions = useTranscriptStore((s) => s.aiSegmentMergeSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiSegmentMergeIsProcessing);
@@ -86,7 +88,8 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
     () =>
       batchLog.map((entry, idx) => {
         const skipped = Math.max(0, entry.pairCount - entry.normalizedCount);
-        const issueSummary = entry.issues.length > 0 ? entry.issues[0]?.message : "—";
+        const issueSummary =
+          entry.issues.length > 0 ? entry.issues[0]?.message : t("aiBatch.batchLog.emptyIssue");
         return {
           id: `${entry.batchIndex}-${entry.loggedAt ?? 0}-${idx}`,
           batchLabel: `${entry.batchIndex}`,
@@ -98,13 +101,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
           ignored: 0,
           suggestions: entry.suggestionCount,
           processed: `${entry.processedTotal}/${entry.totalExpected}`,
-          issues: entry.fatal ? "FATAL" : issueSummary,
+          issues: entry.fatal ? t("aiBatch.batchLog.fatal") : issueSummary,
           loggedAt: entry.loggedAt ?? Date.now(),
           requestPayload: entry.requestPayload,
           responsePayload: entry.responsePayload,
         };
       }),
-    [batchLog],
+    [batchLog, t],
   );
 
   const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
@@ -192,13 +195,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
 
       <section className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Merge Settings
+          {t("aiBatch.merge.settingsTitle")}
         </h3>
         <div className="grid gap-3">
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="merge-max-gap" className="text-xs text-muted-foreground">
-                Max Time Gap (seconds)
+                {t("aiBatch.merge.maxTimeGapLabel")}
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -206,13 +209,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Max time gap help"
+                      aria-label={t("aiBatch.merge.maxTimeGapHelpLabel")}
                     >
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Only consider adjacent segments separated by less than this gap.</p>
+                    <p>{t("aiBatch.merge.maxTimeGapHelp")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -232,7 +235,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Label htmlFor="merge-confidence" className="text-xs text-muted-foreground">
-                Min Confidence
+                {t("aiBatch.merge.minConfidenceLabel")}
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -240,13 +243,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Minimum confidence help"
+                      aria-label={t("aiBatch.merge.minConfidenceHelpLabel")}
                     >
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Filter suggestions by AI confidence threshold.</p>
+                    <p>{t("aiBatch.merge.minConfidenceHelp")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -260,9 +263,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="high">High only</SelectItem>
-                <SelectItem value="medium">Medium and above</SelectItem>
-                <SelectItem value="low">All (including low)</SelectItem>
+                <SelectItem value="high">{t("aiBatch.merge.confidenceLevel.high")}</SelectItem>
+                <SelectItem value="medium">{t("aiBatch.merge.confidenceLevel.medium")}</SelectItem>
+                <SelectItem value="low">{t("aiBatch.merge.confidenceLevel.low")}</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -275,7 +278,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                 disabled={isProcessing}
               />
               <Label htmlFor="merge-same-speaker" className="text-xs text-muted-foreground">
-                Same speaker only
+                {t("aiBatch.merge.sameSpeakerOnly")}
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -283,13 +286,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Same speaker only help"
+                      aria-label={t("aiBatch.merge.sameSpeakerOnlyHelpLabel")}
                     >
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Skip merges across speaker changes.</p>
+                    <p>{t("aiBatch.merge.sameSpeakerOnlyHelp")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -302,7 +305,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                 disabled={isProcessing}
               />
               <Label htmlFor="merge-smoothing" className="text-xs text-muted-foreground">
-                Enable text smoothing
+                {t("aiBatch.merge.smoothingLabel")}
               </Label>
               <TooltipProvider>
                 <Tooltip>
@@ -310,13 +313,13 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     <button
                       type="button"
                       className="text-muted-foreground hover:text-foreground"
-                      aria-label="Enable text smoothing help"
+                      aria-label={t("aiBatch.merge.smoothingHelpLabel")}
                     >
                       <Info className="h-3.5 w-3.5" />
                     </button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Allow the AI to fix punctuation and casing across the merge.</p>
+                    <p>{t("aiBatch.merge.smoothingHelp")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -330,16 +333,16 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
         isCancelling={isCancelling}
         processedCount={processedCount}
         totalToProcess={totalToProcess}
-        progressUnitLabel="segment pairs"
+        progressUnitLabel={t("aiBatch.units.segmentPairs")}
         error={error}
         startAction={{
-          label: "Start Batch",
+          label: t("aiBatch.actions.startBatch"),
           icon: <Sparkles className="mr-2 h-4 w-4" />,
           onClick: handleStart,
           disabled: analysisSegmentIds.length < 2 || !selectedProviderId,
         }}
         stopAction={{
-          label: "Stop",
+          label: t("aiBatch.actions.stop"),
           icon: <StopCircle className="mr-2 h-4 w-4" />,
           onClick: cancelMergeAnalysis,
           variant: "destructive",
@@ -347,7 +350,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
         secondaryAction={
           pendingSuggestions.length > 0
             ? {
-                label: "Clear",
+                label: t("aiBatch.actions.clear"),
                 icon: <Trash2 className="mr-2 h-4 w-4" />,
                 onClick: clearMergeSuggestions,
                 variant: "outline",
@@ -357,29 +360,33 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
       >
         {(batchLog.length > 0 || isProcessing) && (
           <div className="flex items-center justify-between text-xs text-muted-foreground">
-            <span>Batch log entries: {batchLog.length}</span>
+            <span>{t("aiBatch.merge.batchLogEntries", { count: batchLog.length })}</span>
             <BatchLogDrawer
               rows={batchLogRows}
               open={isLogOpen}
               onOpenChange={setIsLogOpen}
               total={totalToProcess}
-              title="Batch Log"
-              description="Batch merge status updates and issues."
+              title={t("aiBatch.batchLog.title")}
+              description={t("aiBatch.merge.batchLogDescription")}
             />
           </div>
         )}
       </AIBatchControlSection>
 
       {(pendingSuggestions.length > 0 || isProcessing) && (
-        <AIResultsSection title={`Suggestions (${pendingSuggestions.length} pending)`}>
+        <AIResultsSection
+          title={t("aiBatch.results.suggestionsTitle", { count: pendingSuggestions.length })}
+        >
           {pendingSuggestions.length > 0 && (
             <div className="space-y-3">
               <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                <span>High: {highConfidence.length}</span>
+                <span>{t("aiBatch.merge.confidence.high", { count: highConfidence.length })}</span>
                 <span>•</span>
-                <span>Medium: {mediumConfidence.length}</span>
+                <span>
+                  {t("aiBatch.merge.confidence.medium", { count: mediumConfidence.length })}
+                </span>
                 <span>•</span>
-                <span>Low: {lowConfidence.length}</span>
+                <span>{t("aiBatch.merge.confidence.low", { count: lowConfidence.length })}</span>
               </div>
               {highConfidence.length > 0 && (
                 <div className="space-y-2">
@@ -393,7 +400,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     ) : (
                       <ChevronRight className="h-3 w-3" />
                     )}
-                    High Confidence ({highConfidence.length})
+                    {t("aiBatch.speaker.highConfidence", { count: highConfidence.length })}
                   </button>
                   {highExpanded && (
                     <>
@@ -418,7 +425,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                                   : suggestion.segmentIds.join(" + ")}
                               </span>
                               <Badge variant="secondary" className="text-[10px] shrink-0">
-                                Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
+                                {t("aiBatch.merge.gapLabel", {
+                                  gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
+                                })}
                               </Badge>
                             </>
                           );
@@ -431,7 +440,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                         onClick={acceptAllHighConfidence}
                       >
                         <Check className="mr-2 h-3.5 w-3.5" />
-                        Accept All High
+                        {t("aiBatch.merge.acceptAllHigh")}
                       </Button>
                     </>
                   )}
@@ -450,7 +459,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     ) : (
                       <ChevronRight className="h-3 w-3" />
                     )}
-                    Medium Confidence ({mediumConfidence.length})
+                    {t("aiBatch.speaker.mediumConfidence", { count: mediumConfidence.length })}
                   </button>
                   {mediumExpanded && (
                     <ResultsList
@@ -474,7 +483,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                                 : suggestion.segmentIds.join(" + ")}
                             </span>
                             <Badge variant="secondary" className="text-[10px] shrink-0">
-                              Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
+                              {t("aiBatch.merge.gapLabel", {
+                                gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
+                              })}
                             </Badge>
                           </>
                         );
@@ -496,7 +507,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                     ) : (
                       <ChevronRight className="h-3 w-3" />
                     )}
-                    Low Confidence ({lowConfidence.length})
+                    {t("aiBatch.speaker.lowConfidence", { count: lowConfidence.length })}
                   </button>
                   {lowExpanded && (
                     <ResultsList
@@ -520,7 +531,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                                 : suggestion.segmentIds.join(" + ")}
                             </span>
                             <Badge variant="secondary" className="text-[10px] shrink-0">
-                              Gap {formatDurationMs(Math.round(suggestion.timeGap * 1000))}
+                              {t("aiBatch.merge.gapLabel", {
+                                gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
+                              })}
                             </Badge>
                           </>
                         );
@@ -536,7 +549,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                 className="w-full text-destructive hover:text-destructive"
                 onClick={rejectAllSuggestions}
               >
-                Reject All
+                {t("aiBatch.actions.rejectAll")}
               </Button>
             </div>
           )}

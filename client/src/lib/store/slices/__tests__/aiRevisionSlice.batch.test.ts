@@ -2,31 +2,33 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AIRevisionSlice, TranscriptStore } from "../../types";
 import { createAIRevisionSlice, initialAIRevisionState } from "../aiRevisionSlice";
 
-const reviseSegmentsBatchMock = vi.fn(
-  async (params: {
-    segments: Array<{ id: string; text: string }>;
-    onResult?: (result: {
-      segmentId: string;
-      revisedText: string;
-      changes: Array<{ type: "replace"; position: number; length: number }>;
-    }) => void;
-  }) => {
-    params.onResult?.({
-      segmentId: "seg-2",
-      revisedText: "Revised text",
-      changes: [{ type: "replace", position: 0, length: 1 }],
-    });
-    params.onResult?.({
-      segmentId: "seg-2",
-      revisedText: "Revised text",
-      changes: [{ type: "replace", position: 0, length: 1 }],
-    });
-    return {
-      results: [],
-      summary: { total: params.segments.length, revised: 1, unchanged: 0, failed: 0 },
-      issues: [],
-    };
-  },
+const reviseSegmentsBatchMock = vi.hoisted(() =>
+  vi.fn(
+    async (params: {
+      segments: Array<{ id: string; text: string }>;
+      onResult?: (result: {
+        segmentId: string;
+        revisedText: string;
+        changes: Array<{ type: "replace"; position: number; length: number }>;
+      }) => void;
+    }) => {
+      params.onResult?.({
+        segmentId: "seg-2",
+        revisedText: "Revised text",
+        changes: [{ type: "replace", position: 0, length: 1 }],
+      });
+      params.onResult?.({
+        segmentId: "seg-2",
+        revisedText: "Revised text",
+        changes: [{ type: "replace", position: 0, length: 1 }],
+      });
+      return {
+        results: [],
+        summary: { total: params.segments.length, revised: 1, unchanged: 0, failed: 0 },
+        issues: [],
+      };
+    },
+  ),
 );
 
 vi.mock("@/lib/ai/features/revision", async () => ({
@@ -98,5 +100,27 @@ describe("aiRevisionSlice - batch de-duplication", () => {
     const suggestions = state.aiRevisionSuggestions;
     expect(suggestions).toHaveLength(2);
     expect(suggestions.filter((s) => s.segmentId === "seg-2")).toHaveLength(1);
+  });
+
+  it("summarizes batch errors by cause without repeating prefixes", async () => {
+    reviseSegmentsBatchMock.mockResolvedValueOnce({
+      results: [],
+      summary: { total: 3, revised: 0, unchanged: 0, failed: 3 },
+      issues: [
+        { level: "error", message: "Failed to revise segment: Request timed out after 30s" },
+        {
+          level: "error",
+          message: "Failed to revise segment: Batch stopped after repeated connection failures.",
+        },
+        { level: "error", message: "Batch stopped after repeated connection failures" },
+      ],
+    });
+
+    slice.startBatchRevision(["seg-1", "seg-2"], "builtin-text-cleanup");
+    await flushPromises();
+
+    expect(mockStore.getState().aiRevisionError).toBe(
+      "Request timed out after 30s; 2x Aborted after repeated failures",
+    );
   });
 });

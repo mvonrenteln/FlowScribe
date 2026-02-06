@@ -1,4 +1,5 @@
 import { AlertCircle, Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -48,10 +49,10 @@ export function AIConfigurationSection({
   promptValue,
   promptOptions,
   batchSize = "1",
-  batchSizeLabel = "Batch Size",
+  batchSizeLabel,
   batchSizeMin = 1,
   batchSizeMax = 50,
-  batchSizeHelp = "Number of segments to process in each batch (1-50)",
+  batchSizeHelp,
   showBatchSize = true,
   onProviderChange,
   onModelChange,
@@ -59,18 +60,21 @@ export function AIConfigurationSection({
   onBatchSizeChange = () => {},
   onOpenSettings,
 }: AIConfigurationSectionProps) {
+  const { t } = useTranslation();
   const selectedProvider = settings?.aiProviders.find((p) => p.id === selectedProviderId);
   const availableModels = selectedProvider?.availableModels ?? [];
+  const resolvedBatchSizeLabel = batchSizeLabel ?? t("aiBatch.config.batchSizeLabel");
+  const resolvedBatchSizeHelp = batchSizeHelp ?? t("aiBatch.config.batchSizeHelp");
 
   return (
     <section className="space-y-3">
       <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-        AI Configuration
+        {t("aiBatch.config.title")}
       </h3>
       {settings && settings.aiProviders.length > 0 ? (
         <div className="space-y-2">
           <Label htmlFor={`${id}-provider`} className="text-xs text-muted-foreground">
-            Provider
+            {t("aiBatch.config.providerLabel")}
           </Label>
           <Select
             value={selectedProviderId}
@@ -78,14 +82,16 @@ export function AIConfigurationSection({
             disabled={isProcessing}
           >
             <SelectTrigger id={`${id}-provider`} className="h-8 text-sm">
-              <SelectValue placeholder="Select provider..." />
+              <SelectValue placeholder={t("aiBatch.config.providerPlaceholder")} />
             </SelectTrigger>
             <SelectContent>
               {settings.aiProviders.map((provider) => (
                 <SelectItem key={provider.id} value={provider.id}>
                   {provider.name}
                   {provider.isDefault && (
-                    <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      ({t("aiBatch.config.defaultBadge")})
+                    </span>
                   )}
                 </SelectItem>
               ))}
@@ -97,7 +103,7 @@ export function AIConfigurationSection({
       {selectedProvider && (
         <div className="space-y-2">
           <Label htmlFor={`${id}-model`} className="text-xs text-muted-foreground">
-            Model
+            {t("aiBatch.config.modelLabel")}
           </Label>
           {availableModels.length > 0 ? (
             <Select
@@ -106,7 +112,7 @@ export function AIConfigurationSection({
               disabled={isProcessing}
             >
               <SelectTrigger id={`${id}-model`} className="h-8 text-sm">
-                <SelectValue placeholder="Select model..." />
+                <SelectValue placeholder={t("aiBatch.config.modelPlaceholder")} />
               </SelectTrigger>
               <SelectContent>
                 {availableModels.map((model) => (
@@ -118,7 +124,7 @@ export function AIConfigurationSection({
             </Select>
           ) : (
             <div className="text-xs text-muted-foreground bg-muted rounded px-2 py-1.5">
-              {selectedProvider.model || "No model configured"}
+              {selectedProvider.model || t("aiBatch.config.noModelConfigured")}
             </div>
           )}
         </div>
@@ -126,18 +132,20 @@ export function AIConfigurationSection({
 
       <div className="space-y-2">
         <Label htmlFor={`${id}-prompt`} className="text-xs text-muted-foreground">
-          Prompt
+          {t("aiBatch.config.promptLabel")}
         </Label>
         <Select value={promptValue} onValueChange={onPromptChange} disabled={isProcessing}>
           <SelectTrigger id={`${id}-prompt`} className="h-8 text-sm">
-            <SelectValue placeholder="Select prompt" />
+            <SelectValue placeholder={t("aiBatch.config.promptPlaceholder")} />
           </SelectTrigger>
           <SelectContent>
             {promptOptions.map((prompt) => (
               <SelectItem key={prompt.id} value={prompt.id}>
                 {prompt.name}
                 {prompt.isDefault && (
-                  <span className="ml-2 text-xs text-muted-foreground">(Default)</span>
+                  <span className="ml-2 text-xs text-muted-foreground">
+                    ({t("aiBatch.config.defaultBadge")})
+                  </span>
                 )}
               </SelectItem>
             ))}
@@ -148,7 +156,7 @@ export function AIConfigurationSection({
       {showBatchSize ? (
         <div className="flex flex-col gap-1">
           <Label htmlFor={`${id}-batch-size`} className="text-xs text-muted-foreground cursor-help">
-            {batchSizeLabel}
+            {resolvedBatchSizeLabel}
           </Label>
           <div className="flex items-center gap-2">
             <div className="flex-1">
@@ -195,7 +203,7 @@ export function AIConfigurationSection({
                     />
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>{batchSizeHelp}</p>
+                    <p>{resolvedBatchSizeHelp}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -210,7 +218,7 @@ export function AIConfigurationSection({
                     </Button>
                   </TooltipTrigger>
                   <TooltipContent>
-                    <p>Configure AI providers and prompts</p>
+                    <p>{t("aiBatch.config.settingsTooltip")}</p>
                   </TooltipContent>
                 </Tooltip>
               </TooltipProvider>
@@ -228,7 +236,7 @@ export function AIConfigurationSection({
                   </Button>
                 </TooltipTrigger>
                 <TooltipContent>
-                  <p>Configure AI providers and prompts</p>
+                  <p>{t("aiBatch.config.settingsTooltip")}</p>
                 </TooltipContent>
               </Tooltip>
             </TooltipProvider>
@@ -239,7 +247,7 @@ export function AIConfigurationSection({
       {settings && settings.aiProviders.length === 0 && (
         <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm dark:bg-amber-900/20 dark:text-amber-200">
           <AlertCircle className="h-4 w-4 shrink-0" />
-          <span>No AI provider configured. Add one in Settings → AI → Server & Models.</span>
+          <span>{t("aiBatch.config.noProviderConfigured")}</span>
         </div>
       )}
     </section>

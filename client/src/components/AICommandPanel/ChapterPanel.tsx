@@ -1,5 +1,6 @@
 import { Check, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,6 +22,7 @@ interface ChapterPanelProps {
 }
 
 export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<ChapterPanelProps>) {
+  const { t } = useTranslation();
   const segments = useTranscriptStore((s) => s.segments);
   const suggestions = useTranscriptStore((s) => s.aiChapterDetectionSuggestions);
   const isProcessing = useTranscriptStore((s) => s.aiChapterDetectionIsProcessing);
@@ -116,7 +118,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         batchSize={batchSize}
         batchSizeMin={10}
         batchSizeMax={200}
-        batchSizeHelp="Number of segments to process in each batch (10-200)"
+        batchSizeHelp={t("aiBatch.chapter.batchSizeHelp")}
         onProviderChange={(value) => {
           selectProvider(value);
           updateConfig({ selectedProviderId: value || undefined, selectedModel: undefined });
@@ -132,12 +134,12 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
 
       <section className="space-y-3">
         <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-          Chapter Settings
+          {t("aiBatch.chapter.settingsTitle")}
         </h3>
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-2">
             <Label htmlFor="chapters-min" className="text-xs text-muted-foreground">
-              Min Length (segments)
+              {t("aiBatch.chapter.minLengthLabel")}
             </Label>
             <Input
               id="chapters-min"
@@ -166,7 +168,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
           </div>
           <div className="space-y-2">
             <Label htmlFor="chapters-max" className="text-xs text-muted-foreground">
-              Max Length (segments)
+              {t("aiBatch.chapter.maxLengthLabel")}
             </Label>
             <Input
               id="chapters-max"
@@ -201,16 +203,16 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         isCancelling={isCancelling}
         processedCount={processedBatches}
         totalToProcess={totalBatches}
-        progressUnitLabel="batches"
+        progressUnitLabel={t("aiBatch.units.batches")}
         error={error}
         startAction={{
-          label: "Start Batch",
+          label: t("aiBatch.actions.startBatch"),
           icon: <Sparkles className="h-4 w-4 mr-2" />,
           onClick: handleStart,
           disabled: scopedSegmentIds.length === 0,
         }}
         stopAction={{
-          label: "Stop",
+          label: t("aiBatch.actions.stop"),
           icon: <StopCircle className="h-4 w-4 mr-2" />,
           onClick: cancel,
           variant: "destructive",
@@ -218,7 +220,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         secondaryAction={
           pending.length > 0
             ? {
-                label: "Clear",
+                label: t("aiBatch.actions.clear"),
                 icon: <Trash2 className="h-4 w-4 mr-2" />,
                 onClick: clear,
                 variant: "outline",
@@ -229,7 +231,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         {(batchLog.length > 0 || isProcessing) && (
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              Total elapsed:{" "}
+              {t("aiBatch.batchLog.totalElapsed")}{" "}
               {batchLog.length > 0
                 ? formatDurationMs(batchLog[batchLog.length - 1].elapsedMs)
                 : "-"}
@@ -246,10 +248,10 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
                 suggestions: entry.suggestionCount,
                 processed: `${entry.processedTotal}/${entry.totalExpected}`,
                 issues: entry.fatal
-                  ? "FATAL"
+                  ? t("aiBatch.batchLog.fatal")
                   : entry.issues.length > 0
                     ? entry.issues[0]?.message
-                    : "—",
+                    : t("aiBatch.batchLog.emptyIssue"),
                 loggedAt: entry.loggedAt,
                 requestPayload: entry.requestPayload,
                 responsePayload: entry.responsePayload,
@@ -257,16 +259,16 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
               open={isLogOpen}
               onOpenChange={setIsLogOpen}
               total={totalBatches}
-              title="Batch Log"
-              description="Batch processing summary and issues."
-              triggerLabel="Batch Log"
+              title={t("aiBatch.batchLog.title")}
+              description={t("aiBatch.batchLog.description")}
+              triggerLabel={t("aiBatch.batchLog.title")}
             />
           </div>
         )}
       </AIBatchControlSection>
 
       {(pending.length > 0 || batchLog.length > 0 || isProcessing) && (
-        <AIResultsSection title={`Suggestions (${pending.length} pending)`}>
+        <AIResultsSection title={t("aiBatch.results.suggestionsTitle", { count: pending.length })}>
           <ResultsList
             items={pending}
             getKey={(item) => item.id}
@@ -288,11 +290,11 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
             <div className="flex gap-2">
               <Button variant="outline" size="sm" className="flex-1" onClick={clear}>
                 <Trash2 className="mr-2 h-4 w-4" />
-                Clear
+                {t("aiBatch.actions.clear")}
               </Button>
               <Button size="sm" className="flex-1" onClick={acceptAll}>
                 <Check className="mr-2 h-4 w-4" />
-                Accept All
+                {t("aiBatch.actions.acceptAll")}
               </Button>
             </div>
           ) : null}

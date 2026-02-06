@@ -28,6 +28,9 @@ export interface PersistedSettings {
 
   /** Maximum number of concurrent AI requests when parallel mode is enabled */
   maxConcurrentRequests?: number;
+
+  /** Timeout for AI requests in seconds (0 disables timeout) */
+  aiRequestTimeoutSeconds?: number;
 }
 
 // ==================== Default Settings ====================
@@ -41,6 +44,13 @@ export const DEFAULT_AI_CONCURRENCY = {
   enabled: false,
   maxConcurrent: 2,
 };
+
+export const AI_REQUEST_TIMEOUT_LIMITS = {
+  min: 5,
+  max: 300,
+};
+
+export const DEFAULT_AI_REQUEST_TIMEOUT_SECONDS = 30;
 
 export const DEFAULT_SETTINGS: PersistedSettings = {
   version: SETTINGS_VERSION,
@@ -58,6 +68,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   parseRetryCount: 3,
   enableConcurrentRequests: DEFAULT_AI_CONCURRENCY.enabled,
   maxConcurrentRequests: DEFAULT_AI_CONCURRENCY.maxConcurrent,
+  aiRequestTimeoutSeconds: DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
 };
 
 // ==================== Storage Functions ====================
@@ -146,6 +157,22 @@ export function getAIConcurrencySettings(settings: PersistedSettings): {
 export function getEffectiveAIRequestConcurrency(settings: PersistedSettings): number {
   const { enabled, maxConcurrent } = getAIConcurrencySettings(settings);
   return enabled ? maxConcurrent : AI_CONCURRENCY_LIMITS.min;
+}
+
+/**
+ * Get the effective timeout used for AI requests (ms).
+ */
+export function getAIRequestTimeoutMs(settings: PersistedSettings): number {
+  const raw = settings.aiRequestTimeoutSeconds ?? DEFAULT_AI_REQUEST_TIMEOUT_SECONDS;
+  if (!Number.isFinite(raw)) return DEFAULT_AI_REQUEST_TIMEOUT_SECONDS * 1000;
+
+  if (raw === 0) return 0;
+
+  const clamped = Math.min(
+    AI_REQUEST_TIMEOUT_LIMITS.max,
+    Math.max(AI_REQUEST_TIMEOUT_LIMITS.min, raw),
+  );
+  return Math.round(clamped * 1000);
 }
 
 /**

@@ -1613,6 +1613,30 @@ interface ErrorRecoveryStrategy {
 }
 ```
 
+### User-Facing Errors
+
+Provider-related errors are normalized into compact, user-facing messages:
+
+- `AIAuthError`: Authentication failed. Check your API key.
+- `AIRateLimitError`: Rate limit hit. Please wait and try again.
+- `AIRequestError`: Request rejected. Check model and parameters.
+- `AIProviderUnavailableError`: Provider error. Please try again later.
+- `AIConnectionError`: Connection failed. Check your network and base URL.
+
+**Hard errors and toasts**
+
+If an AI request fails with one of the provider error codes above, the UI raises a destructive toast
+in addition to the inline error message so critical failures are visible immediately.
+
+**Request timeout**
+
+Global AI settings include a request timeout (default: 30 seconds). Set it to 0 to disable.
+
+**Batch log responses**
+
+Revision batch logs capture the response payload for failed requests. If a provider error returns
+only a message, that message is stored as the response payload so it is visible in the log.
+
 ---
 
 ## Testing Strategy

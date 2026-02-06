@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { createBaseState, resetStore } from "@/lib/__tests__/storeTestUtils";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, TranscriptStore } from "@/lib/store/types";
 import { MergePanel } from "../MergePanel";
+import { renderWithI18n } from "./testUtils";
 
 const baseSegments: Segment[] = [
   {
@@ -72,7 +73,7 @@ describe("MergePanel", () => {
       startMergeAnalysis,
     });
 
-    render(
+    renderWithI18n(
       <MergePanel filteredSegmentIds={["seg-1", "seg-2", "seg-3"]} onOpenSettings={vi.fn()} />,
     );
 
@@ -140,7 +141,7 @@ describe("MergePanel", () => {
       startMergeAnalysis,
     });
 
-    render(
+    renderWithI18n(
       <MergePanel filteredSegmentIds={["seg-1", "seg-3", "seg-4"]} onOpenSettings={vi.fn()} />,
     );
 
@@ -183,7 +184,7 @@ describe("MergePanel", () => {
       seekToTime,
     });
 
-    render(<MergePanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(<MergePanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
 
     const suggestion = screen.getByRole("button", { name: /first segment/i });
     await act(async () => {

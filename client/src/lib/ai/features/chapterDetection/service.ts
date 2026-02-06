@@ -7,7 +7,7 @@
  * @module ai/features/chapterDetection/service
  */
 
-import { executeFeature, runBatchCoordinator } from "@/lib/ai/core";
+import { executeFeature, runBatchCoordinator, toAIError } from "@/lib/ai/core";
 import type { AIFeatureOptions } from "@/lib/ai/core/types";
 import { compileTemplate } from "@/lib/ai/prompts";
 import type { PromptVariables } from "@/lib/ai/prompts/types";
@@ -198,12 +198,12 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
           },
         });
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const aiError = toAIError(error);
         const batchIssues: ChapterDetectionIssue[] = [
           {
             level: "error",
-            message,
-            context: { batchIndex: prepared.batchIndex },
+            message: aiError.toUserMessage(),
+            context: { batchIndex: prepared.batchIndex, errorCode: aiError.code },
           },
         ];
 
@@ -232,7 +232,7 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
           {
             level: "error",
             message: result.error ?? `Batch ${prepared.batchIndex + 1} failed`,
-            context: { batchIndex: prepared.batchIndex },
+            context: { batchIndex: prepared.batchIndex, errorCode: result.errorCode },
           },
         ];
 

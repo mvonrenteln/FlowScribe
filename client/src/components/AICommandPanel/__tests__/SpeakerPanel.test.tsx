@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { createBaseState, resetStore } from "@/lib/__tests__/storeTestUtils";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, TranscriptStore } from "@/lib/store/types";
 import { SpeakerPanel } from "../SpeakerPanel";
+import { renderWithI18n } from "./testUtils";
 
 const baseSegments: Segment[] = [
   {
@@ -65,7 +66,9 @@ describe("SpeakerPanel", () => {
     const user = userEvent.setup();
     setStoreState({ segments: baseSegments });
 
-    render(<SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(
+      <SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />,
+    );
 
     expect(screen.getByText("Filtered: 1 segment")).toBeInTheDocument();
 
@@ -97,7 +100,7 @@ describe("SpeakerPanel", () => {
       seekToTime,
     });
 
-    render(<SpeakerPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(<SpeakerPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
 
     const suggestion = screen.getByRole("button", { name: /hello segment/i });
     await act(async () => {
@@ -115,7 +118,7 @@ describe("SpeakerPanel", () => {
       aiSpeakerSuggestions: [],
     });
 
-    render(<SpeakerPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(<SpeakerPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
 
     expect(screen.getByText("Suggestions (0 pending)")).toBeInTheDocument();
   });
@@ -129,7 +132,9 @@ describe("SpeakerPanel", () => {
       startAnalysis,
     });
 
-    render(<SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(
+      <SpeakerPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />,
+    );
 
     const startButton = screen.getByRole("button", { name: /start batch/i });
     await act(async () => {
