@@ -447,26 +447,36 @@ function TranscriptSegmentComponent({
           />
         </div>
 
-        <SegmentActions
-          segmentId={segment.id}
-          isConfirmed={isConfirmed}
-          isBookmarked={isBookmarked}
-          canSplitAtCurrentWord={canSplitAtCurrentWord}
-          resolvedSplitWordIndex={resolvedSplitWordIndex}
-          selectedWordIndex={selectedWordIndex}
-          hasSelectionForSplit={hasSelectionForSplit}
-          showConfirmAction={showConfirmAction}
-          isEditing={isEditing}
-          onConfirm={onConfirm}
-          onToggleBookmark={onToggleBookmark}
-          onSplit={onSplit}
-          onMergeWithPrevious={onMergeWithPrevious}
-          onMergeWithNext={onMergeWithNext}
-          onDelete={onDelete}
-          onStartChapterHere={onStartChapterHere}
-          onStartEdit={handleStartEdit}
-          onClearSelection={() => setSelectedWordIndex(null)}
-        />
+        <div
+          className={cn(
+            "transition-opacity",
+            isActive
+              ? "opacity-100 pointer-events-auto"
+              : "opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto group-focus-within:opacity-100 group-focus-within:pointer-events-auto",
+          )}
+          data-testid={`segment-actions-${segment.id}`}
+        >
+          <SegmentActions
+            segmentId={segment.id}
+            isConfirmed={isConfirmed}
+            isBookmarked={isBookmarked}
+            canSplitAtCurrentWord={canSplitAtCurrentWord}
+            resolvedSplitWordIndex={resolvedSplitWordIndex}
+            selectedWordIndex={selectedWordIndex}
+            hasSelectionForSplit={hasSelectionForSplit}
+            showConfirmAction={showConfirmAction}
+            isEditing={isEditing}
+            onConfirm={onConfirm}
+            onToggleBookmark={onToggleBookmark}
+            onSplit={onSplit}
+            onMergeWithPrevious={onMergeWithPrevious}
+            onMergeWithNext={onMergeWithNext}
+            onDelete={onDelete}
+            onStartChapterHere={onStartChapterHere}
+            onStartEdit={handleStartEdit}
+            onClearSelection={() => setSelectedWordIndex(null)}
+          />
+        </div>
       </div>
     </article>
   );

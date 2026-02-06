@@ -100,6 +100,7 @@ Three-panel layout (fixed proportions):
 - Hover: Border emphasis (border-gray-300)
 - Selected: Ring-2 with accent treatment
 - Focus: Ring-2 with keyboard focus indicator
+- Segment header actions: Show action buttons only for the active segment; reveal them on hover/focus of the full segment card to avoid visual noise.
 
 **Drag & Drop:**
 - Dragging segment: Opacity-50 on source

@@ -48,6 +48,52 @@ const getFocusableElements = (container: HTMLElement) => {
 };
 
 describe("TranscriptSegment", () => {
+  it("hides segment actions when inactive and shows them when active", () => {
+    const { rerender } = render(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const actions = screen.getByTestId("segment-actions-seg-1");
+    expect(actions).toHaveClass("opacity-0");
+    expect(actions).toHaveClass("pointer-events-none");
+
+    rerender(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const activeActions = screen.getByTestId("segment-actions-seg-1");
+    expect(activeActions).toHaveClass("opacity-100");
+    expect(activeActions).toHaveClass("pointer-events-auto");
+  });
+
   it("keeps the tag container height stable when tags are present", () => {
     const taggedSegment: Segment = { ...segment, tags: ["tag-1"] };
     render(
