@@ -85,8 +85,8 @@ export function summarizeMessages(issues: unknown[] | undefined | null, maxMessa
 
   const messages = issues
     .map(extractMessage)
-    .map((message) => message.trim())
-    .filter(Boolean);
+    .filter(Boolean)
+    .map((message) => String(message).trim());
   if (messages.length === 0) return "";
 
   const uniqueMessages: string[] = [];
