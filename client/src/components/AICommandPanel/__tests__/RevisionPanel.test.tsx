@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { act } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
@@ -6,6 +6,7 @@ import { createBaseState, resetStore } from "@/lib/__tests__/storeTestUtils";
 import { useTranscriptStore } from "@/lib/store";
 import type { Segment, TranscriptStore } from "@/lib/store/types";
 import { RevisionPanel } from "../RevisionPanel";
+import { renderWithI18n } from "./testUtils";
 
 const baseSegments: Segment[] = [
   {
@@ -53,7 +54,9 @@ describe("RevisionPanel", () => {
   it("shows all scope count when filters match all segments", () => {
     setStoreState({ segments: baseSegments });
 
-    render(<RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(
+      <RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />,
+    );
 
     expect(screen.getByText("All: 1 segment")).toBeInTheDocument();
   });
@@ -61,7 +64,9 @@ describe("RevisionPanel", () => {
   it("does not render a batch size input", () => {
     setStoreState({ segments: baseSegments });
 
-    render(<RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(
+      <RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />,
+    );
 
     expect(screen.queryByLabelText(/batch size/i)).not.toBeInTheDocument();
   });
@@ -87,7 +92,9 @@ describe("RevisionPanel", () => {
       seekToTime,
     });
 
-    render(<RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />);
+    renderWithI18n(
+      <RevisionPanel filteredSegmentIds={["seg-1", "seg-2"]} onOpenSettings={vi.fn()} />,
+    );
 
     const suggestion = screen.getByRole("button", { name: /needs revision/i });
     await act(async () => {

@@ -1,5 +1,6 @@
 import { Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Drawer,
@@ -35,6 +36,7 @@ interface RevisionPanelProps {
 }
 
 export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPanelProps) {
+  const { t } = useTranslation();
   const [isLogOpen, setIsLogOpen] = useState(false);
   const [selectedPromptId, setSelectedPromptId] = useState("");
   const [excludeConfirmed, setExcludeConfirmed] = useState(true);
@@ -146,13 +148,13 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         totalToProcess={totalToProcess}
         error={error}
         startAction={{
-          label: "Start Batch",
+          label: t("aiBatch.actions.startBatch"),
           icon: <Sparkles className="mr-2 h-4 w-4" />,
           onClick: handleStart,
           disabled: scopedSegmentIds.length === 0 || !effectivePromptId,
         }}
         stopAction={{
-          label: "Stop",
+          label: t("aiBatch.actions.stop"),
           icon: <StopCircle className="mr-2 h-4 w-4" />,
           onClick: cancelRevision,
         }}
@@ -160,17 +162,17 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
         {(batchLog.length > 0 || isProcessing) && (
           <div className="flex items-center justify-between text-xs text-muted-foreground">
             <span>
-              Batch log entries: {batchLog.length}
+              {t("aiBatch.revision.batchLogEntries", { count: batchLog.length })}
               {batchLog.length > 0
-                ? ` • last update ${new Date(
-                    batchLog[batchLog.length - 1].loggedAt,
-                  ).toLocaleTimeString()}`
+                ? ` • ${t("aiBatch.revision.lastUpdate", {
+                    time: new Date(batchLog[batchLog.length - 1].loggedAt).toLocaleTimeString(),
+                  })}`
                 : ""}
             </span>
             <Drawer open={isLogOpen} onOpenChange={setIsLogOpen}>
               <DrawerTrigger asChild>
                 <Button variant="ghost" size="sm">
-                  Batch Log
+                  {t("aiBatch.batchLog.title")}
                 </Button>
               </DrawerTrigger>
               <DrawerContent
@@ -183,9 +185,9 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                 }}
               >
                 <DrawerHeader>
-                  <DrawerTitle>Batch Log</DrawerTitle>
+                  <DrawerTitle>{t("aiBatch.batchLog.title")}</DrawerTitle>
                   <DrawerDescription className="sr-only">
-                    Batch revision status updates and errors.
+                    {t("aiBatch.revision.batchLogDescription")}
                   </DrawerDescription>
                 </DrawerHeader>
                 <div className="px-6 pb-6 flex-1 overflow-hidden">
@@ -193,23 +195,31 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                     <Table>
                       <TableHeader>
                         <TableRow>
-                          <TableHead>Segment</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Duration</TableHead>
-                          <TableHead>Time</TableHead>
-                          <TableHead>Error</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.segment")}</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.status")}</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.duration")}</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.time")}</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.error")}</TableHead>
+                          <TableHead>{t("aiBatch.revision.table.response")}</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
                         {batchLog.map((entry) => (
                           <TableRow key={`${entry.segmentId}-${entry.loggedAt}`}>
                             <TableCell>{entry.segmentId}</TableCell>
-                            <TableCell className="capitalize">{entry.status}</TableCell>
+                            <TableCell className="capitalize">
+                              {t(`aiBatch.revision.status.${entry.status}`)}
+                            </TableCell>
                             <TableCell>
                               {entry.durationMs ? formatDurationMs(entry.durationMs) : "-"}
                             </TableCell>
                             <TableCell>{new Date(entry.loggedAt).toLocaleTimeString()}</TableCell>
-                            <TableCell>{entry.error ?? "—"}</TableCell>
+                            <TableCell>{entry.error ?? t("aiBatch.batchLog.emptyIssue")}</TableCell>
+                            <TableCell title={entry.responsePayload ?? undefined}>
+                              {entry.responsePayload
+                                ? truncateText(entry.responsePayload, 120)
+                                : t("aiBatch.batchLog.emptyIssue")}
+                            </TableCell>
                           </TableRow>
                         ))}
                       </TableBody>
@@ -224,17 +234,25 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
 
       {(pendingCount > 0 || acceptedCount > 0 || rejectedCount > 0) && (
         <AIResultsSection
-          title="Results Summary"
+          title={t("aiBatch.results.summaryTitle")}
           meta={
             batchLog.length > 0 ? (
               <div className="text-xs text-muted-foreground">
-                Revised: {revisedCount} • Unchanged: {unchangedCount} • Failed: {failedCount}
+                {t("aiBatch.revision.summaryMeta", {
+                  revised: revisedCount,
+                  unchanged: unchangedCount,
+                  failed: failedCount,
+                })}
               </div>
             ) : null
           }
         >
           <div className="text-sm text-muted-foreground">
-            Pending: {pendingCount} • Accepted: {acceptedCount} • Rejected: {rejectedCount}
+            {t("aiBatch.revision.pendingMeta", {
+              pending: pendingCount,
+              accepted: acceptedCount,
+              rejected: rejectedCount,
+            })}
           </div>
           <ResultsList
             items={pendingSuggestions}
@@ -264,16 +282,16 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                 className="flex-1 text-destructive hover:text-destructive"
                 onClick={rejectAllRevisions}
               >
-                Reject All
+                {t("aiBatch.actions.rejectAll")}
               </Button>
               <Button size="sm" className="flex-1" onClick={acceptAllRevisions}>
-                Accept All
+                {t("aiBatch.actions.acceptAll")}
               </Button>
             </div>
           ) : (
             <Button variant="outline" size="sm" className="w-full" onClick={clearRevisions}>
               <Trash2 className="mr-2 h-4 w-4" />
-              Clear Results
+              {t("aiBatch.revision.clearResults")}
             </Button>
           )}
         </AIResultsSection>
@@ -282,7 +300,7 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
       {isProcessing && (
         <div className="flex items-center gap-2 text-xs text-muted-foreground">
           <Loader2 className="h-3.5 w-3.5 animate-spin" />
-          Running batch revision...
+          {t("aiBatch.revision.running")}
         </div>
       )}
     </div>

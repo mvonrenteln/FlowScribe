@@ -12,7 +12,13 @@ import {
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import { computeTextChanges, summarizeChanges } from "../../../diffUtils";
-import { executeFeature, runBatchCoordinator } from "../../core";
+import {
+  AIError,
+  executeFeature,
+  formatResponsePayload,
+  runBatchCoordinator,
+  toAIError,
+} from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { compileTemplate } from "../../prompts";
 
@@ -65,13 +71,12 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
   });
 
   if (!result.success || !result.data) {
-    console.error("[Revision Service] Revision failed:", result.error);
-    return {
-      segmentId: segment.id,
-      revisedText: segment.text,
-      changes: [],
-      reasoning: result.error,
-    };
+    const responsePayload = formatResponsePayload(result.rawResponse, result.error);
+    const message = result.error ?? "Revision failed";
+    console.error("[Revision Service] Revision failed:", message);
+    throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
+      responsePayload,
+    });
   }
 
   // Parse response (handles LLM artifacts)
@@ -125,16 +130,29 @@ export async function reviseSegmentsBatch(
   let unchanged = 0;
   let failed = 0;
   let processed = 0;
+  let succeeded = 0;
+  let abortedByFailures = false;
 
   // Create index for context lookup
   const segmentIndex = new Map(allSegments.map((s, i) => [s.id, { segment: s, index: i }]));
 
   const concurrency = getEffectiveAIRequestConcurrency(initializeSettings());
+  const internalAbortController = new AbortController();
+
+  if (signal) {
+    if (signal.aborted) {
+      internalAbortController.abort(signal.reason);
+    } else {
+      signal.addEventListener("abort", () => internalAbortController.abort(signal.reason), {
+        once: true,
+      });
+    }
+  }
 
   await runBatchCoordinator({
     inputs: segments,
     concurrency,
-    signal,
+    signal: internalAbortController.signal,
     prepareYieldEvery: 10,
     emitYieldEvery: 10,
     prepare: (segment) => {
@@ -159,7 +177,7 @@ export async function reviseSegmentsBatch(
           prompt,
           previousSegment: prepared.previousSegment,
           nextSegment: prepared.nextSegment,
-          signal,
+          signal: internalAbortController.signal,
           providerId,
           model,
         });
@@ -181,13 +199,26 @@ export async function reviseSegmentsBatch(
           result,
         };
       } catch (error) {
-        const message = error instanceof Error ? error.message : String(error);
+        const aiError = toAIError(error);
+        const responsePayload = getErrorResponsePayload(aiError);
+        if (aiError.code === "CANCELLED") {
+          return {
+            status: "cancelled" as const,
+            segmentId: prepared.segment.id,
+            loggedAt: Date.now(),
+            durationMs: Date.now() - itemStart,
+            errorCode: aiError.code,
+          };
+        }
+
         return {
           status: "failed" as const,
           segmentId: prepared.segment.id,
           loggedAt: Date.now(),
           durationMs: Date.now() - itemStart,
-          error: message,
+          error: aiError.toUserMessage(),
+          responsePayload,
+          errorCode: aiError.code,
         };
       }
     },
@@ -196,6 +227,7 @@ export async function reviseSegmentsBatch(
 
       if (outcome.status === "revised" && outcome.result) {
         results.push(outcome.result);
+        succeeded++;
         onResult?.(outcome.result);
       }
 
@@ -209,7 +241,20 @@ export async function reviseSegmentsBatch(
           level: "error",
           message: `Failed to revise segment: ${outcome.error}`,
           segmentId: outcome.segmentId,
+          context: { errorCode: outcome.errorCode },
         });
+
+        if (
+          !abortedByFailures &&
+          succeeded === 0 &&
+          failed >= 5 &&
+          !internalAbortController.signal.aborted
+        ) {
+          abortedByFailures = true;
+          internalAbortController.abort(
+            new Error("Batch stopped after repeated connection failures."),
+          );
+        }
       }
 
       const entry: RevisionBatchLogEntry = {
@@ -218,6 +263,8 @@ export async function reviseSegmentsBatch(
         loggedAt: outcome.loggedAt,
         durationMs: outcome.durationMs,
         error: outcome.status === "failed" ? outcome.error : undefined,
+        responsePayload: outcome.status === "failed" ? outcome.responsePayload : undefined,
+        errorCode: outcome.errorCode,
       };
 
       onItemComplete?.(entry);
@@ -225,11 +272,17 @@ export async function reviseSegmentsBatch(
     },
   });
 
-  if (signal?.aborted) {
+  if (internalAbortController.signal.aborted) {
     issues.push({
-      level: "warn",
-      message: "Revision cancelled by user",
-      context: { processed, total: segments.length },
+      level: abortedByFailures ? "error" : "warn",
+      message: abortedByFailures
+        ? "Batch stopped after repeated connection failures"
+        : "Revision cancelled by user",
+      context: {
+        processed,
+        total: segments.length,
+        errorCode: abortedByFailures ? "CONNECTION_ERROR" : "CANCELLED",
+      },
     });
   }
 
@@ -246,6 +299,16 @@ export async function reviseSegmentsBatch(
 }
 
 // ==================== Helper Functions ====================
+
+function getErrorResponsePayload(error: AIError): string | undefined {
+  const details = error.details;
+  if (details && typeof details === "object") {
+    const responsePayload = (details as Record<string, unknown>).responsePayload;
+    const originalError = (details as Record<string, unknown>).originalError;
+    return formatResponsePayload(responsePayload ?? originalError, error.message);
+  }
+  return formatResponsePayload(undefined, error.message);
+}
 
 /**
  * Build revision prompt with context.

@@ -48,14 +48,20 @@ export {
 
 // Errors
 export {
+  AIAuthError,
   AICancellationError,
   AIConfigurationError,
+  AIConnectionError,
   AIError,
   AIFeatureNotFoundError,
   AIParseError,
+  AIProviderUnavailableError,
+  AIRateLimitError,
+  AIRequestError,
   AIValidationError,
   getErrorMessage,
   isCancellationError,
+  isHardAIErrorCode,
   summarizeAIError,
   toAIError,
 } from "./errors";
@@ -72,6 +78,8 @@ export {
   registerFeature,
   unregisterFeature,
 } from "./featureRegistry";
+// Response payload formatting helper
+export { formatResponsePayload } from "./formatResponsePayload";
 // Formatting
 export {
   type Summarizable,

@@ -83,15 +83,36 @@ function extractMessage(issue: unknown): string {
 export function summarizeMessages(issues: unknown[] | undefined | null, maxMessages = 3): string {
   if (!issues || issues.length === 0) return "";
 
-  const messages = issues.map(extractMessage).filter(Boolean);
+  const messages = issues
+    .map(extractMessage)
+    .filter(Boolean)
+    .map((message) => String(message).trim());
   if (messages.length === 0) return "";
 
-  if (messages.length <= maxMessages) {
-    return messages.join("; ");
+  const uniqueMessages: string[] = [];
+  const counts = new Map<string, number>();
+
+  for (const message of messages) {
+    if (!counts.has(message)) {
+      uniqueMessages.push(message);
+    }
+    counts.set(message, (counts.get(message) ?? 0) + 1);
   }
 
-  const shown = messages.slice(0, maxMessages).join("; ");
-  const remaining = messages.length - maxMessages;
+  const formatted = uniqueMessages.map((message) => {
+    const count = counts.get(message) ?? 0;
+    if (count > 1) {
+      return `${count}x ${message}`;
+    }
+    return message;
+  });
+
+  if (formatted.length <= maxMessages) {
+    return formatted.join("; ");
+  }
+
+  const shown = formatted.slice(0, maxMessages).join("; ");
+  const remaining = formatted.length - maxMessages;
   return `${shown} (+${remaining} more)`;
 }
 

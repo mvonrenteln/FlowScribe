@@ -1,5 +1,6 @@
 import { AlertCircle, Loader2 } from "lucide-react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Button, type ButtonProps } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 
@@ -30,14 +31,17 @@ export function AIBatchControlSection({
   isCancelling = false,
   processedCount,
   totalToProcess,
-  progressUnitLabel = "segments",
+  progressUnitLabel,
   error,
   startAction,
   stopAction,
-  cancellingLabel = "Cancelling...",
+  cancellingLabel,
   secondaryAction,
   children,
 }: AIBatchControlSectionProps) {
+  const { t } = useTranslation();
+  const resolvedUnitLabel = progressUnitLabel ?? t("aiBatch.units.segments");
+  const resolvedCancellingLabel = cancellingLabel ?? t("aiBatch.control.cancelling");
   const progressPercent =
     totalToProcess > 0 ? Math.round((processedCount / totalToProcess) * 100) : 0;
 
@@ -46,9 +50,13 @@ export function AIBatchControlSection({
       {isProcessing && (
         <div className="space-y-2">
           <div className="flex items-center justify-between text-sm">
-            <span>Processing...</span>
+            <span>{t("aiBatch.control.processing")}</span>
             <span>
-              {processedCount} / {totalToProcess} {progressUnitLabel}
+              {t("aiBatch.control.progress", {
+                processed: processedCount,
+                total: totalToProcess,
+                unit: resolvedUnitLabel,
+              })}
             </span>
           </div>
           <Progress value={progressPercent} className="h-2" />
@@ -73,7 +81,7 @@ export function AIBatchControlSection({
             disabled={isCancelling}
           >
             {isCancelling ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : stopAction.icon}
-            {isCancelling ? cancellingLabel : stopAction.label}
+            {isCancelling ? resolvedCancellingLabel : stopAction.label}
           </Button>
         ) : (
           <Button

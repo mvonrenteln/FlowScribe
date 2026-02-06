@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { useTranslation } from "react-i18next";
 import BatchLog, { type BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
 import { Button } from "@/components/ui/button";
 import {
@@ -25,18 +26,22 @@ export function BatchLogDrawer({
   total,
   open,
   onOpenChange,
-  title = "Batch Log",
-  description = "Batch processing summary and issues.",
-  triggerLabel = "Batch Log",
+  title,
+  description,
+  triggerLabel,
 }: BatchLogDrawerProps) {
+  const { t } = useTranslation();
   const logDrawerRef = useRef<HTMLDivElement>(null);
   const hasRows = rows.length > 0;
+  const resolvedTitle = title ?? t("aiBatch.batchLog.title");
+  const resolvedDescription = description ?? t("aiBatch.batchLog.description");
+  const resolvedTriggerLabel = triggerLabel ?? t("aiBatch.batchLog.title");
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerTrigger asChild>
         <Button variant="ghost" size="sm" disabled={!hasRows}>
-          {triggerLabel} ({rows.length})
+          {resolvedTriggerLabel} ({rows.length})
         </Button>
       </DrawerTrigger>
       <DrawerContent
@@ -49,8 +54,8 @@ export function BatchLogDrawer({
         }}
       >
         <DrawerHeader>
-          <DrawerTitle>{title}</DrawerTitle>
-          <DrawerDescription className="sr-only">{description}</DrawerDescription>
+          <DrawerTitle>{resolvedTitle}</DrawerTitle>
+          <DrawerDescription className="sr-only">{resolvedDescription}</DrawerDescription>
         </DrawerHeader>
         <div className="px-6 pb-6 flex-1 overflow-hidden">
           <div className="h-full overflow-auto">

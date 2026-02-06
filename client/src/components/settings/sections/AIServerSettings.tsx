@@ -37,9 +37,12 @@ import { createProvider, createProviderConfig, validateProviderConfig } from "@/
 import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types";
 import {
   AI_CONCURRENCY_LIMITS,
+  AI_REQUEST_TIMEOUT_LIMITS,
   addProviderToSettings,
   DEFAULT_AI_CONCURRENCY,
+  DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
   getAIConcurrencySettings,
+  getAIRequestTimeoutMs,
   initializeSettings,
   type PersistedSettings,
   removeProviderFromSettings,
@@ -510,6 +513,9 @@ export function AIServerSettings() {
   }, [settings]);
 
   const concurrencySettings = getAIConcurrencySettings(settings);
+  const effectiveTimeoutMs = getAIRequestTimeoutMs(settings);
+  const effectiveTimeoutSeconds =
+    effectiveTimeoutMs === 0 ? 0 : Math.round(effectiveTimeoutMs / 1000);
 
   const handleParseRetryCountChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, parseRetryCount: value }));
@@ -522,6 +528,135 @@ export function AIServerSettings() {
   const handleConcurrentLimitChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, maxConcurrentRequests: value }));
   }, []);
+
+  const handleRequestTimeoutChange = useCallback((value: number) => {
+    setSettings((prev) => ({ ...prev, aiRequestTimeoutSeconds: value }));
+  }, []);
+
+  // Local input state for "validate on blur" behavior
+  const [parseRetryInput, setParseRetryInput] = useState<string>(
+    String(settings.parseRetryCount ?? 3),
+  );
+  const [aiRequestTimeoutInput, setAiRequestTimeoutInput] = useState<string>(
+    String(
+      settings.aiRequestTimeoutSeconds ??
+        (effectiveTimeoutSeconds || DEFAULT_AI_REQUEST_TIMEOUT_SECONDS),
+    ),
+  );
+  const [concurrencyLimitInput, setConcurrencyLimitInput] = useState<string>(
+    String(
+      concurrencySettings.enabled
+        ? concurrencySettings.maxConcurrent
+        : DEFAULT_AI_CONCURRENCY.maxConcurrent,
+    ),
+  );
+
+  useEffect(() => {
+    setParseRetryInput(String(settings.parseRetryCount ?? 3));
+  }, [settings.parseRetryCount]);
+
+  useEffect(() => {
+    setAiRequestTimeoutInput(
+      String(
+        settings.aiRequestTimeoutSeconds ??
+          (effectiveTimeoutSeconds || DEFAULT_AI_REQUEST_TIMEOUT_SECONDS),
+      ),
+    );
+  }, [settings.aiRequestTimeoutSeconds, effectiveTimeoutSeconds]);
+
+  useEffect(() => {
+    setConcurrencyLimitInput(
+      String(
+        concurrencySettings.enabled
+          ? concurrencySettings.maxConcurrent
+          : DEFAULT_AI_CONCURRENCY.maxConcurrent,
+      ),
+    );
+  }, [concurrencySettings.enabled, concurrencySettings.maxConcurrent]);
+
+  const commitParseRetry = useCallback(() => {
+    const raw = parseRetryInput.trim();
+    if (raw === "") {
+      setParseRetryInput(String(settings.parseRetryCount ?? 3));
+      return;
+    }
+    const value = Number(raw);
+    if (Number.isFinite(value) && Number.isInteger(value) && value >= 0 && value <= 10) {
+      handleParseRetryCountChange(value);
+    } else {
+      setParseRetryInput(String(settings.parseRetryCount ?? 3));
+    }
+  }, [parseRetryInput, handleParseRetryCountChange, settings.parseRetryCount]);
+
+  const commitAiTimeout = useCallback(() => {
+    const raw = aiRequestTimeoutInput.trim();
+    if (raw === "") {
+      setAiRequestTimeoutInput(
+        String(
+          settings.aiRequestTimeoutSeconds ??
+            (effectiveTimeoutSeconds || DEFAULT_AI_REQUEST_TIMEOUT_SECONDS),
+        ),
+      );
+      return;
+    }
+    const value = Number(raw);
+    if (
+      Number.isFinite(value) &&
+      Number.isInteger(value) &&
+      (value === 0 ||
+        (value >= AI_REQUEST_TIMEOUT_LIMITS.min && value <= AI_REQUEST_TIMEOUT_LIMITS.max))
+    ) {
+      handleRequestTimeoutChange(value);
+    } else {
+      setAiRequestTimeoutInput(
+        String(
+          settings.aiRequestTimeoutSeconds ??
+            (effectiveTimeoutSeconds || DEFAULT_AI_REQUEST_TIMEOUT_SECONDS),
+        ),
+      );
+    }
+  }, [
+    aiRequestTimeoutInput,
+    handleRequestTimeoutChange,
+    settings.aiRequestTimeoutSeconds,
+    effectiveTimeoutSeconds,
+  ]);
+
+  const commitConcurrencyLimit = useCallback(() => {
+    const raw = concurrencyLimitInput.trim();
+    if (raw === "") {
+      setConcurrencyLimitInput(
+        String(
+          concurrencySettings.enabled
+            ? concurrencySettings.maxConcurrent
+            : DEFAULT_AI_CONCURRENCY.maxConcurrent,
+        ),
+      );
+      return;
+    }
+    const value = Number(raw);
+    if (
+      Number.isFinite(value) &&
+      Number.isInteger(value) &&
+      value >= AI_CONCURRENCY_LIMITS.min &&
+      value <= AI_CONCURRENCY_LIMITS.max
+    ) {
+      handleConcurrentLimitChange(value);
+    } else {
+      setConcurrencyLimitInput(
+        String(
+          concurrencySettings.enabled
+            ? concurrencySettings.maxConcurrent
+            : DEFAULT_AI_CONCURRENCY.maxConcurrent,
+        ),
+      );
+    }
+  }, [
+    concurrencyLimitInput,
+    handleConcurrentLimitChange,
+    concurrencySettings.enabled,
+    concurrencySettings.maxConcurrent,
+  ]);
 
   const handleAddProvider = useCallback((data: ProviderFormData) => {
     const newProvider = createProviderConfig({
@@ -689,12 +824,11 @@ export function AIServerSettings() {
               type="number"
               min={0}
               max={10}
-              value={settings.parseRetryCount ?? 3}
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (!Number.isNaN(value) && value >= 0 && value <= 10) {
-                  handleParseRetryCountChange(value);
-                }
+              value={parseRetryInput}
+              onChange={(e) => setParseRetryInput(e.target.value)}
+              onBlur={commitParseRetry}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
               }}
               className="w-24"
               data-testid="input-parse-retry-count"
@@ -703,6 +837,32 @@ export function AIServerSettings() {
           </div>
           <p className="text-xs text-muted-foreground">
             Number of retries when AI response cannot be parsed. Set to 0 to disable retries.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ai-request-timeout">Request Timeout (seconds)</Label>
+          <div className="flex items-center gap-4">
+            <Input
+              id="ai-request-timeout"
+              type="number"
+              min={0}
+              max={AI_REQUEST_TIMEOUT_LIMITS.max}
+              value={aiRequestTimeoutInput}
+              onChange={(e) => setAiRequestTimeoutInput(e.target.value)}
+              onBlur={commitAiTimeout}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
+              }}
+              className="w-24"
+              data-testid="input-ai-request-timeout"
+            />
+            <span className="text-sm text-muted-foreground">
+              (0 to disable, {AI_REQUEST_TIMEOUT_LIMITS.min}-{AI_REQUEST_TIMEOUT_LIMITS.max})
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Maximum time to wait for an AI request before timing out.
           </p>
         </div>
 
@@ -732,20 +892,11 @@ export function AIServerSettings() {
               type="number"
               min={AI_CONCURRENCY_LIMITS.min}
               max={AI_CONCURRENCY_LIMITS.max}
-              value={
-                concurrencySettings.enabled
-                  ? concurrencySettings.maxConcurrent
-                  : DEFAULT_AI_CONCURRENCY.maxConcurrent
-              }
-              onChange={(e) => {
-                const value = parseInt(e.target.value, 10);
-                if (
-                  !Number.isNaN(value) &&
-                  value >= AI_CONCURRENCY_LIMITS.min &&
-                  value <= AI_CONCURRENCY_LIMITS.max
-                ) {
-                  handleConcurrentLimitChange(value);
-                }
+              value={concurrencyLimitInput}
+              onChange={(e) => setConcurrencyLimitInput(e.target.value)}
+              onBlur={commitConcurrencyLimit}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
               }}
               disabled={!concurrencySettings.enabled}
               className="w-24"

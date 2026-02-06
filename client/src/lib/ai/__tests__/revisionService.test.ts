@@ -156,6 +156,40 @@ describe("Revision Service", () => {
         vi.useRealTimers();
       }
     });
+
+    it("records failed batch entries with response payload when the request fails", async () => {
+      executeFeatureSpy.mockResolvedValueOnce({
+        success: false,
+        error: "Request timed out",
+        errorCode: "CONNECTION_ERROR",
+        rawResponse: "Request timed out",
+        metadata: {
+          featureId: "text-revision",
+          providerId: "test-provider",
+          model: "test-model",
+          durationMs: 5,
+        },
+      });
+
+      const onItemComplete = vi.fn();
+
+      const result = await reviseSegmentsBatch({
+        segments: [{ id: "1", text: "Hello" }],
+        allSegments: [{ id: "1", text: "Hello" }],
+        prompt: getDefaultPrompt(),
+        onItemComplete,
+      });
+
+      expect(result.summary.failed).toBe(1);
+      expect(result.issues[0]?.context?.errorCode).toBe("CONNECTION_ERROR");
+      expect(onItemComplete).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: "failed",
+          error: "Request timed out",
+          responsePayload: "Request timed out",
+        }),
+      );
+    });
   });
 
   describe("hasChanges", () => {

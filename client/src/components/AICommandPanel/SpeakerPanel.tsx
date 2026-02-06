@@ -9,6 +9,7 @@ import {
   X,
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -31,6 +32,7 @@ interface SpeakerPanelProps {
 }
 
 export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPanelProps) {
+  const { t } = useTranslation();
   const segments = useTranscriptStore((s) => s.segments);
 
   const suggestions = useTranscriptStore((s) => s.aiSpeakerSuggestions);
@@ -131,13 +133,13 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
         totalToProcess={totalToProcess}
         error={error}
         startAction={{
-          label: "Start Batch",
+          label: t("aiBatch.actions.startBatch"),
           icon: <Sparkles className="h-4 w-4 mr-2" />,
           onClick: handleStartAnalysis,
           disabled: segments.length === 0,
         }}
         stopAction={{
-          label: "Stop",
+          label: t("aiBatch.actions.stop"),
           icon: <StopCircle className="h-4 w-4 mr-2" />,
           onClick: cancelAnalysis,
           variant: "destructive",
@@ -145,7 +147,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
         secondaryAction={
           pendingSuggestions.length > 0
             ? {
-                label: "Clear",
+                label: t("aiBatch.actions.clear"),
                 icon: <Trash2 className="h-4 w-4 mr-2" />,
                 onClick: clearSuggestions,
                 variant: "outline",
@@ -153,17 +155,15 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
             : undefined
         }
       >
-        {discrepancyNotice && processedCount === totalToProcess && (
+        {discrepancyNotice && !isProcessing && (
           <div className="flex items-center gap-2 p-2 rounded-md bg-amber-100 text-amber-900 text-sm">
             <AlertCircle className="h-4 w-4" />
-            <div className="flex-1">
-              {discrepancyNotice.replace(/See batch log\.?/i, "").trim()}
-            </div>
+            <div className="flex-1">{discrepancyNotice}</div>
             <Button variant="outline" size="sm" onClick={() => setIsLogOpen(true)}>
-              See batch log
+              {t("aiBatch.batchLog.see")}
             </Button>
             <Button variant="ghost" size="sm" onClick={() => setDiscrepancyNotice(null)}>
-              Got it
+              {t("aiBatch.actions.gotIt")}
             </Button>
           </div>
         )}
@@ -171,12 +171,16 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
 
       {(pendingSuggestions.length > 0 || batchLog.length > 0 || isProcessing) && (
         <AIResultsSection
-          title={`Suggestions (${pendingSuggestions.length} pending)`}
+          title={t("aiBatch.results.suggestionsTitle", { count: pendingSuggestions.length })}
           meta={
             batchInsights.length > 0 ? (
               <div className="text-xs text-muted-foreground">
-                {batchInsights.length} runs, last update at{" "}
-                {new Date(batchInsights[batchInsights.length - 1].loggedAt).toLocaleTimeString()}
+                {t("aiBatch.results.runsMeta", {
+                  count: batchInsights.length,
+                  time: new Date(
+                    batchInsights[batchInsights.length - 1].loggedAt,
+                  ).toLocaleTimeString(),
+                })}
               </div>
             ) : null
           }
@@ -184,7 +188,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
           {(batchLog.length > 0 || isProcessing) && (
             <div className="flex items-center justify-between text-xs text-muted-foreground">
               <span>
-                Total elapsed:{" "}
+                {t("aiBatch.batchLog.totalElapsed")}{" "}
                 {batchLog.length > 0
                   ? formatDurationMs(batchLog[batchLog.length - 1].elapsedMs)
                   : "-"}
@@ -196,7 +200,9 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                   const ignored = entry.ignoredCount ?? Math.max(0, returned - expected);
                   const used = Math.min(returned, expected);
                   const issueSummary =
-                    entry.issues && entry.issues.length > 0 ? entry.issues[0].message : "—";
+                    entry.issues && entry.issues.length > 0
+                      ? entry.issues[0].message
+                      : t("aiBatch.batchLog.emptyIssue");
                   console.log(
                     `[DEBUG UI] Batch ${idx}: processedTotal=${entry.processedTotal}, totalExpected=${entry.totalExpected}`,
                   );
@@ -211,15 +217,16 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                     suggestions: entry.suggestionCount,
                     unchanged: entry.unchangedAssignments,
                     processed: `${entry.processedTotal}/${entry.totalExpected}`,
-                    issues: entry.fatal ? "FATAL" : issueSummary,
+                    issues: entry.fatal ? t("aiBatch.batchLog.fatal") : issueSummary,
                     loggedAt: entry.loggedAt,
+                    responsePayload: entry.responsePayload,
                   };
                 })}
                 open={isLogOpen}
                 onOpenChange={setIsLogOpen}
                 total={totalToProcess}
-                title="Batch Log"
-                description="Batch processing summary and issues."
+                title={t("aiBatch.batchLog.title")}
+                description={t("aiBatch.batchLog.description")}
               />
             </div>
           )}
@@ -227,7 +234,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
           {/* Results Summary with Confidence Grouping */}
           {pendingSuggestions.length > 0 && (
             <div className="space-y-3">
-              <h3 className="text-sm font-medium">Results Summary</h3>
+              <h3 className="text-sm font-medium">{t("aiBatch.results.summaryTitle")}</h3>
               {(() => {
                 const highConfidence = pendingSuggestions.filter((s) => (s.confidence ?? 0) >= 0.8);
                 const mediumConfidence = pendingSuggestions.filter(
@@ -270,7 +277,9 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                               ) : (
                                 <ChevronRight className="h-3 w-3" />
                               )}
-                              High Confidence ({highConfidence.length})
+                              {t("aiBatch.speaker.highConfidence", {
+                                count: highConfidence.length,
+                              })}
                             </CollapsibleTrigger>
                             <Button
                               variant="outline"
@@ -282,7 +291,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                               className="h-7 text-xs"
                             >
                               <Check className="h-3 w-3 mr-1" />
-                              Accept All
+                              {t("aiBatch.actions.acceptAll")}
                             </Button>
                           </div>
                           <CollapsibleContent>
@@ -309,7 +318,9 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                             ) : (
                               <ChevronRight className="h-3 w-3" />
                             )}
-                            Medium Confidence ({mediumConfidence.length})
+                            {t("aiBatch.speaker.mediumConfidence", {
+                              count: mediumConfidence.length,
+                            })}
                           </CollapsibleTrigger>
                           <CollapsibleContent>
                             <ResultsList
@@ -335,7 +346,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                             ) : (
                               <ChevronRight className="h-3 w-3" />
                             )}
-                            Low Confidence ({lowConfidence.length})
+                            {t("aiBatch.speaker.lowConfidence", { count: lowConfidence.length })}
                           </CollapsibleTrigger>
                           <CollapsibleContent>
                             <ResultsList
@@ -364,7 +375,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                         className="flex-1"
                       >
                         <X className="h-3 w-3 mr-1" />
-                        Reject All
+                        {t("aiBatch.actions.rejectAll")}
                       </Button>
                     </div>
                   </>

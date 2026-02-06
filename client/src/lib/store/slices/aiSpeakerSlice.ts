@@ -6,24 +6,29 @@
  */
 
 import type { StoreApi } from "zustand";
-import { summarizeAIError } from "@/lib/ai/core/errors";
-import { summarizeMessages } from "@/lib/ai/core/formatting";
+import { toast } from "@/hooks/use-toast";
+import { getI18nInstance } from "@/i18n/config";
+import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
 import { SPEAKER_COLORS } from "../constants";
 import type {
   AIPrompt,
   AISpeakerBatchInsight,
+  AISpeakerBatchIssue,
   AISpeakerSlice,
   AISpeakerSuggestion,
   TranscriptStore,
 } from "../types";
+import { normalizeBatchIssueMessage } from "../utils/aiBatchMessages";
 import { normalizeAISpeakerConfig } from "../utils/aiSpeakerConfig";
 import { generateId } from "../utils/id";
 import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 // ==================== Initial State ====================
 
@@ -73,7 +78,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
     );
 
     if (segmentsToProcess.length === 0) {
-      set({ aiSpeakerError: "All selected segments already have suggestions" });
+      set({ aiSpeakerError: t("aiBatch.errors.allSegmentsHaveSuggestions") });
       return;
     }
 
@@ -96,6 +101,7 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
       const totalSegments = segmentsToProcess.length;
       let batchIndex = 0;
       let processed = 0;
+      const aggregateErrorIssues: AISpeakerBatchIssue[] = [];
 
       // Get active prompt from config
       const activePrompt =
@@ -116,7 +122,12 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               suggestionCount: 0,
               processedTotal: processed,
               totalExpected: batchTotalExpected,
-              issues: [{ level: "warn" as const, message: "Classification cancelled by user" }],
+              issues: [
+                {
+                  level: "warn" as const,
+                  message: t("aiBatch.messages.cancelledByUser"),
+                },
+              ],
               fatal: false,
               ignoredCount: 0,
               batchDurationMs: Date.now() - overallStart,
@@ -185,6 +196,20 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
             // Update progress
             set({ aiSpeakerProcessedCount: processed });
 
+            const normalizedIssues = (result.issues || []).map((issue) => ({
+              ...issue,
+              message: normalizeBatchIssueMessage(issue.message),
+            }));
+            const errorIssues = normalizedIssues.filter((issue) => issue.level === "error");
+            if (errorIssues.length > 0) {
+              aggregateErrorIssues.push(...errorIssues);
+            }
+            const issueSummary = summarizeMessages(normalizedIssues);
+            const errorSummary = summarizeMessages(aggregateErrorIssues);
+            const responsePayload = normalizedIssues.find(
+              (issue) => typeof issue.context?.responsePayload === "string",
+            )?.context?.responsePayload as string | undefined;
+
             // Create batch log entry
             const batchTotalExpected = totalSegments;
             const insight = {
@@ -196,13 +221,10 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               suggestionCount: suggestions.length,
               processedTotal: processed,
               totalExpected: batchTotalExpected,
-              issues: (result.issues || []).map((i) => ({
-                level: i.level,
-                message: i.message,
-                context: i.context,
-              })),
-              fatal: false,
+              issues: normalizedIssues,
+              fatal: errorIssues.length > 0 && result.results.length === 0,
               ignoredCount: 0,
+              responsePayload,
               batchDurationMs: batchEnd - batchStart,
               elapsedMs: batchEnd - overallStart,
             } as AISpeakerBatchInsight;
@@ -213,18 +235,47 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
 
             let discrepancyNotice = stateAfterSuggestions.aiSpeakerDiscrepancyNotice;
             if (insight.fatal) {
-              const summary = summarizeMessages(insight.issues);
-              discrepancyNotice = `Batch ${insight.batchIndex + 1} failed: ${summary || "unknown"}. See batch log.`;
+              discrepancyNotice = t("aiBatch.speaker.batchFailed", {
+                batch: insight.batchIndex + 1,
+                summary: issueSummary || t("aiBatch.errors.unknown"),
+              });
             } else if (insight.ignoredCount && insight.ignoredCount > 0) {
               const returned = insight.rawItemCount;
               const expected = insight.batchSize;
               const used = Math.min(returned, expected);
               const ignored = insight.ignoredCount ?? 0;
-              const summary = summarizeMessages(insight.issues);
-              discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned ${returned} (expected ${expected}, used ${used}, ignored ${ignored}). ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
+              const summaryPart = issueSummary
+                ? t("aiBatch.speaker.issues", { summary: issueSummary })
+                : "";
+              discrepancyNotice = t("aiBatch.speaker.batchCountMismatch", {
+                batch: insight.batchIndex + 1,
+                returned,
+                expected,
+                used,
+                ignored,
+                summary: summaryPart,
+              });
             } else if (insight.rawItemCount < insight.batchSize) {
-              const summary = summarizeMessages(insight.issues);
-              discrepancyNotice = `Batch ${insight.batchIndex + 1}: model returned only ${insight.rawItemCount} of ${insight.batchSize} expected entries. ${summary ? `Issues: ${summary}.` : ""} See batch log.`;
+              const summaryPart = issueSummary
+                ? t("aiBatch.speaker.issues", { summary: issueSummary })
+                : "";
+              discrepancyNotice = t("aiBatch.speaker.batchPartialReturn", {
+                batch: insight.batchIndex + 1,
+                returned: insight.rawItemCount,
+                expected: insight.batchSize,
+                summary: summaryPart,
+              });
+            }
+
+            const hardIssue = insight.issues.find((issue) =>
+              isHardAIErrorCode(issue.context?.errorCode as string | undefined),
+            );
+            if (hardIssue) {
+              toast({
+                title: t("aiBatch.errors.toastTitle"),
+                description: hardIssue.message,
+                variant: "destructive",
+              });
             }
 
             console.log(
@@ -234,9 +285,32 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               aiSpeakerBatchInsights: updatedInsights,
               aiSpeakerBatchLog: updatedLog,
               aiSpeakerDiscrepancyNotice: discrepancyNotice,
+              aiSpeakerError: errorSummary || stateAfterSuggestions.aiSpeakerError,
             });
           } catch (batchError) {
             const batchTotalExpected = totalSegments;
+            const aiError = toAIError(batchError);
+            const responsePayload =
+              typeof aiError.details?.responsePayload === "string"
+                ? aiError.details.responsePayload
+                : undefined;
+            const isCancelled = aiError.code === "CANCELLED";
+            const issues: AISpeakerBatchIssue[] = [
+              {
+                level: isCancelled ? "warn" : "error",
+                message: normalizeBatchIssueMessage(
+                  isCancelled ? t("aiBatch.messages.cancelledByUser") : aiError.toUserMessage(),
+                ),
+                context: {
+                  errorCode: aiError.code,
+                  responsePayload,
+                },
+              },
+            ];
+            if (!isCancelled) {
+              aggregateErrorIssues.push(...issues.filter((issue) => issue.level === "error"));
+            }
+            const errorSummary = summarizeMessages(aggregateErrorIssues);
             const insight = {
               batchIndex,
               batchSize: batchSegments.length,
@@ -246,29 +320,49 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               suggestionCount: 0,
               processedTotal: processed,
               totalExpected: batchTotalExpected,
-              issues: [{ level: "error" as const, message: String(batchError) }],
-              fatal: true,
+              issues,
+              fatal: !isCancelled,
               ignoredCount: 0,
+              responsePayload,
               batchDurationMs: Date.now() - batchStart,
               elapsedMs: Date.now() - overallStart,
             } as AISpeakerBatchInsight;
+
+            if (!isCancelled && isHardAIErrorCode(aiError.code)) {
+              toast({
+                title: t("aiBatch.errors.toastTitle"),
+                description: aiError.toUserMessage(),
+                variant: "destructive",
+              });
+            }
 
             const stateSnapshot = get();
             set({
               aiSpeakerBatchInsights: [...stateSnapshot.aiSpeakerBatchInsights, insight],
               aiSpeakerBatchLog: [...stateSnapshot.aiSpeakerBatchLog, insight],
+              aiSpeakerError: errorSummary || stateSnapshot.aiSpeakerError,
             });
+            if (isCancelled) {
+              break;
+            }
           }
 
           batchIndex++;
         }
       } catch (error) {
         if (!abortController.signal.aborted) {
-          const err = error instanceof Error ? error : new Error(String(error));
+          const err = toAIError(error);
           const currentState = get();
           if (currentState.aiSpeakerAbortController !== abortController) return;
+          if (isHardAIErrorCode(err.code)) {
+            toast({
+              title: t("aiBatch.errors.toastTitle"),
+              description: err.toUserMessage(),
+              variant: "destructive",
+            });
+          }
           set({
-            aiSpeakerError: summarizeAIError(err),
+            aiSpeakerError: err.toUserMessage(),
             aiSpeakerIsProcessing: false,
             aiSpeakerIsCancelling: false,
             aiSpeakerAbortController: null,

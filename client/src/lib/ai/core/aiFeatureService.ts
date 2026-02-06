@@ -11,12 +11,13 @@
 import type { PromptVariables, SimpleSchema } from "@/lib/ai";
 import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
 import {
+  getAIRequestTimeoutMs,
   getEffectiveAIRequestConcurrency,
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import type { ChatMessage } from "../providers/types";
 import { runConcurrentOrdered } from "./batch";
-import { AICancellationError, isCancellationError, toAIError } from "./errors";
+import { AICancellationError, AIParseError, isCancellationError, toAIError } from "./errors";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
@@ -64,6 +65,7 @@ export async function executeFeature<TOutput>(
   // Get retry count from global settings
   const settings = initializeSettings();
   const maxRetries = settings.parseRetryCount ?? 3;
+  const requestTimeoutMs = getAIRequestTimeoutMs(settings);
 
   // Resolve provider using unified resolver
   const resolveOptions: ProviderResolveOptions = {
@@ -96,10 +98,54 @@ export async function executeFeature<TOutput>(
 
     try {
       // Execute chat request
-      const response = await provider.chat(messages, {
+      const requestController = new AbortController();
+      let timeoutId: ReturnType<typeof setTimeout> | undefined;
+      let timedOut = false;
+      const providerPromise = provider.chat(messages, {
         ...options.chatOptions,
-        signal: options.signal,
+        signal: requestController.signal,
       });
+
+      if (options.signal) {
+        if (options.signal.aborted) {
+          requestController.abort(options.signal.reason);
+        } else {
+          options.signal.addEventListener(
+            "abort",
+            () => requestController.abort(options.signal?.reason),
+            { once: true },
+          );
+        }
+      }
+
+      const timeoutPromise =
+        requestTimeoutMs > 0
+          ? new Promise<never>((_, reject) => {
+              timeoutId = setTimeout(() => {
+                timedOut = true;
+                requestController.abort(
+                  new Error(`Request timed out after ${Math.round(requestTimeoutMs / 1000)}s`),
+                );
+                reject(
+                  new Error(`Request timed out after ${Math.round(requestTimeoutMs / 1000)}s`),
+                );
+              }, requestTimeoutMs);
+            })
+          : null;
+
+      let response: Awaited<typeof providerPromise>;
+      try {
+        response = timeoutPromise
+          ? await Promise.race([providerPromise, timeoutPromise])
+          : await providerPromise;
+      } finally {
+        if (timeoutId) {
+          clearTimeout(timeoutId);
+        }
+        if (timedOut) {
+          providerPromise.catch(() => {});
+        }
+      }
 
       lastRawResponse = response.content;
 
@@ -179,7 +225,8 @@ export async function executeFeature<TOutput>(
 
         return {
           success: false,
-          error: lastParseError,
+          error: new AIParseError(lastParseError ?? "Failed to parse response").toUserMessage(),
+          errorCode: "PARSE_ERROR",
           rawResponse: response.content,
           metadata,
         };
@@ -204,6 +251,7 @@ export async function executeFeature<TOutput>(
         return {
           success: false,
           error: cancelError.toUserMessage(),
+          errorCode: cancelError.code,
           metadata: buildMetadata(featureId, providerConfig, startTime),
         };
       }
@@ -218,7 +266,12 @@ export async function executeFeature<TOutput>(
       return {
         success: false,
         error: aiError.toUserMessage(),
-        rawResponse: lastRawResponse,
+        errorCode: aiError.code,
+        rawResponse:
+          lastRawResponse ??
+          (typeof aiError.details?.originalError === "string"
+            ? aiError.details.originalError
+            : undefined),
         metadata,
       };
     }
@@ -227,7 +280,8 @@ export async function executeFeature<TOutput>(
   // Should not reach here, but just in case
   return {
     success: false,
-    error: lastParseError ?? "Unknown error after retries",
+    error: new AIParseError(lastParseError ?? "Unknown error after retries").toUserMessage(),
+    errorCode: "PARSE_ERROR",
     rawResponse: lastRawResponse,
     metadata: buildMetadata(featureId, providerConfig, startTime),
   };
@@ -523,9 +577,11 @@ export async function executeBatch<TOutput>(
     try {
       return await executeFeature<TOutput>(featureId, input, options);
     } catch (error) {
+      const aiError = toAIError(error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : String(error),
+        error: aiError.toUserMessage(),
+        errorCode: aiError.code,
         metadata: {
           featureId,
           providerId: "error",
@@ -554,9 +610,11 @@ export async function executeBatch<TOutput>(
       callbacks.onProgress?.(completed, inputs.length);
     },
     onItemError: (index, error) => {
+      const aiError = toAIError(error);
       const errorResult: AIFeatureResult<TOutput> = {
         success: false,
-        error: error.message,
+        error: aiError.toUserMessage(),
+        errorCode: aiError.code,
         metadata: {
           featureId,
           providerId: "error",
@@ -579,6 +637,7 @@ export async function executeBatch<TOutput>(
       results[i] = {
         success: false,
         error: "Operation cancelled",
+        errorCode: "CANCELLED",
         metadata: {
           featureId,
           providerId: "cancelled",

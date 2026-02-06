@@ -9,6 +9,9 @@
  */
 
 import type { StoreApi } from "zustand";
+import { toast } from "@/hooks/use-toast";
+import { getI18nInstance } from "@/i18n/config";
+import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import type { RevisionResult } from "@/lib/ai/features/revision";
 import { indexById } from "@/lib/arrayUtils";
@@ -23,6 +26,26 @@ import type {
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const REVISION_ERROR_PREFIX = "Failed to revise segment:";
+const REPEATED_FAILURE_MESSAGE = "Batch stopped after repeated connection failures";
+
+const t = getI18nInstance().t.bind(getI18nInstance());
+
+function normalizeRevisionIssueMessage(message: string): string {
+  let normalized = message.trim();
+  if (normalized.startsWith(REVISION_ERROR_PREFIX)) {
+    normalized = normalized.slice(REVISION_ERROR_PREFIX.length).trim();
+  }
+
+  normalized = normalized.replace(/\.$/, "");
+
+  if (normalized.startsWith(REPEATED_FAILURE_MESSAGE)) {
+    return t("aiBatch.revision.abortedRepeatedFailures");
+  }
+
+  return normalized;
+}
 
 // ==================== Built-in Text Prompts (nicht löschbar, bearbeitbar) ====================
 
@@ -216,13 +239,13 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     const segment = state.segments.find((s) => s.id === segmentId);
 
     if (!segment) {
-      set({ aiRevisionError: `Segment ${segmentId} not found` });
+      set({ aiRevisionError: t("aiBatch.errors.segmentNotFound", { id: segmentId }) });
       return;
     }
 
     const selectedPrompt = state.aiRevisionConfig.prompts.find((p) => p.id === promptId);
     if (!selectedPrompt) {
-      set({ aiRevisionError: `Prompt ${promptId} not found` });
+      set({ aiRevisionError: t("aiBatch.errors.promptNotFound", { id: promptId }) });
       return;
     }
 
@@ -279,7 +302,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
             aiRevisionLastResult: {
               segmentId,
               status: "no-changes",
-              message: "No changes needed",
+              message: t("aiBatch.revision.noChanges"),
               timestamp: Date.now(),
             },
           });
@@ -321,8 +344,16 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           });
           return;
         }
+        const aiError = toAIError(error);
         console.error("[AIRevision] Error in startSingleRevision:", error);
-        const errorMessage = error.message ?? "Revision failed";
+        if (isHardAIErrorCode(aiError.code)) {
+          toast({
+            title: t("aiBatch.errors.toastTitle"),
+            description: aiError.toUserMessage(),
+            variant: "destructive",
+          });
+        }
+        const errorMessage = aiError.toUserMessage();
         set({
           aiRevisionError: errorMessage,
           aiRevisionIsProcessing: false,
@@ -357,17 +388,17 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
     );
 
     if (segments.length === 0) {
-      set({ aiRevisionError: "No segments found" });
+      set({ aiRevisionError: t("aiBatch.errors.noSegmentsFound") });
       return;
     }
     if (segmentsToProcess.length === 0) {
-      set({ aiRevisionError: "All selected segments already have suggestions" });
+      set({ aiRevisionError: t("aiBatch.errors.allSegmentsHaveSuggestions") });
       return;
     }
 
     const selectedPrompt = state.aiRevisionConfig.prompts.find((p) => p.id === promptId);
     if (!selectedPrompt) {
-      set({ aiRevisionError: `Prompt ${promptId} not found` });
+      set({ aiRevisionError: t("aiBatch.errors.promptNotFound", { id: promptId }) });
       return;
     }
 
@@ -443,12 +474,32 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           });
         },
       })
-        .then(() => {
+        .then((result) => {
+          const errorIssues = result.issues
+            .filter((issue) => issue.level === "error")
+            .map((issue) => ({
+              ...issue,
+              message: normalizeRevisionIssueMessage(issue.message),
+            }));
+          const issueSummary = summarizeMessages(errorIssues);
+          const hardIssue = errorIssues.find((issue) =>
+            isHardAIErrorCode(issue.context?.errorCode as string | undefined),
+          );
+
+          if (hardIssue) {
+            toast({
+              title: t("aiBatch.errors.toastTitle"),
+              description: hardIssue.message,
+              variant: "destructive",
+            });
+          }
+
           set({
             aiRevisionIsProcessing: false,
             aiRevisionIsCancelling: false,
             aiRevisionCurrentSegmentId: null,
             aiRevisionAbortController: null,
+            aiRevisionError: issueSummary || null,
           });
         })
         .catch((error: Error) => {
@@ -461,8 +512,16 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
             });
             return;
           }
+          const aiError = toAIError(error);
+          if (isHardAIErrorCode(aiError.code)) {
+            toast({
+              title: t("aiBatch.errors.toastTitle"),
+              description: aiError.toUserMessage(),
+              variant: "destructive",
+            });
+          }
           set({
-            aiRevisionError: error.message ?? "Batch revision failed",
+            aiRevisionError: aiError.toUserMessage(),
             aiRevisionIsProcessing: false,
             aiRevisionIsCancelling: false,
             aiRevisionCurrentSegmentId: null,

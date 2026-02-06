@@ -449,6 +449,8 @@ export interface AISpeakerBatchInsight {
   issues: AISpeakerBatchIssue[];
   fatal: boolean;
   rawResponsePreview?: string;
+  requestPayload?: string;
+  responsePayload?: string;
   ignoredCount?: number;
   batchDurationMs?: number;
   elapsedMs?: number;
@@ -541,10 +543,12 @@ export interface AIRevisionSuggestion {
 
 export interface AIRevisionBatchLogEntry {
   segmentId: string;
-  status: "revised" | "unchanged" | "failed";
+  status: "revised" | "unchanged" | "failed" | "cancelled";
   loggedAt: number;
   durationMs?: number;
   error?: string;
+  responsePayload?: string;
+  errorCode?: string;
 }
 
 export interface AIRevisionConfig {

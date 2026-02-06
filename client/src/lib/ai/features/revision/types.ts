@@ -110,10 +110,12 @@ export interface BatchRevisionParams {
 
 export interface RevisionBatchLogEntry {
   segmentId: string;
-  status: "revised" | "unchanged" | "failed";
+  status: "revised" | "unchanged" | "failed" | "cancelled";
   loggedAt: number;
   durationMs?: number;
   error?: string;
+  responsePayload?: string;
+  errorCode?: string;
 }
 
 /**

@@ -101,5 +101,155 @@
     "transcriptDurationWarning": "Transcript duration mismatch",
     "transcriptTooShort": "The transcript ({{transcriptDuration}}s) is shorter than the audio ({{audioDuration}}s).",
     "transcriptTooLong": "The transcript ({{transcriptDuration}}s) is longer than the audio ({{audioDuration}}s)."
+  },
+  "aiBatch": {
+    "actions": {
+      "startBatch": "Start Batch",
+      "stop": "Stop",
+      "clear": "Clear",
+      "acceptAll": "Accept All",
+      "rejectAll": "Reject All",
+      "gotIt": "Got it"
+    },
+    "batchLog": {
+      "title": "Batch Log",
+      "description": "Batch processing summary and issues.",
+      "totalElapsed": "Total elapsed:",
+      "fatal": "FATAL",
+      "emptyIssue": "—",
+      "see": "See batch log"
+    },
+    "control": {
+      "processing": "Processing...",
+      "cancelling": "Cancelling...",
+      "progress": "{{processed}} / {{total}} {{unit}}"
+    },
+    "units": {
+      "segments": "segments",
+      "batches": "batches",
+      "segmentPairs": "segment pairs"
+    },
+    "scope": {
+      "title": "Scope",
+      "all": "All",
+      "filtered": "Filtered",
+      "count": "{{label}}: {{count}} segment",
+      "count_plural": "{{label}}: {{count}} segments",
+      "excludeConfirmed": "Exclude confirmed",
+      "excludeConfirmedHelp": "Skip segments that are already marked as confirmed"
+    },
+    "config": {
+      "title": "AI Configuration",
+      "providerLabel": "Provider",
+      "providerPlaceholder": "Select provider...",
+      "modelLabel": "Model",
+      "modelPlaceholder": "Select model...",
+      "promptLabel": "Prompt",
+      "promptPlaceholder": "Select prompt",
+      "defaultBadge": "Default",
+      "noModelConfigured": "No model configured",
+      "batchSizeLabel": "Batch Size",
+      "batchSizeHelp": "Number of segments to process in each batch (1-50)",
+      "settingsTooltip": "Configure AI providers and prompts",
+      "noProviderConfigured": "No AI provider configured. Add one in Settings → AI → Server & Models."
+    },
+    "errors": {
+      "toastTitle": "AI request failed",
+      "noSegmentsFound": "No segments found",
+      "allSegmentsHaveSuggestions": "All selected segments already have suggestions",
+      "promptNotFound": "Prompt {{id}} not found",
+      "segmentNotFound": "Segment {{id}} not found",
+      "mergeMinSegments": "At least 2 segments required for merge analysis",
+      "unknown": "unknown"
+    },
+    "messages": {
+      "cancelledByUser": "Cancelled by user"
+    },
+    "results": {
+      "suggestionsTitle": "Suggestions ({{count}} pending)",
+      "runsMeta": "{{count}} runs, last update at {{time}}",
+      "summaryTitle": "Results Summary"
+    },
+    "revision": {
+      "batchLogEntries": "Batch log entries: {{count}}",
+      "lastUpdate": "last update {{time}}",
+      "batchLogDescription": "Batch revision status updates and errors.",
+      "table": {
+        "segment": "Segment",
+        "status": "Status",
+        "duration": "Duration",
+        "time": "Time",
+        "error": "Error",
+        "response": "Response"
+      },
+      "summaryMeta": "Revised: {{revised}} • Unchanged: {{unchanged}} • Failed: {{failed}}",
+      "pendingMeta": "Pending: {{pending}} • Accepted: {{accepted}} • Rejected: {{rejected}}",
+      "clearResults": "Clear Results",
+      "running": "Running batch revision...",
+      "status": {
+        "revised": "revised",
+        "unchanged": "unchanged",
+        "failed": "failed",
+        "cancelled": "cancelled"
+      },
+      "noChanges": "No changes needed",
+      "abortedRepeatedFailures": "Aborted after repeated failures"
+    },
+    "speaker": {
+      "batchFailed": "Batch {{batch}} failed: {{summary}}.",
+      "batchCountMismatch": "Batch {{batch}}: model returned {{returned}} (expected {{expected}}, used {{used}}, ignored {{ignored}}). {{summary}}",
+      "batchPartialReturn": "Batch {{batch}}: model returned only {{returned}} of {{expected}} expected entries. {{summary}}",
+      "issues": "Issues: {{summary}}.",
+      "highConfidence": "High Confidence ({{count}})",
+      "mediumConfidence": "Medium Confidence ({{count}})",
+      "lowConfidence": "Low Confidence ({{count}})"
+    },
+    "chapter": {
+      "batchSizeHelp": "Number of segments to process in each batch (10-200)",
+      "settingsTitle": "Chapter Settings",
+      "minLengthLabel": "Min Length (segments)",
+      "maxLengthLabel": "Max Length (segments)"
+    },
+    "merge": {
+      "settingsTitle": "Merge Settings",
+      "maxTimeGapLabel": "Max Time Gap (seconds)",
+      "maxTimeGapHelpLabel": "Max time gap help",
+      "maxTimeGapHelp": "Only consider adjacent segments separated by less than this gap.",
+      "minConfidenceLabel": "Min Confidence",
+      "minConfidenceHelpLabel": "Minimum confidence help",
+      "minConfidenceHelp": "Filter suggestions by AI confidence threshold.",
+      "confidenceLevel": {
+        "high": "High only",
+        "medium": "Medium and above",
+        "low": "All (including low)"
+      },
+      "sameSpeakerOnly": "Same speaker only",
+      "sameSpeakerOnlyHelpLabel": "Same speaker only help",
+      "sameSpeakerOnlyHelp": "Skip merges across speaker changes.",
+      "smoothingLabel": "Enable text smoothing",
+      "smoothingHelpLabel": "Enable text smoothing help",
+      "smoothingHelp": "Allow the AI to fix punctuation and casing across the merge.",
+      "batchLogEntries": "Batch log entries: {{count}}",
+      "batchLogDescription": "Batch merge status updates and issues.",
+      "confidence": {
+        "high": "High: {{count}}",
+        "medium": "Medium: {{count}}",
+        "low": "Low: {{count}}"
+      },
+      "acceptAllHigh": "Accept All High",
+      "gapLabel": "Gap {{gap}}"
+    }
+  },
+  "aiErrors": {
+    "parse": "The AI returned an unexpected response format. Please try again.",
+    "validation": "The AI response was invalid. Please try again with different input.",
+    "cancelled": "The operation was cancelled.",
+    "configuration": "AI is not configured. Please add an AI provider in Settings.",
+    "featureNotFound": "The requested AI feature is not available.",
+    "auth": "Authentication failed. Check your API key.",
+    "rateLimit": "Rate limit hit. Please wait and try again.",
+    "request": "Request rejected. Check model and parameters.",
+    "providerUnavailable": "Provider error. Please try again later.",
+    "connection": "Connection failed. Check your network and base URL."
   }
 }

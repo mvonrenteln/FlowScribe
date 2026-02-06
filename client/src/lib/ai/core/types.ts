@@ -143,6 +143,9 @@ export interface AIFeatureResult<T> {
   /** Error message (if failed) */
   error?: string;
 
+  /** Error code (if failed) */
+  errorCode?: string;
+
   /** Raw response from AI (for debugging) */
   rawResponse?: string;
 

@@ -220,6 +220,7 @@ export async function analyzeMergeCandidates(
         const batchIssue: MergeAnalysisIssue = {
           level: "error",
           message: result.error ?? `Batch ${plan.batchIndex + 1} failed`,
+          context: { errorCode: result.errorCode },
         };
         return {
           status: "failed" as const,

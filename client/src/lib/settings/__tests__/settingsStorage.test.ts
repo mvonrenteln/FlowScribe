@@ -5,10 +5,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AI_CONCURRENCY_LIMITS,
+  AI_REQUEST_TIMEOUT_LIMITS,
   addProviderToSettings,
   DEFAULT_AI_CONCURRENCY,
+  DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
   DEFAULT_SETTINGS,
   getAIConcurrencySettings,
+  getAIRequestTimeoutMs,
   getDefaultProvider,
   getEffectiveAIRequestConcurrency,
   initializeSettings,
@@ -120,6 +123,35 @@ describe("settingsStorage", () => {
       };
 
       expect(getEffectiveAIRequestConcurrency(settings)).toBe(4);
+    });
+  });
+
+  describe("getAIRequestTimeoutMs", () => {
+    it("returns default timeout when missing", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        aiRequestTimeoutSeconds: undefined,
+      };
+
+      expect(getAIRequestTimeoutMs(settings)).toBe(DEFAULT_AI_REQUEST_TIMEOUT_SECONDS * 1000);
+    });
+
+    it("returns 0 when timeout is disabled", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        aiRequestTimeoutSeconds: 0,
+      };
+
+      expect(getAIRequestTimeoutMs(settings)).toBe(0);
+    });
+
+    it("clamps timeout to limits", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        aiRequestTimeoutSeconds: 999,
+      };
+
+      expect(getAIRequestTimeoutMs(settings)).toBe(AI_REQUEST_TIMEOUT_LIMITS.max * 1000);
     });
   });
 

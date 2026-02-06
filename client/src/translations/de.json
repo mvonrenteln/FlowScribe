@@ -48,5 +48,155 @@
     "transcriptDurationWarning": "Transkript-Dauer passt nicht",
     "transcriptTooShort": "Das Transkript ({{transcriptDuration}}s) ist kürzer als die Audiodatei ({{audioDuration}}s).",
     "transcriptTooLong": "Das Transkript ({{transcriptDuration}}s) ist länger als die Audiodatei ({{audioDuration}}s)."
+  },
+  "aiBatch": {
+    "actions": {
+      "startBatch": "Batch starten",
+      "stop": "Stopp",
+      "clear": "Leeren",
+      "acceptAll": "Alle übernehmen",
+      "rejectAll": "Alle ablehnen",
+      "gotIt": "Verstanden"
+    },
+    "batchLog": {
+      "title": "Batch-Log",
+      "description": "Zusammenfassung der Batch-Verarbeitung und Probleme.",
+      "totalElapsed": "Gesamtzeit:",
+      "fatal": "FATAL",
+      "emptyIssue": "—",
+      "see": "Batch-Log ansehen"
+    },
+    "control": {
+      "processing": "Wird verarbeitet...",
+      "cancelling": "Wird abgebrochen...",
+      "progress": "{{processed}} / {{total}} {{unit}}"
+    },
+    "units": {
+      "segments": "Segmente",
+      "batches": "Batches",
+      "segmentPairs": "Segmentpaare"
+    },
+    "scope": {
+      "title": "Bereich",
+      "all": "Alle",
+      "filtered": "Gefiltert",
+      "count": "{{label}}: {{count}} Segment",
+      "count_plural": "{{label}}: {{count}} Segmente",
+      "excludeConfirmed": "Bestätigte ausschließen",
+      "excludeConfirmedHelp": "Überspringt Segmente, die bereits als bestätigt markiert sind"
+    },
+    "config": {
+      "title": "KI-Konfiguration",
+      "providerLabel": "Anbieter",
+      "providerPlaceholder": "Anbieter wählen...",
+      "modelLabel": "Modell",
+      "modelPlaceholder": "Modell wählen...",
+      "promptLabel": "Prompt",
+      "promptPlaceholder": "Prompt wählen",
+      "defaultBadge": "Standard",
+      "noModelConfigured": "Kein Modell konfiguriert",
+      "batchSizeLabel": "Batch-Größe",
+      "batchSizeHelp": "Anzahl der Segmente pro Batch (1-50)",
+      "settingsTooltip": "KI-Anbieter und Prompts konfigurieren",
+      "noProviderConfigured": "Kein KI-Anbieter konfiguriert. Bitte in Einstellungen → KI → Server & Modelle hinzufügen."
+    },
+    "errors": {
+      "toastTitle": "KI-Anfrage fehlgeschlagen",
+      "noSegmentsFound": "Keine Segmente gefunden",
+      "allSegmentsHaveSuggestions": "Alle ausgewählten Segmente haben bereits Vorschläge",
+      "promptNotFound": "Prompt {{id}} nicht gefunden",
+      "segmentNotFound": "Segment {{id}} nicht gefunden",
+      "mergeMinSegments": "Für die Merge-Analyse werden mindestens 2 Segmente benötigt",
+      "unknown": "unbekannt"
+    },
+    "messages": {
+      "cancelledByUser": "Vom Nutzer abgebrochen"
+    },
+    "results": {
+      "suggestionsTitle": "Vorschläge ({{count}} ausstehend)",
+      "runsMeta": "{{count}} Läufe, letzte Aktualisierung um {{time}}",
+      "summaryTitle": "Ergebnisübersicht"
+    },
+    "revision": {
+      "batchLogEntries": "Batch-Log-Einträge: {{count}}",
+      "lastUpdate": "letzte Aktualisierung {{time}}",
+      "batchLogDescription": "Status-Updates und Fehler für Revision-Batches.",
+      "table": {
+        "segment": "Segment",
+        "status": "Status",
+        "duration": "Dauer",
+        "time": "Zeit",
+        "error": "Fehler",
+        "response": "Antwort"
+      },
+      "summaryMeta": "Überarbeitet: {{revised}} • Unverändert: {{unchanged}} • Fehlgeschlagen: {{failed}}",
+      "pendingMeta": "Ausstehend: {{pending}} • Übernommen: {{accepted}} • Abgelehnt: {{rejected}}",
+      "clearResults": "Ergebnisse löschen",
+      "running": "Batch-Revision läuft...",
+      "status": {
+        "revised": "überarbeitet",
+        "unchanged": "unverändert",
+        "failed": "fehlgeschlagen",
+        "cancelled": "abgebrochen"
+      },
+      "noChanges": "Keine Änderungen nötig",
+      "abortedRepeatedFailures": "Abgebrochen nach wiederholten Fehlern"
+    },
+    "speaker": {
+      "batchFailed": "Batch {{batch}} fehlgeschlagen: {{summary}}.",
+      "batchCountMismatch": "Batch {{batch}}: Modell gab {{returned}} zurück (erwartet {{expected}}, verwendet {{used}}, ignoriert {{ignored}}). {{summary}}",
+      "batchPartialReturn": "Batch {{batch}}: Modell gab nur {{returned}} von {{expected}} erwarteten Einträgen zurück. {{summary}}",
+      "issues": "Probleme: {{summary}}.",
+      "highConfidence": "Hohe Sicherheit ({{count}})",
+      "mediumConfidence": "Mittlere Sicherheit ({{count}})",
+      "lowConfidence": "Niedrige Sicherheit ({{count}})"
+    },
+    "chapter": {
+      "batchSizeHelp": "Anzahl der Segmente pro Batch (10-200)",
+      "settingsTitle": "Kapitel-Einstellungen",
+      "minLengthLabel": "Min. Länge (Segmente)",
+      "maxLengthLabel": "Max. Länge (Segmente)"
+    },
+    "merge": {
+      "settingsTitle": "Merge-Einstellungen",
+      "maxTimeGapLabel": "Max. Zeitlücke (Sekunden)",
+      "maxTimeGapHelpLabel": "Hilfe zur Zeitlücke",
+      "maxTimeGapHelp": "Nur angrenzende Segmente berücksichtigen, deren Abstand kleiner als diese Lücke ist.",
+      "minConfidenceLabel": "Min. Sicherheit",
+      "minConfidenceHelpLabel": "Hilfe zur Sicherheit",
+      "minConfidenceHelp": "Vorschläge nach KI-Sicherheitswert filtern.",
+      "confidenceLevel": {
+        "high": "Nur hoch",
+        "medium": "Mittel und höher",
+        "low": "Alle (inklusive niedrig)"
+      },
+      "sameSpeakerOnly": "Nur gleicher Sprecher",
+      "sameSpeakerOnlyHelpLabel": "Hilfe: gleicher Sprecher",
+      "sameSpeakerOnlyHelp": "Keine Merges über Sprecherwechsel.",
+      "smoothingLabel": "Text glätten",
+      "smoothingHelpLabel": "Hilfe: Text glätten",
+      "smoothingHelp": "KI darf Zeichensetzung und Groß-/Kleinschreibung über den Merge hinweg korrigieren.",
+      "batchLogEntries": "Batch-Log-Einträge: {{count}}",
+      "batchLogDescription": "Status-Updates und Probleme für Merge-Batches.",
+      "confidence": {
+        "high": "Hoch: {{count}}",
+        "medium": "Mittel: {{count}}",
+        "low": "Niedrig: {{count}}"
+      },
+      "acceptAllHigh": "Alle hohen übernehmen",
+      "gapLabel": "Lücke {{gap}}"
+    }
+  },
+  "aiErrors": {
+    "parse": "Die KI hat ein unerwartetes Antwortformat geliefert. Bitte erneut versuchen.",
+    "validation": "Die KI-Antwort war ungültig. Bitte mit anderer Eingabe erneut versuchen.",
+    "cancelled": "Der Vorgang wurde abgebrochen.",
+    "configuration": "KI ist nicht konfiguriert. Bitte einen Anbieter in den Einstellungen hinzufügen.",
+    "featureNotFound": "Die angeforderte KI-Funktion ist nicht verfügbar.",
+    "auth": "Authentifizierung fehlgeschlagen. API-Schlüssel prüfen.",
+    "rateLimit": "Rate-Limit erreicht. Bitte warten und erneut versuchen.",
+    "request": "Anfrage abgelehnt. Modell und Parameter prüfen.",
+    "providerUnavailable": "Anbieterfehler. Bitte später erneut versuchen.",
+    "connection": "Verbindung fehlgeschlagen. Netzwerk und Base URL prüfen."
   }
 }

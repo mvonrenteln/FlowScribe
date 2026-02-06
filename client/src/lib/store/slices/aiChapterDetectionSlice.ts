@@ -7,6 +7,9 @@
  */
 
 import type { StoreApi } from "zustand";
+import { toast } from "@/hooks/use-toast";
+import { getI18nInstance } from "@/i18n/config";
+import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createChapterSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { detectChapters } from "@/lib/ai/features/chapterDetection";
 import { mapById } from "@/lib/arrayUtils";
@@ -21,6 +24,7 @@ import type {
   Tag,
   TranscriptStore,
 } from "../types";
+import { normalizeBatchIssueMessage } from "../utils/aiBatchMessages";
 import { normalizeAIChapterDetectionConfig } from "../utils/aiChapterDetectionConfig";
 import {
   buildSegmentIndexMap,
@@ -32,6 +36,8 @@ import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 export const initialAIChapterDetectionState = {
   aiChapterDetectionSuggestions: [] as AIChapterSuggestion[],
@@ -208,7 +214,7 @@ export const createAIChapterDetectionSlice = (
       (segment) => !coveredSegmentIds.has(segment.id),
     );
     if (segmentsToProcess.length === 0) {
-      set({ aiChapterDetectionError: "All selected segments already have suggestions" });
+      set({ aiChapterDetectionError: t("aiBatch.errors.allSegmentsHaveSuggestions") });
       return;
     }
 
@@ -391,12 +397,31 @@ export const createAIChapterDetectionSlice = (
               ),
           );
 
+        const errorIssues = result.issues
+          .filter((issue) => issue.level === "error")
+          .map((issue) => ({
+            ...issue,
+            message: normalizeBatchIssueMessage(issue.message),
+          }));
+        const issueSummary = summarizeMessages(errorIssues);
+        const hardIssue = errorIssues.find((issue) =>
+          isHardAIErrorCode(issue.context?.errorCode as string | undefined),
+        );
+
+        if (hardIssue) {
+          toast({
+            title: t("aiBatch.errors.toastTitle"),
+            description: hardIssue.message,
+            variant: "destructive",
+          });
+        }
+
         set({
           aiChapterDetectionSuggestions: [...get().aiChapterDetectionSuggestions, ...suggestions],
           aiChapterDetectionIsProcessing: false,
           aiChapterDetectionIsCancelling: false,
           aiChapterDetectionAbortController: null,
-          aiChapterDetectionError: result.issues.find((i) => i.level === "error")?.message ?? null,
+          aiChapterDetectionError: issueSummary || null,
           aiChapterDetectionBatchLog: result.batchLog.length
             ? result.batchLog
             : get().aiChapterDetectionBatchLog,
@@ -413,11 +438,19 @@ export const createAIChapterDetectionSlice = (
           });
           return;
         }
+        const aiError = toAIError(error);
+        if (isHardAIErrorCode(aiError.code)) {
+          toast({
+            title: t("aiBatch.errors.toastTitle"),
+            description: aiError.toUserMessage(),
+            variant: "destructive",
+          });
+        }
         set({
           aiChapterDetectionIsProcessing: false,
           aiChapterDetectionIsCancelling: false,
           aiChapterDetectionAbortController: null,
-          aiChapterDetectionError: error instanceof Error ? error.message : String(error),
+          aiChapterDetectionError: aiError.toUserMessage(),
         });
       }
     })();

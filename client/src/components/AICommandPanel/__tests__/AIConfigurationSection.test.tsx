@@ -1,7 +1,8 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import type { PersistedSettings } from "@/lib/settings/settingsStorage";
 import { AIConfigurationSection } from "../AIConfigurationSection";
+import { renderWithI18n } from "./testUtils";
 
 describe("AIConfigurationSection", () => {
   const settings: PersistedSettings = {
@@ -21,7 +22,7 @@ describe("AIConfigurationSection", () => {
   };
 
   it("renders provider, model, prompt, and batch size inputs", () => {
-    render(
+    renderWithI18n(
       <AIConfigurationSection
         id="test"
         settings={settings}
@@ -47,7 +48,7 @@ describe("AIConfigurationSection", () => {
   it("calls onBatchSizeChange for valid values", () => {
     const handleBatchSizeChange = vi.fn();
 
-    render(
+    renderWithI18n(
       <AIConfigurationSection
         id="test"
         settings={settings}

@@ -74,6 +74,10 @@ describe("summarizeMessages", () => {
     expect(summarizeMessages([{ error: "err" }])).toBe("err");
   });
 
+  it("should collapse duplicate messages with counts", () => {
+    expect(summarizeMessages(["a", "a", "b", "a"])).toBe("3x a; b");
+  });
+
   it("should truncate beyond max messages", () => {
     expect(summarizeMessages(["a", "b", "c", "d", "e"])).toBe("a; b; c (+2 more)");
   });

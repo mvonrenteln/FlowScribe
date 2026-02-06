@@ -9,6 +9,9 @@
  */
 
 import type { StoreApi } from "zustand";
+import { toast } from "@/hooks/use-toast";
+import { getI18nInstance } from "@/i18n/config";
+import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createMergePairKey } from "@/lib/ai/core/suggestionKeys";
 import type {
   MergeAnalysisResult,
@@ -23,6 +26,7 @@ import type {
   Segment,
   TranscriptStore,
 } from "../types";
+import { normalizeBatchIssueMessage } from "../utils/aiBatchMessages";
 import { normalizeAISegmentMergeConfig } from "../utils/aiSegmentMergeConfig";
 import { generateId } from "../utils/id";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
@@ -30,6 +34,8 @@ import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 // ==================== Initial State ====================
 
@@ -162,7 +168,7 @@ export const createAISegmentMergeSlice = (
     }
 
     if (segmentsToAnalyze.length < 2) {
-      set({ aiSegmentMergeError: "At least 2 segments required for merge analysis" });
+      set({ aiSegmentMergeError: t("aiBatch.errors.mergeMinSegments") });
       return;
     }
 
@@ -265,13 +271,29 @@ export const createAISegmentMergeSlice = (
           byConfidence: result.summary.byConfidence,
         });
 
+        const normalizedIssues = (result.issues || []).map((issue) => ({
+          ...issue,
+          message: normalizeBatchIssueMessage(issue.message),
+        }));
+        const issueSummary = summarizeMessages(normalizedIssues);
+        const hardIssue = normalizedIssues.find((issue) =>
+          isHardAIErrorCode(issue.context?.errorCode as string | undefined),
+        );
+
+        if (hardIssue) {
+          toast({
+            title: t("aiBatch.errors.toastTitle"),
+            description: hardIssue.message,
+            variant: "destructive",
+          });
+        }
+
         set({
           aiSegmentMergeSuggestions: [...currentState.aiSegmentMergeSuggestions, ...newSuggestions],
           aiSegmentMergeIsProcessing: false,
           aiSegmentMergeIsCancelling: false,
           aiSegmentMergeProcessedCount: result.summary.analyzed,
-          aiSegmentMergeError:
-            result.issues.length > 0 ? result.issues.map((i) => i.message).join("; ") : null,
+          aiSegmentMergeError: issueSummary || null,
           aiSegmentMergeAbortController: null,
         });
       })
@@ -284,9 +306,17 @@ export const createAISegmentMergeSlice = (
           });
           return;
         }
+        const aiError = toAIError(error);
         console.error("[AISegmentMerge] Analysis error:", error);
+        if (isHardAIErrorCode(aiError.code)) {
+          toast({
+            title: t("aiBatch.errors.toastTitle"),
+            description: aiError.toUserMessage(),
+            variant: "destructive",
+          });
+        }
         set({
-          aiSegmentMergeError: error.message ?? "Analysis failed",
+          aiSegmentMergeError: aiError.toUserMessage(),
           aiSegmentMergeIsProcessing: false,
           aiSegmentMergeIsCancelling: false,
           aiSegmentMergeAbortController: null,

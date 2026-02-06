@@ -7,14 +7,20 @@
  * @module ai/features/speaker/service
  */
 
+import { getI18nInstance } from "@/i18n/config";
 import {
   getEffectiveAIRequestConcurrency,
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
 import type { AIFeatureOptions } from "../../core";
-import { executeFeature, runBatchCoordinator } from "../../core";
+import {
+  AIError,
+  executeFeature,
+  formatResponsePayload,
+  runBatchCoordinator,
+  toAIError,
+} from "../../core";
 import { extractJSON } from "../../parsing";
-
 import { speakerClassificationConfig } from "./config";
 import type {
   BatchIssue,
@@ -30,6 +36,8 @@ import {
   markNewSpeaker,
   resolveSuggestedSpeaker,
 } from "./utils";
+
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 // ==================== Types ====================
 
@@ -118,7 +126,11 @@ export async function classifySpeakers(
   if (!result.success || !result.data) {
     const message = result.error ?? "Speaker classification failed";
     console.error("[Speaker Service] Classification failed:", message);
-    throw new Error(message);
+    const responsePayload = formatResponsePayload(result.rawResponse, result.error);
+    throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
+      responsePayload,
+      rawResponse: result.rawResponse,
+    });
   }
 
   // Map suggestions to results
@@ -188,12 +200,19 @@ export async function classifySpeakersBatch(
           end: prepared.end,
         };
       } catch (error) {
+        const aiError = toAIError(error);
+        const responsePayload =
+          typeof aiError.details?.responsePayload === "string"
+            ? aiError.details.responsePayload
+            : undefined;
         return {
           status: "failed" as const,
           batchIndex: prepared.batchIndex,
           batchSegments: prepared.batchSegments,
           end: prepared.end,
-          error: error instanceof Error ? error.message : String(error),
+          error: aiError.toUserMessage(),
+          errorCode: aiError.code,
+          responsePayload,
         };
       }
     },
@@ -214,10 +233,12 @@ export async function classifySpeakersBatch(
         failed += outcome.batchSegments.length;
         allIssues.push({
           level: "error",
-          message: `Batch ${outcome.batchIndex + 1} failed: ${outcome.error}`,
+          message: outcome.error ?? t("aiBatch.errors.unknown"),
           context: {
             batchIndex: outcome.batchIndex,
             segmentIds: outcome.batchSegments.map((s) => s.id),
+            errorCode: outcome.errorCode,
+            responsePayload: outcome.responsePayload,
           },
         });
       }
@@ -229,7 +250,7 @@ export async function classifySpeakersBatch(
   if (signal?.aborted) {
     allIssues.push({
       level: "warn",
-      message: "Classification cancelled by user",
+      message: t("aiBatch.messages.cancelledByUser"),
       context: { processedBatches, totalBatches },
     });
   }
