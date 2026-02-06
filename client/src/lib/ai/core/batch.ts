@@ -265,6 +265,11 @@ export async function runConcurrentOrdered<T>(
             if (options.signal?.aborted) {
               stopScheduling = true;
             }
+            // NOTE: emitReady is async and intentionally fire-and-forget. This means
+            // runConcurrentOrdered can resolve before all ordered callbacks emit if
+            // emitReady yields (e.g., large batches with yieldEvery). Callers must
+            // not assume onItemComplete/onItemError or ordered results are fully
+            // flushed at resolve time.
             void emitReady();
             if ((nextIndex >= total || stopScheduling) && active === 0) {
               resolve(results);
