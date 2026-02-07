@@ -259,9 +259,18 @@ export function GlossarySettings() {
                   <div
                     key={entry.term}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent",
+                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer",
                       formMode === "edit" && selectedTerm === entry.term && "bg-accent",
                     )}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => handleEdit(entry)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleEdit(entry);
+                      }
+                    }}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{entry.term}</div>
@@ -271,21 +280,26 @@ export function GlossarySettings() {
                         </div>
                       )}
                     </div>
-                    <div className="flex items-center gap-1">
+                    <div className="flex items-center gap-1 shrink-0">
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="ghost"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => handleEdit(entry)}
+                        className="h-7 px-2 text-foreground"
+                        onClick={(event) => {
+                          event.stopPropagation();
+                          handleEdit(entry);
+                        }}
                         aria-label={`Edit ${entry.term}`}
                       >
                         <Pencil className="h-3 w-3" />
+                        <span className="text-xs">Edit</span>
                       </Button>
                       <Button
-                        size="icon"
+                        size="sm"
                         variant="ghost"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => {
+                        className="h-7 px-2 text-foreground"
+                        onClick={(event) => {
+                          event.stopPropagation();
                           removeLexiconEntry(entry.term);
                           if (selectedTerm === entry.term) {
                             closeForm();
@@ -294,6 +308,7 @@ export function GlossarySettings() {
                         aria-label={`Delete ${entry.term}`}
                       >
                         <Trash2 className="h-3 w-3" />
+                        <span className="text-xs">Delete</span>
                       </Button>
                     </div>
                   </div>

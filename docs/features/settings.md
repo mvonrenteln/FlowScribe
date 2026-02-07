@@ -338,6 +338,9 @@ Configure low confidence highlighting for transcript quality review.
 
 #### Managing Glossary Entries
 
+Click a glossary entry row to open it for editing, or use the **Edit** and **Delete** buttons on
+the right side of each entry.
+
 - Apply corrections with a single click
 - Highlight terms that need review or correction
 - Catch common transcription errors (e.g., "Delphi" → "Delhi")
