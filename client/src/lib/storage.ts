@@ -1,3 +1,4 @@
+import { createFallbackPersister } from "@/lib/storage/persistenceFallback";
 import type {
   PersistedGlobalState,
   PersistedSession,
@@ -180,6 +181,7 @@ export const createStorageScheduler = (
   let pendingGlobal: PersistedGlobalState | null = null;
   let worker: PersistenceWorkerLike | null = null;
   let latestJobId = 0;
+  const fallbackPersister = createFallbackPersister(SESSIONS_STORAGE_KEY, GLOBAL_STORAGE_KEY);
 
   const ensureWorker = () => {
     if (worker) return worker;
@@ -228,15 +230,9 @@ export const createStorageScheduler = (
         activeWorker.postMessage(payload);
         return;
       }
-      try {
-        window.localStorage.setItem(SESSIONS_STORAGE_KEY, JSON.stringify(sessionsToPersist));
-        window.localStorage.setItem(GLOBAL_STORAGE_KEY, JSON.stringify(globalToPersist));
-      } catch (err) {
-        if (isQuotaExceeded(err)) {
-          console.error("QuotaExceededError: sync fallback persistence failed", err);
-          dispatchQuotaExceeded();
-        }
-      }
+      // Worker unavailable: use fallback persister with an idle timeout to avoid
+      // indefinite deferral in background/busy tabs (see persistenceFallback.ts).
+      fallbackPersister(sessionsToPersist, globalToPersist);
     }, throttleMs);
   };
 };

@@ -37,6 +37,11 @@ fallback) catch and discard errors.
 `"flowscribe:storage-quota-exceeded"`, and show an AlertDialog with export
 option. Subsequent errors show a destructive toast.
 
+**Additional behavior:** When the persistence worker is unavailable, sync
+fallback writes are deferred with `requestIdleCallback` (or `setTimeout`) and
+use an idle timeout so background/busy tabs still persist the latest state.
+They emit a warning when payloads are large to help diagnose main-thread jank.
+
 ### Bug 4: Audio-restore creates new audioRef object
 
 **Root cause:** `sessionSlice.ts` `activateSession` used `buildFileReference(file)`
