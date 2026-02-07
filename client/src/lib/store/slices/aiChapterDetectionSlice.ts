@@ -13,6 +13,7 @@ import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createChapterSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { detectChapters } from "@/lib/ai/features/chapterDetection";
 import { mapById } from "@/lib/arrayUtils";
+import { createLogger } from "@/lib/logging";
 import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type {
@@ -38,6 +39,7 @@ type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 const t = getI18nInstance().t.bind(getI18nInstance());
+const logger = createLogger({ feature: "AIChapterDetectionSlice", namespace: "Store" });
 
 export const initialAIChapterDetectionState = {
   aiChapterDetectionSuggestions: [] as AIChapterSuggestion[],
@@ -276,18 +278,15 @@ export const createAIChapterDetectionSlice = (
           },
           onBatchComplete: (batchIndex, mapped) => {
             const snapshot = get();
-            // eslint-disable-next-line no-console
-            console.log("[FS-AI] onBatchComplete handler called", {
+            logger.info("onBatchComplete handler called.", {
               batchIndex,
               processingFlag: snapshot.aiChapterDetectionIsProcessing,
               mappedCount: mapped.length,
             });
             if (!snapshot.aiChapterDetectionIsProcessing) {
-              // eslint-disable-next-line no-console
-              console.log(
-                "[FS-AI] onBatchComplete handler exiting because processingFlag is false",
-                { batchIndex },
-              );
+              logger.info("onBatchComplete handler exiting because processingFlag is false.", {
+                batchIndex,
+              });
               return;
             }
 

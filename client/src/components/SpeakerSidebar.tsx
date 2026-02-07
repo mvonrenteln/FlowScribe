@@ -27,11 +27,14 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Slider } from "@/components/ui/slider";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { createLogger } from "@/lib/logging";
 import type { Segment, Speaker, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
 import { SPEAKER_COLORS } from "@/lib/store/constants";
 import { cn } from "@/lib/utils";
 import { SearchAndReplacePanel } from "./transcript-editor/SearchAndReplacePanel";
+
+const logger = createLogger({ feature: "SpeakerSidebar", namespace: "UI" });
 
 interface SpeakerSidebarProps {
   speakers: Speaker[];
@@ -815,7 +818,7 @@ export function SpeakerSidebar({
             )}
             onClick={(e) => {
               e.stopPropagation();
-              console.log("No Tags clicked", { noTagsFilterActive, onToggleNoTagsFilter });
+              logger.info("No Tags clicked.", { noTagsFilterActive });
               onToggleNoTagsFilter?.();
             }}
             onKeyDown={(e) => {

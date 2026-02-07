@@ -28,11 +28,13 @@ vi.mock("@/lib/ai/core/providerResolver", async () => ({
 
 // Mock settings to use a short timeout
 vi.mock("@/lib/settings/settingsStorage", async () => {
-  const actual = await vi.importActual("@/lib/settings/settingsStorage");
+  const actual = await vi.importActual<typeof import("@/lib/settings/settingsStorage")>(
+    "@/lib/settings/settingsStorage",
+  );
   return {
     ...actual,
     initializeSettings: () => ({
-      ...(actual as any).DEFAULT_SETTINGS,
+      ...actual.DEFAULT_SETTINGS,
       aiRequestTimeoutSeconds: 1,
       parseRetryCount: 0,
     }),

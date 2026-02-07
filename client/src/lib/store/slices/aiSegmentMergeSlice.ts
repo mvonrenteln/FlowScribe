@@ -19,6 +19,7 @@ import type {
   MergeSuggestion,
 } from "@/lib/ai/features/segmentMerge";
 import { indexById } from "@/lib/arrayUtils";
+import { createLogger } from "@/lib/logging";
 import type {
   AIPrompt,
   AISegmentMergeSlice,
@@ -36,6 +37,7 @@ type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 const t = getI18nInstance().t.bind(getI18nInstance());
+const logger = createLogger({ feature: "AISegmentMergeSlice", namespace: "Store" });
 
 // ==================== Initial State ====================
 
@@ -231,30 +233,29 @@ export const createAISegmentMergeSlice = (
           aiSegmentMergeBatchLog: nextBatchLog,
         });
 
-        console.log(
-          `[AISegmentMerge] Batch ${progress.batchIndex}/${progress.totalBatches} complete:`,
-          {
-            batchSuggestions: progress.batchSuggestions.length,
-            totalSuggestions: currentSuggestions.length + newSuggestions.length,
-          },
-        );
+        logger.info("Batch complete.", {
+          batchIndex: progress.batchIndex,
+          totalBatches: progress.totalBatches,
+          batchSuggestions: progress.batchSuggestions.length,
+          totalSuggestions: currentSuggestions.length + newSuggestions.length,
+        });
       },
     };
 
     // Run analysis asynchronously - dynamic import to avoid circular dependencies
-    console.log("[AISegmentMerge] Starting analysis for", segmentsToAnalyze.length, "segments");
+    logger.info("Starting analysis for segments.", { count: segmentsToAnalyze.length });
     import("@/lib/ai/features/segmentMerge")
       .then(({ analyzeMergeCandidates }) => {
-        console.log("[AISegmentMerge] Import successful, calling analyzeMergeCandidates");
+        logger.info("Import successful, calling analyzeMergeCandidates.");
         return analyzeMergeCandidates(analysisParams);
       })
       .then((result: MergeAnalysisResult) => {
         const currentState = get();
         if (!currentState.aiSegmentMergeIsProcessing) return; // Cancelled
 
-        console.log("[AISegmentMerge] Full analysis result:", result);
+        logger.info("Full analysis result received.", { result });
         if (result.issues && result.issues.length > 0) {
-          console.warn("[AISegmentMerge] Analysis issues:", result.issues);
+          logger.warn("Analysis issues.", { issues: result.issues });
         }
 
         const storeSuggestions = result.suggestions.map(toStoreSuggestion);
@@ -266,7 +267,7 @@ export const createAISegmentMergeSlice = (
           (suggestion) => !existingKeys.has(createMergePairKey(suggestion.segmentIds)),
         );
 
-        console.log("[AISegmentMerge] Analysis complete:", {
+        logger.info("Analysis complete.", {
           found: result.summary.found,
           byConfidence: result.summary.byConfidence,
         });
@@ -307,7 +308,7 @@ export const createAISegmentMergeSlice = (
           return;
         }
         const aiError = toAIError(error);
-        console.error("[AISegmentMerge] Analysis error:", error);
+        logger.error("Analysis error.", { error });
         if (isHardAIErrorCode(aiError.code)) {
           toast({
             title: t("aiBatch.errors.toastTitle"),

@@ -7,6 +7,7 @@
  * @module ai/features/revision/service
  */
 
+import { createLogger } from "@/lib/logging";
 import {
   getEffectiveAIRequestConcurrency,
   initializeSettings,
@@ -31,6 +32,8 @@ import type {
   RevisionResult,
   SingleRevisionParams,
 } from "./types";
+
+const logger = createLogger({ feature: "RevisionService" });
 
 // ==================== Main Functions ====================
 
@@ -73,7 +76,7 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
   if (!result.success || !result.data) {
     const responsePayload = formatResponsePayload(result.rawResponse, result.error);
     const message = result.error ?? "Revision failed";
-    console.error("[Revision Service] Revision failed:", message);
+    logger.error("Revision failed.", { message });
     throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
       responsePayload,
     });
@@ -86,7 +89,7 @@ export async function reviseSegment(params: SingleRevisionParams): Promise<Revis
   });
 
   if (parseResult.wasError) {
-    console.warn("[Revision Service] AI returned error-like response:", parseResult.warnings);
+    logger.warn("AI returned error-like response.", { warnings: parseResult.warnings });
   }
 
   const revisedText = parseResult.text;

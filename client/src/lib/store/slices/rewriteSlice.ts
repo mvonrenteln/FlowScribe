@@ -13,11 +13,14 @@ import {
 } from "@/lib/ai/features/rewrite/config";
 import { rewriteChapter } from "@/lib/ai/features/rewrite/service";
 import type { RewritePrompt } from "@/lib/ai/features/rewrite/types";
+import { createLogger } from "@/lib/logging";
 import type { TranscriptStore } from "../types";
 import { generateId } from "../utils/id";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const logger = createLogger({ feature: "RewriteSlice", namespace: "Store" });
 
 // ==================== Types ====================
 
@@ -125,7 +128,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
 
     // Cannot delete built-in prompts
     if (prompt?.isBuiltin) {
-      console.warn("[Rewrite Slice] Cannot delete built-in prompt:", id);
+      logger.warn("Cannot delete built-in prompt.", { id });
       return;
     }
 
@@ -174,21 +177,21 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
     // Find chapter
     const chapter = state.chapters.find((c) => c.id === chapterId);
     if (!chapter) {
-      console.error("[Rewrite Slice] Chapter not found:", chapterId);
+      logger.error("Chapter not found.", { chapterId });
       return;
     }
 
     // Find prompt
     const prompt = state.rewritePrompts.find((p) => p.id === promptId);
     if (!prompt) {
-      console.error("[Rewrite Slice] Prompt not found:", promptId);
+      logger.error("Prompt not found.", { promptId });
       return;
     }
 
     // Get segments in chapter
     const segments = state.selectSegmentsInChapter(chapterId);
     if (!segments.length) {
-      console.error("[Rewrite Slice] No segments in chapter:", chapterId);
+      logger.error("No segments in chapter.", { chapterId });
       return;
     }
 
@@ -232,7 +235,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         model: state.rewriteConfig.selectedModel,
       });
     } catch (error) {
-      console.error("[Rewrite Slice] Rewrite failed:", error);
+      logger.error("Rewrite failed.", { error });
 
       set({
         rewriteInProgress: false,

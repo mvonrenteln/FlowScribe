@@ -1,4 +1,5 @@
 import type { StoreApi } from "zustand";
+import { createLogger } from "@/lib/logging";
 import {
   loadSpellcheckDictionaries,
   removeSpellcheckDictionary,
@@ -14,6 +15,8 @@ import {
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const logger = createLogger({ feature: "SpellcheckSlice", namespace: "Store" });
 
 export const createSpellcheckSlice = (set: StoreSetter, get: StoreGetter): SpellcheckSlice => ({
   setSpellcheckEnabled: (enabled) => set({ spellcheckEnabled: enabled }),
@@ -61,7 +64,7 @@ export const createSpellcheckSlice = (set: StoreSetter, get: StoreGetter): Spell
         spellcheckCustomDictionariesLoaded: true,
       });
     } catch (err) {
-      console.error("Failed to load spellcheck dictionaries:", err);
+      logger.error("Failed to load spellcheck dictionaries.", { error: err });
       set({ spellcheckCustomDictionariesLoaded: true });
     }
   },
@@ -70,7 +73,7 @@ export const createSpellcheckSlice = (set: StoreSetter, get: StoreGetter): Spell
     try {
       await saveSpellcheckDictionary(entry);
     } catch (err) {
-      console.error("Failed to save spellcheck dictionary:", err);
+      logger.error("Failed to save spellcheck dictionary.", { error: err });
     }
     const { spellcheckCustomDictionaries } = get();
     set({
@@ -81,7 +84,7 @@ export const createSpellcheckSlice = (set: StoreSetter, get: StoreGetter): Spell
     try {
       await removeSpellcheckDictionary(id);
     } catch (err) {
-      console.error("Failed to remove spellcheck dictionary:", err);
+      logger.error("Failed to remove spellcheck dictionary.", { error: err });
     }
     const { spellcheckCustomDictionaries } = get();
     set({

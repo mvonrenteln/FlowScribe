@@ -12,7 +12,10 @@ import {
 } from "@/lib/audioHandleStorage";
 import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
+import { createLogger } from "@/lib/logging";
 import { useTranscriptStore } from "@/lib/store";
+
+const logger = createLogger({ feature: "FileUpload", namespace: "UI" });
 
 interface FileUploadProps {
   onAudioUpload: (file: File) => void;
@@ -57,7 +60,7 @@ export function FileUpload({
         }
       })
       .catch((err) => {
-        console.error("Failed to load saved audio handle:", err);
+        logger.error("Failed to load saved audio handle.", { error: err });
       });
     // Listen for external changes to the stored handle (save/clear) so we
     // can update the `Reopen Audio` button immediately.
@@ -76,7 +79,7 @@ export function FileUpload({
       // If present or unknown, reload the handle from storage.
       loadAudioHandleForAudioRef(audioRefKey)
         .then((h) => setAudioHandle(h))
-        .catch((err) => console.error("Failed to reload saved audio handle:", err));
+        .catch((err) => logger.error("Failed to reload saved audio handle.", { error: err }));
     };
     window.addEventListener("flowscribe:audio-handle-updated", onHandleUpdated as EventListener);
     return () => {
@@ -104,7 +107,7 @@ export function FileUpload({
           clearAudioHandleForAudioRef(audioRefKey)
             .then(() => setAudioHandle(null))
             .catch((err) => {
-              console.error("Failed to clear saved audio handle:", err);
+              logger.error("Failed to clear saved audio handle.", { error: err });
             });
         }
 
@@ -161,7 +164,7 @@ export function FileUpload({
       setAudioHandle(handle);
     } catch (err) {
       if (err instanceof DOMException && err.name === "AbortError") return;
-      console.error("Failed to pick audio file:", err);
+      logger.error("Failed to pick audio file.", { error: err });
     }
   }, [onAudioUpload]);
 
@@ -177,12 +180,12 @@ export function FileUpload({
         // so the UI no longer offers reopening the same problematic file.
         clearAudioHandleForAudioRef(audioRefKey)
           .then(() => setAudioHandle(null))
-          .catch((err) => console.error("Failed to clear saved audio handle:", err));
+          .catch((err) => logger.error("Failed to clear saved audio handle.", { error: err }));
         return;
       }
       onAudioUpload(file);
     } catch (err) {
-      console.error("Failed to restore audio file:", err);
+      logger.error("Failed to restore audio file.", { error: err });
     }
   }, [audioHandle, onAudioUpload, audioRefKey]);
 
@@ -199,7 +202,7 @@ export function FileUpload({
             onTranscriptUpload(data, buildFileReference(file));
             setLocalTranscriptFileName(file.name);
           } catch (err) {
-            console.error("Failed to parse transcript JSON:", err);
+            logger.error("Failed to parse transcript JSON.", { error: err });
           }
         };
         reader.readAsText(file);

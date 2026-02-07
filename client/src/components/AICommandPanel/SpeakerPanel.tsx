@@ -14,6 +14,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { formatDurationMs } from "@/lib/formatting";
+import { createLogger } from "@/lib/logging";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
 import { AIConfigurationSection } from "./AIConfigurationSection";
@@ -25,6 +26,8 @@ import { ResultsList } from "./ResultsList";
 import { ScopeSection } from "./ScopeSection";
 import { createSegmentNavigator } from "./utils/segmentNavigator";
 import { truncateText } from "./utils/truncateText";
+
+const logger = createLogger({ feature: "SpeakerPanel", namespace: "UI" });
 
 interface SpeakerPanelProps {
   filteredSegmentIds: string[];
@@ -203,9 +206,11 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                     entry.issues && entry.issues.length > 0
                       ? entry.issues[0].message
                       : t("aiBatch.batchLog.emptyIssue");
-                  console.log(
-                    `[DEBUG UI] Batch ${idx}: processedTotal=${entry.processedTotal}, totalExpected=${entry.totalExpected}`,
-                  );
+                  logger.info("Batch log entry mapped.", {
+                    index: idx,
+                    processedTotal: entry.processedTotal,
+                    totalExpected: entry.totalExpected,
+                  });
                   return {
                     id: `${entry.batchIndex}-${entry.loggedAt}-${idx}`,
                     batchLabel: `${entry.batchIndex + 1}`,

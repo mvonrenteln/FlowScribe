@@ -24,6 +24,7 @@ import { validate } from "./validator";
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "ResponseParser" });
  * interface SpeakerSuggestion {
  *   tag: string;
  *   confidence: number;
@@ -44,7 +45,7 @@ import { validate } from "./validator";
  * });
  *
  * if (result.success) {
- *   console.log(result.data); // SpeakerSuggestion[]
+ *   logger.info("Parsed response data.", { data: result.data });
  * }
  * ```
  */

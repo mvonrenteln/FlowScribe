@@ -9,8 +9,11 @@ import {
 } from "@/lib/audioHandleStorage";
 import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
+import { createLogger } from "@/lib/logging";
 import type { Segment, TranscriptStore } from "@/lib/store/types";
 import { parseTranscriptData } from "@/lib/transcriptParsing";
+
+const logger = createLogger({ feature: "TranscriptInitialization", namespace: "UI" });
 
 interface UseTranscriptInitializationParams {
   audioFile: File | null;
@@ -58,7 +61,7 @@ export const useTranscriptInitialization = ({
     (data: unknown, reference?: FileReference | null) => {
       const parsed = parseTranscriptData(data);
       if (!parsed) {
-        console.error("Unknown transcript format. Expected Whisper or WhisperX format.");
+        logger.error("Unknown transcript format. Expected Whisper or WhisperX format.");
         toast({
           title: t("import.transcriptFormatError"),
           description: t("import.transcriptFormatErrorDescription"),
@@ -117,14 +120,14 @@ export const useTranscriptInitialization = ({
           // User declined loading the previously saved large file after reload.
           // Clear the stored handle for this audio to avoid repeatedly prompting.
           clearAudioHandleForAudioRef(audioRefKey).catch((err) =>
-            console.error("Failed to clear saved audio handle:", err),
+            logger.error("Failed to clear saved audio handle.", { error: err }),
           );
           return;
         }
         handleAudioUpload(file);
       })
       .catch((err) => {
-        console.error("Failed to restore audio handle:", err);
+        logger.error("Failed to restore audio handle.", { error: err });
       });
 
     return () => {

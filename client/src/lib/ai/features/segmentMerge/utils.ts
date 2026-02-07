@@ -410,7 +410,7 @@ export function processSuggestion(
     .map((id) => {
       const segment = segmentMap.get(id);
       if (!segment) {
-        console.warn("[SegmentMerge] Segment ID not found in map:", {
+        logger.warn("Segment ID not found in map.", {
           requestedId: id,
           availableIds: Array.from(segmentMap.keys()).slice(0, 10),
           totalAvailable: segmentMap.size,
@@ -422,7 +422,7 @@ export function processSuggestion(
     .filter((s): s is MergeAnalysisSegment => s !== undefined);
 
   if (relevantSegments.length < 2) {
-    console.warn("[SegmentMerge] Insufficient segments found:", {
+    logger.warn("Insufficient segments found.", {
       requestedIds: raw.segmentIds,
       foundCount: relevantSegments.length,
       requiredCount: 2,

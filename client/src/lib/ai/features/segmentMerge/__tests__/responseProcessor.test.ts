@@ -2,9 +2,9 @@
  * @vitest-environment jsdom
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { AIFeatureResult } from "@/lib/ai/core/types";
-import { disableFeatureDebug, enableFeatureDebug } from "@/lib/logging";
+import { disableFeatureDebug, enableFeatureDebug, getLogLevel } from "@/lib/logging";
 import {
   extractRawResponse,
   isRawMergeSuggestion,
@@ -15,9 +15,14 @@ import {
 describe("Response Processor", () => {
   beforeEach(() => {
     disableFeatureDebug("SegmentMerge");
-    vi.spyOn(console, "log").mockImplementation(() => {});
-    vi.spyOn(console, "warn").mockImplementation(() => {});
-    vi.spyOn(console, "error").mockImplementation(() => {});
+    const logger = getLogLevel().getLogger("AI:SegmentMerge");
+    vi.spyOn(logger, "info").mockImplementation(() => {});
+    vi.spyOn(logger, "warn").mockImplementation(() => {});
+    vi.spyOn(logger, "error").mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   describe("isRawMergeSuggestion", () => {
@@ -232,6 +237,9 @@ describe("Response Processor", () => {
 
     it("should log debug info when enabled", () => {
       enableFeatureDebug("SegmentMerge");
+      const debugSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:SegmentMerge"), "debug")
+        .mockImplementation(() => {});
 
       const result: AIFeatureResult<unknown[]> = {
         success: true,
@@ -242,7 +250,7 @@ describe("Response Processor", () => {
 
       processAIResponse(result, { idMapping });
 
-      expect(console.log).toHaveBeenCalled();
+      expect(debugSpy).toHaveBeenCalled();
     });
 
     it("should handle items that fail normalization", () => {

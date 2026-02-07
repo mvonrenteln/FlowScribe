@@ -1,5 +1,9 @@
+import { createLogger } from "@/lib/logging";
+
 const MB = 1024 * 1024;
 const GB = 1024 * 1024 * 1024;
+
+const logger = createLogger({ feature: "ConfirmLargeFile", namespace: "App" });
 
 export function formatFileSize(size: number) {
   if (size >= GB) return `${(size / GB).toFixed(2)} GB`;
@@ -36,7 +40,7 @@ export function confirmIfLargeAudio(file: File) {
       return globalThis.confirm(msg);
     } catch (err) {
       // If confirmation cannot be shown, allow proceeding to avoid blocking the flow
-      console.error("Failed to show confirmation dialog:", err);
+      logger.error("Failed to show confirmation dialog.", { error: err });
       return true;
     }
   }

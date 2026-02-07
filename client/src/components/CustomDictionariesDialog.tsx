@@ -10,8 +10,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { createLogger } from "@/lib/logging";
 import { extractHunspellFromOxt, listHunspellPairsFromOxt } from "@/lib/oxt";
 import { useTranscriptStore } from "@/lib/store";
+
+const logger = createLogger({ feature: "CustomDictionariesDialog", namespace: "UI" });
 
 interface CustomDictionariesDialogProps {
   open: boolean;
@@ -74,7 +77,7 @@ export function CustomDictionariesDialog({ open, onOpenChange }: CustomDictionar
       setCustomDicFile(null);
       setShowManualImport(false);
     } catch (err) {
-      console.error("Failed to import spellcheck dictionary:", err);
+      logger.error("Failed to import spellcheck dictionary.", { error: err });
       setCustomError("Failed to import dictionary.");
     }
   };
@@ -96,7 +99,7 @@ export function CustomDictionariesDialog({ open, onOpenChange }: CustomDictionar
         setPendingOxtCandidates(candidates.map((candidate) => ({ name: candidate.name })));
       }
     } catch (err) {
-      console.error("Failed to import .oxt dictionary:", err);
+      logger.error("Failed to import .oxt dictionary.", { error: err });
       setCustomError("Failed to import .oxt dictionary.");
     }
   };
@@ -112,7 +115,7 @@ export function CustomDictionariesDialog({ open, onOpenChange }: CustomDictionar
         dic: extracted.dic,
       });
     } catch (err) {
-      console.error("Failed to import selected .oxt dictionary:", err);
+      logger.error("Failed to import selected .oxt dictionary.", { error: err });
       setCustomError("Failed to import selected dictionary.");
     } finally {
       setPendingOxtBuffer(null);

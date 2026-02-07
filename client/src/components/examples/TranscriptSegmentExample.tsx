@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createLogger } from "@/lib/logging";
 import type { Segment, Speaker } from "@/lib/store";
 import { TranscriptSegment } from "../TranscriptSegment";
 
@@ -32,6 +33,8 @@ const mockSegment: Segment = {
   ],
 };
 
+const logger = createLogger({ feature: "TranscriptSegmentExample", namespace: "Examples" });
+
 export default function TranscriptSegmentExample() {
   const [segment, setSegment] = useState(mockSegment);
   const [isSelected, setIsSelected] = useState(false);
@@ -46,14 +49,14 @@ export default function TranscriptSegmentExample() {
         onSelect={() => setIsSelected(!isSelected)}
         onTextChange={(text) => setSegment({ ...segment, text })}
         onSpeakerChange={(speaker) => setSegment({ ...segment, speaker })}
-        onSplit={(wordIndex) => console.log("Split at word:", wordIndex)}
+        onSplit={(wordIndex) => logger.info("Split at word.", { wordIndex })}
         onConfirm={() => setSegment({ ...segment, confirmed: true })}
         onToggleBookmark={() =>
           setSegment((current) => ({ ...current, bookmarked: !current.bookmarked }))
         }
-        onMergeWithNext={() => console.log("Merge with next")}
-        onDelete={() => console.log("Delete segment")}
-        onSeek={(time) => console.log("Seek to:", time)}
+        onMergeWithNext={() => logger.info("Merge with next triggered.")}
+        onDelete={() => logger.info("Delete segment triggered.")}
+        onSeek={(time) => logger.info("Seek to.", { time })}
       />
     </div>
   );
