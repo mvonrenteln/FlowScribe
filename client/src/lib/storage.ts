@@ -1,3 +1,4 @@
+import { createFallbackPersister } from "@/lib/storage/persistenceFallback";
 import type {
   PersistedGlobalState,
   PersistedSession,
@@ -30,7 +31,6 @@ type PersistenceWorkerLike = {
 
 type PersistenceWorkerFactory = () => PersistenceWorkerLike | null;
 
-type IdleCallback = IdleRequestCallback;
 const createPersistenceWorker = (): PersistenceWorkerLike | null => {
   if (typeof Worker === "undefined") return null;
   try {
@@ -129,8 +129,6 @@ const dispatchQuotaExceeded = () => {
   }
 };
 
-const FALLBACK_MAX_JSON_CHARS = 250_000;
-
 export const writeSessionsSync = (state: PersistedSessionsState): boolean => {
   if (!canUseLocalStorage()) return false;
   try {
@@ -183,7 +181,7 @@ export const createStorageScheduler = (
   let pendingGlobal: PersistedGlobalState | null = null;
   let worker: PersistenceWorkerLike | null = null;
   let latestJobId = 0;
-  let latestFallbackJobId = 0;
+  const fallbackPersister = createFallbackPersister(SESSIONS_STORAGE_KEY, GLOBAL_STORAGE_KEY);
 
   const ensureWorker = () => {
     if (worker) return worker;
@@ -232,43 +230,8 @@ export const createStorageScheduler = (
         activeWorker.postMessage(payload);
         return;
       }
-      latestFallbackJobId += 1;
-      const currentFallbackJobId = latestFallbackJobId;
-      const syncFallback = () => {
-        // Only persist if this is still the latest fallback job
-        if (currentFallbackJobId !== latestFallbackJobId) return;
-        try {
-          const sessionsJson = JSON.stringify(sessionsToPersist);
-          const globalJson = JSON.stringify(globalToPersist);
-          const totalChars = sessionsJson.length + globalJson.length;
-          if (totalChars > FALLBACK_MAX_JSON_CHARS) {
-            console.warn("Large sync fallback persistence payload; expect main-thread work.", {
-              totalChars,
-            });
-          }
-          window.localStorage.setItem(SESSIONS_STORAGE_KEY, sessionsJson);
-          window.localStorage.setItem(GLOBAL_STORAGE_KEY, globalJson);
-        } catch (err) {
-          if (isQuotaExceeded(err)) {
-            console.error("QuotaExceededError: sync fallback persistence failed", err);
-            dispatchQuotaExceeded();
-          }
-        }
-      };
-      // Worker unavailable (file:// protocol, CSP worker-src restrictions, test environments,
-      // embedded webviews, or enterprise security policies): defer main-thread JSON/stringify
-      // work to idle time when possible. Trade-off: this can still cause UI jank for large
-      // payloads, but defers and logs oversized writes rather than silently blocking the
-      // interaction thread. Version tracking (latestFallbackJobId) prevents stale deferred
-      // writes from overwriting newer state.
-      const requestIdleCallback = (
-        window as Window & { requestIdleCallback?: (callback: IdleCallback) => number }
-      ).requestIdleCallback;
-      if (requestIdleCallback) {
-        requestIdleCallback(() => syncFallback());
-      } else {
-        setTimeout(syncFallback, 0);
-      }
+      // Worker unavailable: use fallback persister (see persistenceFallback.ts for details)
+      fallbackPersister(sessionsToPersist, globalToPersist);
     }, throttleMs);
   };
 };
