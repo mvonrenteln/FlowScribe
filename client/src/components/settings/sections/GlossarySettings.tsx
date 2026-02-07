@@ -7,7 +7,7 @@
  * - Term management (add, edit, delete, import, export)
  */
 
-import { Check, Download, Pencil, Plus, Trash2, Upload } from "lucide-react";
+import { Check, Download, Plus, Trash2, Upload } from "lucide-react";
 import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -259,9 +259,19 @@ export function GlossarySettings() {
                   <div
                     key={entry.term}
                     className={cn(
-                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent",
+                      "flex items-center justify-between gap-2 rounded px-2 py-1.5 hover:bg-accent cursor-pointer",
                       formMode === "edit" && selectedTerm === entry.term && "bg-accent",
                     )}
+                    role="button"
+                    tabIndex={0}
+                    aria-label={`Edit ${entry.term}`}
+                    onClick={() => handleEdit(entry)}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" || event.key === " ") {
+                        event.preventDefault();
+                        handleEdit(entry);
+                      }
+                    }}
                   >
                     <div className="min-w-0 flex-1">
                       <div className="text-sm font-medium truncate">{entry.term}</div>
@@ -270,31 +280,6 @@ export function GlossarySettings() {
                           Variants: {entry.variants.join(", ")}
                         </div>
                       )}
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => handleEdit(entry)}
-                        aria-label={`Edit ${entry.term}`}
-                      >
-                        <Pencil className="h-3 w-3" />
-                      </Button>
-                      <Button
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6 shrink-0"
-                        onClick={() => {
-                          removeLexiconEntry(entry.term);
-                          if (selectedTerm === entry.term) {
-                            closeForm();
-                          }
-                        }}
-                        aria-label={`Delete ${entry.term}`}
-                      >
-                        <Trash2 className="h-3 w-3" />
-                      </Button>
                     </div>
                   </div>
                 ))
@@ -353,6 +338,18 @@ export function GlossarySettings() {
                   <Check className="h-4 w-4 mr-1" />
                   Save
                 </Button>
+                {formMode === "edit" && selectedTerm ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      removeLexiconEntry(selectedTerm);
+                      closeForm();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                ) : null}
                 <Button variant="ghost" onClick={closeForm}>
                   Cancel
                 </Button>
