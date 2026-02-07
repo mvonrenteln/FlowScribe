@@ -44,6 +44,7 @@ const logger = createLogger({ feature: "SegmentMerge" });
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "SegmentMerge" });
  * const result = await analyzeMergeCandidates({
  *   segments: transcriptSegments,
  *   maxTimeGap: 2.0,
@@ -52,7 +53,7 @@ const logger = createLogger({ feature: "SegmentMerge" });
  *   enableSmoothing: true,
  * });
  *
- * console.log(`Found ${result.suggestions.length} merge candidates`);
+ * logger.info("Found merge candidates.", { count: result.suggestions.length });
  * ```
  */
 export async function analyzeMergeCandidates(

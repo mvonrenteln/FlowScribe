@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createLogger } from "@/lib/logging";
 import { getSpellcheckMatch, loadSpellcheckers, normalizeSpellcheckTerm } from "@/lib/spellcheck";
 import type {
   LexiconEntry,
@@ -6,6 +7,8 @@ import type {
   SpellcheckCustomDictionary,
   SpellcheckLanguage,
 } from "@/lib/store";
+
+const logger = createLogger({ feature: "Spellcheck", namespace: "UI" });
 
 export interface SpellcheckMatchMeta {
   suggestions: string[];
@@ -125,7 +128,7 @@ export function useSpellcheck({
           }
         })
         .catch((err) => {
-          console.error("Failed to load spellcheck dictionaries:", err);
+          logger.error("Failed to load spellcheck dictionaries.", { error: err });
         });
     });
 

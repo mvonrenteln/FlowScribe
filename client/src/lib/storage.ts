@@ -1,3 +1,4 @@
+import { createLogger } from "@/lib/logging";
 import { createFallbackPersister } from "@/lib/storage/persistenceFallback";
 import type {
   PersistedGlobalState,
@@ -7,6 +8,8 @@ import type {
 
 const SESSIONS_STORAGE_KEY = "flowscribe:sessions";
 const GLOBAL_STORAGE_KEY = "flowscribe:global";
+
+const logger = createLogger({ feature: "Storage", namespace: "Storage" });
 
 type PersistenceWorkerRequest = {
   jobId: number;
@@ -136,7 +139,7 @@ export const writeSessionsSync = (state: PersistedSessionsState): boolean => {
     return true;
   } catch (error) {
     if (isQuotaExceeded(error)) {
-      console.error("QuotaExceededError: session data could not be saved", error);
+      logger.error("QuotaExceededError: session data could not be saved.", { error });
       dispatchQuotaExceeded();
     }
     return false;
@@ -200,7 +203,7 @@ export const createStorageScheduler = (
         }
       } catch (err) {
         if (isQuotaExceeded(err)) {
-          console.error("QuotaExceededError: worker persistence failed", err);
+          logger.error("QuotaExceededError: worker persistence failed.", { error: err });
           dispatchQuotaExceeded();
         }
       }

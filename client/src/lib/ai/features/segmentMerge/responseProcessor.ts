@@ -143,12 +143,13 @@ export function normalizeRecoveredItem(item: Record<string, unknown>): RawMergeS
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "SegmentMerge" });
  * const processed = processAIResponse(result, {
  *   idMapping: { "1": "real-id-1", "2": "real-id-2" },
  * });
  *
  * if (processed.suggestions.length > 0) {
- *   console.log(`Found ${processed.suggestions.length} suggestions`);
+ *   logger.info("Found suggestions.", { count: processed.suggestions.length });
  * }
  * ```
  */

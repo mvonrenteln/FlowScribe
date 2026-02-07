@@ -18,6 +18,7 @@ import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { createLogger } from "@/lib/logging";
 import { extractHunspellFromOxt, listHunspellPairsFromOxt } from "@/lib/oxt";
 import { useTranscriptStore } from "@/lib/store";
 
@@ -25,6 +26,8 @@ const AVAILABLE_LANGUAGES = [
   { code: "de", label: "Deutsch" },
   { code: "en", label: "English" },
 ] as const;
+
+const logger = createLogger({ feature: "SpellcheckSettings", namespace: "UI" });
 
 export function SpellcheckSettings() {
   // Store state
@@ -138,7 +141,7 @@ export function SpellcheckSettings() {
         setCustomError("No Hunspell dictionaries found in this .oxt file.");
       }
     } catch (err) {
-      console.error("Failed to import .oxt dictionary:", err);
+      logger.error("Failed to import .oxt dictionary.", { error: err });
       setCustomError("Failed to import .oxt dictionary.");
     }
   };
@@ -154,7 +157,7 @@ export function SpellcheckSettings() {
         dic: extracted.dic,
       });
     } catch (err) {
-      console.error("Failed to import selected .oxt dictionary:", err);
+      logger.error("Failed to import selected .oxt dictionary.", { error: err });
       setCustomError("Failed to import selected dictionary.");
     } finally {
       setPendingOxtBuffer(null);
@@ -182,7 +185,7 @@ export function SpellcheckSettings() {
       setCustomDicFile(null);
       setShowManualImport(false);
     } catch (err) {
-      console.error("Failed to import spellcheck dictionary:", err);
+      logger.error("Failed to import spellcheck dictionary.", { error: err });
       setCustomError("Failed to import dictionary.");
     }
   };

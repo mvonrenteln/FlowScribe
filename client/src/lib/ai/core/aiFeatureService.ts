@@ -10,6 +10,7 @@
 
 import type { PromptVariables, SimpleSchema } from "@/lib/ai";
 import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
+import { createLogger } from "@/lib/logging";
 import {
   getAIRequestTimeoutMs,
   getEffectiveAIRequestConcurrency,
@@ -28,6 +29,8 @@ import type {
   RetryAttemptInfo,
 } from "./types";
 
+const logger = createLogger({ feature: "AIFeatureService" });
+
 // ==================== Main Service ====================
 
 /**
@@ -40,6 +43,7 @@ import type {
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "AIFeatureService" });
  * const result = await executeFeature<SpeakerSuggestion[]>(
  *   "speaker-classification",
  *   {
@@ -50,7 +54,7 @@ import type {
  * );
  *
  * if (result.success) {
- *   console.log(result.data); // SpeakerSuggestion[]
+ *   logger.info("AI feature result received.", { data: result.data });
  * }
  * ```
  */
@@ -179,9 +183,10 @@ export async function executeFeature<TOutput>(
 
         // If we have retries left, try again
         if (attempt <= maxRetries) {
-          console.warn(
-            `[AIFeatureService] Parse failed, retrying (attempt ${attempt}/${maxRetries + 1})`,
-          );
+          logger.warn("Parse failed, retrying.", {
+            attempt,
+            maxAttempts: maxRetries + 1,
+          });
 
           // Notify caller about retry
           if (options.onRetry) {
@@ -310,24 +315,21 @@ function logParseFailure(
         ? content
         : `${content.slice(0, MAX_PREVIEW / 2)}\n\n... [${content.length - MAX_PREVIEW} chars omitted] ...\n\n${content.slice(-MAX_PREVIEW / 2)}`;
 
-    console.warn(
-      `[AIFeatureService] Structured parse failed for feature (attempt ${attempt}):`,
+    logger.warn("Structured parse failed for feature.", {
+      attempt,
       featureId,
-      {
-        providerId: providerConfig.id,
-        model: providerConfig.model,
-        error: parseResult.error?.message,
-        parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
-        rawResponsePreview,
-        rawResponseLength: content.length,
-        parseMetadata: parseResult.metadata,
-      },
-    );
+      providerId: providerConfig.id,
+      model: providerConfig.model,
+      error: parseResult.error?.message,
+      parseErrors: parseResult.error ? [{ message: parseResult.error.message }] : [],
+      rawResponsePreview,
+      rawResponseLength: content.length,
+      parseMetadata: parseResult.metadata,
+    });
   } catch (logEx) {
-    console.warn(
-      "[AIFeatureService] Failed to log parse failure details:",
-      logEx instanceof Error ? logEx.message : String(logEx),
-    );
+    logger.warn("Failed to log parse failure details.", {
+      error: logEx instanceof Error ? logEx.message : String(logEx),
+    });
   }
 }
 
@@ -354,7 +356,7 @@ function tryLenientRecovery<TOutput>(
       recoverPartial: true,
     });
 
-    console.warn("[AIFeatureService] Lenient parse result:", {
+    logger.warn("Lenient parse result.", {
       success: lenient.success,
       dataPreview: lenient.data
         ? Array.isArray(lenient.data)
@@ -430,10 +432,9 @@ function tryLenientRecovery<TOutput>(
       metadata,
     };
   } catch (lenEx) {
-    console.warn(
-      "[AIFeatureService] Lenient parse failed:",
-      lenEx instanceof Error ? lenEx.message : String(lenEx),
-    );
+    logger.warn("Lenient parse failed.", {
+      error: lenEx instanceof Error ? lenEx.message : String(lenEx),
+    });
     return null;
   }
 }
@@ -519,17 +520,15 @@ function normalizeSegmentMergeResponse(
       return validateAttempt.data as unknown[];
     }
 
-    console.warn(
-      "[AIFeatureService] Normalized validation failed:",
-      validateAttempt.error?.message,
-      validateAttempt.metadata?.warnings,
-    );
+    logger.warn("Normalized validation failed.", {
+      error: validateAttempt.error?.message,
+      warnings: validateAttempt.metadata?.warnings,
+    });
     return null;
   } catch (normEx) {
-    console.warn(
-      "[AIFeatureService] Normalization for segment-merge failed:",
-      normEx instanceof Error ? normEx.message : String(normEx),
-    );
+    logger.warn("Normalization for segment-merge failed.", {
+      error: normEx instanceof Error ? normEx.message : String(normEx),
+    });
     return null;
   }
 }
@@ -547,13 +546,16 @@ function normalizeSegmentMergeResponse(
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "AIFeatureService" });
  * const result = await executeBatch<SpeakerSuggestion[]>(
  *   "speaker-classification",
  *   [{ speakers: "...", segments: "..." }, ...],
  *   { model: "gpt-4" },
  *   {
- *     onProgress: (done, total) => console.log(`${done}/${total}`),
- *     onItemComplete: (i, result) => console.log(`Item ${i} done`),
+ *     onProgress: (done, total) =>
+ *       logger.info("Batch progress.", { done, total }),
+ *     onItemComplete: (i, result) =>
+ *       logger.info("Item completed.", { index: i, result }),
  *   }
  * );
  * ```

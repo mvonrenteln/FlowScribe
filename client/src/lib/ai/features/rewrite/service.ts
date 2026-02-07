@@ -8,12 +8,15 @@
  */
 
 import { indexById } from "@/lib/arrayUtils";
+import { createLogger } from "@/lib/logging";
 import type { Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
 import { parseTextResponse } from "../../parsing";
 import { CHAPTER_REFORMULATION_CONFIG } from "./config";
 import type { RewriteChapterParams, RewriteContext, RewriteResult } from "./types";
+
+const logger = createLogger({ feature: "RewriteService" });
 
 // ==================== Main Functions ====================
 
@@ -86,7 +89,7 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
   });
 
   if (!result.success || !result.data) {
-    console.error("[Rewrite Service] Rewrite failed:", result.error);
+    logger.error("Rewrite failed.", { error: result.error });
     throw new Error(result.error || "Failed to rewrite chapter");
   }
 
@@ -97,7 +100,7 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
   });
 
   if (parseResult.wasError) {
-    console.warn("[Rewrite Service] AI returned error-like response:", parseResult.warnings);
+    logger.warn("AI returned error-like response.", { warnings: parseResult.warnings });
   }
 
   const rewrittenText = parseResult.text.trim();
@@ -113,9 +116,10 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
   // Warn if text is unusually long (>2x original)
   const originalWordCount = chapterContent.split(/\s+/).length;
   if (wordCount > originalWordCount * 2) {
-    console.warn(
-      `[Rewrite Service] Generated text is unusually long: ${wordCount} words vs ${originalWordCount} original`,
-    );
+    logger.warn("Generated text is unusually long.", {
+      wordCount,
+      originalWordCount,
+    });
   }
 
   return {

@@ -5,7 +5,10 @@ import MinimapPlugin from "wavesurfer.js/dist/plugins/minimap.js";
 import RegionsPlugin from "wavesurfer.js/dist/plugins/regions.js";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { createLogger } from "@/lib/logging";
 import { type Segment, type Speaker, useTranscriptStore } from "@/lib/store";
+
+const logger = createLogger({ feature: "WaveformPlayer", namespace: "UI" });
 
 interface WaveformPlayerProps {
   audioUrl: string | null;
@@ -217,7 +220,7 @@ export function WaveformPlayer({
         if (error instanceof DOMException && error.name === "AbortError") {
           return;
         }
-        console.error("WaveSurfer load failed:", error);
+        logger.error("WaveSurfer load failed.", { error });
       });
     }
 
@@ -225,7 +228,7 @@ export function WaveformPlayer({
       if (error instanceof DOMException && error.name === "AbortError") {
         return;
       }
-      console.error("WaveSurfer error:", error);
+      logger.error("WaveSurfer error.", { error });
     });
 
     ws.on("ready", () => {
@@ -274,7 +277,7 @@ export function WaveformPlayer({
         ws.destroy();
       } catch (error) {
         if (!(error instanceof DOMException && error.name === "AbortError")) {
-          console.warn("WaveSurfer destroy failed:", error);
+          logger.warn("WaveSurfer destroy failed.", { error });
         }
       }
       hasAudioRef.current = false;
@@ -403,7 +406,7 @@ export function WaveformPlayer({
     try {
       ws.zoom(zoomLevel);
     } catch (error) {
-      console.warn("WaveSurfer zoom skipped:", error);
+      logger.warn("WaveSurfer zoom skipped.", { error });
     }
   }, [zoomLevel, isReady]);
 

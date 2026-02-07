@@ -15,6 +15,7 @@ import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import type { RevisionResult } from "@/lib/ai/features/revision";
 import { indexById } from "@/lib/arrayUtils";
+import { createLogger } from "@/lib/logging";
 import type {
   AIPrompt,
   AIRevisionBatchLogEntry,
@@ -31,6 +32,7 @@ const REVISION_ERROR_PREFIX = "Failed to revise segment:";
 const REPEATED_FAILURE_MESSAGE = "Batch stopped after repeated connection failures";
 
 const t = getI18nInstance().t.bind(getI18nInstance());
+const logger = createLogger({ feature: "AIRevisionSlice", namespace: "Store" });
 
 function normalizeRevisionIssueMessage(message: string): string {
   let normalized = message.trim();
@@ -267,10 +269,10 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
       segmentIndex < state.segments.length - 1 ? state.segments[segmentIndex + 1] : undefined;
 
     // Run revision asynchronously - dynamic import to avoid circular dependencies
-    console.log("[AIRevision] Starting async import for segment:", segmentId);
+    logger.info("Starting async import for segment.", { segmentId });
     import("@/lib/ai/features/revision")
       .then(({ reviseSegment }) => {
-        console.log("[AIRevision] Import successful, calling reviseSegment");
+        logger.info("Import successful, calling reviseSegment.");
         return reviseSegment({
           segment,
           prompt: selectedPrompt,
@@ -291,7 +293,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
         if (trimmedOriginal === trimmedRevised) {
           // No changes - don't create a suggestion, show "no changes" status
-          console.log("[AIRevision] No changes needed for segment:", segmentId);
+          logger.info("No changes needed for segment.", { segmentId });
           set({
             aiRevisionIsProcessing: false,
             aiRevisionIsCancelling: false,
@@ -345,7 +347,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
           return;
         }
         const aiError = toAIError(error);
-        console.error("[AIRevision] Error in startSingleRevision:", error);
+        logger.error("Error in startSingleRevision.", { error });
         if (isHardAIErrorCode(aiError.code)) {
           toast({
             title: t("aiBatch.errors.toastTitle"),
@@ -446,7 +448,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
           if (trimmedOriginal === trimmedRevised) {
             // No changes needed for this segment, skip creating suggestion
-            console.log("[AIRevision] No changes needed for segment:", result.segmentId);
+            logger.info("No changes needed for segment.", { segmentId: result.segmentId });
             return;
           }
 
@@ -666,7 +668,7 @@ export const createAIRevisionSlice = (set: StoreSetter, get: StoreGetter): AIRev
 
     // Cannot delete built-in prompts
     if (promptItem?.isBuiltIn) {
-      console.warn("[AIRevision] Cannot delete built-in prompt:", id);
+      logger.warn("Cannot delete built-in prompt.", { id });
       return;
     }
 

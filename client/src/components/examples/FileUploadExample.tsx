@@ -1,5 +1,8 @@
 import { useState } from "react";
+import { createLogger } from "@/lib/logging";
 import { FileUpload } from "../FileUpload";
+
+const logger = createLogger({ feature: "FileUploadExample", namespace: "Examples" });
 
 export default function FileUploadExample() {
   const [audioFileName, setAudioFileName] = useState<string | undefined>();
@@ -9,11 +12,11 @@ export default function FileUploadExample() {
   return (
     <FileUpload
       onAudioUpload={(file) => {
-        console.log("Audio uploaded:", file.name);
+        logger.info("Audio uploaded.", { fileName: file.name });
         setAudioFileName(file.name);
       }}
       onTranscriptUpload={(data, reference) => {
-        console.log("Transcript loaded:", data);
+        logger.info("Transcript loaded.", { data });
         setTranscriptFileName(reference?.name);
         setTranscriptLoaded(true);
       }}

@@ -55,6 +55,7 @@ export interface RecoveryResult<T> {
  *
  * @example
  * ```ts
+ * const logger = createLogger({ feature: "RecoveryStrategies" });
  * const result = applyRecoveryStrategies(rawText, [
  *   lenientParseStrategy(schema),
  *   partialArrayStrategy(typeGuard),
@@ -62,7 +63,7 @@ export interface RecoveryResult<T> {
  * ]);
  *
  * if (result.data) {
- *   console.log(`Recovered using ${result.usedStrategy}`);
+ *   logger.info("Recovered using strategy.", { strategy: result.usedStrategy });
  * }
  * ```
  */

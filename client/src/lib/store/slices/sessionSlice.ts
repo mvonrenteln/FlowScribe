@@ -7,6 +7,7 @@ import {
 } from "@/lib/audioHandleStorage";
 import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildSessionKey, isSameFileReference } from "@/lib/fileReference";
+import { createLogger } from "@/lib/logging";
 import { buildRecentSessions } from "@/lib/storage";
 import { normalizeSegments } from "@/lib/transcript/normalizeTranscript";
 import { SPEAKER_COLORS } from "../constants";
@@ -24,6 +25,8 @@ import { buildRevisionKey, cloneSessionForRevision } from "../utils/session";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
+
+const logger = createLogger({ feature: "SessionSlice", namespace: "Store" });
 
 const getSessionKind = (session?: PersistedSession, fallback?: SessionKind) =>
   session?.kind ?? fallback ?? "current";
@@ -344,7 +347,7 @@ export const createSessionSlice = (
           if (!proceed) {
             // User declined loading the large file for this audio
             clearAudioHandleForAudioRef(audioRefKey).catch((err) =>
-              console.error("Failed to clear audio handle:", err),
+              logger.error("Failed to clear audio handle.", { error: err }),
             );
             return;
           }
@@ -372,7 +375,7 @@ export const createSessionSlice = (
             audioRef: fileRef,
           });
         })
-        .catch((err) => console.error("Failed to restore audio handle:", err));
+        .catch((err) => logger.error("Failed to restore audio handle.", { error: err }));
     }
   },
   createRevision: (name, overwrite) => {

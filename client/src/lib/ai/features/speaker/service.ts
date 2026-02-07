@@ -8,6 +8,7 @@
  */
 
 import { getI18nInstance } from "@/i18n/config";
+import { createLogger } from "@/lib/logging";
 import {
   getEffectiveAIRequestConcurrency,
   initializeSettings,
@@ -38,6 +39,7 @@ import {
 } from "./utils";
 
 const t = getI18nInstance().t.bind(getI18nInstance());
+const logger = createLogger({ feature: "SpeakerService" });
 
 // ==================== Types ====================
 
@@ -125,7 +127,7 @@ export async function classifySpeakers(
 
   if (!result.success || !result.data) {
     const message = result.error ?? "Speaker classification failed";
-    console.error("[Speaker Service] Classification failed:", message);
+    logger.error("Classification failed.", { message });
     const responsePayload = formatResponsePayload(result.rawResponse, result.error);
     throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
       responsePayload,

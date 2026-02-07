@@ -6,10 +6,13 @@
  */
 
 import type { AIProviderConfig } from "@/lib/ai/providers/types";
+import { createLogger } from "@/lib/logging";
 
 const SETTINGS_STORAGE_KEY = "flowscribe:settings";
 const SETTINGS_VERSION = 1;
 export const SETTINGS_UPDATED_EVENT = "flowscribe:settings-updated";
+
+const logger = createLogger({ feature: "SettingsStorage", namespace: "Settings" });
 
 // ==================== Persisted Settings Types ====================
 
@@ -101,7 +104,7 @@ export function readSettings(): PersistedSettings | null {
 
     // Version check
     if (parsed.version !== SETTINGS_VERSION) {
-      console.info("[Settings] Version mismatch, using defaults", {
+      logger.info("Version mismatch, using defaults.", {
         stored: parsed.version,
         expected: SETTINGS_VERSION,
       });
@@ -110,7 +113,7 @@ export function readSettings(): PersistedSettings | null {
 
     return parsed as PersistedSettings;
   } catch (error) {
-    console.warn("[Settings] Failed to parse stored settings", error);
+    logger.warn("Failed to parse stored settings.", { error });
     return null;
   }
 }
@@ -128,7 +131,7 @@ export function writeSettings(settings: PersistedSettings): boolean {
     }
     return true;
   } catch (error) {
-    console.error("[Settings] Failed to write settings", error);
+    logger.error("Failed to write settings.", { error });
     return false;
   }
 }

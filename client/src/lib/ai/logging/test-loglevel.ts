@@ -16,4 +16,5 @@ setGlobalLogLevel("error");
 logger.info("This should not show"); // Info < error
 logger.error("This should show");
 
-console.log("✅ All logging tests passed!");
+setGlobalLogLevel("info");
+logger.info("All logging tests passed.");

@@ -11,6 +11,7 @@ import { getI18nInstance } from "@/i18n/config";
 import { isHardAIErrorCode, summarizeMessages, toAIError } from "@/lib/ai/core";
 import { buildSuggestionKeySet, createSegmentSuggestionKey } from "@/lib/ai/core/suggestionKeys";
 import { classifySpeakersBatch } from "@/lib/ai/features/speaker";
+import { createLogger } from "@/lib/logging";
 import { SPEAKER_COLORS } from "../constants";
 import type {
   AIPrompt,
@@ -29,6 +30,7 @@ type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 const t = getI18nInstance().t.bind(getI18nInstance());
+const logger = createLogger({ feature: "AISpeakerSlice", namespace: "Store" });
 
 // ==================== Initial State ====================
 
@@ -278,9 +280,11 @@ export const createAISpeakerSlice = (set: StoreSetter, get: StoreGetter): AISpea
               });
             }
 
-            console.log(
-              `[DEBUG] Batch ${batchIndex + 1}: Adding insight with processedTotal=${processed}, totalExpected=${totalSegments}`,
-            );
+            logger.info("Batch insight added.", {
+              batchIndex: batchIndex + 1,
+              processedTotal: processed,
+              totalExpected: totalSegments,
+            });
             set({
               aiSpeakerBatchInsights: updatedInsights,
               aiSpeakerBatchLog: updatedLog,

@@ -9,26 +9,15 @@ import {
   disableGlobalDebug,
   enableFeatureDebug,
   enableGlobalDebug,
+  getLogLevel,
 } from "@/lib/logging";
 
 describe("AILogger", () => {
-  let logSpy: ReturnType<typeof vi.spyOn>;
-  let debugSpy: ReturnType<typeof vi.spyOn>;
-  let infoSpy: ReturnType<typeof vi.spyOn>;
-  let warnSpy: ReturnType<typeof vi.spyOn>;
-  let errorSpy: ReturnType<typeof vi.spyOn>;
-
   beforeEach(() => {
     // Reset global debug flags
     disableGlobalDebug();
     disableFeatureDebug("TestFeature");
-
-    // Spy on console methods
-    logSpy = vi.spyOn(console, "log").mockImplementation(() => {});
-    debugSpy = vi.spyOn(console, "debug").mockImplementation(() => {});
-    infoSpy = vi.spyOn(console, "info").mockImplementation(() => {});
-    warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
-    errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    getLogLevel().setLevel("info");
   });
 
   afterEach(() => {
@@ -38,6 +27,9 @@ describe("AILogger", () => {
   describe("Basic Logging", () => {
     it("should log info messages", () => {
       const logger = createLogger({ feature: "TestFeature" });
+      const infoSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "info")
+        .mockImplementation(() => {});
       logger.info("Test message");
 
       expect(infoSpy).toHaveBeenCalledWith("[AI:TestFeature]", "Test message");
@@ -45,6 +37,9 @@ describe("AILogger", () => {
 
     it("should log warn messages", () => {
       const logger = createLogger({ feature: "TestFeature" });
+      const warnSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "warn")
+        .mockImplementation(() => {});
       logger.warn("Warning message");
 
       expect(warnSpy).toHaveBeenCalledWith("[AI:TestFeature]", "Warning message");
@@ -52,6 +47,9 @@ describe("AILogger", () => {
 
     it("should log error messages", () => {
       const logger = createLogger({ feature: "TestFeature" });
+      const errorSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "error")
+        .mockImplementation(() => {});
       logger.error("Error message");
 
       expect(errorSpy).toHaveBeenCalledWith("[AI:TestFeature]", "Error message");
@@ -60,6 +58,9 @@ describe("AILogger", () => {
     it("should include context when provided", () => {
       const logger = createLogger({ feature: "TestFeature" });
       const context = { count: 42, status: "ok" };
+      const infoSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "info")
+        .mockImplementation(() => {});
       logger.info("With context", context);
 
       expect(infoSpy).toHaveBeenCalledWith("[AI:TestFeature]", "With context", context);
@@ -69,28 +70,34 @@ describe("AILogger", () => {
   describe("Debug Mode", () => {
     it("should not log debug messages by default", () => {
       const logger = createLogger({ feature: "TestFeature" });
+      const debugSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "debug")
+        .mockImplementation(() => {});
       logger.debug("Debug message");
 
-      expect(logSpy).not.toHaveBeenCalled();
       expect(debugSpy).not.toHaveBeenCalled();
     });
 
     it("should log debug messages when global debug is enabled", () => {
       enableGlobalDebug();
       const logger = createLogger({ feature: "TestFeature" });
+      const debugSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "debug")
+        .mockImplementation(() => {});
       logger.debug("Debug message");
 
-      const debugCalls = [...logSpy.mock.calls, ...debugSpy.mock.calls];
-      expect(debugCalls).toContainEqual(["[AI:TestFeature][DEBUG]", "Debug message"]);
+      expect(debugSpy).toHaveBeenCalledWith("[AI:TestFeature][DEBUG]", "Debug message");
     });
 
     it("should log debug messages when feature debug is enabled", () => {
       enableFeatureDebug("TestFeature");
       const logger = createLogger({ feature: "TestFeature" });
+      const debugSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "debug")
+        .mockImplementation(() => {});
       logger.debug("Debug message");
 
-      const debugCalls = [...logSpy.mock.calls, ...debugSpy.mock.calls];
-      expect(debugCalls).toContainEqual(["[AI:TestFeature][DEBUG]", "Debug message"]);
+      expect(debugSpy).toHaveBeenCalledWith("[AI:TestFeature][DEBUG]", "Debug message");
     });
 
     it("should respect isDebugEnabled property", () => {
@@ -109,20 +116,25 @@ describe("AILogger", () => {
   describe("Log Level Filtering", () => {
     it("should respect minimum log level", () => {
       const logger = createLogger({ feature: "TestFeature", minLevel: "warn" });
+      const logLevel = getLogLevel();
+      const loglevelLogger = logLevel.getLogger("AI:TestFeature");
+      const warnSpy = vi.spyOn(loglevelLogger, "warn").mockImplementation(() => {});
 
-      logger.info("Info message");
-      expect(infoSpy).not.toHaveBeenCalled();
+      expect(loglevelLogger.getLevel()).toBe(logLevel.levels.WARN);
 
       logger.warn("Warn message");
-      expect(warnSpy).toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalledWith("[AI:TestFeature]", "Warn message");
     });
 
     it("should allow debug when minLevel is debug and debug is enabled", () => {
       enableFeatureDebug("TestFeature");
       const logger = createLogger({ feature: "TestFeature", minLevel: "debug" });
+      const debugSpy = vi
+        .spyOn(getLogLevel().getLogger("AI:TestFeature"), "debug")
+        .mockImplementation(() => {});
 
       logger.debug("Debug message");
-      expect([...logSpy.mock.calls, ...debugSpy.mock.calls].length).toBeGreaterThan(0);
+      expect(debugSpy).toHaveBeenCalled();
     });
   });
 
@@ -132,23 +144,35 @@ describe("AILogger", () => {
 
       const logger1 = createLogger({ feature: "Feature1" });
       const logger2 = createLogger({ feature: "Feature2" });
+      const debugSpy1 = vi
+        .spyOn(getLogLevel().getLogger("AI:Feature1"), "debug")
+        .mockImplementation(() => {});
+      const debugSpy2 = vi
+        .spyOn(getLogLevel().getLogger("AI:Feature2"), "debug")
+        .mockImplementation(() => {});
 
       logger1.debug("Feature 1 debug");
-      expect([...logSpy.mock.calls, ...debugSpy.mock.calls]).toHaveLength(1);
+      expect(debugSpy1).toHaveBeenCalledTimes(1);
 
       logger2.debug("Feature 2 debug");
-      expect([...logSpy.mock.calls, ...debugSpy.mock.calls]).toHaveLength(1);
+      expect(debugSpy2).not.toHaveBeenCalled();
     });
 
     it("should use different prefixes for different features", () => {
       const logger1 = createLogger({ feature: "Feature1" });
       const logger2 = createLogger({ feature: "Feature2" });
+      const infoSpy1 = vi
+        .spyOn(getLogLevel().getLogger("AI:Feature1"), "info")
+        .mockImplementation(() => {});
+      const infoSpy2 = vi
+        .spyOn(getLogLevel().getLogger("AI:Feature2"), "info")
+        .mockImplementation(() => {});
 
       logger1.info("Message 1");
-      expect(infoSpy).toHaveBeenCalledWith("[AI:Feature1]", "Message 1");
+      expect(infoSpy1).toHaveBeenCalledWith("[AI:Feature1]", "Message 1");
 
       logger2.info("Message 2");
-      expect(infoSpy).toHaveBeenCalledWith("[AI:Feature2]", "Message 2");
+      expect(infoSpy2).toHaveBeenCalledWith("[AI:Feature2]", "Message 2");
     });
   });
 });

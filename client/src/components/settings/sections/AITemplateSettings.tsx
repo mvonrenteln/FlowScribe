@@ -41,6 +41,7 @@ import {
   SPEAKER_SYSTEM_PROMPT as DEFAULT_SYSTEM_PROMPT,
   SPEAKER_USER_PROMPT_TEMPLATE as DEFAULT_USER_PROMPT_TEMPLATE,
 } from "@/lib/ai/features/speaker";
+import { createLogger } from "@/lib/logging";
 import { useTranscriptStore } from "@/lib/store";
 import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { buildPromptExportData } from "@/lib/store/utils/aiPromptExport";
@@ -48,6 +49,8 @@ import { buildPromptImportPlan } from "@/lib/store/utils/aiPromptImport";
 import { cn } from "@/lib/utils";
 
 // ==================== Constants ====================
+
+const logger = createLogger({ feature: "AITemplateSettings", namespace: "UI" });
 
 const DEFAULT_TEXT_SYSTEM_PROMPT = `You are an expert text editor. Your task is to improve the given transcript text.
 
@@ -681,7 +684,7 @@ export function AITemplateSettings() {
             }
           }
         } catch (error) {
-          console.error("[Prompts] Failed to import", error);
+          logger.error("Failed to import prompts.", { error });
         }
       };
       reader.readAsText(file);

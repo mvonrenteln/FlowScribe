@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createLogger } from "@/lib/logging";
 import type { Segment, Speaker } from "@/lib/store";
 import { SpeakerSidebar } from "../SpeakerSidebar";
 
@@ -17,13 +18,15 @@ const mockSegments: Segment[] = [
   { id: "5", speaker: "SPEAKER_00", tags: [], start: 35, end: 45, text: "Great", words: [] },
 ];
 
+const logger = createLogger({ feature: "SpeakerSidebarExample", namespace: "Examples" });
+
 export default function SpeakerSidebarExample() {
   const [speakers, setSpeakers] = useState(initialSpeakers);
   const [selectedSpeakerId, setSelectedSpeakerId] = useState<string | undefined>();
 
   const handleRename = (oldName: string, newName: string) => {
     setSpeakers(speakers.map((s) => (s.name === oldName ? { ...s, name: newName } : s)));
-    console.log(`Renamed ${oldName} to ${newName}`);
+    logger.info("Renamed speaker.", { oldName, newName });
   };
 
   const handleAdd = (name: string) => {
@@ -36,7 +39,7 @@ export default function SpeakerSidebarExample() {
         color: colors[speakers.length % colors.length],
       },
     ]);
-    console.log("Added speaker:", name);
+    logger.info("Added speaker.", { name });
   };
 
   return (

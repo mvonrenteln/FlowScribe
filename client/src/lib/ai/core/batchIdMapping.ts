@@ -8,6 +8,8 @@
  * @module ai/core/batchIdMapping
  */
 
+import { createLogger } from "@/lib/logging";
+
 // ==================== Types ====================
 
 /**
@@ -29,6 +31,8 @@ export interface BatchPairMapping<T = string> extends BatchIdMapping<T> {
   /** Pair index to ID tuple */
   pairToIds: Map<number, [T, T]>;
 }
+
+const logger = createLogger({ feature: "BatchIdMapping" });
 
 // ==================== Creation Functions ====================
 
@@ -383,10 +387,7 @@ export function extractSegmentIdsGeneric<T = string>(
 
   if (ids.length < 2) {
     if (debugEnabled) {
-      console.warn(
-        "[extractSegmentIdsGeneric] Unable to extract two segment IDs from raw suggestion",
-        raw,
-      );
+      logger.warn("Unable to extract two segment IDs from raw suggestion.", { raw });
     }
     return null;
   }
