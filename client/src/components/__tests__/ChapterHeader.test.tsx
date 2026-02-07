@@ -285,10 +285,6 @@ describe("ChapterHeader", () => {
     const deleteMenuItem = await screen.findByTestId(`menu-delete-chapter-${mockChapter.id}`);
     await user.click(deleteMenuItem);
 
-    // Dialog should appear - find and click the delete button
-    const deleteButton = await screen.findByRole("button", { name: /delete/i });
-    await user.click(deleteButton);
-
     expect(onDeleteChapter).toHaveBeenCalledWith("chapter-1");
   });
 

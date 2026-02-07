@@ -38,7 +38,7 @@ This feature helps with navigation, per-chapter processing, and structured expor
 - Start a chapter from a segment's context menu ("Start Chapter Here"). The new chapter appears above the chosen segment and is immediately editable inline.
 - Click a title to edit it in place. Enter or blur to save; Esc cancels.
 - Expand the header to edit `summary` or `notes` in place.
-- Use the delete icon (visible in Edit Mode) to remove a chapter boundary — segments are not deleted and Undo restores the boundary.
+- Use the delete icon (visible in Edit Mode) to remove a chapter boundary. Deletions apply immediately without a confirmation dialog — segments are not deleted and Undo restores the boundary.
 - Tags are edited inline via a small `+` button in Edit Mode.
 
 ---
