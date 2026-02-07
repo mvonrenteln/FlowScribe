@@ -105,9 +105,11 @@ describe("createStorageScheduler (worker serialization)", () => {
 
 describe("createStorageScheduler (sync fallback)", () => {
   const windowWithIdle = window as Window & {
-    requestIdleCallback?: (callback: () => void) => number;
+    requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+    cancelIdleCallback?: (handle: number) => void;
   };
   const originalRequestIdleCallback = windowWithIdle.requestIdleCallback;
+  const originalCancelIdleCallback = windowWithIdle.cancelIdleCallback;
 
   beforeEach(() => {
     vi.useFakeTimers();
@@ -120,6 +122,11 @@ describe("createStorageScheduler (sync fallback)", () => {
     } else {
       delete windowWithIdle.requestIdleCallback;
     }
+    if (originalCancelIdleCallback) {
+      windowWithIdle.cancelIdleCallback = originalCancelIdleCallback;
+    } else {
+      delete windowWithIdle.cancelIdleCallback;
+    }
     vi.clearAllTimers();
     vi.restoreAllMocks();
     vi.useRealTimers();
@@ -127,17 +134,36 @@ describe("createStorageScheduler (sync fallback)", () => {
 
   it("defers sync fallback persistence with requestIdleCallback when available", () => {
     const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
-    const idleCallbackSpy = vi.fn((callback: () => void) => {
-      callback();
+    const idleCallbackSpy = vi.fn((callback: IdleRequestCallback, options?: IdleRequestOptions) => {
+      callback({ didTimeout: false, timeRemaining: () => 50 });
+      expect(options?.timeout).toBeTypeOf("number");
       return 1;
     });
     windowWithIdle.requestIdleCallback = idleCallbackSpy;
+    windowWithIdle.cancelIdleCallback = vi.fn();
 
     const schedule = createStorageScheduler(0, () => null);
     schedule(sessionsState, globalState);
     vi.runAllTimers();
 
     expect(idleCallbackSpy).toHaveBeenCalledTimes(1);
+    expect(setItemSpy).toHaveBeenCalledWith("flowscribe:sessions", JSON.stringify(sessionsState));
+    expect(setItemSpy).toHaveBeenCalledWith("flowscribe:global", JSON.stringify(globalState));
+  });
+
+  it("falls back to timeout if requestIdleCallback never fires", () => {
+    const setItemSpy = vi.spyOn(Storage.prototype, "setItem");
+    const idleCallbackSpy = vi.fn(() => 42);
+    const cancelIdleCallbackSpy = vi.fn();
+    windowWithIdle.requestIdleCallback = idleCallbackSpy;
+    windowWithIdle.cancelIdleCallback = cancelIdleCallbackSpy;
+
+    const schedule = createStorageScheduler(0, () => null);
+    schedule(sessionsState, globalState);
+    vi.runAllTimers();
+
+    expect(idleCallbackSpy).toHaveBeenCalledTimes(1);
+    expect(cancelIdleCallbackSpy).toHaveBeenCalledWith(42);
     expect(setItemSpy).toHaveBeenCalledWith("flowscribe:sessions", JSON.stringify(sessionsState));
     expect(setItemSpy).toHaveBeenCalledWith("flowscribe:global", JSON.stringify(globalState));
   });

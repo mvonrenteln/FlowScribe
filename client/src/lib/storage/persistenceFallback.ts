@@ -1,6 +1,7 @@
 import type { PersistedGlobalState, PersistedSessionsState } from "@/lib/store/types";
 
 const FALLBACK_MAX_JSON_CHARS = 250_000;
+const FALLBACK_IDLE_TIMEOUT_MS = 2_000;
 
 const isQuotaExceeded = (error: unknown): boolean => {
   if (error instanceof DOMException) {
@@ -61,12 +62,34 @@ export const createFallbackPersister = (sessionsStorageKey: string, globalStorag
     };
 
     // Defer to idle time when possible, otherwise use setTimeout(0)
-    const requestIdleCallback = (
-      window as Window & { requestIdleCallback?: (callback: IdleRequestCallback) => number }
-    ).requestIdleCallback;
+    const { requestIdleCallback, cancelIdleCallback } = window as Window & {
+      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
+      cancelIdleCallback?: (handle: number) => void;
+    };
 
     if (requestIdleCallback) {
-      requestIdleCallback(() => syncFallback());
+      let hasPersisted = false;
+      const runOnce = () => {
+        if (hasPersisted) return;
+        hasPersisted = true;
+        syncFallback();
+      };
+
+      let timeoutHandle: ReturnType<typeof setTimeout> | null = null;
+      const idleHandle = requestIdleCallback(
+        () => {
+          if (timeoutHandle) {
+            clearTimeout(timeoutHandle);
+          }
+          runOnce();
+        },
+        { timeout: FALLBACK_IDLE_TIMEOUT_MS },
+      );
+
+      timeoutHandle = setTimeout(() => {
+        cancelIdleCallback?.(idleHandle);
+        runOnce();
+      }, FALLBACK_IDLE_TIMEOUT_MS);
     } else {
       setTimeout(syncFallback, 0);
     }

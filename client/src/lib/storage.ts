@@ -230,7 +230,8 @@ export const createStorageScheduler = (
         activeWorker.postMessage(payload);
         return;
       }
-      // Worker unavailable: use fallback persister (see persistenceFallback.ts for details)
+      // Worker unavailable: use fallback persister with an idle timeout to avoid
+      // indefinite deferral in background/busy tabs (see persistenceFallback.ts).
       fallbackPersister(sessionsToPersist, globalToPersist);
     }, throttleMs);
   };
