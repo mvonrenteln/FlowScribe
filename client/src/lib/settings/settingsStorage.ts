@@ -34,6 +34,9 @@ export interface PersistedSettings {
 
   /** Timeout for AI requests in seconds (0 disables timeout) */
   aiRequestTimeoutSeconds?: number;
+
+  /** Default AI temperature (0-2) */
+  aiTemperature?: number;
 }
 
 // ==================== Default Settings ====================
@@ -55,6 +58,13 @@ export const AI_REQUEST_TIMEOUT_LIMITS = {
 
 export const DEFAULT_AI_REQUEST_TIMEOUT_SECONDS = 30;
 
+export const AI_TEMPERATURE_LIMITS = {
+  min: 0,
+  max: 2,
+};
+
+export const DEFAULT_AI_TEMPERATURE = 0.7;
+
 export const DEFAULT_SETTINGS: PersistedSettings = {
   version: SETTINGS_VERSION,
   aiProviders: [
@@ -72,6 +82,7 @@ export const DEFAULT_SETTINGS: PersistedSettings = {
   enableConcurrentRequests: DEFAULT_AI_CONCURRENCY.enabled,
   maxConcurrentRequests: DEFAULT_AI_CONCURRENCY.maxConcurrent,
   aiRequestTimeoutSeconds: DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
+  aiTemperature: DEFAULT_AI_TEMPERATURE,
 };
 
 // ==================== Storage Functions ====================
@@ -176,6 +187,16 @@ export function getAIRequestTimeoutMs(settings: PersistedSettings): number {
     Math.max(AI_REQUEST_TIMEOUT_LIMITS.min, raw),
   );
   return Math.round(clamped * 1000);
+}
+
+/**
+ * Get the effective AI temperature used for requests.
+ */
+export function getAITemperature(settings: PersistedSettings): number {
+  const raw = settings.aiTemperature ?? DEFAULT_AI_TEMPERATURE;
+  if (!Number.isFinite(raw)) return DEFAULT_AI_TEMPERATURE;
+  const clamped = Math.min(AI_TEMPERATURE_LIMITS.max, Math.max(AI_TEMPERATURE_LIMITS.min, raw));
+  return Math.round(clamped * 100) / 100;
 }
 
 /**

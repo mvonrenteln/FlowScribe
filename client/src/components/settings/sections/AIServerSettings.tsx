@@ -38,11 +38,14 @@ import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types"
 import {
   AI_CONCURRENCY_LIMITS,
   AI_REQUEST_TIMEOUT_LIMITS,
+  AI_TEMPERATURE_LIMITS,
   addProviderToSettings,
   DEFAULT_AI_CONCURRENCY,
   DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
+  DEFAULT_AI_TEMPERATURE,
   getAIConcurrencySettings,
   getAIRequestTimeoutMs,
+  getAITemperature,
   initializeSettings,
   type PersistedSettings,
   removeProviderFromSettings,
@@ -516,6 +519,7 @@ export function AIServerSettings() {
   const effectiveTimeoutMs = getAIRequestTimeoutMs(settings);
   const effectiveTimeoutSeconds =
     effectiveTimeoutMs === 0 ? 0 : Math.round(effectiveTimeoutMs / 1000);
+  const effectiveTemperature = getAITemperature(settings);
 
   const handleParseRetryCountChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, parseRetryCount: value }));
@@ -531,6 +535,10 @@ export function AIServerSettings() {
 
   const handleRequestTimeoutChange = useCallback((value: number) => {
     setSettings((prev) => ({ ...prev, aiRequestTimeoutSeconds: value }));
+  }, []);
+
+  const handleTemperatureChange = useCallback((value: number) => {
+    setSettings((prev) => ({ ...prev, aiTemperature: value }));
   }, []);
 
   // Local input state for "validate on blur" behavior
@@ -549,6 +557,9 @@ export function AIServerSettings() {
         ? concurrencySettings.maxConcurrent
         : DEFAULT_AI_CONCURRENCY.maxConcurrent,
     ),
+  );
+  const [aiTemperatureInput, setAiTemperatureInput] = useState<string>(
+    String(effectiveTemperature ?? DEFAULT_AI_TEMPERATURE),
   );
 
   useEffect(() => {
@@ -573,6 +584,10 @@ export function AIServerSettings() {
       ),
     );
   }, [concurrencySettings.enabled, concurrencySettings.maxConcurrent]);
+
+  useEffect(() => {
+    setAiTemperatureInput(String(effectiveTemperature));
+  }, [effectiveTemperature]);
 
   const commitParseRetry = useCallback(() => {
     const raw = parseRetryInput.trim();
@@ -657,6 +672,24 @@ export function AIServerSettings() {
     concurrencySettings.enabled,
     concurrencySettings.maxConcurrent,
   ]);
+
+  const commitAiTemperature = useCallback(() => {
+    const raw = aiTemperatureInput.trim();
+    if (raw === "") {
+      setAiTemperatureInput(String(effectiveTemperature));
+      return;
+    }
+    const value = Number(raw);
+    if (
+      Number.isFinite(value) &&
+      value >= AI_TEMPERATURE_LIMITS.min &&
+      value <= AI_TEMPERATURE_LIMITS.max
+    ) {
+      handleTemperatureChange(value);
+    } else {
+      setAiTemperatureInput(String(effectiveTemperature));
+    }
+  }, [aiTemperatureInput, effectiveTemperature, handleTemperatureChange]);
 
   const handleAddProvider = useCallback((data: ProviderFormData) => {
     const newProvider = createProviderConfig({
@@ -863,6 +896,34 @@ export function AIServerSettings() {
           </div>
           <p className="text-xs text-muted-foreground">
             Maximum time to wait for an AI request before timing out.
+          </p>
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="ai-temperature">Default Temperature</Label>
+          <div className="flex items-center gap-4">
+            <Input
+              id="ai-temperature"
+              type="number"
+              min={AI_TEMPERATURE_LIMITS.min}
+              max={AI_TEMPERATURE_LIMITS.max}
+              step={0.1}
+              value={aiTemperatureInput}
+              onChange={(e) => setAiTemperatureInput(e.target.value)}
+              onBlur={commitAiTemperature}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") (e.currentTarget as HTMLInputElement).blur();
+              }}
+              className="w-24"
+              data-testid="input-ai-temperature"
+            />
+            <span className="text-sm text-muted-foreground">
+              ({AI_TEMPERATURE_LIMITS.min}-{AI_TEMPERATURE_LIMITS.max})
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Controls response randomness. GPT-5 models require temperature 1 and will be adjusted
+            automatically.
           </p>
         </div>
 

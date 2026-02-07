@@ -13,6 +13,7 @@ import { compileTemplate, getFeatureOrThrow, parseResponse } from "@/lib/ai";
 import { createLogger } from "@/lib/logging";
 import {
   getAIRequestTimeoutMs,
+  getAITemperature,
   getEffectiveAIRequestConcurrency,
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
@@ -70,6 +71,7 @@ export async function executeFeature<TOutput>(
   const settings = initializeSettings();
   const maxRetries = settings.parseRetryCount ?? 3;
   const requestTimeoutMs = getAIRequestTimeoutMs(settings);
+  const temperature = getAITemperature(settings);
 
   // Resolve provider using unified resolver
   const resolveOptions: ProviderResolveOptions = {
@@ -107,6 +109,7 @@ export async function executeFeature<TOutput>(
       let timedOut = false;
       const providerPromise = provider.chat(messages, {
         ...options.chatOptions,
+        temperature: options.chatOptions?.temperature ?? temperature,
         signal: requestController.signal,
       });
 

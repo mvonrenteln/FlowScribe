@@ -115,6 +115,14 @@
 
 This document describes the unified architecture for all AI features in FlowScribe. While each feature has distinct functionality, they share common infrastructure, patterns, and implementation approaches. This guide ensures consistent, maintainable, and extensible AI capabilities.
 
+### Runtime Configuration (Global Settings)
+
+FlowScribe exposes global AI settings that apply to all providers and features. These settings are stored locally and are read by the AI feature service at request time. The most important knobs are:
+
+- **Request timeout:** Maximum time in seconds to wait for a response before aborting the request.
+- **Default temperature:** Controls response randomness for AI completions. GPT-5 models require temperature `1` and will be normalized automatically when using OpenAI-compatible providers.
+- **Parallel request limits:** Controls whether batch operations run in parallel and how many requests can be in flight.
+
 ---
 
 ## 🎯 Core Design Principles

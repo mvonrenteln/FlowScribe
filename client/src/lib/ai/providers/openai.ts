@@ -22,6 +22,33 @@ import {
   AIProviderRateLimitError,
 } from "./types";
 
+const OPENAI_TEMPERATURE_LIMITS = {
+  min: 0,
+  max: 2,
+};
+
+/**
+ * Check whether the model belongs to the GPT-5 family.
+ */
+export function isGpt5Model(model: string): boolean {
+  return /^gpt-5([-.].+)?$/i.test(model.trim());
+}
+
+/**
+ * Normalize temperature for OpenAI-compatible models.
+ * GPT-5 models require temperature to be 1.
+ */
+export function normalizeOpenAITemperature(model: string, temperature: number): number {
+  if (isGpt5Model(model)) {
+    return 1;
+  }
+
+  return Math.min(
+    OPENAI_TEMPERATURE_LIMITS.max,
+    Math.max(OPENAI_TEMPERATURE_LIMITS.min, temperature),
+  );
+}
+
 /**
  * AI Provider implementation for OpenAI and compatible APIs.
  *
@@ -59,6 +86,12 @@ export class OpenAIProvider implements AIProviderService {
    */
   async chat(messages: ChatMessage[], options?: ChatOptions): Promise<ChatResponse> {
     try {
+      const fallbackTemperature = 0.7;
+      const temperature = normalizeOpenAITemperature(
+        this.config.model,
+        options?.temperature ?? fallbackTemperature,
+      );
+
       const completion = await this.client.chat.completions.create(
         {
           model: this.config.model,
@@ -67,7 +100,7 @@ export class OpenAIProvider implements AIProviderService {
             content: m.content,
           })),
           max_tokens: options?.maxTokens ?? 2048,
-          temperature: options?.temperature ?? 0.7,
+          temperature,
         },
         {
           signal: options?.signal,
