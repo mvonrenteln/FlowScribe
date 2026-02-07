@@ -23,11 +23,26 @@ export interface JSONExportChapter {
   };
 }
 
+/** Tag metadata included in JSON exports for restoring colors on import. */
+export interface JSONExportTag {
+  name: string;
+  color: string;
+}
+
+/** JSON export payload for transcripts with optional chapter metadata. */
 export interface JSONExport {
   segments: Array<Segment & { tags: string[] }>;
+  tags?: JSONExportTag[];
   chapters?: JSONExportChapter[];
 }
 
+const mapTagIdsToNames = (tags: string[] | undefined, tagsById: Map<string, string>) =>
+  (tags || []).map((id) => tagsById.get(id) ?? id);
+
+/**
+ * Build a JSON export payload with tag names instead of internal tag IDs.
+ * This keeps exports human-readable while preserving tag colors for re-import.
+ */
 export function buildJSONExport(
   segments: Segment[],
   tags: Tag[],
@@ -39,8 +54,16 @@ export function buildJSONExport(
     segments: segments.map((seg) => ({
       ...seg,
       // Replace tag ids with tag names; keep unknown ids as-is
-      tags: (seg.tags || []).map((id) => tagsById.get(id) ?? id),
+      tags: mapTagIdsToNames(seg.tags, tagsById),
     })),
+    ...(tags.length > 0
+      ? {
+          tags: tags.map((tag) => ({
+            name: tag.name,
+            color: tag.color,
+          })),
+        }
+      : {}),
     ...(chapters && chapters.length > 0
       ? {
           chapters: chapters.map((chapter) => ({
@@ -48,7 +71,7 @@ export function buildJSONExport(
             title: chapter.title,
             summary: chapter.summary,
             notes: chapter.notes,
-            tags: chapter.tags,
+            tags: mapTagIdsToNames(chapter.tags, tagsById),
             startSegmentId: chapter.startSegmentId,
             endSegmentId: chapter.endSegmentId,
             segmentCount: chapter.segmentCount,

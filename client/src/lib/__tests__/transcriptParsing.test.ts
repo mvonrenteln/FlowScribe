@@ -54,4 +54,24 @@ describe("transcriptParsing", () => {
     const parsed = parseTranscriptData(data);
     expect(parsed?.segments[0].tags).toEqual(["alpha"]);
   });
+
+  it("preserves segment ids when parsing JSON export data", () => {
+    const data = {
+      segments: [
+        {
+          id: "segment-42",
+          speaker: "SPEAKER_01",
+          start: 0,
+          end: 1,
+          text: "a",
+          words: [],
+        },
+      ],
+      tags: [{ name: "alpha", color: "#fff" }],
+    };
+
+    const parsed = parseTranscriptData(data);
+    expect(parsed?.segments[0].id).toBe("segment-42");
+    expect(parsed?.tags).toEqual([{ name: "alpha", color: "#fff" }]);
+  });
 });

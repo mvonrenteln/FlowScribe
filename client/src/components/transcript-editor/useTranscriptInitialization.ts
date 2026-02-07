@@ -10,8 +10,9 @@ import {
 import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { createLogger } from "@/lib/logging";
-import type { Segment, TranscriptStore } from "@/lib/store/types";
+import type { Segment, TranscriptImportTag, TranscriptStore } from "@/lib/store/types";
 import { parseTranscriptData } from "@/lib/transcriptParsing";
+import type { Chapter } from "@/types/chapter";
 
 const logger = createLogger({ feature: "TranscriptInitialization", namespace: "UI" });
 
@@ -26,6 +27,8 @@ interface UseTranscriptInitializationParams {
   loadTranscript: (params: {
     segments: Segment[];
     isWhisperXFormat: boolean;
+    tags?: TranscriptImportTag[] | undefined;
+    chapters?: Chapter[] | undefined;
     reference: FileReference | null;
   }) => void;
 }
@@ -97,6 +100,8 @@ export const useTranscriptInitialization = ({
       loadTranscript({
         segments: parsed.segments,
         isWhisperXFormat: parsed.isWhisperXFormat,
+        tags: parsed.tags,
+        chapters: parsed.chapters,
         reference: reference ?? null,
       });
     },

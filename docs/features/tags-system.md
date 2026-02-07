@@ -133,7 +133,7 @@ If you're filtering by tags or speakers, check "Export visible segments only" to
 
 ### Tag Preservation
 
-Tags are saved in the JSON export file. When you re-import, tags are restored so you don't lose your annotations.
+Tags are saved in the JSON export file, along with tag metadata for colors. When you re-import, FlowScribe restores tags so you don't lose your annotations.
 
 ---
 

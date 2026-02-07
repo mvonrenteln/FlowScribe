@@ -41,6 +41,13 @@ export interface Tag {
   color: string;
 }
 
+export type TranscriptImportTag =
+  | string
+  | {
+      name: string;
+      color?: string;
+    };
+
 export interface LexiconEntry {
   term: string;
   variants: string[];
@@ -300,6 +307,8 @@ export interface SegmentsSlice {
   loadTranscript: (data: {
     segments: Segment[];
     speakers?: Speaker[];
+    tags?: TranscriptImportTag[];
+    chapters?: Chapter[];
     isWhisperXFormat?: boolean;
     reference?: FileReference | null;
   }) => void;
