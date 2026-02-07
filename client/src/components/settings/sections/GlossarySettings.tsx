@@ -368,6 +368,18 @@ export function GlossarySettings() {
                   <Check className="h-4 w-4 mr-1" />
                   Save
                 </Button>
+                {formMode === "edit" && selectedTerm ? (
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      removeLexiconEntry(selectedTerm);
+                      closeForm();
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4 mr-1" />
+                    Delete
+                  </Button>
+                ) : null}
                 <Button variant="ghost" onClick={closeForm}>
                   Cancel
                 </Button>

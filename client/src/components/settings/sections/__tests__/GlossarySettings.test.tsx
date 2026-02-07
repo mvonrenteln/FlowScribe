@@ -76,4 +76,16 @@ describe("GlossarySettings", () => {
     expect(useTranscriptStore.getState().lexiconEntries).toHaveLength(0);
     expect(screen.queryByText("Apple")).not.toBeInTheDocument();
   });
+
+  it("deletes the selected entry from the edit form", () => {
+    resetStore([{ term: "Apple", variants: [], falsePositives: [] }]);
+
+    render(<GlossarySettings />);
+
+    fireEvent.click(screen.getByLabelText("Edit Apple"));
+    fireEvent.click(screen.getByRole("button", { name: "Delete" }));
+
+    expect(useTranscriptStore.getState().lexiconEntries).toHaveLength(0);
+    expect(screen.queryByText("Apple")).not.toBeInTheDocument();
+  });
 });
