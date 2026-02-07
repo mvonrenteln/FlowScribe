@@ -6,12 +6,15 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
   AI_CONCURRENCY_LIMITS,
   AI_REQUEST_TIMEOUT_LIMITS,
+  AI_TEMPERATURE_LIMITS,
   addProviderToSettings,
   DEFAULT_AI_CONCURRENCY,
   DEFAULT_AI_REQUEST_TIMEOUT_SECONDS,
+  DEFAULT_AI_TEMPERATURE,
   DEFAULT_SETTINGS,
   getAIConcurrencySettings,
   getAIRequestTimeoutMs,
+  getAITemperature,
   getDefaultProvider,
   getEffectiveAIRequestConcurrency,
   initializeSettings,
@@ -152,6 +155,26 @@ describe("settingsStorage", () => {
       };
 
       expect(getAIRequestTimeoutMs(settings)).toBe(AI_REQUEST_TIMEOUT_LIMITS.max * 1000);
+    });
+  });
+
+  describe("getAITemperature", () => {
+    it("returns default temperature when missing", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        aiTemperature: undefined,
+      };
+
+      expect(getAITemperature(settings)).toBe(DEFAULT_AI_TEMPERATURE);
+    });
+
+    it("clamps temperature to limits", () => {
+      const settings: PersistedSettings = {
+        ...DEFAULT_SETTINGS,
+        aiTemperature: 10,
+      };
+
+      expect(getAITemperature(settings)).toBe(AI_TEMPERATURE_LIMITS.max);
     });
   });
 
