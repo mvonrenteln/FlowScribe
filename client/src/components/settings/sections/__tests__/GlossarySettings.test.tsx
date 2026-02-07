@@ -50,7 +50,7 @@ describe("GlossarySettings", () => {
     expect(screen.getByRole("button", { name: "Add term" })).toBeInTheDocument();
   });
 
-  it("opens the edit form from the pencil button and hides it after save", () => {
+  it("opens the edit form from the row and hides it after save", () => {
     resetStore([{ term: "Apple", variants: ["Mac"], falsePositives: [] }]);
 
     render(<GlossarySettings />);
@@ -64,17 +64,6 @@ describe("GlossarySettings", () => {
 
     expect(screen.queryByPlaceholderText("Term...")).not.toBeInTheDocument();
     expect(screen.getByText("Apple Pie")).toBeInTheDocument();
-  });
-
-  it("deletes glossary entries from the list", () => {
-    resetStore([{ term: "Apple", variants: [], falsePositives: [] }]);
-
-    render(<GlossarySettings />);
-
-    fireEvent.click(screen.getByLabelText("Delete Apple"));
-
-    expect(useTranscriptStore.getState().lexiconEntries).toHaveLength(0);
-    expect(screen.queryByText("Apple")).not.toBeInTheDocument();
   });
 
   it("deletes the selected entry from the edit form", () => {
