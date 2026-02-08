@@ -110,6 +110,8 @@ describe("useTranscriptInitialization", () => {
     expect(loadTranscript).toHaveBeenCalledWith({
       segments: parsed.segments,
       isWhisperXFormat: parsed.isWhisperXFormat,
+      tags: parsed.tags,
+      chapters: parsed.chapters,
       reference,
     });
   });

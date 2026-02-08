@@ -7,15 +7,9 @@
  */
 
 import type { StoreApi } from "zustand";
-import {
-  BUILTIN_REFORMULATION_PROMPTS,
-  getDefaultRewritePrompt,
-} from "@/lib/ai/features/rewrite/config";
 import { rewriteChapter } from "@/lib/ai/features/rewrite/service";
-import type { RewritePrompt } from "@/lib/ai/features/rewrite/types";
 import { createLogger } from "@/lib/logging";
-import type { TranscriptStore } from "../types";
-import { generateId } from "../utils/id";
+import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -23,9 +17,6 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 const logger = createLogger({ feature: "RewriteSlice", namespace: "Store" });
 
 // ==================== Types ====================
-
-// Re-export types for external use
-export type { RewritePrompt };
 
 export type RewriteConfig = {
   /** Include context (summaries + previous chapter) */
@@ -43,10 +34,6 @@ export type RewriteConfig = {
 };
 
 export interface RewriteSlice {
-  // Configuration
-  rewriteConfig: RewriteConfig;
-  rewritePrompts: RewritePrompt[];
-
   // Processing state
   rewriteInProgress: boolean;
   rewriteChapterId: string | null;
@@ -57,8 +44,11 @@ export interface RewriteSlice {
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
 
   // Actions - Prompts
-  addRewritePrompt: (prompt: Omit<RewritePrompt, "id">) => void;
-  updateRewritePrompt: (id: string, updates: Partial<RewritePrompt>) => void;
+  addRewritePrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updateRewritePrompt: (
+    id: string,
+    updates: Partial<Pick<AIPrompt, "name" | "systemPrompt" | "userPromptTemplate">>,
+  ) => void;
   deleteRewritePrompt: (id: string) => void;
   setDefaultRewritePrompt: (id: string) => void;
   toggleQuickAccessRewritePrompt: (id: string) => void;
@@ -70,18 +60,7 @@ export interface RewriteSlice {
 
 // ==================== Initial State ====================
 
-const defaultPrompt = getDefaultRewritePrompt();
-
 export const initialRewriteState = {
-  rewriteConfig: {
-    includeContext: true,
-    contextWordLimit: 500,
-    defaultPromptId: defaultPrompt.id,
-    quickAccessPromptIds: BUILTIN_REFORMULATION_PROMPTS.map((p) => p.id),
-    selectedProviderId: undefined,
-    selectedModel: undefined,
-  } satisfies RewriteConfig,
-  rewritePrompts: [...BUILTIN_REFORMULATION_PROMPTS],
   rewriteInProgress: false,
   rewriteChapterId: null,
   rewriteError: null,
@@ -95,79 +74,63 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
 
   // Configuration
   updateRewriteConfig: (updates) => {
-    set((state) => ({
-      rewriteConfig: {
-        ...state.rewriteConfig,
-        ...updates,
-      },
-    }));
+    const configUpdates: Partial<AIChapterDetectionConfig> = {};
+    if (typeof updates.includeContext === "boolean") {
+      configUpdates.includeContext = updates.includeContext;
+    }
+    if (typeof updates.contextWordLimit === "number") {
+      configUpdates.contextWordLimit = updates.contextWordLimit;
+    }
+    if (updates.selectedProviderId !== undefined) {
+      configUpdates.selectedProviderId = updates.selectedProviderId;
+    }
+    if (updates.selectedModel !== undefined) {
+      configUpdates.selectedModel = updates.selectedModel;
+    }
+    get().updateChapterDetectionConfig(configUpdates);
   },
 
   // Prompts
   addRewritePrompt: (prompt) => {
-    const newPrompt: RewritePrompt = {
-      ...prompt,
-      id: generateId(),
-      isBuiltin: false,
+    const nextPrompt: Omit<AIPrompt, "id"> = {
+      name: prompt.name,
+      type: "chapter-detect",
+      operation: "rewrite",
+      systemPrompt: prompt.systemPrompt,
+      userPromptTemplate: prompt.userPromptTemplate,
+      isBuiltIn: Boolean(prompt.isBuiltIn),
+      quickAccess: false,
     };
-
-    set((state) => ({
-      rewritePrompts: [...state.rewritePrompts, newPrompt],
-    }));
+    get().addChapterDetectionPrompt(nextPrompt);
   },
 
   updateRewritePrompt: (id, updates) => {
-    set((state) => ({
-      rewritePrompts: state.rewritePrompts.map((p) => (p.id === id ? { ...p, ...updates } : p)),
-    }));
+    const promptUpdates: Partial<AIPrompt> = {};
+    if (updates.name !== undefined) {
+      promptUpdates.name = updates.name;
+    }
+    if (updates.systemPrompt !== undefined) {
+      promptUpdates.systemPrompt = updates.systemPrompt;
+    }
+    if (updates.userPromptTemplate !== undefined) {
+      promptUpdates.userPromptTemplate = updates.userPromptTemplate;
+    }
+    get().updateChapterDetectionPrompt(id, promptUpdates);
   },
 
   deleteRewritePrompt: (id) => {
-    const state = get();
-    const prompt = state.rewritePrompts.find((p) => p.id === id);
-
-    // Cannot delete built-in prompts
-    if (prompt?.isBuiltin) {
-      logger.warn("Cannot delete built-in prompt.", { id });
-      return;
-    }
-
-    set((state) => ({
-      rewritePrompts: state.rewritePrompts.filter((p) => p.id !== id),
-      rewriteConfig: {
-        ...state.rewriteConfig,
-        // Update default if deleted
-        defaultPromptId:
-          state.rewriteConfig.defaultPromptId === id
-            ? getDefaultRewritePrompt().id
-            : state.rewriteConfig.defaultPromptId,
-        // Remove from quick access
-        quickAccessPromptIds: state.rewriteConfig.quickAccessPromptIds.filter((pid) => pid !== id),
-      },
-    }));
+    get().deleteChapterDetectionPrompt(id);
   },
 
   setDefaultRewritePrompt: (id) => {
-    set((state) => ({
-      rewriteConfig: {
-        ...state.rewriteConfig,
-        defaultPromptId: id,
-      },
-    }));
+    get().setActiveChapterDetectionPrompt(id);
   },
 
   toggleQuickAccessRewritePrompt: (id) => {
-    set((state) => {
-      const isInQuickAccess = state.rewriteConfig.quickAccessPromptIds.includes(id);
-      return {
-        rewriteConfig: {
-          ...state.rewriteConfig,
-          quickAccessPromptIds: isInQuickAccess
-            ? state.rewriteConfig.quickAccessPromptIds.filter((pid) => pid !== id)
-            : [...state.rewriteConfig.quickAccessPromptIds, id],
-        },
-      };
-    });
+    const prompt = get().aiChapterDetectionConfig.prompts.find((p) => p.id === id);
+    if (prompt) {
+      get().updateChapterDetectionPrompt(id, { quickAccess: !prompt.quickAccess });
+    }
   },
 
   // Processing
@@ -181,10 +144,14 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       return;
     }
 
-    // Find prompt
-    const prompt = state.rewritePrompts.find((p) => p.id === promptId);
+    // Find prompt in unified config
+    const prompt = state.aiChapterDetectionConfig.prompts.find((p) => p.id === promptId);
     if (!prompt) {
       logger.error("Prompt not found.", { promptId });
+      return;
+    }
+    if (!prompt.systemPrompt?.trim() || !prompt.userPromptTemplate?.trim()) {
+      logger.error("Rewrite prompt missing systemPrompt or userPromptTemplate.", { promptId });
       return;
     }
 
@@ -212,11 +179,11 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         segments,
         allChapters: state.chapters,
         prompt,
-        providerId: state.rewriteConfig.selectedProviderId,
-        model: state.rewriteConfig.selectedModel,
+        providerId: state.aiChapterDetectionConfig.selectedProviderId,
+        model: state.aiChapterDetectionConfig.selectedModel,
         signal: abortController.signal,
-        includeContext: state.rewriteConfig.includeContext,
-        contextWordLimit: state.rewriteConfig.contextWordLimit,
+        includeContext: state.aiChapterDetectionConfig.includeContext,
+        contextWordLimit: state.aiChapterDetectionConfig.contextWordLimit,
       });
 
       // Clear processing state first
@@ -231,8 +198,8 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       // Use get() to get fresh state after async operation
       get().setChapterRewrite(chapterId, result.rewrittenText, {
         promptId,
-        providerId: state.rewriteConfig.selectedProviderId,
-        model: state.rewriteConfig.selectedModel,
+        providerId: state.aiChapterDetectionConfig.selectedProviderId,
+        model: state.aiChapterDetectionConfig.selectedModel,
       });
     } catch (error) {
       logger.error("Rewrite failed.", { error });

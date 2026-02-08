@@ -41,6 +41,13 @@ export interface Tag {
   color: string;
 }
 
+export type TranscriptImportTag =
+  | string
+  | {
+      name: string;
+      color?: string;
+    };
+
 export interface LexiconEntry {
   term: string;
   variants: string[];
@@ -111,7 +118,7 @@ export interface PersistedGlobalState {
   aiChapterDetectionConfig?: AIChapterDetectionConfig;
   // Chapter Rewrite config
   rewriteConfig?: import("./slices/rewriteSlice").RewriteConfig;
-  rewritePrompts?: import("./slices/rewriteSlice").RewritePrompt[];
+  rewritePrompts?: AIPrompt[];
 }
 
 export interface RecentSessionSummary {
@@ -221,12 +228,20 @@ export interface InitialStoreState {
   aiChapterDetectionAbortController: AbortController | null;
   aiChapterDetectionBatchLog: AIChapterDetectionBatchLogEntry[];
   // Rewrite state
-  rewriteConfig: import("./slices/rewriteSlice").RewriteConfig;
-  rewritePrompts: import("./slices/rewriteSlice").RewritePrompt[];
   rewriteInProgress: boolean;
   rewriteChapterId: string | null;
   rewriteError: string | null;
   rewriteAbortController: AbortController | null;
+  // Chapter Metadata state
+  chapterMetadataTitleSuggestions: string[] | null;
+  chapterMetadataTitleLoading: boolean;
+  chapterMetadataTitleChapterId: string | null;
+  chapterMetadataSummaryLoading: boolean;
+  chapterMetadataSummaryChapterId: string | null;
+  chapterMetadataNotesLoading: boolean;
+  chapterMetadataNotesChapterId: string | null;
+  chapterMetadataError: string | null;
+  chapterMetadataAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -300,6 +315,8 @@ export interface SegmentsSlice {
   loadTranscript: (data: {
     segments: Segment[];
     speakers?: Speaker[];
+    tags?: TranscriptImportTag[];
+    chapters?: Chapter[];
     isWhisperXFormat?: boolean;
     reference?: FileReference | null;
   }) => void;
@@ -384,6 +401,28 @@ export interface ChapterSlice {
   // Display mode
   chapterDisplayModes: Record<string, "original" | "rewritten">;
   setChapterDisplayMode: (chapterId: string, mode: "original" | "rewritten") => void;
+
+  // Metadata AI actions
+  suggestChapterTitle: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
+  generateChapterSummary: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
+  generateChapterNotes: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
+  cancelChapterMetadata: () => void;
+  clearChapterMetadataSuggestions: () => void;
 }
 
 export interface LexiconSlice {
@@ -469,6 +508,8 @@ export interface AIPrompt {
   isBuiltIn: boolean;
   isDefault?: boolean;
   quickAccess: boolean;
+  /** Operation type for chapter prompts */
+  operation?: "detection" | "rewrite" | "metadata";
 }
 
 export interface AIPromptExport {
@@ -710,6 +751,10 @@ export interface AIChapterDetectionConfig {
   activePromptId: string;
   /** Available prompts for chapter detection */
   prompts: AIPrompt[];
+  /** Include context (summaries + previous chapter) for rewrites/metadata */
+  includeContext: boolean;
+  /** Maximum words from previous chapter for context */
+  contextWordLimit: number;
 }
 
 export interface AIChapterDetectionSlice {

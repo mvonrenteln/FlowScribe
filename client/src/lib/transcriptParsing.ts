@@ -1,4 +1,6 @@
 import type { Segment } from "@/lib/store";
+import type { TranscriptImportTag } from "@/lib/store/types";
+import type { Chapter } from "@/types/chapter";
 
 export interface WhisperSegment {
   timestamp: [number, number];
@@ -13,6 +15,7 @@ export interface WhisperXWord {
 }
 
 export interface WhisperXSegment {
+  id?: string;
   speaker?: string;
   start: number;
   end: number;
@@ -65,7 +68,7 @@ export const buildSegmentsFromWhisper = (data: WhisperSegment[]): Segment[] => {
 
 export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] }): Segment[] => {
   return data.segments.map((segment, index) => ({
-    id: `seg-${index}`,
+    id: segment.id || `seg-${index}`,
     speaker: segment.speaker || "SPEAKER_00",
     tags: Array.isArray(segment.tags)
       ? segment.tags.map((t) => (typeof t === "string" ? t : String(t)))
@@ -85,13 +88,24 @@ export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] })
 
 export const parseTranscriptData = (
   data: unknown,
-): { segments: Segment[]; isWhisperXFormat: boolean } | null => {
+): {
+  segments: Segment[];
+  isWhisperXFormat: boolean;
+  tags?: TranscriptImportTag[];
+  chapters?: Chapter[];
+} | null => {
   if (isWhisperFormat(data)) {
     return { segments: buildSegmentsFromWhisper(data), isWhisperXFormat: false };
   }
 
   if (isWhisperXFormat(data)) {
-    return { segments: buildSegmentsFromWhisperX(data), isWhisperXFormat: true };
+    const parsed = data as { tags?: unknown; chapters?: unknown };
+    return {
+      segments: buildSegmentsFromWhisperX(data),
+      isWhisperXFormat: true,
+      tags: Array.isArray(parsed.tags) ? (parsed.tags as TranscriptImportTag[]) : undefined,
+      chapters: Array.isArray(parsed.chapters) ? (parsed.chapters as Chapter[]) : undefined,
+    };
   }
 
   return null;

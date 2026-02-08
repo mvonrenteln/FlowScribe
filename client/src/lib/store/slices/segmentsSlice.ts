@@ -5,7 +5,7 @@ import { clearWordsIndexCache } from "@/lib/utils/wordIndexCache";
 import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
-import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
+import type { Segment, SegmentsSlice, TranscriptImportTag, TranscriptStore } from "../types";
 import { generateId } from "../utils/id";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
 import { addToHistory } from "./historySlice";
@@ -95,26 +95,70 @@ export const createSegmentsSlice = (
         color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
       }));
 
-    // If incoming segments include `tags` as names (from WhisperX import),
+    // If incoming segments include `tags` as names (from WhisperX/JSON import),
     // create new Tag objects with random ids for each unique name and map
     // segment.tag names -> ids. Imported tags are session-local.
-    const incomingTagNames = new Set<string>();
+    const incomingTagNames: string[] = [];
+    const incomingTagColors = new Map<string, string>();
+    const seenTagNames = new Set<string>();
+
+    const addTagName = (name: string, color?: string) => {
+      const normalized = name.trim();
+      if (!normalized) return;
+      if (color && !incomingTagColors.has(normalized)) {
+        incomingTagColors.set(normalized, color);
+      }
+      if (seenTagNames.has(normalized)) return;
+      seenTagNames.add(normalized);
+      incomingTagNames.push(normalized);
+    };
+
+    if (Array.isArray(data.tags)) {
+      for (const tag of data.tags as TranscriptImportTag[]) {
+        if (typeof tag === "string") {
+          addTagName(tag);
+          continue;
+        }
+        if (tag && typeof tag === "object" && typeof tag.name === "string") {
+          addTagName(tag.name, typeof tag.color === "string" ? tag.color : undefined);
+        }
+      }
+    }
+
     for (const s of data.segments) {
       const raw = s as unknown as { tags?: unknown };
       const tagsField = raw.tags;
       if (Array.isArray(tagsField)) {
         for (const name of tagsField) {
-          if (typeof name === "string" && name.trim() !== "") {
-            incomingTagNames.add(name.trim());
+          if (typeof name === "string") {
+            addTagName(name);
+          } else if (name != null) {
+            addTagName(String(name));
           }
         }
       }
     }
 
-    const importedTags = Array.from(incomingTagNames).map((name, i) => ({
+    if (Array.isArray(data.chapters)) {
+      for (const chapter of data.chapters) {
+        const tagsField = chapter?.tags;
+        if (!Array.isArray(tagsField)) continue;
+        for (const name of tagsField) {
+          if (typeof name === "string") {
+            addTagName(name);
+          } else if (name != null) {
+            addTagName(String(name));
+          }
+        }
+      }
+    }
+
+    let fallbackColorIndex = 0;
+    const importedTags = incomingTagNames.map((name) => ({
       id: crypto.randomUUID(),
-      name: name.trim(),
-      color: SPEAKER_COLORS[i % SPEAKER_COLORS.length],
+      name,
+      color:
+        incomingTagColors.get(name) ?? SPEAKER_COLORS[fallbackColorIndex++ % SPEAKER_COLORS.length],
     }));
 
     const nameToId = new Map(importedTags.map((t) => [t.name, t.id]));
@@ -136,6 +180,19 @@ export const createSegmentsSlice = (
         tags,
       };
     });
+
+    const chapters: Chapter[] = Array.isArray(data.chapters)
+      ? data.chapters.map((chapter) => ({
+          ...chapter,
+          id: chapter.id || generateId(),
+          tags: Array.isArray(chapter.tags)
+            ? chapter.tags.map((tag) => {
+                const str = (tag || "").toString().trim();
+                return nameToId.get(str) || str;
+              })
+            : [],
+        }))
+      : [];
 
     const selectedSegmentId = segments[0]?.id ?? null;
 
@@ -182,7 +239,7 @@ export const createSegmentsSlice = (
       segments,
       speakers,
       tags: importedTags,
-      chapters: [],
+      chapters,
       selectedSegmentId,
       selectedChapterId: null,
       isWhisperXFormat: data.isWhisperXFormat || false,
@@ -191,7 +248,7 @@ export const createSegmentsSlice = (
           segments,
           speakers,
           tags: importedTags,
-          chapters: [],
+          chapters,
           selectedSegmentId,
           selectedChapterId: null,
           currentTime: 0,

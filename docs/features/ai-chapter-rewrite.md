@@ -23,7 +23,7 @@ This feature is perfect for creating blog posts, articles, documentation, or any
 
 ### 1. Starting a Rewrite
 
-1. Click the **"Rewrite"** button on any chapter header
+1. Open the chapter **AI menu** (sparkles icon) in the chapter header
 2. Choose a rewrite style from the prompt library:
    - **Blog Post**: Conversational, engaging tone with natural paragraphs
    - **Article**: Structured, professional formatting with clear sections
@@ -68,7 +68,7 @@ After accepting a rewrite, chapters can display in two modes:
 - Search, bookmarks, and navigation still work
 - Click chapter to toggle back to original
 
-**Toggle via chapter header menu** or use the transcript view switcher.
+**Toggle via the chapter header rewrite toggle** or use the transcript view switcher.
 
 ---
 

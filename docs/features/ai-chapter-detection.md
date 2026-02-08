@@ -38,7 +38,7 @@ This feature helps with navigation, per-chapter processing, and structured expor
 - Start a chapter from a segment's context menu ("Start Chapter Here"). The new chapter appears above the chosen segment and is immediately editable inline.
 - Click a title to edit it in place. Enter or blur to save; Esc cancels.
 - Expand the header to edit `summary` or `notes` in place.
-- Use the delete icon (visible in Edit Mode) to remove a chapter boundary — segments are not deleted and Undo restores the boundary.
+- Use the delete icon (visible in Edit Mode) to remove a chapter boundary. Deletions apply immediately without a confirmation dialog — segments are not deleted and Undo restores the boundary.
 - Tags are edited inline via a small `+` button in Edit Mode.
 
 ---
@@ -57,6 +57,28 @@ Notes:
 - If something looks wrong, you can reject or edit the suggested chapter before applying it.
 - Accepting or rejecting a suggestion removes it from the suggestions list and the inline preview.
 - When you accept a suggestion, any new tag labels are created as normal tags and appear in the tag overview.
+
+---
+
+## Part C: AI-Powered Metadata Editing
+
+Beyond bulk detection, you can use the AI to refine individual chapters at any time.
+
+1.  **Open Chapter AI Menu**: Click the AI icon (wand) in any chapter header.
+2.  **Suggest Title**: Choose "Suggest Title" to get 5 AI-generated title alternatives based on the chapter's content. A dialog allows you to preview and select the best one.
+3.  **Generate Summary**: Automatically generate a concise summary of the chapter's segments.
+4.  **Generate Notes**: Generate editorial notes or a more detailed breakdown of the chapter.
+5.  **Chapter Rewrites**: Access custom rewrite prompts to transform chapter content (e.g., "Change to first person", "Summarize as bullet points").
+
+### Prompt Customization
+
+All chapter-related AI features are managed via **Settings → AI Prompts → Chapters**. 
+
+- **Operation Types**: Prompts are categorized by operation:
+    - **Detection**: Used for initial segment-to-chapter boundaries.
+    - **Metadata**: Used for title suggestions, summaries, and notes.
+    - **Rewrite**: Used for transforming existing chapter content.
+- **Built-in Prompts**: The system provides optimized defaults for each operation, but you can create custom templates with placeholders like `{{chapterSegments}}` and `{{currentSummary}}`.
 
 ---
 

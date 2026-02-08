@@ -238,7 +238,7 @@ export function AIRevisionPopover(props: Readonly<AIRevisionPopoverProps>) {
       default:
         return {
           icon: <Sparkles className="h-4 w-4" />,
-          className: "text-muted-foreground hover:text-foreground",
+          className: "",
           title: t("aiRevision.actionLabel"),
         };
     }

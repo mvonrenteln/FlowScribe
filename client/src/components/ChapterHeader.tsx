@@ -12,16 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { ChapterAIMenu } from "@/components/ChapterAIMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -80,7 +71,6 @@ export function ChapterHeader({
   const [isHeaderHovered, setIsHeaderHovered] = useState(false);
   const [hoveredTagId, setHoveredTagId] = useState<string | null>(null);
   const [_hasOverflow, setHasOverflow] = useState(false);
-  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const tagRowRef = useRef<HTMLDivElement>(null);
   const tagContainerRef = useRef<HTMLDivElement>(null);
   const dragPreviewCleanupRef = useRef<number | null>(null);
@@ -629,6 +619,12 @@ export function ChapterHeader({
                     </Button>
                   )}
 
+                  <ChapterAIMenu
+                    chapterId={chapter.id}
+                    onRewriteChapter={onRewriteChapter}
+                    className={cn(isHeaderHovered ? "opacity-100" : "opacity-0")}
+                  />
+
                   {/* Options menu - aligned to the far right */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -658,16 +654,8 @@ export function ChapterHeader({
                         Edit title
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        className="py-1.5 text-xs"
-                        onSelect={() => onRewriteChapter(chapter.id)}
-                        data-testid={`menu-rewrite-chapter-${chapter.id}`}
-                      >
-                        <Sparkles className="h-3 w-3 mr-2" />
-                        Rewrite chapter
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
                         className="py-1.5 text-xs text-destructive"
-                        onSelect={() => setShowDeleteDialog(true)}
+                        onSelect={() => onDeleteChapter(chapter.id)}
                         data-testid={`menu-delete-chapter-${chapter.id}`}
                       >
                         <Trash2 className="h-3 w-3 mr-2" />
@@ -923,32 +911,6 @@ export function ChapterHeader({
           </div>
         </div>
       </CollapsibleContent>
-
-      {/* Delete Confirmation Dialog */}
-      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Delete Chapter?</AlertDialogTitle>
-            <AlertDialogDescription>
-              {chapter.rewrittenText
-                ? "This chapter has a rewrite. Both will be deleted."
-                : "This action cannot be undone."}
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDeleteChapter(chapter.id);
-                setShowDeleteDialog(false);
-              }}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-            >
-              {chapter.rewrittenText ? "Delete Both" : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Collapsible>
   );
 }

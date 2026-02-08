@@ -39,6 +39,12 @@ FlowScribe supports both Whisper and WhisperX JSON inputs and exports cleaned tr
 
 ## Export Formats
 
-- **JSON** — WhisperX‑style structure with your edits, timestamps, and speaker labels.
+- **JSON** — WhisperX‑style structure with your edits, timestamps, speaker labels, and tag names.
 - **SRT** — Subtitle‑friendly output with timing.
 - **TXT** — Plain text with speaker labels.
+
+### JSON Export Details
+
+- `segments[].tags` contains tag names (not internal IDs).
+- `tags` contains tag metadata (`name`, `color`) for restoring unused or custom tags.
+- `chapters[].tags` (when present) also uses tag names for readability.

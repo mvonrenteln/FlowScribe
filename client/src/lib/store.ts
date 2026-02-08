@@ -223,11 +223,21 @@ const initialState: InitialStoreState = {
   ...initialAIChapterDetectionState,
   aiChapterDetectionConfig: normalizeAIChapterDetectionConfig(
     globalState?.aiChapterDetectionConfig,
+    globalState?.rewritePrompts,
+    globalState?.rewriteConfig,
   ),
   // Rewrite state
   ...initialRewriteState,
-  rewriteConfig: globalState?.rewriteConfig ?? initialRewriteState.rewriteConfig,
-  rewritePrompts: globalState?.rewritePrompts ?? initialRewriteState.rewritePrompts,
+  // Chapter Metadata state
+  chapterMetadataTitleSuggestions: null,
+  chapterMetadataTitleLoading: false,
+  chapterMetadataTitleChapterId: null,
+  chapterMetadataSummaryLoading: false,
+  chapterMetadataSummaryChapterId: null,
+  chapterMetadataNotesLoading: false,
+  chapterMetadataNotesChapterId: null,
+  chapterMetadataError: null,
+  chapterMetadataAbortController: null,
 };
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;

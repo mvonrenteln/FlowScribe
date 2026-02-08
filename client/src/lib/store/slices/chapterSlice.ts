@@ -10,6 +10,13 @@ import {
   sortChaptersByStart,
 } from "../utils/chapters";
 import { generateId } from "../utils/id";
+import {
+  cancelChapterMetadata,
+  clearChapterMetadataSuggestions,
+  generateChapterNotes,
+  generateChapterSummary,
+  suggestChapterTitle,
+} from "./chapterMetadataActions";
 import { addToHistory } from "./historySlice";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
@@ -515,5 +522,26 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
         [chapterId]: mode,
       },
     });
+  },
+
+  // Metadata AI actions
+  suggestChapterTitle: async (chapterId, promptId, providerId, model) => {
+    await suggestChapterTitle(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  generateChapterSummary: async (chapterId, promptId, providerId, model) => {
+    await generateChapterSummary(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  generateChapterNotes: async (chapterId, promptId, providerId, model) => {
+    await generateChapterNotes(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  cancelChapterMetadata: () => {
+    cancelChapterMetadata()(set, get);
+  },
+
+  clearChapterMetadataSuggestions: () => {
+    clearChapterMetadataSuggestions()(set);
   },
 });

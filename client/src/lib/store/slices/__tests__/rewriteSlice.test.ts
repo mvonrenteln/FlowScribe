@@ -2,42 +2,78 @@
  * Tests for RewriteSlice
  */
 
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import type { StoreApi } from "zustand";
 import { create } from "zustand";
+import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "@/lib/store/types";
 import { createRewriteSlice, initialRewriteState, type RewriteSlice } from "../rewriteSlice";
 
+type RewriteSliceTestState = RewriteSlice & {
+  aiChapterDetectionConfig: AIChapterDetectionConfig;
+  updateChapterDetectionConfig: ReturnType<typeof vi.fn>;
+  addChapterDetectionPrompt: ReturnType<typeof vi.fn>;
+  updateChapterDetectionPrompt: ReturnType<typeof vi.fn>;
+  deleteChapterDetectionPrompt: ReturnType<typeof vi.fn>;
+  setActiveChapterDetectionPrompt: ReturnType<typeof vi.fn>;
+};
+
+const buildPrompt = (overrides?: Partial<AIPrompt>): AIPrompt => ({
+  id: "prompt-1",
+  name: "Rewrite Prompt",
+  type: "chapter-detect",
+  operation: "rewrite",
+  systemPrompt: "You are an expert editor.",
+  userPromptTemplate: "Rewrite: {{chapterContent}}",
+  isBuiltIn: false,
+  quickAccess: false,
+  ...overrides,
+});
+
+const buildConfig = (prompt: AIPrompt): AIChapterDetectionConfig => ({
+  batchSize: 100,
+  minChapterLength: 10,
+  maxChapterLength: 80,
+  tagIds: [],
+  selectedProviderId: undefined,
+  selectedModel: undefined,
+  activePromptId: prompt.id,
+  prompts: [prompt],
+  includeContext: true,
+  contextWordLimit: 500,
+});
+
 describe("RewriteSlice", () => {
-  let store: ReturnType<typeof create<RewriteSlice>>;
+  let store: ReturnType<typeof create<RewriteSliceTestState>>;
+  let updateChapterDetectionConfig: RewriteSliceTestState["updateChapterDetectionConfig"];
+  let addChapterDetectionPrompt: RewriteSliceTestState["addChapterDetectionPrompt"];
+  let updateChapterDetectionPrompt: RewriteSliceTestState["updateChapterDetectionPrompt"];
+  let deleteChapterDetectionPrompt: RewriteSliceTestState["deleteChapterDetectionPrompt"];
+  let setActiveChapterDetectionPrompt: RewriteSliceTestState["setActiveChapterDetectionPrompt"];
 
   beforeEach(() => {
-    store = create<RewriteSlice>()((set, get) => ({
+    const prompt = buildPrompt();
+    updateChapterDetectionConfig = vi.fn();
+    addChapterDetectionPrompt = vi.fn();
+    updateChapterDetectionPrompt = vi.fn();
+    deleteChapterDetectionPrompt = vi.fn();
+    setActiveChapterDetectionPrompt = vi.fn();
+
+    store = create<RewriteSliceTestState>()((set, get) => ({
+      aiChapterDetectionConfig: buildConfig(prompt),
+      updateChapterDetectionConfig,
+      addChapterDetectionPrompt,
+      updateChapterDetectionPrompt,
+      deleteChapterDetectionPrompt,
+      setActiveChapterDetectionPrompt,
       ...initialRewriteState,
-      ...createRewriteSlice(set, get),
+      ...createRewriteSlice(
+        set as StoreApi<TranscriptStore>["setState"],
+        get as StoreApi<TranscriptStore>["getState"],
+      ),
     }));
   });
 
   describe("Initial State", () => {
-    it("should have default configuration", () => {
-      const state = store.getState();
-
-      expect(state.rewriteConfig).toMatchObject({
-        includeContext: true,
-        contextWordLimit: 500,
-        quickAccessPromptIds: expect.arrayContaining(["builtin-summarize", "builtin-narrative"]),
-      });
-    });
-
-    it("should have built-in prompts", () => {
-      const state = store.getState();
-
-      expect(state.rewritePrompts.length).toBeGreaterThan(0);
-      expect(state.rewritePrompts[0]).toMatchObject({
-        id: "builtin-summarize",
-        name: "Summarize",
-        isBuiltin: true,
-      });
-    });
-
     it("should not be processing initially", () => {
       const state = store.getState();
 
@@ -48,134 +84,75 @@ describe("RewriteSlice", () => {
   });
 
   describe("Config Management", () => {
-    it("should update rewrite config", () => {
+    it("should forward rewrite config updates to chapter detection config", () => {
       store.getState().updateRewriteConfig({
         includeContext: false,
-        contextWordLimit: 1000,
-      });
-
-      const state = store.getState();
-      expect(state.rewriteConfig.includeContext).toBe(false);
-      expect(state.rewriteConfig.contextWordLimit).toBe(1000);
-    });
-
-    it("should update partial config", () => {
-      const initialConfig = store.getState().rewriteConfig;
-
-      store.getState().updateRewriteConfig({
         contextWordLimit: 750,
       });
 
-      const state = store.getState();
-      expect(state.rewriteConfig.includeContext).toBe(initialConfig.includeContext);
-      expect(state.rewriteConfig.contextWordLimit).toBe(750);
+      expect(updateChapterDetectionConfig).toHaveBeenCalledWith({
+        includeContext: false,
+        contextWordLimit: 750,
+      });
     });
   });
 
   describe("Prompt Management", () => {
-    it("should add new prompt", () => {
-      const initialCount = store.getState().rewritePrompts.length;
-
-      store.getState().addRewritePrompt({
-        name: "Test Prompt",
-        instructions: "Test instructions",
-      });
-
-      const state = store.getState();
-      expect(state.rewritePrompts.length).toBe(initialCount + 1);
-      expect(state.rewritePrompts[initialCount]).toMatchObject({
-        name: "Test Prompt",
-        instructions: "Test instructions",
-        isBuiltin: false,
-      });
-    });
-
-    it("should update prompt", () => {
-      store.getState().addRewritePrompt({
-        name: "Original Name",
-        instructions: "Original instructions",
-      });
-
-      const prompts = store.getState().rewritePrompts;
-      const customPrompt = prompts.find((p) => !p.isBuiltin);
-      expect(customPrompt).toBeDefined();
-
-      if (customPrompt) {
-        store.getState().updateRewritePrompt(customPrompt.id, {
-          name: "Updated Name",
-        });
-
-        const state = store.getState();
-        const updated = state.rewritePrompts.find((p) => p.id === customPrompt.id);
-        expect(updated?.name).toBe("Updated Name");
-        expect(updated?.instructions).toBe("Original instructions");
-      }
-    });
-
-    it("should not delete built-in prompt", () => {
-      const initialCount = store.getState().rewritePrompts.length;
-      const builtinId = "builtin-summarize";
-
-      store.getState().deleteRewritePrompt(builtinId);
-
-      const state = store.getState();
-      expect(state.rewritePrompts.length).toBe(initialCount);
-      expect(state.rewritePrompts.find((p) => p.id === builtinId)).toBeDefined();
-    });
-
-    it("should delete custom prompt", () => {
+    it("should add new prompt via chapter detection prompts", () => {
       store.getState().addRewritePrompt({
         name: "Custom Prompt",
-        instructions: "Custom instructions",
+        systemPrompt: "You are an editor.",
+        userPromptTemplate: "Rewrite: {{chapterContent}}",
+        type: "chapter-detect",
+        operation: "rewrite",
+        isBuiltIn: false,
+        quickAccess: false,
       });
 
-      const prompts = store.getState().rewritePrompts;
-      const customPrompt = prompts.find((p) => !p.isBuiltin);
-      expect(customPrompt).toBeDefined();
-
-      if (customPrompt) {
-        const initialCount = prompts.length;
-        store.getState().deleteRewritePrompt(customPrompt.id);
-
-        const state = store.getState();
-        expect(state.rewritePrompts.length).toBe(initialCount - 1);
-        expect(state.rewritePrompts.find((p) => p.id === customPrompt.id)).toBeUndefined();
-      }
+      expect(addChapterDetectionPrompt).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: "Custom Prompt",
+          systemPrompt: "You are an editor.",
+          userPromptTemplate: "Rewrite: {{chapterContent}}",
+          type: "chapter-detect",
+          operation: "rewrite",
+        }),
+      );
     });
 
-    it("should set default prompt", () => {
-      const newDefaultId = "builtin-narrative";
+    it("should update prompt via chapter detection prompts", () => {
+      store.getState().updateRewritePrompt("prompt-1", {
+        name: "Updated Name",
+      });
 
-      store.getState().setDefaultRewritePrompt(newDefaultId);
-
-      const state = store.getState();
-      expect(state.rewriteConfig.defaultPromptId).toBe(newDefaultId);
+      expect(updateChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1", {
+        name: "Updated Name",
+      });
     });
 
-    it("should toggle quick access", () => {
-      const promptId = "builtin-summarize";
-      const initialInQuickAccess = store
-        .getState()
-        .rewriteConfig.quickAccessPromptIds.includes(promptId);
+    it("should delete prompt via chapter detection prompts", () => {
+      store.getState().deleteRewritePrompt("prompt-1");
 
-      store.getState().toggleQuickAccessRewritePrompt(promptId);
+      expect(deleteChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1");
+    });
 
-      const state = store.getState();
-      const nowInQuickAccess = state.rewriteConfig.quickAccessPromptIds.includes(promptId);
-      expect(nowInQuickAccess).toBe(!initialInQuickAccess);
+    it("should set default prompt via chapter detection config", () => {
+      store.getState().setDefaultRewritePrompt("prompt-1");
 
-      // Toggle back
-      store.getState().toggleQuickAccessRewritePrompt(promptId);
+      expect(setActiveChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1");
+    });
 
-      const finalState = store.getState();
-      const finalInQuickAccess = finalState.rewriteConfig.quickAccessPromptIds.includes(promptId);
-      expect(finalInQuickAccess).toBe(initialInQuickAccess);
+    it("should toggle quick access for rewrite prompt", () => {
+      store.getState().toggleQuickAccessRewritePrompt("prompt-1");
+
+      expect(updateChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1", {
+        quickAccess: true,
+      });
     });
   });
 
   describe("Cancellation", () => {
     it("should cancel rewrite", () => {
-      // Simulate in-progress state (normally set by startRewrite)
       store.setState({
         rewriteInProgress: true,
         rewriteChapterId: "chapter-1",
