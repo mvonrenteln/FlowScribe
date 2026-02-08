@@ -33,20 +33,29 @@ const resetStore = () => {
     rewriteInProgress: false,
     rewriteChapterId: null,
     rewriteError: null,
-    rewritePrompts: [
-      {
-        id: "prompt-1",
-        name: "Default Prompt",
-        instructions: "Rewrite the chapter.",
-      },
-    ],
-    rewriteConfig: {
-      includeContext: true,
-      contextWordLimit: 500,
-      quickAccessPromptIds: [],
-      defaultPromptId: "prompt-1",
+    aiChapterDetectionConfig: {
+      batchSize: 100,
+      minChapterLength: 10,
+      maxChapterLength: 80,
+      tagIds: [],
       selectedProviderId: undefined,
       selectedModel: undefined,
+      activePromptId: "prompt-1",
+      prompts: [
+        {
+          id: "prompt-1",
+          name: "Default Prompt",
+          type: "chapter-detect",
+          operation: "rewrite",
+          systemPrompt: "",
+          userPromptTemplate: "",
+          instructions: "Rewrite the chapter.",
+          isBuiltIn: false,
+          quickAccess: false,
+        },
+      ],
+      includeContext: true,
+      contextWordLimit: 500,
     },
   });
 };

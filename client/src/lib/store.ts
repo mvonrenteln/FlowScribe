@@ -146,11 +146,11 @@ const rawActiveSession =
     : null;
 const activeSession = rawActiveSession
   ? {
-    ...rawActiveSession,
-    segments: normalizeSegments(rawActiveSession.segments),
-    tags: rawActiveSession.tags ?? [],
-    chapters: rawActiveSession.chapters ?? [],
-  }
+      ...rawActiveSession,
+      segments: normalizeSegments(rawActiveSession.segments),
+      tags: rawActiveSession.tags ?? [],
+      chapters: rawActiveSession.chapters ?? [],
+    }
   : null;
 const activeSessionKey =
   sessionsState.activeSessionKey ??
@@ -159,15 +159,15 @@ const activeSessionKey =
 const initialHistoryState = buildInitialHistory(
   activeSession?.segments.length && activeSession.speakers.length
     ? {
-      segments: activeSession.segments,
-      speakers: activeSession.speakers,
-      tags: activeSession.tags ?? [],
-      chapters: activeSession.chapters ?? [],
-      selectedSegmentId: activeSession.selectedSegmentId,
-      selectedChapterId: activeSession.selectedChapterId ?? null,
-      currentTime: activeSession.currentTime ?? 0,
-      confidenceScoresVersion: 0,
-    }
+        segments: activeSession.segments,
+        speakers: activeSession.speakers,
+        tags: activeSession.tags ?? [],
+        chapters: activeSession.chapters ?? [],
+        selectedSegmentId: activeSession.selectedSegmentId,
+        selectedChapterId: activeSession.selectedChapterId ?? null,
+        currentTime: activeSession.currentTime ?? 0,
+        confidenceScoresVersion: 0,
+      }
     : null,
 );
 
@@ -400,9 +400,9 @@ if (canUseLocalStorage()) {
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
-        nextGlobalPayload.lexiconHighlightUnderline ||
+          nextGlobalPayload.lexiconHighlightUnderline ||
         lastGlobalPayload.lexiconHighlightBackground !==
-        nextGlobalPayload.lexiconHighlightBackground ||
+          nextGlobalPayload.lexiconHighlightBackground ||
         lastGlobalPayload.spellcheckEnabled !== nextGlobalPayload.spellcheckEnabled ||
         lastGlobalPayload.spellcheckLanguages !== nextGlobalPayload.spellcheckLanguages ||
         lastGlobalPayload.spellcheckIgnoreWords !== nextGlobalPayload.spellcheckIgnoreWords ||

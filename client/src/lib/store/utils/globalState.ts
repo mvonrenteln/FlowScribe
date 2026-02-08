@@ -1,4 +1,3 @@
-import type { RewriteConfig, RewritePrompt } from "../slices/rewriteSlice";
 import type {
   AIChapterDetectionConfig,
   AIRevisionConfig,

@@ -83,18 +83,21 @@ export const normalizeAIChapterDetectionConfig = (
   let initialPrompts = getPromptsFromConfig(config) ?? base.prompts;
 
   if (persistedRewrites?.length) {
-    const existingIds = new Set(initialPrompts.map(p => p.id));
+    const existingIds = new Set(initialPrompts.map((p) => p.id));
     const migratedRewrites = persistedRewrites
-      .filter(p => !existingIds.has(p.id))
-      .map(p => ({
-        ...p,
-        type: 'chapter-detect' as const,
-        operation: 'rewrite' as const,
-        systemPrompt: '',
-        userPromptTemplate: '',
-        isBuiltIn: p.isBuiltin ?? false,
-        quickAccess: false,
-      }) as AIPrompt);
+      .filter((p) => !existingIds.has(p.id))
+      .map(
+        (p) =>
+          ({
+            ...p,
+            type: "chapter-detect" as const,
+            operation: "rewrite" as const,
+            systemPrompt: "",
+            userPromptTemplate: "",
+            isBuiltIn: p.isBuiltin ?? false,
+            quickAccess: false,
+          }) as AIPrompt,
+      );
     initialPrompts = [...initialPrompts, ...migratedRewrites];
   }
 
@@ -103,16 +106,22 @@ export const normalizeAIChapterDetectionConfig = (
     (p) => p.id === (config?.activePromptId ?? base.activePromptId),
   )
     ? (config?.activePromptId ?? base.activePromptId)
-    : (config?.activePromptId || DEFAULT_CHAPTER_DETECTION_PROMPT.id);
+    : config?.activePromptId || DEFAULT_CHAPTER_DETECTION_PROMPT.id;
 
   // Migrate rewrite config if available
-  const includeContext = typeof config?.includeContext === 'boolean'
-    ? config.includeContext
-    : (typeof persistedRewriteConfig?.includeContext === 'boolean' ? persistedRewriteConfig.includeContext : true);
+  const includeContext =
+    typeof config?.includeContext === "boolean"
+      ? config.includeContext
+      : typeof persistedRewriteConfig?.includeContext === "boolean"
+        ? persistedRewriteConfig.includeContext
+        : true;
 
-  const contextWordLimit = typeof config?.contextWordLimit === 'number'
-    ? config.contextWordLimit
-    : (typeof persistedRewriteConfig?.contextWordLimit === 'number' ? persistedRewriteConfig.contextWordLimit : 500);
+  const contextWordLimit =
+    typeof config?.contextWordLimit === "number"
+      ? config.contextWordLimit
+      : typeof persistedRewriteConfig?.contextWordLimit === "number"
+        ? persistedRewriteConfig.contextWordLimit
+        : 500;
 
   return {
     batchSize: typeof config?.batchSize === "number" ? config.batchSize : base.batchSize,

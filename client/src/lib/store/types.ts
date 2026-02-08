@@ -44,9 +44,9 @@ export interface Tag {
 export type TranscriptImportTag =
   | string
   | {
-    name: string;
-    color?: string;
-  };
+      name: string;
+      color?: string;
+    };
 
 export interface LexiconEntry {
   term: string;
@@ -403,9 +403,24 @@ export interface ChapterSlice {
   setChapterDisplayMode: (chapterId: string, mode: "original" | "rewritten") => void;
 
   // Metadata AI actions
-  suggestChapterTitle: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
-  generateChapterSummary: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
-  generateChapterNotes: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
+  suggestChapterTitle: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
+  generateChapterSummary: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
+  generateChapterNotes: (
+    chapterId: string,
+    promptId: string,
+    providerId?: string,
+    model?: string,
+  ) => void;
   cancelChapterMetadata: () => void;
   clearChapterMetadataSuggestions: () => void;
 }

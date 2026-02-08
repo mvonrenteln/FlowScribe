@@ -7,15 +7,10 @@
  */
 
 import type { StoreApi } from "zustand";
-import {
-  BUILTIN_REFORMULATION_PROMPTS,
-  getDefaultRewritePrompt,
-} from "@/lib/ai/features/rewrite/config";
 import { rewriteChapter } from "@/lib/ai/features/rewrite/service";
 import type { RewritePrompt } from "@/lib/ai/features/rewrite/types";
 import { createLogger } from "@/lib/logging";
-import type { TranscriptStore } from "../types";
-import { generateId } from "../utils/id";
+import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -66,8 +61,6 @@ export interface RewriteSlice {
 
 // ==================== Initial State ====================
 
-const defaultPrompt = getDefaultRewritePrompt();
-
 export const initialRewriteState = {
   rewriteInProgress: false,
   rewriteChapterId: null,
@@ -82,22 +75,46 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
 
   // Configuration
   updateRewriteConfig: (updates) => {
-    get().updateChapterDetectionConfig(updates as any);
+    const configUpdates: Partial<AIChapterDetectionConfig> = {};
+    if (typeof updates.includeContext === "boolean") {
+      configUpdates.includeContext = updates.includeContext;
+    }
+    if (typeof updates.contextWordLimit === "number") {
+      configUpdates.contextWordLimit = updates.contextWordLimit;
+    }
+    if (updates.selectedProviderId !== undefined) {
+      configUpdates.selectedProviderId = updates.selectedProviderId;
+    }
+    if (updates.selectedModel !== undefined) {
+      configUpdates.selectedModel = updates.selectedModel;
+    }
+    get().updateChapterDetectionConfig(configUpdates);
   },
 
   // Prompts
   addRewritePrompt: (prompt) => {
-    get().addChapterDetectionPrompt({
-      ...prompt,
+    const nextPrompt: Omit<AIPrompt, "id"> = {
+      name: prompt.name,
       type: "chapter-detect",
       operation: "rewrite",
       systemPrompt: "",
       userPromptTemplate: "",
-    } as any);
+      instructions: prompt.instructions,
+      isBuiltIn: Boolean(prompt.isBuiltin),
+      quickAccess: false,
+    };
+    get().addChapterDetectionPrompt(nextPrompt);
   },
 
   updateRewritePrompt: (id, updates) => {
-    get().updateChapterDetectionPrompt(id, updates as any);
+    const promptUpdates: Partial<AIPrompt> = {};
+    if (updates.name !== undefined) {
+      promptUpdates.name = updates.name;
+    }
+    if (updates.instructions !== undefined) {
+      promptUpdates.instructions = updates.instructions;
+    }
+    get().updateChapterDetectionPrompt(id, promptUpdates);
   },
 
   deleteRewritePrompt: (id) => {
@@ -109,7 +126,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
   },
 
   toggleQuickAccessRewritePrompt: (id) => {
-    const prompt = get().aiChapterDetectionConfig.prompts.find(p => p.id === id);
+    const prompt = get().aiChapterDetectionConfig.prompts.find((p) => p.id === id);
     if (prompt) {
       get().updateChapterDetectionPrompt(id, { quickAccess: !prompt.quickAccess });
     }
@@ -130,6 +147,10 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
     const prompt = state.aiChapterDetectionConfig.prompts.find((p) => p.id === promptId);
     if (!prompt) {
       logger.error("Prompt not found.", { promptId });
+      return;
+    }
+    if (!prompt.instructions?.trim()) {
+      logger.error("Rewrite prompt missing instructions.", { promptId });
       return;
     }
 
@@ -156,7 +177,12 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         chapter,
         segments,
         allChapters: state.chapters,
-        prompt: prompt as any,
+        prompt: {
+          id: prompt.id,
+          name: prompt.name,
+          instructions: prompt.instructions,
+          isBuiltin: prompt.isBuiltIn,
+        },
         providerId: state.aiChapterDetectionConfig.selectedProviderId,
         model: state.aiChapterDetectionConfig.selectedModel,
         signal: abortController.signal,

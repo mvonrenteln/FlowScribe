@@ -5,7 +5,7 @@
  */
 
 import { Loader2, Sparkles } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -25,6 +25,7 @@ import {
 } from "@/components/ui/select";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
+import type { AIPrompt } from "@/lib/store/types";
 
 interface ChapterRewriteDialogProps {
   open: boolean;
@@ -39,16 +40,27 @@ export function ChapterRewriteDialog({
   chapterId,
   onStartRewrite,
 }: ChapterRewriteDialogProps) {
-  const prompts = useTranscriptStore((s) => s.rewritePrompts);
-  const quickAccessIds = useTranscriptStore((s) => s.rewriteConfig.quickAccessPromptIds);
-  const defaultPromptId = useTranscriptStore((s) => s.rewriteConfig.defaultPromptId);
-  const rewriteConfig = useTranscriptStore((s) => s.rewriteConfig);
+  const chapterDetectionConfig = useTranscriptStore((s) => s.aiChapterDetectionConfig);
+  const prompts = useMemo(
+    () =>
+      chapterDetectionConfig.prompts.filter(
+        (prompt) => prompt.type === "chapter-detect" && prompt.operation === "rewrite",
+      ),
+    [chapterDetectionConfig.prompts],
+  );
   const startRewrite = useTranscriptStore((s) => s.startRewrite);
   const isProcessing = useTranscriptStore((s) => s.rewriteInProgress);
   const processingChapterId = useTranscriptStore((s) => s.rewriteChapterId);
   const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
   // Local state
+  const defaultPromptId = useMemo(
+    () =>
+      prompts.find((prompt) => prompt.id === chapterDetectionConfig.activePromptId)?.id ??
+      prompts[0]?.id ??
+      "",
+    [chapterDetectionConfig.activePromptId, prompts],
+  );
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
   const [settings] = useState(() => initializeSettings());
 
@@ -62,10 +74,10 @@ export function ChapterRewriteDialog({
     : undefined;
 
   const [selectedProvider, setSelectedProvider] = useState<string | undefined>(
-    () => rewriteConfig.selectedProviderId ?? defaultProvider?.id,
+    () => chapterDetectionConfig.selectedProviderId ?? defaultProvider?.id,
   );
   const [selectedModel, setSelectedModel] = useState<string | undefined>(
-    () => rewriteConfig.selectedModel ?? defaultModel,
+    () => chapterDetectionConfig.selectedModel ?? defaultModel,
   );
 
   useEffect(() => {
@@ -85,9 +97,19 @@ export function ChapterRewriteDialog({
   }, [selectedProvider, settings.aiProviders]);
 
   // Get quick access prompts
-  const quickAccessPrompts = prompts.filter((p) => quickAccessIds.includes(p.id));
-  const otherPrompts = prompts.filter((p) => !quickAccessIds.includes(p.id));
+  const quickAccessPrompts = prompts.filter((prompt) => prompt.quickAccess);
+  const otherPrompts = prompts.filter((prompt) => !prompt.quickAccess);
   const allSelectablePrompts = [...quickAccessPrompts, ...otherPrompts];
+
+  useEffect(() => {
+    if (!open) return;
+    const promptIsValid = selectedPromptId
+      ? prompts.some((prompt) => prompt.id === selectedPromptId)
+      : false;
+    if ((!selectedPromptId || !promptIsValid) && defaultPromptId) {
+      setSelectedPromptId(defaultPromptId);
+    }
+  }, [open, selectedPromptId, defaultPromptId, prompts]);
 
   const isProcessingThis = isProcessing && processingChapterId === chapterId;
 
@@ -138,7 +160,7 @@ export function ChapterRewriteDialog({
                 Quick Access
               </Label>
               <div className="grid gap-2">
-                {quickAccessPrompts.map((prompt) => (
+                {quickAccessPrompts.map((prompt: AIPrompt) => (
                   <Button
                     key={prompt.id}
                     variant={selectedPromptId === prompt.id ? "default" : "outline"}
@@ -148,7 +170,7 @@ export function ChapterRewriteDialog({
                     <div>
                       <div className="font-medium">{prompt.name}</div>
                       <div className="text-xs text-muted-foreground line-clamp-1">
-                        {prompt.instructions.split("\n")[0]}
+                        {prompt.instructions?.split("\n")[0] ?? ""}
                       </div>
                     </div>
                   </Button>
@@ -168,7 +190,7 @@ export function ChapterRewriteDialog({
                   <SelectValue placeholder="Prompt auswählen" />
                 </SelectTrigger>
                 <SelectContent>
-                  {allSelectablePrompts.map((prompt) => (
+                  {allSelectablePrompts.map((prompt: AIPrompt) => (
                     <SelectItem key={prompt.id} value={prompt.id}>
                       {prompt.name}
                     </SelectItem>

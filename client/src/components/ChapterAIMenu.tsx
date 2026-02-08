@@ -1,4 +1,4 @@
-import { BookOpen, Copy, FileText, Loader2, Sparkles, Wand2 } from "lucide-react";
+import { BookOpen, FileText, Loader2, Sparkles, Wand2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
@@ -9,13 +9,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { cn } from "@/lib/utils";
 import { useTranscriptStore } from "@/lib/store";
 import {
-  BUILTIN_TITLE_SUGGESTION_ID,
-  BUILTIN_SUMMARY_GENERATION_ID,
   BUILTIN_NOTES_GENERATION_ID,
+  BUILTIN_SUMMARY_GENERATION_ID,
+  BUILTIN_TITLE_SUGGESTION_ID,
 } from "@/lib/store/utils/chapterMetadataPrompts";
+import { cn } from "@/lib/utils";
 import { TitleSuggestionDialog } from "./TitleSuggestionDialog";
 
 interface ChapterAIMenuProps {
@@ -48,13 +48,16 @@ export function ChapterAIMenu({
 
   // Loading states
   const titleLoading = useTranscriptStore(
-    (state) => state.chapterMetadataTitleLoading && state.chapterMetadataTitleChapterId === chapterId
+    (state) =>
+      state.chapterMetadataTitleLoading && state.chapterMetadataTitleChapterId === chapterId,
   );
   const summaryLoading = useTranscriptStore(
-    (state) => state.chapterMetadataSummaryLoading && state.chapterMetadataSummaryChapterId === chapterId
+    (state) =>
+      state.chapterMetadataSummaryLoading && state.chapterMetadataSummaryChapterId === chapterId,
   );
   const notesLoading = useTranscriptStore(
-    (state) => state.chapterMetadataNotesLoading && state.chapterMetadataNotesChapterId === chapterId
+    (state) =>
+      state.chapterMetadataNotesLoading && state.chapterMetadataNotesChapterId === chapterId,
   );
 
   const handleSuggestTitle = () => {
@@ -138,6 +141,7 @@ export function ChapterAIMenu({
             }}
             disabled={isLoading}
             className="text-purple-600 focus:text-purple-700"
+            data-testid={`menu-rewrite-chapter-${chapterId}`}
           >
             <Sparkles className="mr-2 h-4 w-4" />
             Rewrite Chapter

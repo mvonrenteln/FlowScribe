@@ -12,7 +12,7 @@
 /**
  * Chapter operation type discriminator.
  */
-export type ChapterOperation = 'detection' | 'rewrite' | 'metadata';
+export type ChapterOperation = "detection" | "rewrite" | "metadata";
 
 /**
  * Unified Chapter Prompt.
@@ -24,20 +24,20 @@ export interface ChapterPrompt {
   /** Display name */
   name: string;
   /** Type for storage/routing (always 'chapter-detect') */
-  type: 'chapter-detect';
+  type: "chapter-detect";
   /** Operation discriminator */
   operation: ChapterOperation;
-  
+
   // For detection & metadata (Handlebars templates → JSON response)
   /** System prompt (defines behavior) */
   systemPrompt?: string;
   /** User prompt template with {{variables}} */
   userPromptTemplate?: string;
-  
+
   // For rewrite (instructions → plain text response)
   /** Rewrite instructions (freeform text) */
   instructions?: string;
-  
+
   /** Whether this is a built-in prompt */
   isBuiltIn: boolean;
   /** Show in quick access menu */
@@ -75,7 +75,7 @@ export type ChapterRewriteResponse = string;
  */
 export interface ChapterMetadataResponse {
   /** Operation type discriminator */
-  operation: 'title' | 'summary' | 'notes';
+  operation: "title" | "summary" | "notes";
   /** Title options (only for operation='title', 2-3 items) */
   titleOptions?: string[];
   /** Generated/improved summary (only for operation='summary') */
@@ -135,14 +135,14 @@ export interface NotesResult {
  */
 export function validateChapterPrompt(prompt: ChapterPrompt): string[] {
   const errors: string[] = [];
-  
+
   if (!prompt.name?.trim()) {
-    errors.push('Prompt name is required');
+    errors.push("Prompt name is required");
   }
-  
+
   switch (prompt.operation) {
-    case 'detection':
-    case 'metadata':
+    case "detection":
+    case "metadata":
       if (!prompt.systemPrompt?.trim()) {
         errors.push(`System prompt is required for ${prompt.operation} operation`);
       }
@@ -150,14 +150,14 @@ export function validateChapterPrompt(prompt: ChapterPrompt): string[] {
         errors.push(`User prompt template is required for ${prompt.operation} operation`);
       }
       break;
-    
-    case 'rewrite':
+
+    case "rewrite":
       if (!prompt.instructions?.trim()) {
-        errors.push('Instructions are required for rewrite operation');
+        errors.push("Instructions are required for rewrite operation");
       }
       break;
   }
-  
+
   return errors;
 }
 
@@ -166,7 +166,7 @@ export function validateChapterPrompt(prompt: ChapterPrompt): string[] {
  */
 export function getExpectedResponseFormat(operation: ChapterOperation): string {
   switch (operation) {
-    case 'detection':
+    case "detection":
       return `{
   "chapters": [{
     "title": "...",
@@ -177,11 +177,11 @@ export function getExpectedResponseFormat(operation: ChapterOperation): string {
     "end": 10
   }]
 }`;
-    
-    case 'rewrite':
-      return 'Plain text (rewritten chapter content)';
-    
-    case 'metadata':
+
+    case "rewrite":
+      return "Plain text (rewritten chapter content)";
+
+    case "metadata":
       return `{
   "operation": "title|summary|notes",
   "titleOptions": ["..."],  // only for title

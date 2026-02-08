@@ -1,155 +1,166 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import * as chapterOpsService from '@/lib/ai/features/chapterOperations/service';
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import type { StoreApi } from "zustand";
+import * as chapterOpsService from "@/lib/ai/features/chapterOperations/service";
+import type { ChapterPrompt } from "@/lib/ai/features/chapterOperations/types";
+import type { TranscriptStore } from "@/lib/store/types";
 import {
-    generateChapterNotes,
-    generateChapterSummary,
-    suggestChapterTitle,
-} from '../chapterMetadataActions';
-import type { ChapterPrompt } from '@/lib/ai/features/chapterOperations/types';
+  generateChapterNotes,
+  generateChapterSummary,
+  suggestChapterTitle,
+} from "../chapterMetadataActions";
 
-describe('chapterMetadataActions', () => {
-    let set: any;
-    let get: any;
-    let state: any;
+describe("chapterMetadataActions", () => {
+  let set: StoreApi<TranscriptStore>["setState"];
+  let get: StoreApi<TranscriptStore>["getState"];
+  let state: Partial<TranscriptStore>;
 
-    const mockChapter = {
-        id: 'c1',
-        startSegmentId: 's1',
-        title: 'Old Title',
-        summary: 'Old Summary',
-        notes: 'Old Notes',
+  const mockChapter = {
+    id: "c1",
+    startSegmentId: "s1",
+    title: "Old Title",
+    summary: "Old Summary",
+    notes: "Old Notes",
+  };
+
+  const mockSegments = [{ id: "s1", speaker: "A", text: "Text 1", start: 0, end: 1 }];
+
+  const mockPrompt: ChapterPrompt = {
+    id: "p1",
+    name: "Metadata Prompt",
+    operation: "metadata",
+    systemPrompt: "sys",
+    userPromptTemplate: "user",
+    description: "desc",
+    isBuiltIn: false,
+    quickAccess: false,
+  };
+
+  beforeEach(() => {
+    set = vi.fn((update) => {
+      const nextState = typeof update === "function" ? update(state as TranscriptStore) : update;
+      // Simple shallow merge for testing
+      state = { ...state, ...nextState };
+    });
+
+    state = {
+      chapters: [mockChapter],
+      selectSegmentsInChapter: vi.fn().mockReturnValue(mockSegments),
+      aiChapterDetectionConfig: {
+        prompts: [mockPrompt],
+      },
+      updateChapter: vi.fn(),
     };
 
-    const mockSegments = [
-        { id: 's1', speaker: 'A', text: 'Text 1', start: 0, end: 1 },
-    ];
+    get = vi.fn().mockReturnValue(state as TranscriptStore);
 
-    const mockPrompt: ChapterPrompt = {
-        id: 'p1',
-        name: 'Metadata Prompt',
-        operation: 'metadata',
-        systemPrompt: 'sys',
-        userPromptTemplate: 'user',
-        description: 'desc',
-        isBuiltIn: false,
-        quickAccess: false,
-    };
+    // Spy on service methods
+    vi.spyOn(chapterOpsService, "suggestTitles");
+    vi.spyOn(chapterOpsService, "generateSummary");
+    vi.spyOn(chapterOpsService, "generateNotes");
+  });
 
-    beforeEach(() => {
-        set = vi.fn((update) => {
-            // Simple shallow merge for testing
-            state = { ...state, ...update };
-        });
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
 
-        state = {
-            chapters: [mockChapter],
-            selectSegmentsInChapter: vi.fn().mockReturnValue(mockSegments),
-            aiChapterDetectionConfig: {
-                prompts: [mockPrompt],
-            },
-            updateChapter: vi.fn(),
-        };
+  describe("suggestChapterTitle", () => {
+    it("updates state with suggestions on success", async () => {
+      vi.mocked(chapterOpsService.suggestTitles).mockResolvedValue({
+        options: ["New Title 1", "New Title 2"],
+      });
 
-        get = vi.fn().mockReturnValue(state);
+      const action = suggestChapterTitle("c1", "p1");
+      await action(set, get);
 
-        // Spy on service methods
-        vi.spyOn(chapterOpsService, 'suggestTitles');
-        vi.spyOn(chapterOpsService, 'generateSummary');
-        vi.spyOn(chapterOpsService, 'generateNotes');
+      // Verify loading state set
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chapterMetadataTitleLoading: true,
+          chapterMetadataTitleChapterId: "c1",
+          chapterMetadataError: null,
+        }),
+      );
+
+      // Verify service call
+      expect(chapterOpsService.suggestTitles).toHaveBeenCalledWith(
+        mockPrompt,
+        expect.objectContaining({
+          chapterId: "c1",
+          chapterTitle: "Old Title",
+        }),
+        expect.anything(),
+      );
+
+      // Verify success state set
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chapterMetadataTitleSuggestions: ["New Title 1", "New Title 2"],
+          chapterMetadataTitleLoading: false,
+          chapterMetadataTitleChapterId: null,
+        }),
+      );
     });
 
-    afterEach(() => {
-        vi.restoreAllMocks();
+    it("handles errors gracefully", async () => {
+      vi.mocked(chapterOpsService.suggestTitles).mockRejectedValue(new Error("AI Failed"));
+
+      const action = suggestChapterTitle("c1", "p1");
+      await action(set, get);
+
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chapterMetadataTitleLoading: false,
+          chapterMetadataError: "AI Failed",
+        }),
+      );
     });
+  });
 
-    describe('suggestChapterTitle', () => {
-        it('updates state with suggestions on success', async () => {
-            vi.mocked(chapterOpsService.suggestTitles).mockResolvedValue({
-                options: ['New Title 1', 'New Title 2'],
-            });
+  describe("generateChapterSummary", () => {
+    it("updates chapter and state on success", async () => {
+      vi.mocked(chapterOpsService.generateSummary).mockResolvedValue({
+        summary: "Generated Summary",
+      });
 
-            const action = suggestChapterTitle('c1', 'p1');
-            await action(set, get);
+      const action = generateChapterSummary("c1", "p1");
+      await action(set, get);
 
-            // Verify loading state set
-            expect(set).toHaveBeenCalledWith(expect.objectContaining({
-                chapterMetadataTitleLoading: true,
-                chapterMetadataTitleChapterId: 'c1',
-                chapterMetadataError: null,
-            }));
+      expect(chapterOpsService.generateSummary).toHaveBeenCalled();
 
-            // Verify service call
-            expect(chapterOpsService.suggestTitles).toHaveBeenCalledWith(
-                mockPrompt,
-                expect.objectContaining({
-                    chapterId: 'c1',
-                    chapterTitle: 'Old Title',
-                }),
-                expect.anything()
-            );
+      // Verify chapter update
+      expect(state.updateChapter).toHaveBeenCalledWith("c1", { summary: "Generated Summary" });
 
-            // Verify success state set
-            expect(set).toHaveBeenCalledWith(expect.objectContaining({
-                chapterMetadataTitleSuggestions: ['New Title 1', 'New Title 2'],
-                chapterMetadataTitleLoading: false,
-                chapterMetadataTitleChapterId: null,
-            }));
-        });
-
-        it('handles errors gracefully', async () => {
-            vi.mocked(chapterOpsService.suggestTitles).mockRejectedValue(new Error('AI Failed'));
-
-            const action = suggestChapterTitle('c1', 'p1');
-            await action(set, get);
-
-            expect(set).toHaveBeenCalledWith(expect.objectContaining({
-                chapterMetadataTitleLoading: false,
-                chapterMetadataError: 'AI Failed',
-            }));
-        });
+      // Verify state reset
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chapterMetadataSummaryLoading: false,
+          chapterMetadataSummaryChapterId: null,
+        }),
+      );
     });
+  });
 
-    describe('generateChapterSummary', () => {
-        it('updates chapter and state on success', async () => {
-            vi.mocked(chapterOpsService.generateSummary).mockResolvedValue({
-                summary: 'Generated Summary',
-            });
+  describe("generateChapterNotes", () => {
+    it("updates chapter and state on success", async () => {
+      vi.mocked(chapterOpsService.generateNotes).mockResolvedValue({
+        notes: "Generated Notes",
+      });
 
-            const action = generateChapterSummary('c1', 'p1');
-            await action(set, get);
+      const action = generateChapterNotes("c1", "p1");
+      await action(set, get);
 
-            expect(chapterOpsService.generateSummary).toHaveBeenCalled();
+      expect(chapterOpsService.generateNotes).toHaveBeenCalled();
 
-            // Verify chapter update
-            expect(state.updateChapter).toHaveBeenCalledWith('c1', { summary: 'Generated Summary' });
+      // Verify chapter update
+      expect(state.updateChapter).toHaveBeenCalledWith("c1", { notes: "Generated Notes" });
 
-            // Verify state reset
-            expect(set).toHaveBeenCalledWith(expect.objectContaining({
-                chapterMetadataSummaryLoading: false,
-                chapterMetadataSummaryChapterId: null,
-            }));
-        });
+      // Verify state reset
+      expect(set).toHaveBeenCalledWith(
+        expect.objectContaining({
+          chapterMetadataNotesLoading: false,
+          chapterMetadataNotesChapterId: null,
+        }),
+      );
     });
-
-    describe('generateChapterNotes', () => {
-        it('updates chapter and state on success', async () => {
-            vi.mocked(chapterOpsService.generateNotes).mockResolvedValue({
-                notes: 'Generated Notes',
-            });
-
-            const action = generateChapterNotes('c1', 'p1');
-            await action(set, get);
-
-            expect(chapterOpsService.generateNotes).toHaveBeenCalled();
-
-            // Verify chapter update
-            expect(state.updateChapter).toHaveBeenCalledWith('c1', { notes: 'Generated Notes' });
-
-            // Verify state reset
-            expect(set).toHaveBeenCalledWith(expect.objectContaining({
-                chapterMetadataNotesLoading: false,
-                chapterMetadataNotesChapterId: null,
-            }));
-        });
-    });
+  });
 });

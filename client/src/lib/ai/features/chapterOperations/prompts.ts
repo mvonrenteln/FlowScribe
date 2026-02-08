@@ -6,16 +6,16 @@
  * @module ai/features/chapterOperations/prompts
  */
 
-import type { ChapterPrompt } from './types';
+import type { ChapterPrompt } from "./types";
 
 /**
  * Built-in Title Suggestion Prompt
  */
-export const BUILTIN_TITLE_SUGGESTION: Omit<ChapterPrompt, 'id'> = {
-    name: 'Title Suggestion',
-    type: 'chapter-detect',
-    operation: 'metadata',
-    systemPrompt: `You are an expert at creating concise, engaging chapter titles.
+export const BUILTIN_TITLE_SUGGESTION: Omit<ChapterPrompt, "id"> = {
+  name: "Title Suggestion",
+  type: "chapter-detect",
+  operation: "metadata",
+  systemPrompt: `You are an expert at creating concise, engaging chapter titles.
 
 Rules:
 - Generate 2-3 alternative titles
@@ -24,7 +24,7 @@ Rules:
 - Avoid clickbait or overly creative titles
 - Focus on the main topic or theme of the chapter`,
 
-    userPromptTemplate: `Based on the following chapter content, suggest 2-3 concise titles (max 7 words each):
+  userPromptTemplate: `Based on the following chapter content, suggest 2-3 concise titles (max 7 words each):
 
 {{#if chapterTitle}}
 Current title: {{chapterTitle}}
@@ -39,18 +39,18 @@ Return your response as JSON:
   "titleOptions": ["Title Option 1", "Title Option 2", "Title Option 3"]
 }`,
 
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * Built-in Summary Generation Prompt
  */
-export const BUILTIN_SUMMARY_GENERATION: Omit<ChapterPrompt, 'id'> = {
-    name: 'Summary Generation',
-    type: 'chapter-detect',
-    operation: 'metadata',
-    systemPrompt: `You are an expert at creating concise chapter summaries.
+export const BUILTIN_SUMMARY_GENERATION: Omit<ChapterPrompt, "id"> = {
+  name: "Summary Generation",
+  type: "chapter-detect",
+  operation: "metadata",
+  systemPrompt: `You are an expert at creating concise chapter summaries.
 
 Rules:
 - Generate a single-sentence summary
@@ -58,7 +58,7 @@ Rules:
 - Avoid vague or generic statements
 - Focus on key topics and outcomes`,
 
-    userPromptTemplate: `Based on the following chapter content, generate a one-sentence summary:
+  userPromptTemplate: `Based on the following chapter content, generate a one-sentence summary:
 
 {{#if chapterTitle}}
 Chapter title: {{chapterTitle}}
@@ -73,18 +73,18 @@ Return your response as JSON:
   "summary": "Your one-sentence summary here"
 }`,
 
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * Built-in Summary Improvement Prompt
  */
-export const BUILTIN_SUMMARY_IMPROVEMENT: Omit<ChapterPrompt, 'id'> = {
-    name: 'Summary Improvement',
-    type: 'chapter-detect',
-    operation: 'metadata',
-    systemPrompt: `You are an expert at refining chapter summaries.
+export const BUILTIN_SUMMARY_IMPROVEMENT: Omit<ChapterPrompt, "id"> = {
+  name: "Summary Improvement",
+  type: "chapter-detect",
+  operation: "metadata",
+  systemPrompt: `You are an expert at refining chapter summaries.
 
 Rules:
 - Improve the existing summary to be more concise and clear
@@ -92,7 +92,7 @@ Rules:
 - Preserve the core meaning
 - Make it more specific and informative`,
 
-    userPromptTemplate: `Improve the following chapter summary based on the chapter content:
+  userPromptTemplate: `Improve the following chapter summary based on the chapter content:
 
 {{#if chapterTitle}}
 Chapter title: {{chapterTitle}}
@@ -109,18 +109,18 @@ Return your response as JSON:
   "summary": "Your improved one-sentence summary here"
 }`,
 
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * Built-in Notes Generation Prompt
  */
-export const BUILTIN_NOTES_GENERATION: Omit<ChapterPrompt, 'id'> = {
-    name: 'Notes Generation',
-    type: 'chapter-detect',
-    operation: 'metadata',
-    systemPrompt: `You are an expert editor creating editorial notes for chapters.
+export const BUILTIN_NOTES_GENERATION: Omit<ChapterPrompt, "id"> = {
+  name: "Notes Generation",
+  type: "chapter-detect",
+  operation: "metadata",
+  systemPrompt: `You are an expert editor creating editorial notes for chapters.
 
 Rules:
 - Generate brief editorial notes (2-4 sentences)
@@ -128,7 +128,7 @@ Rules:
 - Be constructive and specific
 - Consider context and coherence`,
 
-    userPromptTemplate: `Based on the following chapter, generate editorial notes:
+  userPromptTemplate: `Based on the following chapter, generate editorial notes:
 
 {{#if chapterTitle}}
 Chapter title: {{chapterTitle}}
@@ -147,58 +147,57 @@ Return your response as JSON:
   "notes": "Your editorial notes here (2-4 sentences)"
 }`,
 
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * Built-in Summarize Prompt
  */
-export const BUILTIN_REWRITE_SUMMARIZE: Omit<ChapterPrompt, 'id'> = {
-    name: 'Summarize',
-    type: 'chapter-detect',
-    operation: 'rewrite',
-    instructions: `Summarize the chapter content:
+export const BUILTIN_REWRITE_SUMMARIZE: Omit<ChapterPrompt, "id"> = {
+  name: "Summarize",
+  type: "chapter-detect",
+  operation: "rewrite",
+  instructions: `Summarize the chapter content:
 - Extract key points and main ideas
 - Keep it concise (30-50% of original length)
 - Maintain chronological flow
 - Use clear, direct language`,
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * Built-in Narrative Style Prompt
  */
-export const BUILTIN_REWRITE_NARRATIVE: Omit<ChapterPrompt, 'id'> = {
-    name: 'Narrative Style',
-    type: 'chapter-detect',
-    operation: 'rewrite',
-    instructions: `Transform into narrative form:
+export const BUILTIN_REWRITE_NARRATIVE: Omit<ChapterPrompt, "id"> = {
+  name: "Narrative Style",
+  type: "chapter-detect",
+  operation: "rewrite",
+  instructions: `Transform into narrative form:
 - Use storytelling techniques
 - Create engaging flow
 - Maintain factual accuracy
 - Add smooth transitions between ideas
 - Use vivid, descriptive language where appropriate`,
-    isBuiltIn: true,
-    quickAccess: false,
+  isBuiltIn: true,
+  quickAccess: false,
 };
 
 /**
  * All built-in rewrite prompts
  */
 export const BUILTIN_REWRITE_PROMPTS = [
-    BUILTIN_REWRITE_SUMMARIZE,
-    BUILTIN_REWRITE_NARRATIVE,
+  BUILTIN_REWRITE_SUMMARIZE,
+  BUILTIN_REWRITE_NARRATIVE,
 ] as const;
-
 
 /**
  * All built-in metadata prompts
  */
 export const BUILTIN_METADATA_PROMPTS = [
-    BUILTIN_TITLE_SUGGESTION,
-    BUILTIN_SUMMARY_GENERATION,
-    BUILTIN_SUMMARY_IMPROVEMENT,
-    BUILTIN_NOTES_GENERATION,
+  BUILTIN_TITLE_SUGGESTION,
+  BUILTIN_SUMMARY_GENERATION,
+  BUILTIN_SUMMARY_IMPROVEMENT,
+  BUILTIN_NOTES_GENERATION,
 ] as const;

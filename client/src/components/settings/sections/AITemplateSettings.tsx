@@ -47,10 +47,7 @@ import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { buildPromptExportData } from "@/lib/store/utils/aiPromptExport";
 import { buildPromptImportPlan } from "@/lib/store/utils/aiPromptImport";
 import { cn } from "@/lib/utils";
-import {
-  ChapterPromptEditor,
-  type ChapterPromptFormData,
-} from "./ChapterPromptEditor";
+import { ChapterPromptEditor, type ChapterPromptFormData } from "./ChapterPromptEditor";
 
 // ==================== Constants ====================
 
@@ -501,19 +498,19 @@ export function AITemplateSettings() {
 
   const handleAddPrompt = useCallback(
     (data: PromptFormData | ChapterPromptFormData) => {
-      const promptData: any = {
+      const promptData: Omit<AIPrompt, "id"> = {
         name: data.name,
         type: data.type,
-        systemPrompt: data.systemPrompt,
-        userPromptTemplate: data.userPromptTemplate,
+        systemPrompt: data.systemPrompt ?? "",
+        userPromptTemplate: data.userPromptTemplate ?? "",
         isBuiltIn: false,
-        quickAccess: 'quickAccess' in data ? data.quickAccess : false,
+        quickAccess: "quickAccess" in data ? data.quickAccess : false,
       };
 
-      if ('operation' in data) {
+      if ("operation" in data) {
         promptData.operation = data.operation;
       }
-      if ('instructions' in data) {
+      if ("instructions" in data) {
         promptData.instructions = data.instructions;
       }
 
@@ -533,17 +530,17 @@ export function AITemplateSettings() {
 
   const handleEditPrompt = useCallback(
     (id: string, data: PromptFormData | ChapterPromptFormData) => {
-      const updates: any = {
+      const updates: Partial<AIPrompt> = {
         name: data.name,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
-        quickAccess: 'quickAccess' in data ? data.quickAccess : false,
+        quickAccess: "quickAccess" in data ? data.quickAccess : false,
       };
 
-      if ('operation' in data) {
+      if ("operation" in data) {
         updates.operation = data.operation;
       }
-      if ('instructions' in data) {
+      if ("instructions" in data) {
         updates.instructions = data.instructions;
       }
 
@@ -611,7 +608,7 @@ export function AITemplateSettings() {
 
   const handleDuplicate = useCallback(
     (promptItem: AIPrompt) => {
-      const promptData: any = {
+      const promptData: Omit<AIPrompt, "id"> = {
         name: `${promptItem.name} (Copy)`,
         type: promptItem.type,
         systemPrompt: promptItem.systemPrompt || "",
@@ -826,7 +823,8 @@ export function AITemplateSettings() {
 
         <TabsContent value="chapter-detect" className="space-y-4 mt-4">
           <p className="text-sm text-muted-foreground">
-            Prompts for detecting chapter boundaries, rewriting content, and suggesting metadata (titles, summaries).
+            Prompts for detecting chapter boundaries, rewriting content, and suggesting metadata
+            (titles, summaries).
           </p>
 
           <Card className="bg-muted/30 border-dashed">
@@ -837,14 +835,17 @@ export function AITemplateSettings() {
                     Include Previous Chapter Context
                   </Label>
                   <p className="text-xs text-muted-foreground">
-                    Provide the previous chapter's content to the AI for better continuity during rewrites and metadata generation.
+                    Provide the previous chapter's content to the AI for better continuity during
+                    rewrites and metadata generation.
                   </p>
                 </div>
                 <Checkbox
                   id="include-context"
                   checked={useTranscriptStore.getState().aiChapterDetectionConfig.includeContext}
                   onCheckedChange={(checked) =>
-                    useTranscriptStore.getState().updateChapterDetectionConfig({ includeContext: !!checked })
+                    useTranscriptStore
+                      .getState()
+                      .updateChapterDetectionConfig({ includeContext: !!checked })
                   }
                 />
               </div>
@@ -856,7 +857,8 @@ export function AITemplateSettings() {
                       Context Word Limit
                     </Label>
                     <span className="text-xs text-muted-foreground">
-                      {useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit} words
+                      {useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit}{" "}
+                      words
                     </span>
                   </div>
                   <Input
@@ -868,7 +870,7 @@ export function AITemplateSettings() {
                     value={useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit}
                     onChange={(e) =>
                       useTranscriptStore.getState().updateChapterDetectionConfig({
-                        contextWordLimit: parseInt(e.target.value) || 500
+                        contextWordLimit: parseInt(e.target.value, 10) || 500,
                       })
                     }
                     className="h-8 w-24 ml-auto"
