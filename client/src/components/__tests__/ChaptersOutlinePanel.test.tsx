@@ -1,8 +1,10 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { ChaptersOutlinePanel } from "@/components/ChaptersOutlinePanel";
+import { resetStore } from "@/lib/__tests__/storeTestUtils";
 import type { Chapter, Segment } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
 
 const _segments: Segment[] = [
   {
@@ -38,6 +40,10 @@ const chapters: Chapter[] = [
 ];
 
 describe("ChaptersOutlinePanel", () => {
+  beforeEach(() => {
+    resetStore();
+  });
+
   it("renders chapters and jumps on click", async () => {
     const user = userEvent.setup();
     const onJumpToChapter = vi.fn();
@@ -69,5 +75,42 @@ describe("ChaptersOutlinePanel", () => {
     );
 
     expect(screen.queryByTestId("chapters-outline-panel")).toBeNull();
+  });
+
+  it("shows chapter metadata (segment count, AI rewrite marker, tags)", () => {
+    useTranscriptStore.setState({
+      tags: [
+        { id: "tag-1", name: "Recap", color: "#111" },
+        { id: "tag-2", name: "Action", color: "#222" },
+      ],
+    });
+
+    const chapterWithMeta: Chapter = {
+      id: "chapter-2",
+      title: "Battle",
+      startSegmentId: "seg-1",
+      endSegmentId: "seg-2",
+      segmentCount: 8,
+      createdAt: 0,
+      source: "ai",
+      rewrittenText: "Rewritten content",
+      tags: ["tag-1", "tag-2"],
+    };
+
+    render(
+      <ChaptersOutlinePanel
+        open={true}
+        onOpenChange={vi.fn()}
+        chapters={[chapterWithMeta]}
+        selectedChapterId={null}
+        onJumpToChapter={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Battle")).toBeInTheDocument();
+    expect(screen.getByText("(8)")).toBeInTheDocument();
+    expect(screen.getByTitle("AI rewritten")).toBeInTheDocument();
+    expect(screen.getByText("Recap")).toBeInTheDocument();
+    expect(screen.getByText("Action")).toBeInTheDocument();
   });
 });
