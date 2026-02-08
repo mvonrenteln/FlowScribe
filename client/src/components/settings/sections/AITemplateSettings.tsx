@@ -321,9 +321,11 @@ function PromptCard({
   const [expanded, setExpanded] = useState(false);
   const typeLabel = promptItem.type === "speaker" ? "Speaker Classification" : "Text Revision";
   const TypeIcon = promptItem.type === "speaker" ? MessageSquare : Sparkles;
+  const isChapterPrompt = promptItem.type === "chapter-detect";
+  const isMetadataPrompt = isChapterPrompt && promptItem.operation === "metadata";
 
   return (
-    <Card className={cn(isActive && "ring-2 ring-primary")}>
+    <Card className={cn(!isChapterPrompt && isActive && "ring-2 ring-primary")}>
       <CardHeader className="pb-2">
         <div className="flex items-start justify-between">
           <div className="flex items-center gap-2">
@@ -331,7 +333,7 @@ function PromptCard({
             <div>
               <CardTitle className="text-base flex items-center gap-2" title={typeLabel}>
                 {promptItem.name}
-                {isActive && (
+                {!isChapterPrompt && isActive && (
                   <Badge variant="secondary" className="text-xs">
                     Default
                   </Badge>
@@ -384,7 +386,7 @@ function PromptCard({
           <Separator />
 
           <div className="flex flex-wrap gap-2">
-            {!isActive && (
+            {!isChapterPrompt && !isActive && (
               <Button variant="outline" size="sm" onClick={onSetActive}>
                 <Check className="h-3 w-3 mr-1" />
                 Set as Default
@@ -398,11 +400,13 @@ function PromptCard({
                 {promptItem.quickAccess ? "Remove from Quick Access" : "Add to Quick Access"}
               </Button>
             )}
-            <Button variant="outline" size="sm" onClick={onDuplicate}>
-              <Copy className="h-3 w-3 mr-1" />
-              Duplicate
-            </Button>
-            {!promptItem.isBuiltIn && (
+            {!isMetadataPrompt && (
+              <Button variant="outline" size="sm" onClick={onDuplicate}>
+                <Copy className="h-3 w-3 mr-1" />
+                Duplicate
+              </Button>
+            )}
+            {!isMetadataPrompt && !promptItem.isBuiltIn && (
               <Button
                 variant="outline"
                 size="sm"
@@ -456,15 +460,9 @@ export function AITemplateSettings() {
 
   // Chapter detection prompts
   const chapterDetectionPrompts = useTranscriptStore((s) => s.aiChapterDetectionConfig.prompts);
-  const activeChapterDetectionPromptId = useTranscriptStore(
-    (s) => s.aiChapterDetectionConfig.activePromptId,
-  );
   const addChapterDetectionPrompt = useTranscriptStore((s) => s.addChapterDetectionPrompt);
   const updateChapterDetectionPrompt = useTranscriptStore((s) => s.updateChapterDetectionPrompt);
   const deleteChapterDetectionPrompt = useTranscriptStore((s) => s.deleteChapterDetectionPrompt);
-  const setActiveChapterDetectionPrompt = useTranscriptStore(
-    (s) => s.setActiveChapterDetectionPrompt,
-  );
 
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -486,10 +484,17 @@ export function AITemplateSettings() {
         ? activeTextPromptId
         : activeTab === "segment-merge"
           ? activeSegmentMergePromptId
-          : activeChapterDetectionPromptId;
+          : "";
 
   const handleAddPrompt = useCallback(
     (data: PromptFormData | ChapterPromptFormData) => {
+      if (activeTab === "chapter-detect" && "operation" in data && data.operation === "metadata") {
+        toast({
+          title: "Metadata prompts are fixed",
+          description: "Edit the existing Title/Summary/Notes prompts instead.",
+        });
+        return;
+      }
       const promptData: Omit<AIPrompt, "id"> = {
         name: data.name,
         type: data.type,
@@ -514,7 +519,14 @@ export function AITemplateSettings() {
       }
       setShowAddForm(false);
     },
-    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
+    [
+      activeTab,
+      addSpeakerPrompt,
+      addTextPrompt,
+      addSegmentMergePrompt,
+      addChapterDetectionPrompt,
+      toast,
+    ],
   );
 
   const handleEditPrompt = useCallback(
@@ -579,21 +591,20 @@ export function AITemplateSettings() {
         setActiveTextPrompt(id);
       } else if (activeTab === "segment-merge") {
         setActiveSegmentMergePrompt(id);
-      } else {
-        setActiveChapterDetectionPrompt(id);
       }
     },
-    [
-      activeTab,
-      setActiveSpeakerPrompt,
-      setActiveTextPrompt,
-      setActiveSegmentMergePrompt,
-      setActiveChapterDetectionPrompt,
-    ],
+    [activeTab, setActiveSpeakerPrompt, setActiveTextPrompt, setActiveSegmentMergePrompt],
   );
 
   const handleDuplicate = useCallback(
     (promptItem: AIPrompt) => {
+      if (promptItem.type === "chapter-detect" && promptItem.operation === "metadata") {
+        toast({
+          title: "Metadata prompts are fixed",
+          description: "Edit the existing Title/Summary/Notes prompts instead.",
+        });
+        return;
+      }
       const promptData: Omit<AIPrompt, "id"> = {
         name: `${promptItem.name} (Copy)`,
         type: promptItem.type,
@@ -615,14 +626,9 @@ export function AITemplateSettings() {
       }
 
       // Show success toast
-      const usageHint =
-        promptItem.type === "chapter-detect" && promptItem.operation === "metadata"
-          ? "Set as Default to use in the Chapter AI menu."
-          : "";
-
       toast({
         title: "Prompt duplicated",
-        description: `"${promptData.name}" has been created. ${usageHint}`,
+        description: `"${promptData.name}" has been created.`,
       });
     },
     [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt, toast],

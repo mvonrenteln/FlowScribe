@@ -14,7 +14,6 @@ type RewriteSliceTestState = RewriteSlice & {
   addChapterDetectionPrompt: ReturnType<typeof vi.fn>;
   updateChapterDetectionPrompt: ReturnType<typeof vi.fn>;
   deleteChapterDetectionPrompt: ReturnType<typeof vi.fn>;
-  setActiveChapterDetectionPrompt: ReturnType<typeof vi.fn>;
 };
 
 const buildPrompt = (overrides?: Partial<AIPrompt>): AIPrompt => ({
@@ -48,7 +47,6 @@ describe("RewriteSlice", () => {
   let addChapterDetectionPrompt: RewriteSliceTestState["addChapterDetectionPrompt"];
   let updateChapterDetectionPrompt: RewriteSliceTestState["updateChapterDetectionPrompt"];
   let deleteChapterDetectionPrompt: RewriteSliceTestState["deleteChapterDetectionPrompt"];
-  let setActiveChapterDetectionPrompt: RewriteSliceTestState["setActiveChapterDetectionPrompt"];
 
   beforeEach(() => {
     const prompt = buildPrompt();
@@ -56,7 +54,6 @@ describe("RewriteSlice", () => {
     addChapterDetectionPrompt = vi.fn();
     updateChapterDetectionPrompt = vi.fn();
     deleteChapterDetectionPrompt = vi.fn();
-    setActiveChapterDetectionPrompt = vi.fn();
 
     store = create<RewriteSliceTestState>()((set, get) => ({
       aiChapterDetectionConfig: buildConfig(prompt),
@@ -64,7 +61,6 @@ describe("RewriteSlice", () => {
       addChapterDetectionPrompt,
       updateChapterDetectionPrompt,
       deleteChapterDetectionPrompt,
-      setActiveChapterDetectionPrompt,
       ...initialRewriteState,
       ...createRewriteSlice(
         set as StoreApi<TranscriptStore>["setState"],
@@ -134,12 +130,6 @@ describe("RewriteSlice", () => {
       store.getState().deleteRewritePrompt("prompt-1");
 
       expect(deleteChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1");
-    });
-
-    it("should set default prompt via chapter detection config", () => {
-      store.getState().setDefaultRewritePrompt("prompt-1");
-
-      expect(setActiveChapterDetectionPrompt).toHaveBeenCalledWith("prompt-1");
     });
 
     it("should toggle quick access for rewrite prompt", () => {

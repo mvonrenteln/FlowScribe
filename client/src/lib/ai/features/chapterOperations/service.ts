@@ -68,7 +68,9 @@ export async function generateMetadata(
 
   // Determine expected operation from prompt definition (fallback to heuristic if needed)
   let expectedOperation: "title" | "summary" | "notes" = "title";
-  if (prompt.name.toLowerCase().includes("summary")) {
+  if (prompt.metadataType) {
+    expectedOperation = prompt.metadataType;
+  } else if (prompt.name.toLowerCase().includes("summary")) {
     expectedOperation = "summary";
   } else if (prompt.name.toLowerCase().includes("notes")) {
     expectedOperation = "notes";

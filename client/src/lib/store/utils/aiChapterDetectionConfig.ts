@@ -11,6 +11,7 @@ export const DEFAULT_CHAPTER_DETECTION_PROMPT: AIPrompt = {
   id: "builtin-chapter-detect-default",
   name: "Chapter Detection (Default)",
   type: "chapter-detect",
+  operation: "detection",
   systemPrompt: CHAPTER_DETECTION_SYSTEM_PROMPT,
   userPromptTemplate: CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
   isBuiltIn: true,
@@ -32,6 +33,7 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
 const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
   ...prompt,
   type: "chapter-detect",
+  operation: prompt.operation ?? "detection",
   isBuiltIn: prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id || BUILTIN_PROMPT_IDS.has(prompt.id),
   isDefault:
     prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
@@ -59,6 +61,7 @@ const ensureBuiltInPrompts = (prompts: AIPrompt[]) => {
         type: "chapter-detect",
         // Preserve operation from built-in definition
         ...(builtIn.operation && { operation: builtIn.operation }),
+        ...(builtIn.metadataType && { metadataType: builtIn.metadataType }),
         // Only set isDefault for the detection prompt
         ...(builtIn.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id && { isDefault: true }),
       };
@@ -66,6 +69,18 @@ const ensureBuiltInPrompts = (prompts: AIPrompt[]) => {
   }
 
   return normalized;
+};
+
+const ensureSingleMetadataPrompts = (prompts: AIPrompt[]) => {
+  const allowedMetadataIds = new Set(
+    BUILTIN_METADATA_PROMPTS.filter((p) => p.operation === "metadata" && p.metadataType).map(
+      (p) => p.id,
+    ),
+  );
+
+  return prompts.filter(
+    (prompt) => prompt.operation !== "metadata" || allowedMetadataIds.has(prompt.id),
+  );
 };
 
 const getPromptsFromConfig = (
@@ -187,7 +202,8 @@ export const normalizeAIChapterDetectionConfig = (
   });
 
   const prompts = ensureBuiltInPrompts(initialPrompts);
-  const activePromptId = prompts.some(
+  const normalizedPrompts = ensureSingleMetadataPrompts(prompts);
+  const activePromptId = normalizedPrompts.some(
     (p) => p.id === (config?.activePromptId ?? base.activePromptId),
   )
     ? (config?.activePromptId ?? base.activePromptId)
@@ -221,7 +237,7 @@ export const normalizeAIChapterDetectionConfig = (
     tagIds: Array.isArray(config?.tagIds) ? config.tagIds.map((t) => String(t)) : base.tagIds,
     selectedProviderId: config?.selectedProviderId,
     selectedModel: config?.selectedModel,
-    prompts,
+    prompts: normalizedPrompts,
     activePromptId,
     includeContext,
     contextWordLimit,

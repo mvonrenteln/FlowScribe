@@ -510,6 +510,8 @@ export interface AIPrompt {
   quickAccess: boolean;
   /** Operation type for chapter prompts */
   operation?: "detection" | "rewrite" | "metadata";
+  /** Metadata subtype for chapter metadata prompts */
+  metadataType?: "title" | "summary" | "notes";
 }
 
 export interface AIPromptExport {

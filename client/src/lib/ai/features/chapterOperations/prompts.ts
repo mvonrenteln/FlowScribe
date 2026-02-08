@@ -16,6 +16,7 @@ export const BUILTIN_TITLE_SUGGESTION: Omit<ChapterPrompt, "id"> = {
   name: "Title Suggestion",
   type: "chapter-detect",
   operation: "metadata",
+  metadataType: "title",
   systemPrompt: `You are an expert at creating concise, engaging chapter titles.
 
 Rules:
@@ -51,6 +52,7 @@ export const BUILTIN_SUMMARY_GENERATION: Omit<ChapterPrompt, "id"> = {
   name: "Summary Generation",
   type: "chapter-detect",
   operation: "metadata",
+  metadataType: "summary",
   systemPrompt: `You are an expert at creating concise chapter summaries.
 
 Rules:
@@ -85,6 +87,7 @@ export const BUILTIN_SUMMARY_IMPROVEMENT: Omit<ChapterPrompt, "id"> = {
   name: "Summary Improvement",
   type: "chapter-detect",
   operation: "metadata",
+  metadataType: "summary",
   systemPrompt: `You are an expert at refining chapter summaries.
 
 Rules:
@@ -121,6 +124,7 @@ export const BUILTIN_NOTES_GENERATION: Omit<ChapterPrompt, "id"> = {
   name: "Notes Generation",
   type: "chapter-detect",
   operation: "metadata",
+  metadataType: "notes",
   systemPrompt: `You are an expert editor creating editorial notes for chapters.
 
 Rules:
@@ -275,6 +279,5 @@ export const BUILTIN_REWRITE_PROMPTS = [
 export const BUILTIN_METADATA_PROMPTS = [
   BUILTIN_TITLE_SUGGESTION,
   BUILTIN_SUMMARY_GENERATION,
-  BUILTIN_SUMMARY_IMPROVEMENT,
   BUILTIN_NOTES_GENERATION,
 ] as const;

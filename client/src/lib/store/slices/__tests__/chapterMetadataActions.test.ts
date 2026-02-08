@@ -28,6 +28,7 @@ describe("chapterMetadataActions", () => {
     id: "p1",
     name: "Metadata Prompt",
     operation: "metadata",
+    metadataType: "summary",
     systemPrompt: "sys",
     userPromptTemplate: "user",
     description: "desc",

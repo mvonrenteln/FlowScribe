@@ -4,6 +4,11 @@ import {
   DEFAULT_CHAPTER_DETECTION_PROMPT,
   normalizeAIChapterDetectionConfig,
 } from "../aiChapterDetectionConfig";
+import {
+  BUILTIN_NOTES_GENERATION_ID,
+  BUILTIN_SUMMARY_GENERATION_ID,
+  BUILTIN_TITLE_SUGGESTION_ID,
+} from "../chapterMetadataPrompts";
 
 const makeCustomPrompt = (overrides: Partial<AIPrompt> = {}): AIPrompt => ({
   id: "custom-chapter-prompt",
@@ -47,5 +52,36 @@ describe("normalizeAIChapterDetectionConfig", () => {
     expect(resolvedBuiltIn?.systemPrompt).toBe("Edited built-in system prompt");
     expect(result.prompts.every((p) => p.type === "chapter-detect")).toBe(true);
     expect(result.activePromptId).toBe("custom-1");
+  });
+
+  it("keeps only the fixed metadata prompts", () => {
+    const customMetadataPrompt = makeCustomPrompt({
+      id: "custom-metadata",
+      operation: "metadata",
+      metadataType: "summary",
+    });
+    const config: AIChapterDetectionConfig = {
+      batchSize: 25,
+      minChapterLength: 5,
+      maxChapterLength: 40,
+      tagIds: [],
+      prompts: [customMetadataPrompt],
+      activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
+      includeContext: true,
+      contextWordLimit: 500,
+    };
+
+    const result = normalizeAIChapterDetectionConfig(config);
+    const metadataIds = new Set(
+      result.prompts.filter((p) => p.operation === "metadata").map((p) => p.id),
+    );
+    expect(metadataIds).toEqual(
+      new Set([
+        BUILTIN_TITLE_SUGGESTION_ID,
+        BUILTIN_SUMMARY_GENERATION_ID,
+        BUILTIN_NOTES_GENERATION_ID,
+      ]),
+    );
+    expect(metadataIds.has("custom-metadata")).toBe(false);
   });
 });

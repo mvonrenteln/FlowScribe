@@ -55,6 +55,9 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
   const [isLogOpen, setIsLogOpen] = useState(false);
 
   const pending = suggestions.filter((s) => s.status === "pending");
+  const detectionPrompts = config.prompts.filter(
+    (prompt) => !prompt.operation || prompt.operation === "detection",
+  );
 
   const { segmentById, scopedSegmentIds, isFiltered } = useScopedSegments({
     segments,
@@ -114,7 +117,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         selectedModel={selectedModel}
         isProcessing={isProcessing}
         promptValue={config.activePromptId}
-        promptOptions={config.prompts}
+        promptOptions={detectionPrompts}
         batchSize={batchSize}
         batchSizeMin={10}
         batchSizeMax={200}
