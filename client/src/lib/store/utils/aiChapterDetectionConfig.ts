@@ -4,6 +4,7 @@ import {
 } from "@/lib/ai/features/chapterDetection";
 import { indexById } from "@/lib/arrayUtils";
 import type { AIChapterDetectionConfig, AIPrompt, PersistedGlobalState } from "../types";
+import { BUILTIN_METADATA_PROMPTS, BUILTIN_PROMPT_IDS } from "./chapterMetadataPrompts";
 
 export const DEFAULT_CHAPTER_DETECTION_PROMPT: AIPrompt = {
   id: "builtin-chapter-detect-default",
@@ -21,35 +22,44 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
   minChapterLength: 10,
   maxChapterLength: 80,
   tagIds: [],
-  prompts: [DEFAULT_CHAPTER_DETECTION_PROMPT],
+  prompts: [DEFAULT_CHAPTER_DETECTION_PROMPT, ...BUILTIN_METADATA_PROMPTS],
   activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
 };
 
 const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
   ...prompt,
   type: "chapter-detect",
-  isBuiltIn: prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id,
+  isBuiltIn: prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id || BUILTIN_PROMPT_IDS.has(prompt.id),
   isDefault:
     prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
 });
 
 const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePrompt(p));
 
-const ensureBuiltInPrompt = (prompts: AIPrompt[]) => {
+const ensureBuiltInPrompts = (prompts: AIPrompt[]) => {
   const normalized = normalizePrompts(
     prompts.length ? prompts : DEFAULT_AI_CHAPTER_DETECTION_CONFIG.prompts,
   );
-  const builtInIndex = indexById(normalized).get(DEFAULT_CHAPTER_DETECTION_PROMPT.id) ?? -1;
-  if (builtInIndex === -1) {
-    normalized.unshift({ ...DEFAULT_CHAPTER_DETECTION_PROMPT });
-    return normalized;
+
+  const indexMap = indexById(normalized);
+  const allBuiltins = [DEFAULT_CHAPTER_DETECTION_PROMPT, ...BUILTIN_METADATA_PROMPTS];
+
+  // Ensure all built-in prompts are present
+  for (const builtIn of allBuiltins) {
+    const existingIndex = indexMap.get(builtIn.id) ?? -1;
+    if (existingIndex === -1) {
+      normalized.push({ ...builtIn });
+    } else {
+      normalized[existingIndex] = {
+        ...normalized[existingIndex],
+        isBuiltIn: true,
+        type: "chapter-detect",
+        // Only set isDefault for the detection prompt
+        ...(builtIn.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id && { isDefault: true }),
+      };
+    }
   }
-  normalized[builtInIndex] = {
-    ...normalized[builtInIndex],
-    isBuiltIn: true,
-    isDefault: true,
-    type: "chapter-detect",
-  };
+
   return normalized;
 };
 
@@ -64,7 +74,7 @@ export const normalizeAIChapterDetectionConfig = (
   config?: PersistedGlobalState["aiChapterDetectionConfig"],
 ): AIChapterDetectionConfig => {
   const base = DEFAULT_AI_CHAPTER_DETECTION_CONFIG;
-  const prompts = ensureBuiltInPrompt(getPromptsFromConfig(config) ?? base.prompts);
+  const prompts = ensureBuiltInPrompts(getPromptsFromConfig(config) ?? base.prompts);
   const activePromptId = prompts.some(
     (p) => p.id === (config?.activePromptId ?? base.activePromptId),
   )

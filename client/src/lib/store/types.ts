@@ -44,9 +44,9 @@ export interface Tag {
 export type TranscriptImportTag =
   | string
   | {
-      name: string;
-      color?: string;
-    };
+    name: string;
+    color?: string;
+  };
 
 export interface LexiconEntry {
   term: string;
@@ -234,6 +234,16 @@ export interface InitialStoreState {
   rewriteChapterId: string | null;
   rewriteError: string | null;
   rewriteAbortController: AbortController | null;
+  // Chapter Metadata state
+  chapterMetadataTitleSuggestions: string[] | null;
+  chapterMetadataTitleLoading: boolean;
+  chapterMetadataTitleChapterId: string | null;
+  chapterMetadataSummaryLoading: boolean;
+  chapterMetadataSummaryChapterId: string | null;
+  chapterMetadataNotesLoading: boolean;
+  chapterMetadataNotesChapterId: string | null;
+  chapterMetadataError: string | null;
+  chapterMetadataAbortController: AbortController | null;
 }
 
 export type TranscriptStore = InitialStoreState &
@@ -393,6 +403,13 @@ export interface ChapterSlice {
   // Display mode
   chapterDisplayModes: Record<string, "original" | "rewritten">;
   setChapterDisplayMode: (chapterId: string, mode: "original" | "rewritten") => void;
+
+  // Metadata AI actions
+  suggestChapterTitle: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
+  generateChapterSummary: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
+  generateChapterNotes: (chapterId: string, promptId: string, providerId?: string, model?: string) => void;
+  cancelChapterMetadata: () => void;
+  clearChapterMetadataSuggestions: () => void;
 }
 
 export interface LexiconSlice {
@@ -478,6 +495,10 @@ export interface AIPrompt {
   isBuiltIn: boolean;
   isDefault?: boolean;
   quickAccess: boolean;
+  /** Operation type for chapter prompts */
+  operation?: "detection" | "rewrite" | "metadata";
+  /** Instructions for rewrite operations (alternative to system/user prompt) */
+  instructions?: string;
 }
 
 export interface AIPromptExport {

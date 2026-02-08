@@ -23,7 +23,8 @@ export type AIFeatureType =
   | "chapter-detection"
   | "multi-track-merge"
   | "content-transformation"
-  | "chapter-rewrite";
+  | "chapter-rewrite"
+  | "chapter-metadata";
 
 /**
  * Category of AI feature based on output type.

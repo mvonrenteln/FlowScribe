@@ -47,6 +47,10 @@ import type { AIPrompt, PromptType } from "@/lib/store/types";
 import { buildPromptExportData } from "@/lib/store/utils/aiPromptExport";
 import { buildPromptImportPlan } from "@/lib/store/utils/aiPromptImport";
 import { cn } from "@/lib/utils";
+import {
+  ChapterPromptEditor,
+  type ChapterPromptFormData,
+} from "./ChapterPromptEditor";
 
 // ==================== Constants ====================
 
@@ -97,17 +101,7 @@ const PLACEHOLDER_HELP = {
     { placeholder: "{{enableSmoothing}}", description: "Whether smoothing is enabled" },
   ],
   "chapter-detect": [
-    { placeholder: "{{batchIndex}}", description: "Current batch number (1-based)" },
-    { placeholder: "{{totalBatches}}", description: "Total number of batches" },
-    { placeholder: "{{batchSize}}", description: "Batch segment count" },
-    { placeholder: "{{minChapterLength}}", description: "Minimum segments per chapter" },
-    { placeholder: "{{maxChapterLength}}", description: "Maximum segments per chapter" },
-    { placeholder: "{{tagsAvailable}}", description: "Allowed tag IDs for suggestions" },
-    { placeholder: "{{segments}}", description: "Segments in this batch (SimpleID formatted)" },
-    {
-      placeholder: "{{previousChapter}}",
-      description: "Previous batch chapter context (optional)",
-    },
+    // Chapter detection placeholders are handled in ChapterPromptEditor
   ],
 } as const;
 
@@ -349,6 +343,16 @@ function PromptCard({
                     Quick Access
                   </Badge>
                 )}
+                {promptItem.type === "chapter-detect" && promptItem.operation === "metadata" && (
+                  <Badge variant="outline" className="text-xs">
+                    Metadata
+                  </Badge>
+                )}
+                {promptItem.type === "chapter-detect" && promptItem.operation === "rewrite" && (
+                  <Badge variant="outline" className="text-xs">
+                    Rewrite
+                  </Badge>
+                )}
                 {promptItem.isBuiltIn && (
                   <Badge variant="outline" className="text-xs">
                     Built-in
@@ -486,15 +490,22 @@ export function AITemplateSettings() {
           : activeChapterDetectionPromptId;
 
   const handleAddPrompt = useCallback(
-    (data: PromptFormData) => {
-      const promptData = {
+    (data: PromptFormData | ChapterPromptFormData) => {
+      const promptData: any = {
         name: data.name,
         type: data.type,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
         isBuiltIn: false,
-        quickAccess: data.quickAccess,
+        quickAccess: 'quickAccess' in data ? data.quickAccess : false,
       };
+
+      if ('operation' in data) {
+        promptData.operation = data.operation;
+      }
+      if ('instructions' in data) {
+        promptData.instructions = data.instructions;
+      }
 
       if (data.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -511,13 +522,20 @@ export function AITemplateSettings() {
   );
 
   const handleEditPrompt = useCallback(
-    (id: string, data: PromptFormData) => {
-      const updates = {
+    (id: string, data: PromptFormData | ChapterPromptFormData) => {
+      const updates: any = {
         name: data.name,
         systemPrompt: data.systemPrompt,
         userPromptTemplate: data.userPromptTemplate,
-        quickAccess: data.quickAccess,
+        quickAccess: 'quickAccess' in data ? data.quickAccess : false,
       };
+
+      if ('operation' in data) {
+        updates.operation = data.operation;
+      }
+      if ('instructions' in data) {
+        updates.instructions = data.instructions;
+      }
 
       if (activeTab === "speaker") {
         updateSpeakerPrompt(id, updates);
@@ -814,20 +832,29 @@ export function AITemplateSettings() {
                   <CardTitle className="text-base">Edit Prompt</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <PromptForm
-                    initialData={{
-                      name: promptItem.name,
-                      type: promptItem.type,
-                      systemPrompt: promptItem.systemPrompt,
-                      userPromptTemplate: promptItem.userPromptTemplate,
-                      quickAccess: activeTab === "text" ? isQuickAccess(promptItem.id) : false,
-                    }}
-                    onSave={(data) => handleEditPrompt(promptItem.id, data)}
-                    onCancel={() => setEditingId(null)}
-                    isEditing
-                    promptType={activeTab}
-                    isBuiltIn={promptItem.isBuiltIn}
-                  />
+                  {activeTab === "chapter-detect" ? (
+                    <ChapterPromptEditor
+                      initialData={promptItem}
+                      onSave={(data) => handleEditPrompt(promptItem.id, data)}
+                      onCancel={() => setEditingId(null)}
+                      isEditing
+                      isBuiltIn={promptItem.isBuiltIn}
+                    />
+                  ) : (
+                    <PromptForm
+                      initialData={{
+                        name: promptItem.name,
+                        systemPrompt: promptItem.systemPrompt,
+                        userPromptTemplate: promptItem.userPromptTemplate,
+                        quickAccess: activeTab === "text" ? isQuickAccess(promptItem.id) : false,
+                      }}
+                      onSave={(data) => handleEditPrompt(promptItem.id, data)}
+                      onCancel={() => setEditingId(null)}
+                      isEditing
+                      promptType={activeTab}
+                      isBuiltIn={promptItem.isBuiltIn}
+                    />
+                  )}
                 </CardContent>
               </Card>
             ) : (
@@ -858,12 +885,20 @@ export function AITemplateSettings() {
             <CardTitle className="text-base">Create New Prompt</CardTitle>
           </CardHeader>
           <CardContent>
-            <PromptForm
-              onSave={handleAddPrompt}
-              onCancel={() => setShowAddForm(false)}
-              promptType={activeTab}
-              isBuiltIn={false}
-            />
+            {activeTab === "chapter-detect" ? (
+              <ChapterPromptEditor
+                onSave={handleAddPrompt}
+                onCancel={() => setShowAddForm(false)}
+                isBuiltIn={false}
+              />
+            ) : (
+              <PromptForm
+                onSave={handleAddPrompt}
+                onCancel={() => setShowAddForm(false)}
+                promptType={activeTab}
+                isBuiltIn={false}
+              />
+            )}
           </CardContent>
         </Card>
       ) : (

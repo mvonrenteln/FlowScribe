@@ -11,6 +11,13 @@ import {
 } from "../utils/chapters";
 import { generateId } from "../utils/id";
 import { addToHistory } from "./historySlice";
+import {
+  cancelChapterMetadata,
+  clearChapterMetadataSuggestions,
+  generateChapterNotes,
+  generateChapterSummary,
+  suggestChapterTitle,
+} from './chapterMetadataActions';
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -140,10 +147,10 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const nextChapters = chapters.map((chapter) =>
       chapter.id === id
         ? {
-            ...chapter,
-            ...updates,
-            title: updates.title !== undefined ? updates.title.trim() : chapter.title,
-          }
+          ...chapter,
+          ...updates,
+          title: updates.title !== undefined ? updates.title.trim() : chapter.title,
+        }
         : chapter,
     );
     const indexById = memoizedBuildSegmentIndexMap(segments);
@@ -382,16 +389,16 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const updatedChapters = chapters.map((c) =>
       c.id === chapterId
         ? {
-            ...c,
-            rewrittenText,
-            rewrittenAt: Date.now(),
-            rewritePromptId: metadata.promptId,
-            rewriteContext: {
-              model: metadata.model,
-              providerId: metadata.providerId,
-              wordCount: rewrittenText.split(/\s+/).length,
-            },
-          }
+          ...c,
+          rewrittenText,
+          rewrittenAt: Date.now(),
+          rewritePromptId: metadata.promptId,
+          rewriteContext: {
+            model: metadata.model,
+            providerId: metadata.providerId,
+            wordCount: rewrittenText.split(/\s+/).length,
+          },
+        }
         : c,
     );
 
@@ -430,12 +437,12 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const updatedChapters = chapters.map((c) =>
       c.id === chapterId
         ? {
-            ...c,
-            rewrittenText: undefined,
-            rewrittenAt: undefined,
-            rewritePromptId: undefined,
-            rewriteContext: undefined,
-          }
+          ...c,
+          rewrittenText: undefined,
+          rewrittenAt: undefined,
+          rewritePromptId: undefined,
+          rewriteContext: undefined,
+        }
         : c,
     );
 
@@ -474,13 +481,13 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     const updatedChapters = chapters.map((c) =>
       c.id === chapterId && c.rewrittenText
         ? {
-            ...c,
-            rewrittenText,
-            rewriteContext: {
-              ...c.rewriteContext,
-              wordCount: rewrittenText.split(/\s+/).length,
-            },
-          }
+          ...c,
+          rewrittenText,
+          rewriteContext: {
+            ...c.rewriteContext,
+            wordCount: rewrittenText.split(/\s+/).length,
+          },
+        }
         : c,
     );
 
@@ -515,5 +522,26 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
         [chapterId]: mode,
       },
     });
+  },
+
+  // Metadata AI actions
+  suggestChapterTitle: async (chapterId, promptId, providerId, model) => {
+    await suggestChapterTitle(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  generateChapterSummary: async (chapterId, promptId, providerId, model) => {
+    await generateChapterSummary(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  generateChapterNotes: async (chapterId, promptId, providerId, model) => {
+    await generateChapterNotes(chapterId, promptId, providerId, model)(set, get);
+  },
+
+  cancelChapterMetadata: () => {
+    cancelChapterMetadata()(set, get);
+  },
+
+  clearChapterMetadataSuggestions: () => {
+    clearChapterMetadataSuggestions()(set);
   },
 });

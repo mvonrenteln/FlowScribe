@@ -12,6 +12,7 @@ import { chapterDetectionConfig } from "../features/chapterDetection/config";
 import { textRevisionConfig } from "../features/revision/config";
 import { CHAPTER_REFORMULATION_CONFIG } from "../features/rewrite/config";
 import { segmentMergeConfig } from "../features/segmentMerge/config";
+import { chapterMetadataConfig } from "../features/chapterOperations/config";
 // Import feature configs synchronously to ensure they're available immediately
 import { speakerClassificationConfig } from "../features/speaker/config";
 import type { AIFeatureConfig, AIFeatureType, FeatureRegistryEntry } from "./types";
@@ -157,6 +158,11 @@ export function registerDefaultFeatures(): void {
   // Register chapter rewrite
   if (!hasFeature("chapter-rewrite")) {
     registerFeature(CHAPTER_REFORMULATION_CONFIG);
+  }
+
+  // Register chapter metadata
+  if (!hasFeature("chapter-metadata")) {
+    registerFeature(chapterMetadataConfig);
   }
 }
 
