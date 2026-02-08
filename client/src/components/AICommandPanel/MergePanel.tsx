@@ -114,6 +114,45 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
   const highConfidence = pendingSuggestions.filter((s) => s.confidence === "high");
   const mediumConfidence = pendingSuggestions.filter((s) => s.confidence === "medium");
   const lowConfidence = pendingSuggestions.filter((s) => s.confidence === "low");
+  const renderMergeSuggestionItem = (suggestion: (typeof pendingSuggestions)[0]) => {
+    const first = segmentById.get(suggestion.segmentIds[0] ?? "");
+    const second = segmentById.get(suggestion.segmentIds[1] ?? "");
+    const textLabel =
+      first && second
+        ? `${truncateText(first.text, 22)} + ${truncateText(second.text, 22)}`
+        : suggestion.segmentIds.join(" + ");
+
+    return (
+      <>
+        {/**
+         * IMPORTANT LAYOUT NOTE
+         *
+         * ⚠️ DO NOT SIMPLIFY THIS LAYOUT ⚠️
+         * Removing this will reintroduce a hard-to-debug visual clipping bug.
+         *
+         * Title + summary MUST live in the left grid column (minmax(0, 1fr)),
+         * metadata (segment count / rewritten marker) MUST live in the right auto column.
+         *
+         * Reason:
+         * - The summary uses `truncate` (white-space: nowrap).
+         * - Radix ScrollArea clips content aggressively on the right.
+         * - If metadata is part of the same flow as title/summary, it gets clipped
+         *   or pushed out of view as soon as the summary is present.
+         *
+         * This grid split is intentional and prevents a subtle overflow/clip bug.
+         * Do NOT merge columns or move metadata into the text flow.
+         */}
+        <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+          <span className="truncate text-muted-foreground min-w-0">{textLabel}</span>
+          <Badge variant="secondary" className="text-[10px] shrink-0">
+            {t("aiBatch.merge.gapLabel", {
+              gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
+            })}
+          </Badge>
+        </div>
+      </>
+    );
+  };
 
   const scrollToSegment = useMemo(
     () =>
@@ -411,27 +450,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                         getItemTitle={(suggestion) =>
                           segmentById.get(suggestion.segmentIds[0] ?? "")?.text
                         }
-                        renderItem={(suggestion) => {
-                          const first = segmentById.get(suggestion.segmentIds[0] ?? "");
-                          const second = segmentById.get(suggestion.segmentIds[1] ?? "");
-                          return (
-                            <>
-                              <span className="flex-1 truncate text-muted-foreground min-w-0">
-                                {first && second
-                                  ? `${truncateText(first.text, 22)} + ${truncateText(
-                                      second.text,
-                                      22,
-                                    )}`
-                                  : suggestion.segmentIds.join(" + ")}
-                              </span>
-                              <Badge variant="secondary" className="text-[10px] shrink-0">
-                                {t("aiBatch.merge.gapLabel", {
-                                  gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
-                                })}
-                              </Badge>
-                            </>
-                          );
-                        }}
+                        renderItem={renderMergeSuggestionItem}
                       />
                       <Button
                         variant="outline"
@@ -469,27 +488,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                       getItemTitle={(suggestion) =>
                         segmentById.get(suggestion.segmentIds[0] ?? "")?.text
                       }
-                      renderItem={(suggestion) => {
-                        const first = segmentById.get(suggestion.segmentIds[0] ?? "");
-                        const second = segmentById.get(suggestion.segmentIds[1] ?? "");
-                        return (
-                          <>
-                            <span className="flex-1 truncate text-muted-foreground min-w-0">
-                              {first && second
-                                ? `${truncateText(first.text, 22)} + ${truncateText(
-                                    second.text,
-                                    22,
-                                  )}`
-                                : suggestion.segmentIds.join(" + ")}
-                            </span>
-                            <Badge variant="secondary" className="text-[10px] shrink-0">
-                              {t("aiBatch.merge.gapLabel", {
-                                gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
-                              })}
-                            </Badge>
-                          </>
-                        );
-                      }}
+                      renderItem={renderMergeSuggestionItem}
                     />
                   )}
                 </div>
@@ -517,27 +516,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
                       getItemTitle={(suggestion) =>
                         segmentById.get(suggestion.segmentIds[0] ?? "")?.text
                       }
-                      renderItem={(suggestion) => {
-                        const first = segmentById.get(suggestion.segmentIds[0] ?? "");
-                        const second = segmentById.get(suggestion.segmentIds[1] ?? "");
-                        return (
-                          <>
-                            <span className="flex-1 truncate text-muted-foreground min-w-0">
-                              {first && second
-                                ? `${truncateText(first.text, 22)} + ${truncateText(
-                                    second.text,
-                                    22,
-                                  )}`
-                                : suggestion.segmentIds.join(" + ")}
-                            </span>
-                            <Badge variant="secondary" className="text-[10px] shrink-0">
-                              {t("aiBatch.merge.gapLabel", {
-                                gap: formatDurationMs(Math.round(suggestion.timeGap * 1000)),
-                              })}
-                            </Badge>
-                          </>
-                        );
-                      }}
+                      renderItem={renderMergeSuggestionItem}
                     />
                   )}
                 </div>

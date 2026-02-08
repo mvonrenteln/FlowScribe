@@ -253,19 +253,41 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
 
                   return (
                     <>
-                      <span className="flex-1 truncate text-muted-foreground min-w-0">
-                        {textSnippet}
-                      </span>
-                      <Badge
-                        variant="secondary"
-                        className="shrink-0 text-[10px] px-1.5 py-0 truncate max-w-[120px]"
-                        title={`${suggestion.currentSpeaker} → ${suggestion.suggestedSpeaker}`}
-                      >
-                        {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
-                      </Badge>
-                      <span className="text-muted-foreground ml-1 shrink-0">
-                        {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
-                      </span>
+                      {/**
+                       * IMPORTANT LAYOUT NOTE
+                       *
+                       * ⚠️ DO NOT SIMPLIFY THIS LAYOUT ⚠️
+                       * Removing this will reintroduce a hard-to-debug visual clipping bug.
+                       *
+                       * Title + summary MUST live in the left grid column (minmax(0, 1fr)),
+                       * metadata (segment count / rewritten marker) MUST live in the right auto column.
+                       *
+                       * Reason:
+                       * - The summary uses `truncate` (white-space: nowrap).
+                       * - Radix ScrollArea clips content aggressively on the right.
+                       * - If metadata is part of the same flow as title/summary, it gets clipped
+                       *   or pushed out of view as soon as the summary is present.
+                       *
+                       * This grid split is intentional and prevents a subtle overflow/clip bug.
+                       * Do NOT merge columns or move metadata into the text flow.
+                       */}
+                      <div className="grid w-full min-w-0 grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+                        <span className="truncate text-muted-foreground min-w-0">
+                          {textSnippet}
+                        </span>
+                        <div className="flex items-center gap-1 shrink-0">
+                          <Badge
+                            variant="secondary"
+                            className="text-[10px] px-1.5 py-0 truncate max-w-[120px]"
+                            title={`${suggestion.currentSpeaker} → ${suggestion.suggestedSpeaker}`}
+                          >
+                            {suggestion.currentSpeaker} → {suggestion.suggestedSpeaker}
+                          </Badge>
+                          <span className="text-muted-foreground">
+                            {((suggestion.confidence ?? 0) * 100).toFixed(0)}%
+                          </span>
+                        </div>
+                      </div>
                     </>
                   );
                 };
