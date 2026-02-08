@@ -1,5 +1,6 @@
 import { X } from "lucide-react";
 import { useEffect, useMemo } from "react";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import type { Chapter } from "@/lib/store";
@@ -31,7 +32,7 @@ export function ChaptersOutlinePanel({
     () => sortChaptersByStart(chapters, indexById),
     [chapters, indexById],
   );
-  const tagsById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag.name])), [tags]);
+  const tagsById = useMemo(() => new Map(tags.map((tag) => [tag.id, tag])), [tags]);
 
   useEffect(() => {
     if (!open) return;
@@ -79,38 +80,78 @@ export function ChaptersOutlinePanel({
           )}
           {sortedChapters.map((chapter) => {
             const segmentCount = Number.isFinite(chapter.segmentCount) ? chapter.segmentCount : 0;
+            const summary = chapter.summary ? renderSummary(chapter) : "";
+            const chapterTags = (chapter.tags ?? [])
+              .map((tagId) => tagsById.get(tagId))
+              .filter((tag): tag is NonNullable<typeof tag> => Boolean(tag));
             return (
               <button
                 key={chapter.id}
                 type="button"
                 onClick={() => onJumpToChapter(chapter.id)}
-                title={chapter.summary ? renderSummary(chapter) : undefined}
+                title={summary || undefined}
+                aria-current={chapter.id === selectedChapterId ? "true" : undefined}
                 className={cn(
                   "block w-full min-w-0 max-w-full rounded-md px-2 py-2 text-left transition-colors",
                   chapter.id === selectedChapterId ? "bg-accent/40" : "hover:bg-muted/40",
                 )}
               >
-                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+                {/**
+                 * IMPORTANT LAYOUT NOTE
+                 *
+                 * ⚠️ DO NOT SIMPLIFY THIS LAYOUT ⚠️
+                 * Removing this will reintroduce a hard-to-debug visual clipping bug.
+                 *
+                 * Title + summary MUST live in the left grid column (minmax(0, 1fr)),
+                 * metadata (segment count / rewritten marker) MUST live in the right auto column.
+                 *
+                 * Reason:
+                 * - The summary uses `truncate` (white-space: nowrap).
+                 * - Radix ScrollArea clips content aggressively on the right.
+                 * - If metadata is part of the same flow as title/summary, it gets clipped
+                 *   or pushed out of view as soon as the summary is present.
+                 *
+                 * This grid split is intentional and prevents a subtle overflow/clip bug.
+                 * Do NOT merge columns or move metadata into the text flow.
+                 */}
+                <div
+                  data-testid="chapter-row-grid"
+                  className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2"
+                >
                   <div className="min-w-0">
                     <div className="text-xs font-semibold leading-snug whitespace-normal [overflow-wrap:anywhere]">
                       {chapter.title}
                     </div>
 
-                    {chapter.summary ? (
+                    {summary ? (
                       <div
-                        className="mt-0.5 text-[11px] text-muted-foreground truncate"
-                        title={renderSummary(chapter)}
+                        className="mt-0.5 min-w-0 text-[11px] text-muted-foreground truncate [overflow-wrap:anywhere]"
+                        title={summary}
                       >
-                        {renderSummary(chapter)}
+                        {summary}
                       </div>
                     ) : null}
                   </div>
 
                   <div className="self-start shrink-0 whitespace-nowrap text-[11px] font-normal text-muted-foreground">
                     ({segmentCount})
-                    {chapter.rewrittenText ? <span className="ml-1 text-amber-500">*</span> : null}
+                    {chapter.rewrittenText ? (
+                      <span className="ml-1 text-amber-500" title="AI rewritten">
+                        *
+                      </span>
+                    ) : null}
                   </div>
                 </div>
+
+                {chapterTags.length > 0 ? (
+                  <div className="mt-1 flex flex-wrap gap-1">
+                    {chapterTags.map((tag) => (
+                      <Badge key={tag.id} variant="secondary" className="text-[10px] px-1.5 py-0.5">
+                        {tag.name}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : null}
               </button>
             );
           })}

@@ -113,4 +113,35 @@ describe("ChaptersOutlinePanel", () => {
     expect(screen.getByText("Recap")).toBeInTheDocument();
     expect(screen.getByText("Action")).toBeInTheDocument();
   });
+
+  it("keeps metadata in a dedicated grid column", () => {
+    const chapterWithMeta: Chapter = {
+      id: "chapter-2",
+      title: "Battle",
+      startSegmentId: "seg-1",
+      endSegmentId: "seg-2",
+      segmentCount: 8,
+      createdAt: 0,
+      source: "manual",
+    };
+
+    render(
+      <ChaptersOutlinePanel
+        open={true}
+        onOpenChange={vi.fn()}
+        chapters={[chapterWithMeta]}
+        selectedChapterId={null}
+        onJumpToChapter={vi.fn()}
+      />,
+    );
+
+    const title = screen.getByText("Battle");
+    const meta = screen.getByText("(8)");
+    const grid = screen.getByTestId("chapter-row-grid");
+
+    expect(title).toBeInTheDocument();
+    expect(meta).toBeInTheDocument();
+    expect(title.contains(meta)).toBe(false);
+    expect(grid.children).toHaveLength(2);
+  });
 });
