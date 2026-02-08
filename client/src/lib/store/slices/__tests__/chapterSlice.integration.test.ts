@@ -61,7 +61,8 @@ const createMockStore = () => {
       startSegmentId: "s1",
       endSegmentId: "s2",
       segmentCount: 2,
-      createdAt: Date.now(),
+      // Use a fixed timestamp to keep tests deterministic
+      createdAt: 1670000000000,
       source: "manual" as const,
     },
   ];
