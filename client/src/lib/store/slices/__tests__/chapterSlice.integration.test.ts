@@ -45,6 +45,25 @@ const mockMetadata: AIFeatureResult<unknown>["metadata"] = {
   durationMs: 1,
 };
 
+// Shared factory for AI chapter-detection config to avoid duplicated literals in tests
+const getBaseAIChapterDetectionConfig = () => ({
+  prompts: [
+    {
+      id: "prompt-summary",
+      name: "Generate Summary",
+      operation: "metadata",
+      systemPrompt: "sys",
+      userPromptTemplate: "user",
+    } as ChapterPrompt,
+  ],
+  batchSize: 10,
+  minChapterLength: 60,
+  maxChapterLength: 600,
+  tagIds: [],
+  enableAutoDetection: false,
+  confidenceThreshold: 0.7,
+});
+
 // Mock store setup
 const createMockStore = () => {
   // Initial data
@@ -82,17 +101,7 @@ const createMockStore = () => {
 
   let state: Partial<TranscriptStore> = {
     // Mock config for prompts
-    aiChapterDetectionConfig: {
-      prompts: [
-        {
-          id: "prompt-summary",
-          name: "Generate Summary",
-          operation: "metadata",
-          systemPrompt: "sys",
-          userPromptTemplate: "user",
-        } as ChapterPrompt,
-      ],
-    },
+    aiChapterDetectionConfig: getBaseAIChapterDetectionConfig(),
     // Data
     ...baseHistoryEntry,
     history: [baseHistoryEntry],
@@ -180,6 +189,7 @@ describe("ChapterMetadata Integration & Undo/Redo", () => {
     mockStore.set((s) => ({
       ...s,
       aiChapterDetectionConfig: {
+        ...getBaseAIChapterDetectionConfig(),
         prompts: [
           {
             id: "prompt-notes",

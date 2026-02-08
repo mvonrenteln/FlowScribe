@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import type { AIFeatureResult } from "@/lib/ai/core/types";
 import * as coreModule from "../../../core";
+import type { AIFeatureOptions, AIFeatureResult, AIFeatureType } from "../../../core/types";
 import { generateMetadata, generateNotes, generateSummary, suggestTitles } from "../service";
 import type { ChapterPrompt } from "../types";
 
@@ -17,13 +17,14 @@ describe("chapterOperations service", () => {
 
   const mockPrompt: ChapterPrompt = {
     id: "test-prompt",
-    name: "Test Title Prompt", // Implies title operation by default fallback
+    name: "Test Title Prompt", // Name suggests title, but operation is 'metadata' (tests cover both)
     operation: "metadata",
     systemPrompt: "sys",
     userPromptTemplate: "user",
-    description: "desc",
+
     isBuiltIn: false,
     quickAccess: false,
+    type: "chapter-detect",
   };
 
   const mockContext = {
