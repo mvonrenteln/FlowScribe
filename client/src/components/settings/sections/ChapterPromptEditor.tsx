@@ -157,7 +157,6 @@ export function ChapterPromptEditor({
                         value={form.name}
                         onChange={(e) => setForm((prev) => ({ ...prev, name: e.target.value }))}
                         placeholder="e.g., Creative Chapter Titles"
-                        disabled={isBuiltIn}
                     />
                 </div>
 
@@ -219,7 +218,6 @@ export function ChapterPromptEditor({
                             onChange={(e) => setForm((prev) => ({ ...prev, systemPrompt: e.target.value }))}
                             placeholder="System instructions for the AI..."
                             className="min-h-[150px] font-mono text-sm"
-                            disabled={isBuiltIn}
                         />
                     </div>
 
@@ -231,7 +229,6 @@ export function ChapterPromptEditor({
                             onChange={(e) => setForm((prev) => ({ ...prev, userPromptTemplate: e.target.value }))}
                             placeholder="User message template with {{variables}}..."
                             className="min-h-[150px] font-mono text-sm"
-                            disabled={isBuiltIn}
                         />
                         <div className="text-xs text-muted-foreground space-y-1">
                             <p className="font-medium">Available placeholders:</p>
@@ -261,9 +258,7 @@ export function ChapterPromptEditor({
                 <Button type="button" variant="outline" onClick={onCancel}>
                     Cancel
                 </Button>
-                {!isBuiltIn && (
-                    <Button type="submit">{isEditing ? "Save Changes" : "Create Prompt"}</Button>
-                )}
+                <Button type="submit">{isEditing ? "Save Changes" : "Create Prompt"}</Button>
             </div>
         </form>
     );

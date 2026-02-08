@@ -164,13 +164,13 @@ function PromptForm({
 
   const validate = (): string[] => {
     const errs: string[] = [];
-    if (!form.name.trim()) {
+    if (!(form.name || "").trim()) {
       errs.push("Prompt name is required");
     }
-    if (!form.systemPrompt.trim()) {
+    if (!(form.systemPrompt || "").trim()) {
       errs.push("System prompt is required");
     }
-    if (!form.userPromptTemplate.trim()) {
+    if (!(form.userPromptTemplate || "").trim()) {
       errs.push("User prompt template is required");
     }
     return errs;
@@ -375,13 +375,23 @@ function PromptCard({
 
       {expanded && (
         <CardContent className="pt-2 space-y-4">
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">System Prompt Preview</Label>
-            <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
-              {promptItem.systemPrompt.slice(0, 300)}
-              {promptItem.systemPrompt.length > 300 && "..."}
-            </pre>
-          </div>
+          {promptItem.operation === "rewrite" ? (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">Instructions Preview</Label>
+              <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
+                {(promptItem.instructions || "").slice(0, 300)}
+                {(promptItem.instructions || "").length > 300 && "..."}
+              </pre>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label className="text-xs text-muted-foreground">System Prompt Preview</Label>
+              <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
+                {(promptItem.systemPrompt || "").slice(0, 300)}
+                {(promptItem.systemPrompt || "").length > 300 && "..."}
+              </pre>
+            </div>
+          )}
 
           <Separator />
 
@@ -601,14 +611,21 @@ export function AITemplateSettings() {
 
   const handleDuplicate = useCallback(
     (promptItem: AIPrompt) => {
-      const promptData = {
+      const promptData: any = {
         name: `${promptItem.name} (Copy)`,
         type: promptItem.type,
-        systemPrompt: promptItem.systemPrompt,
-        userPromptTemplate: promptItem.userPromptTemplate,
+        systemPrompt: promptItem.systemPrompt || "",
+        userPromptTemplate: promptItem.userPromptTemplate || "",
         isBuiltIn: false,
         quickAccess: false,
       };
+
+      if (promptItem.operation) {
+        promptData.operation = promptItem.operation;
+      }
+      if (promptItem.instructions) {
+        promptData.instructions = promptItem.instructions;
+      }
 
       if (promptItem.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -809,8 +826,57 @@ export function AITemplateSettings() {
 
         <TabsContent value="chapter-detect" className="space-y-4 mt-4">
           <p className="text-sm text-muted-foreground">
-            Prompts for detecting chapter boundaries and suggesting chapter titles and summaries.
+            Prompts for detecting chapter boundaries, rewriting content, and suggesting metadata (titles, summaries).
           </p>
+
+          <Card className="bg-muted/30 border-dashed">
+            <CardContent className="pt-4 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="include-context" className="text-sm font-medium">
+                    Include Previous Chapter Context
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Provide the previous chapter's content to the AI for better continuity during rewrites and metadata generation.
+                  </p>
+                </div>
+                <Checkbox
+                  id="include-context"
+                  checked={useTranscriptStore.getState().aiChapterDetectionConfig.includeContext}
+                  onCheckedChange={(checked) =>
+                    useTranscriptStore.getState().updateChapterDetectionConfig({ includeContext: !!checked })
+                  }
+                />
+              </div>
+
+              {useTranscriptStore.getState().aiChapterDetectionConfig.includeContext && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="context-limit" className="text-xs font-medium">
+                      Context Word Limit
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit} words
+                    </span>
+                  </div>
+                  <Input
+                    id="context-limit"
+                    type="number"
+                    min={100}
+                    max={2000}
+                    step={100}
+                    value={useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit}
+                    onChange={(e) =>
+                      useTranscriptStore.getState().updateChapterDetectionConfig({
+                        contextWordLimit: parseInt(e.target.value) || 500
+                      })
+                    }
+                    className="h-8 w-24 ml-auto"
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 

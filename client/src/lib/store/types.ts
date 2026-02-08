@@ -228,8 +228,6 @@ export interface InitialStoreState {
   aiChapterDetectionAbortController: AbortController | null;
   aiChapterDetectionBatchLog: AIChapterDetectionBatchLogEntry[];
   // Rewrite state
-  rewriteConfig: import("./slices/rewriteSlice").RewriteConfig;
-  rewritePrompts: import("./slices/rewriteSlice").RewritePrompt[];
   rewriteInProgress: boolean;
   rewriteChapterId: string | null;
   rewriteError: string | null;
@@ -740,6 +738,10 @@ export interface AIChapterDetectionConfig {
   activePromptId: string;
   /** Available prompts for chapter detection */
   prompts: AIPrompt[];
+  /** Include context (summaries + previous chapter) for rewrites/metadata */
+  includeContext: boolean;
+  /** Maximum words from previous chapter for context */
+  contextWordLimit: number;
 }
 
 export interface AIChapterDetectionSlice {

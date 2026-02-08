@@ -152,6 +152,48 @@ Return your response as JSON:
 };
 
 /**
+ * Built-in Summarize Prompt
+ */
+export const BUILTIN_REWRITE_SUMMARIZE: Omit<ChapterPrompt, 'id'> = {
+    name: 'Summarize',
+    type: 'chapter-detect',
+    operation: 'rewrite',
+    instructions: `Summarize the chapter content:
+- Extract key points and main ideas
+- Keep it concise (30-50% of original length)
+- Maintain chronological flow
+- Use clear, direct language`,
+    isBuiltIn: true,
+    quickAccess: false,
+};
+
+/**
+ * Built-in Narrative Style Prompt
+ */
+export const BUILTIN_REWRITE_NARRATIVE: Omit<ChapterPrompt, 'id'> = {
+    name: 'Narrative Style',
+    type: 'chapter-detect',
+    operation: 'rewrite',
+    instructions: `Transform into narrative form:
+- Use storytelling techniques
+- Create engaging flow
+- Maintain factual accuracy
+- Add smooth transitions between ideas
+- Use vivid, descriptive language where appropriate`,
+    isBuiltIn: true,
+    quickAccess: false,
+};
+
+/**
+ * All built-in rewrite prompts
+ */
+export const BUILTIN_REWRITE_PROMPTS = [
+    BUILTIN_REWRITE_SUMMARIZE,
+    BUILTIN_REWRITE_NARRATIVE,
+] as const;
+
+
+/**
  * All built-in metadata prompts
  */
 export const BUILTIN_METADATA_PROMPTS = [

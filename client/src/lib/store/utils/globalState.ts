@@ -25,8 +25,6 @@ export interface GlobalStatePayload extends PersistedGlobalState {
   aiRevisionConfig: AIRevisionConfig;
   aiSegmentMergeConfig: AISegmentMergeConfig;
   aiChapterDetectionConfig: AIChapterDetectionConfig;
-  rewriteConfig: RewriteConfig;
-  rewritePrompts: RewritePrompt[];
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
@@ -45,6 +43,4 @@ export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayl
   aiRevisionConfig: state.aiRevisionConfig,
   aiSegmentMergeConfig: state.aiSegmentMergeConfig,
   aiChapterDetectionConfig: state.aiChapterDetectionConfig,
-  rewriteConfig: state.rewriteConfig,
-  rewritePrompts: state.rewritePrompts,
 });
