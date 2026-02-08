@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import * as coreModule from "@/lib/ai/core";
+import * as coreModule from "../../../core";
 import type { AIFeatureResult } from "@/lib/ai/core/types";
 import { generateMetadata, generateNotes, generateSummary, suggestTitles } from "../service";
 import type { ChapterPrompt } from "../types";
