@@ -51,7 +51,7 @@ describe("chapterMetadataActions", () => {
       updateChapter: vi.fn(),
     };
 
-    get = vi.fn().mockReturnValue(state as TranscriptStore);
+    get = vi.fn().mockImplementation(() => state as TranscriptStore);
 
     // Spy on service methods
     vi.spyOn(chapterOpsService, "suggestTitles");
