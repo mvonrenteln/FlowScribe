@@ -3,7 +3,7 @@ import type { PromptVariables } from "@/lib/ai/prompts/types";
 
 let detectChapters: typeof import("../service").detectChapters;
 let executeFeatureMock: ReturnType<typeof vi.spyOn>;
-let coreModule: typeof import("@/lib/ai/core");
+let coreModule: typeof import("../../../core");
 
 const makeSegment = (id: string, start: number) => ({
   id,
@@ -15,7 +15,7 @@ const makeSegment = (id: string, start: number) => ({
 
 describe("chapterDetection service", () => {
   beforeAll(async () => {
-    coreModule = await import("@/lib/ai/core");
+    coreModule = await import("../../../core");
     ({ detectChapters } = await import("../service"));
   });
 
