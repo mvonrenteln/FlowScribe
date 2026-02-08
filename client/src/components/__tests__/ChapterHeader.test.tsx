@@ -72,6 +72,20 @@ describe("ChapterHeader", () => {
     });
   });
 
+  it("triggers rewrite from the AI menu", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const onRewriteChapter = vi.fn();
+    render(<ChapterHeader {...defaultProps} onRewriteChapter={onRewriteChapter} />);
+
+    const aiButton = screen.getByTestId(`button-chapter-ai-${mockChapter.id}`);
+    await user.click(aiButton);
+
+    const rewriteItem = await screen.findByTestId(`menu-rewrite-chapter-${mockChapter.id}`);
+    await user.click(rewriteItem);
+
+    expect(onRewriteChapter).toHaveBeenCalledWith(mockChapter.id);
+  });
+
   it("enters edit mode when title is double-clicked", async () => {
     const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
     render(<ChapterHeader {...defaultProps} />);

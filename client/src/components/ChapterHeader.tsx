@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { ChapterAIMenu } from "@/components/ChapterAIMenu";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
@@ -618,6 +619,12 @@ export function ChapterHeader({
                     </Button>
                   )}
 
+                  <ChapterAIMenu
+                    chapterId={chapter.id}
+                    onRewriteChapter={onRewriteChapter}
+                    className={cn(isHeaderHovered ? "opacity-100" : "opacity-0")}
+                  />
+
                   {/* Options menu - aligned to the far right */}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -645,14 +652,6 @@ export function ChapterHeader({
                       >
                         <Edit2 className="h-3 w-3 mr-2" />
                         Edit title
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        className="py-1.5 text-xs"
-                        onSelect={() => onRewriteChapter(chapter.id)}
-                        data-testid={`menu-rewrite-chapter-${chapter.id}`}
-                      >
-                        <Sparkles className="h-3 w-3 mr-2" />
-                        Rewrite chapter
                       </DropdownMenuItem>
                       <DropdownMenuItem
                         className="py-1.5 text-xs text-destructive"
