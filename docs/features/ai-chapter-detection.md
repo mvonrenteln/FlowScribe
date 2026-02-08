@@ -60,6 +60,28 @@ Notes:
 
 ---
 
+## Part C: AI-Powered Metadata Editing
+
+Beyond bulk detection, you can use the AI to refine individual chapters at any time.
+
+1.  **Open Chapter AI Menu**: Click the AI icon (wand) in any chapter header.
+2.  **Suggest Title**: Choose "Suggest Title" to get 5 AI-generated title alternatives based on the chapter's content. A dialog allows you to preview and select the best one.
+3.  **Generate Summary**: Automatically generate a concise summary of the chapter's segments.
+4.  **Generate Notes**: Generate editorial notes or a more detailed breakdown of the chapter.
+5.  **Chapter Rewrites**: Access custom rewrite prompts to transform chapter content (e.g., "Change to first person", "Summarize as bullet points").
+
+### Prompt Customization
+
+All chapter-related AI features are managed via **Settings → AI Prompts → Chapters**. 
+
+- **Operation Types**: Prompts are categorized by operation:
+    - **Detection**: Used for initial segment-to-chapter boundaries.
+    - **Metadata**: Used for title suggestions, summaries, and notes.
+    - **Rewrite**: Used for transforming existing chapter content.
+- **Built-in Prompts**: The system provides optimized defaults for each operation, but you can create custom templates with placeholders like `{{chapterSegments}}` and `{{currentSummary}}`.
+
+---
+
 ## How the detection works
 
 - The AI analyzes the transcript in chunks and proposes chapter boundaries and titles.
