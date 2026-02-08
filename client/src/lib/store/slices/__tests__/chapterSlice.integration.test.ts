@@ -202,5 +202,12 @@ describe("ChapterMetadata Integration & Undo/Redo", () => {
     historySlice.undo();
     state = mockStore.getState() as TranscriptStore;
     expect(state.chapters[0]?.notes).toBeUndefined(); // or previous value
+    expect(state.historyIndex).toBe(0);
+
+    // Redo
+    historySlice.redo();
+    state = mockStore.getState() as TranscriptStore;
+    expect(state.chapters[0]?.notes).toBe("AI Notes");
+    expect(state.historyIndex).toBe(1);
   });
 });
