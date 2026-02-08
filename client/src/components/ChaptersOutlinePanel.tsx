@@ -70,8 +70,8 @@ export function ChaptersOutlinePanel({
           <X className="h-4 w-4" />
         </Button>
       </div>
-      <ScrollArea className="h-[60vh] no-scrollbar">
-        <div className="space-y-1 p-2 overflow-hidden">
+      <ScrollArea className="h-[60vh] overflow-y-auto overflow-x-hidden">
+        <div className="space-y-1 p-2">
           {sortedChapters.length === 0 && (
             <div className="rounded-md border border-dashed px-3 py-2 text-xs text-muted-foreground">
               No chapters yet. Start with "Start Chapter Here" in a segment menu.
@@ -86,53 +86,31 @@ export function ChaptersOutlinePanel({
                 onClick={() => onJumpToChapter(chapter.id)}
                 title={chapter.summary ? renderSummary(chapter) : undefined}
                 className={cn(
-                  "w-full rounded-md px-2 py-2 text-left transition-colors",
+                  "block w-full min-w-0 max-w-full rounded-md px-2 py-2 text-left transition-colors",
                   chapter.id === selectedChapterId ? "bg-accent/40" : "hover:bg-muted/40",
                 )}
               >
-                <div className="relative text-xs">
-  {/* Right-side markers that must never overflow */}
-  <div className="absolute right-0 top-0 flex items-baseline gap-1">
-    <span className="text-[11px] font-normal text-muted-foreground">
-      ({segmentCount})
-    </span>
+                <div className="grid grid-cols-[minmax(0,1fr)_auto] gap-x-2">
+                  <div className="min-w-0">
+                    <div className="text-xs font-semibold leading-snug whitespace-normal [overflow-wrap:anywhere]">
+                      {chapter.title}
+                    </div>
 
-    {chapter.rewrittenText ? (
-      <span className="text-[11px] text-amber-500" title="AI rewritten" aria-label="AI rewritten">
-        *
-      </span>
-    ) : null}
-  </div>
-
-  {/* Title: reserve space on the right so it never goes underneath markers */}
-  <div className="pr-10 font-semibold whitespace-normal break-words [overflow-wrap:anywhere] leading-snug">
-    {chapter.title}
-  </div>
-</div>
-
-                {chapter.summary ? (
-                  <div
-                    className="text-[11px] text-muted-foreground truncate"
-                    title={renderSummary(chapter)}
-                  >
-                    {renderSummary(chapter)}
+                    {chapter.summary ? (
+                      <div
+                        className="mt-0.5 text-[11px] text-muted-foreground truncate"
+                        title={renderSummary(chapter)}
+                      >
+                        {renderSummary(chapter)}
+                      </div>
+                    ) : null}
                   </div>
-                ) : null}
-                {chapter.tags && chapter.tags.length > 0 ? (
-                  <div className="flex flex-wrap gap-1">
-                    {chapter.tags.map((tagId) => {
-                      const label = tagsById.get(tagId) ?? tagId;
-                      return (
-                        <span
-                          key={tagId}
-                          className="rounded-full border border-border/80 bg-muted/60 px-1 py-0.5 text-[8px] text-muted-foreground"
-                        >
-                          {label}
-                        </span>
-                      );
-                    })}
+
+                  <div className="self-start shrink-0 whitespace-nowrap text-[11px] font-normal text-muted-foreground">
+                    ({segmentCount})
+                    {chapter.rewrittenText ? <span className="ml-1 text-amber-500">*</span> : null}
                   </div>
-                ) : null}
+                </div>
               </button>
             );
           })}
