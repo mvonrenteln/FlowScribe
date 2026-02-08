@@ -57,6 +57,8 @@ const ensureBuiltInPrompts = (prompts: AIPrompt[]) => {
         ...normalized[existingIndex],
         isBuiltIn: true,
         type: "chapter-detect",
+        // Preserve operation from built-in definition
+        ...(builtIn.operation && { operation: builtIn.operation }),
         // Only set isDefault for the detection prompt
         ...(builtIn.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id && { isDefault: true }),
       };

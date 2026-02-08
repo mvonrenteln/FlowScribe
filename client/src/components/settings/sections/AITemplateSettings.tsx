@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { useToast } from "@/hooks/use-toast";
 import {
   CHAPTER_DETECTION_SYSTEM_PROMPT as DEFAULT_CHAPTER_DETECTION_SYSTEM_PROMPT,
   CHAPTER_DETECTION_USER_PROMPT_TEMPLATE as DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
@@ -422,6 +423,7 @@ function PromptCard({
 // ==================== Main Component ====================
 
 export function AITemplateSettings() {
+  const { toast } = useToast();
   const [activeTab, setActiveTab] = useState<PromptType>("speaker");
 
   // Speaker prompts
@@ -599,11 +601,8 @@ export function AITemplateSettings() {
         userPromptTemplate: promptItem.userPromptTemplate || "",
         isBuiltIn: false,
         quickAccess: false,
+        ...(promptItem.operation && { operation: promptItem.operation }),
       };
-
-      if (promptItem.operation) {
-        promptData.operation = promptItem.operation;
-      }
 
       if (promptItem.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -614,8 +613,19 @@ export function AITemplateSettings() {
       } else {
         addChapterDetectionPrompt(promptData);
       }
+
+      // Show success toast
+      const usageHint =
+        promptItem.type === "chapter-detect" && promptItem.operation === "metadata"
+          ? "Set as Default to use in the Chapter AI menu."
+          : "";
+
+      toast({
+        title: "Prompt duplicated",
+        description: `"${promptData.name}" has been created. ${usageHint}`,
+      });
     },
-    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt],
+    [addSpeakerPrompt, addTextPrompt, addSegmentMergePrompt, addChapterDetectionPrompt, toast],
   );
 
   const handleToggleQuickAccess = useCallback(
