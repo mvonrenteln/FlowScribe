@@ -13,7 +13,6 @@ import type { Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
 import { parseTextResponse } from "../../parsing";
-import { CHAPTER_REFORMULATION_CONFIG } from "./config";
 import type { RewriteChapterParams, RewriteContext, RewriteResult } from "./types";
 
 const logger = createLogger({ feature: "RewriteService" });
@@ -63,6 +62,11 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
   // Build chapter content from segments
   const chapterContent = buildChapterContent(segments);
 
+  // Validate prompt structure
+  if (!prompt.systemPrompt || !prompt.userPromptTemplate) {
+    throw new Error("Rewrite prompt must have systemPrompt and userPromptTemplate");
+  }
+
   // Build prompt variables
   const variables = {
     chapterTitle: chapter.title,
@@ -73,15 +77,14 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
     previousChapterSummaries: context.summaries,
     previousChapterText: context.previousText,
     contextWordLimit,
-    promptInstructions: prompt.instructions,
     customInstructions: customInstructions || "",
   };
 
-  // Execute feature with config prompt
+  // Execute feature with prompt templates
   const result = await executeFeature<string>("chapter-rewrite", variables, {
     customPrompt: {
-      systemPrompt: CHAPTER_REFORMULATION_CONFIG.systemPrompt,
-      userPromptTemplate: CHAPTER_REFORMULATION_CONFIG.userPromptTemplate,
+      systemPrompt: prompt.systemPrompt,
+      userPromptTemplate: prompt.userPromptTemplate,
     },
     signal,
     providerId,

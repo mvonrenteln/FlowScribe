@@ -118,7 +118,7 @@ export interface PersistedGlobalState {
   aiChapterDetectionConfig?: AIChapterDetectionConfig;
   // Chapter Rewrite config
   rewriteConfig?: import("./slices/rewriteSlice").RewriteConfig;
-  rewritePrompts?: import("./slices/rewriteSlice").RewritePrompt[];
+  rewritePrompts?: AIPrompt[];
 }
 
 export interface RecentSessionSummary {
@@ -510,8 +510,6 @@ export interface AIPrompt {
   quickAccess: boolean;
   /** Operation type for chapter prompts */
   operation?: "detection" | "rewrite" | "metadata";
-  /** Instructions for rewrite operations (alternative to system/user prompt) */
-  instructions?: string;
 }
 
 export interface AIPromptExport {

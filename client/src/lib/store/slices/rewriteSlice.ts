@@ -8,7 +8,6 @@
 
 import type { StoreApi } from "zustand";
 import { rewriteChapter } from "@/lib/ai/features/rewrite/service";
-import type { RewritePrompt } from "@/lib/ai/features/rewrite/types";
 import { createLogger } from "@/lib/logging";
 import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
 
@@ -18,9 +17,6 @@ type StoreGetter = StoreApi<TranscriptStore>["getState"];
 const logger = createLogger({ feature: "RewriteSlice", namespace: "Store" });
 
 // ==================== Types ====================
-
-// Re-export types for external use
-export type { RewritePrompt };
 
 export type RewriteConfig = {
   /** Include context (summaries + previous chapter) */
@@ -48,8 +44,11 @@ export interface RewriteSlice {
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
 
   // Actions - Prompts
-  addRewritePrompt: (prompt: Omit<RewritePrompt, "id">) => void;
-  updateRewritePrompt: (id: string, updates: Partial<RewritePrompt>) => void;
+  addRewritePrompt: (prompt: Omit<AIPrompt, "id">) => void;
+  updateRewritePrompt: (
+    id: string,
+    updates: Partial<Pick<AIPrompt, "name" | "systemPrompt" | "userPromptTemplate">>,
+  ) => void;
   deleteRewritePrompt: (id: string) => void;
   setDefaultRewritePrompt: (id: string) => void;
   toggleQuickAccessRewritePrompt: (id: string) => void;
@@ -97,10 +96,9 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       name: prompt.name,
       type: "chapter-detect",
       operation: "rewrite",
-      systemPrompt: "",
-      userPromptTemplate: "",
-      instructions: prompt.instructions,
-      isBuiltIn: Boolean(prompt.isBuiltin),
+      systemPrompt: prompt.systemPrompt,
+      userPromptTemplate: prompt.userPromptTemplate,
+      isBuiltIn: Boolean(prompt.isBuiltIn),
       quickAccess: false,
     };
     get().addChapterDetectionPrompt(nextPrompt);
@@ -111,8 +109,11 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
     if (updates.name !== undefined) {
       promptUpdates.name = updates.name;
     }
-    if (updates.instructions !== undefined) {
-      promptUpdates.instructions = updates.instructions;
+    if (updates.systemPrompt !== undefined) {
+      promptUpdates.systemPrompt = updates.systemPrompt;
+    }
+    if (updates.userPromptTemplate !== undefined) {
+      promptUpdates.userPromptTemplate = updates.userPromptTemplate;
     }
     get().updateChapterDetectionPrompt(id, promptUpdates);
   },
@@ -149,8 +150,8 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       logger.error("Prompt not found.", { promptId });
       return;
     }
-    if (!prompt.instructions?.trim()) {
-      logger.error("Rewrite prompt missing instructions.", { promptId });
+    if (!prompt.systemPrompt?.trim() || !prompt.userPromptTemplate?.trim()) {
+      logger.error("Rewrite prompt missing systemPrompt or userPromptTemplate.", { promptId });
       return;
     }
 
@@ -177,12 +178,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         chapter,
         segments,
         allChapters: state.chapters,
-        prompt: {
-          id: prompt.id,
-          name: prompt.name,
-          instructions: prompt.instructions,
-          isBuiltin: prompt.isBuiltIn,
-        },
+        prompt,
         providerId: state.aiChapterDetectionConfig.selectedProviderId,
         model: state.aiChapterDetectionConfig.selectedModel,
         signal: abortController.signal,

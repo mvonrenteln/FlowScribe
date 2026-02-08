@@ -170,7 +170,7 @@ export function ChapterRewriteDialog({
                     <div>
                       <div className="font-medium">{prompt.name}</div>
                       <div className="text-xs text-muted-foreground line-clamp-1">
-                        {prompt.instructions?.split("\n")[0] ?? ""}
+                        {prompt.userPromptTemplate?.split("\n")[0] ?? ""}
                       </div>
                     </div>
                   </Button>

@@ -372,23 +372,13 @@ function PromptCard({
 
       {expanded && (
         <CardContent className="pt-2 space-y-4">
-          {promptItem.operation === "rewrite" ? (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">Instructions Preview</Label>
-              <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
-                {(promptItem.instructions || "").slice(0, 300)}
-                {(promptItem.instructions || "").length > 300 && "..."}
-              </pre>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label className="text-xs text-muted-foreground">System Prompt Preview</Label>
-              <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
-                {(promptItem.systemPrompt || "").slice(0, 300)}
-                {(promptItem.systemPrompt || "").length > 300 && "..."}
-              </pre>
-            </div>
-          )}
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">System Prompt Preview</Label>
+            <pre className="text-xs bg-muted p-2 rounded-md overflow-auto max-h-32">
+              {(promptItem.systemPrompt || "").slice(0, 300)}
+              {(promptItem.systemPrompt || "").length > 300 && "..."}
+            </pre>
+          </div>
 
           <Separator />
 
@@ -510,9 +500,6 @@ export function AITemplateSettings() {
       if ("operation" in data) {
         promptData.operation = data.operation;
       }
-      if ("instructions" in data) {
-        promptData.instructions = data.instructions;
-      }
 
       if (data.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -539,9 +526,6 @@ export function AITemplateSettings() {
 
       if ("operation" in data) {
         updates.operation = data.operation;
-      }
-      if ("instructions" in data) {
-        updates.instructions = data.instructions;
       }
 
       if (activeTab === "speaker") {
@@ -619,9 +603,6 @@ export function AITemplateSettings() {
 
       if (promptItem.operation) {
         promptData.operation = promptItem.operation;
-      }
-      if (promptItem.instructions) {
-        promptData.instructions = promptItem.instructions;
       }
 
       if (promptItem.type === "speaker") {

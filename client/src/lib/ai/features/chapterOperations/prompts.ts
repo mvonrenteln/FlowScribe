@@ -6,6 +6,7 @@
  * @module ai/features/chapterOperations/prompts
  */
 
+import { REWRITE_SYSTEM_PROMPT } from "../rewrite/config";
 import type { ChapterPrompt } from "./types";
 
 /**
@@ -158,11 +159,49 @@ export const BUILTIN_REWRITE_SUMMARIZE: Omit<ChapterPrompt, "id"> = {
   name: "Summarize",
   type: "chapter-detect",
   operation: "rewrite",
-  instructions: `Summarize the chapter content:
+  systemPrompt: REWRITE_SYSTEM_PROMPT,
+  userPromptTemplate: `# Context
+
+{{#if previousChapterSummaries}}
+## Previous Chapters (for style consistency):
+{{#each previousChapterSummaries}}
+- Chapter {{@index}}: {{this}}
+{{/each}}
+{{/if}}
+
+{{#if previousChapterText}}
+## Previous Chapter Text (last {{contextWordLimit}} words):
+{{previousChapterText}}
+{{/if}}
+
+# Current Chapter
+
+Title: {{chapterTitle}}
+{{#if chapterSummary}}
+Summary: {{chapterSummary}}
+{{/if}}
+{{#if chapterNotes}}
+Notes: {{chapterNotes}}
+{{/if}}
+{{#if chapterTags}}
+Tags: {{chapterTags}}
+{{/if}}
+
+## Content:
+{{chapterContent}}
+
+# Task
+
+Summarize the chapter content:
 - Extract key points and main ideas
 - Keep it concise (30-50% of original length)
 - Maintain chronological flow
-- Use clear, direct language`,
+- Use clear, direct language
+
+{{#if customInstructions}}
+## Additional Instructions:
+{{customInstructions}}
+{{/if}}`,
   isBuiltIn: true,
   quickAccess: false,
 };
@@ -174,12 +213,50 @@ export const BUILTIN_REWRITE_NARRATIVE: Omit<ChapterPrompt, "id"> = {
   name: "Narrative Style",
   type: "chapter-detect",
   operation: "rewrite",
-  instructions: `Transform into narrative form:
+  systemPrompt: REWRITE_SYSTEM_PROMPT,
+  userPromptTemplate: `# Context
+
+{{#if previousChapterSummaries}}
+## Previous Chapters (for style consistency):
+{{#each previousChapterSummaries}}
+- Chapter {{@index}}: {{this}}
+{{/each}}
+{{/if}}
+
+{{#if previousChapterText}}
+## Previous Chapter Text (last {{contextWordLimit}} words):
+{{previousChapterText}}
+{{/if}}
+
+# Current Chapter
+
+Title: {{chapterTitle}}
+{{#if chapterSummary}}
+Summary: {{chapterSummary}}
+{{/if}}
+{{#if chapterNotes}}
+Notes: {{chapterNotes}}
+{{/if}}
+{{#if chapterTags}}
+Tags: {{chapterTags}}
+{{/if}}
+
+## Content:
+{{chapterContent}}
+
+# Task
+
+Transform into narrative form:
 - Use storytelling techniques
 - Create engaging flow
 - Maintain factual accuracy
 - Add smooth transitions between ideas
-- Use vivid, descriptive language where appropriate`,
+- Use vivid, descriptive language where appropriate
+
+{{#if customInstructions}}
+## Additional Instructions:
+{{customInstructions}}
+{{/if}}`,
   isBuiltIn: true,
   quickAccess: false,
 };

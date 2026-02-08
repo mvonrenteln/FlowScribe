@@ -27,17 +27,10 @@ export interface ChapterPrompt {
   type: "chapter-detect";
   /** Operation discriminator */
   operation: ChapterOperation;
-
-  // For detection & metadata (Handlebars templates → JSON response)
   /** System prompt (defines behavior) */
-  systemPrompt?: string;
+  systemPrompt: string;
   /** User prompt template with {{variables}} */
-  userPromptTemplate?: string;
-
-  // For rewrite (instructions → plain text response)
-  /** Rewrite instructions (freeform text) */
-  instructions?: string;
-
+  userPromptTemplate: string;
   /** Whether this is a built-in prompt */
   isBuiltIn: boolean;
   /** Show in quick access menu */
@@ -140,22 +133,12 @@ export function validateChapterPrompt(prompt: ChapterPrompt): string[] {
     errors.push("Prompt name is required");
   }
 
-  switch (prompt.operation) {
-    case "detection":
-    case "metadata":
-      if (!prompt.systemPrompt?.trim()) {
-        errors.push(`System prompt is required for ${prompt.operation} operation`);
-      }
-      if (!prompt.userPromptTemplate?.trim()) {
-        errors.push(`User prompt template is required for ${prompt.operation} operation`);
-      }
-      break;
+  if (!prompt.systemPrompt?.trim()) {
+    errors.push("System prompt is required");
+  }
 
-    case "rewrite":
-      if (!prompt.instructions?.trim()) {
-        errors.push("Instructions are required for rewrite operation");
-      }
-      break;
+  if (!prompt.userPromptTemplate?.trim()) {
+    errors.push("User prompt template is required");
   }
 
   return errors;

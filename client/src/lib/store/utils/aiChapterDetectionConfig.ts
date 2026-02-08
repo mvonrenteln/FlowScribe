@@ -2,6 +2,7 @@ import {
   CHAPTER_DETECTION_SYSTEM_PROMPT,
   CHAPTER_DETECTION_USER_PROMPT_TEMPLATE,
 } from "@/lib/ai/features/chapterDetection";
+import { REWRITE_SYSTEM_PROMPT } from "@/lib/ai/features/rewrite/config";
 import { indexById } from "@/lib/arrayUtils";
 import type { AIChapterDetectionConfig, AIPrompt, PersistedGlobalState } from "../types";
 import { BUILTIN_METADATA_PROMPTS, BUILTIN_PROMPT_IDS } from "./chapterMetadataPrompts";
@@ -70,6 +71,91 @@ const getPromptsFromConfig = (
 ): AIPrompt[] | undefined => (Array.isArray(config?.prompts) ? config.prompts : undefined);
 
 /**
+ * Legacy prompt type with instructions field (for migration).
+ */
+type LegacyRewritePrompt = {
+  id: string;
+  name: string;
+  instructions?: string;
+  systemPrompt?: string;
+  userPromptTemplate?: string;
+  operation?: "rewrite";
+  type?: string;
+  isBuiltin?: boolean;
+  quickAccess?: boolean;
+};
+
+/**
+ * Migrate legacy instructions-based rewrite prompt to systemPrompt/userPromptTemplate structure.
+ */
+const migrateLegacyRewritePrompt = (prompt: LegacyRewritePrompt): AIPrompt => {
+  // If already has systemPrompt/userPromptTemplate, return as-is
+  if (prompt.systemPrompt && prompt.userPromptTemplate) {
+    return {
+      id: prompt.id,
+      name: prompt.name,
+      type: "chapter-detect" as const,
+      operation: "rewrite" as const,
+      systemPrompt: prompt.systemPrompt,
+      userPromptTemplate: prompt.userPromptTemplate,
+      isBuiltIn: prompt.isBuiltin ?? false,
+      quickAccess: prompt.quickAccess ?? false,
+    };
+  }
+
+  // Migrate from instructions to systemPrompt/userPromptTemplate
+  const instructions = prompt.instructions || "Rewrite the chapter content.";
+
+  return {
+    id: prompt.id,
+    name: prompt.name,
+    type: "chapter-detect" as const,
+    operation: "rewrite" as const,
+    systemPrompt: REWRITE_SYSTEM_PROMPT,
+    userPromptTemplate: `# Context
+
+{{#if previousChapterSummaries}}
+## Previous Chapters (for style consistency):
+{{#each previousChapterSummaries}}
+- Chapter {{@index}}: {{this}}
+{{/each}}
+{{/if}}
+
+{{#if previousChapterText}}
+## Previous Chapter Text (last {{contextWordLimit}} words):
+{{previousChapterText}}
+{{/if}}
+
+# Current Chapter
+
+Title: {{chapterTitle}}
+{{#if chapterSummary}}
+Summary: {{chapterSummary}}
+{{/if}}
+{{#if chapterNotes}}
+Notes: {{chapterNotes}}
+{{/if}}
+{{#if chapterTags}}
+Tags: {{chapterTags}}
+{{/if}}
+
+## Content:
+{{chapterContent}}
+
+# Task
+
+${instructions}
+
+{{#if customInstructions}}
+## Additional Instructions:
+{{customInstructions}}
+{{/if}}`,
+    isBuiltIn: prompt.isBuiltin ?? false,
+    quickAccess: prompt.quickAccess ?? false,
+  };
+};
+
+/**
  * Normalize persisted chapter detection config by restoring defaults and preserving custom prompts.
  */
 export const normalizeAIChapterDetectionConfig = (
@@ -84,22 +170,19 @@ export const normalizeAIChapterDetectionConfig = (
 
   if (persistedRewrites?.length) {
     const existingIds = new Set(initialPrompts.map((p) => p.id));
-    const migratedRewrites = persistedRewrites
+    const migratedRewrites = (persistedRewrites as LegacyRewritePrompt[])
       .filter((p) => !existingIds.has(p.id))
-      .map(
-        (p) =>
-          ({
-            ...p,
-            type: "chapter-detect" as const,
-            operation: "rewrite" as const,
-            systemPrompt: "",
-            userPromptTemplate: "",
-            isBuiltIn: p.isBuiltin ?? false,
-            quickAccess: false,
-          }) as AIPrompt,
-      );
+      .map((p) => migrateLegacyRewritePrompt(p));
     initialPrompts = [...initialPrompts, ...migratedRewrites];
   }
+
+  // Also migrate any existing prompts that still have instructions
+  initialPrompts = initialPrompts.map((p) => {
+    if (p.operation === "rewrite" && (p as LegacyRewritePrompt).instructions && !p.systemPrompt) {
+      return migrateLegacyRewritePrompt(p as LegacyRewritePrompt);
+    }
+    return p;
+  });
 
   const prompts = ensureBuiltInPrompts(initialPrompts);
   const activePromptId = prompts.some(

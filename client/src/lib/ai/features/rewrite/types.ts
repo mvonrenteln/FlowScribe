@@ -6,22 +6,8 @@
  * @module ai/features/rewrite/types
  */
 
-import type { Segment } from "@/lib/store/types";
+import type { AIPrompt, Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
-
-/**
- * Rewrite prompt configuration.
- */
-export interface RewritePrompt {
-  /** Unique identifier */
-  id: string;
-  /** Display name */
-  name: string;
-  /** Instructions for rewrite (inserted into user prompt) */
-  instructions: string;
-  /** Whether this is a built-in prompt */
-  isBuiltin?: boolean;
-}
 
 /**
  * Parameters for reformulating a chapter.
@@ -33,8 +19,8 @@ export interface RewriteChapterParams {
   segments: Segment[];
   /** All chapters (for context) */
   allChapters: Chapter[];
-  /** Rewrite prompt to use */
-  prompt: RewritePrompt;
+  /** Rewrite prompt to use (must have operation='rewrite') */
+  prompt: AIPrompt;
   /** AI provider ID (optional, uses default if not specified) */
   providerId?: string;
   /** Model to use (optional, uses provider default if not specified) */

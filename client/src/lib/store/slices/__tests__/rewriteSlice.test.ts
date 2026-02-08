@@ -22,9 +22,8 @@ const buildPrompt = (overrides?: Partial<AIPrompt>): AIPrompt => ({
   name: "Rewrite Prompt",
   type: "chapter-detect",
   operation: "rewrite",
-  systemPrompt: "",
-  userPromptTemplate: "",
-  instructions: "Rewrite the chapter.",
+  systemPrompt: "You are an expert editor.",
+  userPromptTemplate: "Rewrite: {{chapterContent}}",
   isBuiltIn: false,
   quickAccess: false,
   ...overrides,
@@ -102,17 +101,21 @@ describe("RewriteSlice", () => {
     it("should add new prompt via chapter detection prompts", () => {
       store.getState().addRewritePrompt({
         name: "Custom Prompt",
-        instructions: "Custom instructions",
+        systemPrompt: "You are an editor.",
+        userPromptTemplate: "Rewrite: {{chapterContent}}",
+        type: "chapter-detect",
+        operation: "rewrite",
+        isBuiltIn: false,
+        quickAccess: false,
       });
 
       expect(addChapterDetectionPrompt).toHaveBeenCalledWith(
         expect.objectContaining({
           name: "Custom Prompt",
-          instructions: "Custom instructions",
+          systemPrompt: "You are an editor.",
+          userPromptTemplate: "Rewrite: {{chapterContent}}",
           type: "chapter-detect",
           operation: "rewrite",
-          systemPrompt: "",
-          userPromptTemplate: "",
         }),
       );
     });

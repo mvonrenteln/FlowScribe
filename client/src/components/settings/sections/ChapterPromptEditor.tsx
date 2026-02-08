@@ -54,7 +54,6 @@ export interface ChapterPromptFormData {
   operation: "detection" | "rewrite" | "metadata";
   systemPrompt: string;
   userPromptTemplate: string;
-  instructions: string;
 }
 
 const getEmptyForm = (operation: ChapterPromptFormData["operation"]): ChapterPromptFormData => ({
@@ -64,7 +63,6 @@ const getEmptyForm = (operation: ChapterPromptFormData["operation"]): ChapterPro
   systemPrompt: operation === "detection" ? DEFAULT_CHAPTER_DETECTION_SYSTEM_PROMPT : "",
   userPromptTemplate:
     operation === "detection" ? DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE : "",
-  instructions: "",
 });
 
 interface ChapterPromptEditorProps {
@@ -96,7 +94,6 @@ export function ChapterPromptEditor({
     userPromptTemplate:
       initialData?.userPromptTemplate ||
       (initialOperation === "detection" ? DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE : ""),
-    instructions: initialData?.instructions || "",
     operation: initialOperation,
   });
 
@@ -110,18 +107,13 @@ export function ChapterPromptEditor({
       errs.push("Prompt name is required");
     }
 
-    if (form.operation === "rewrite") {
-      if (!form.instructions.trim()) {
-        errs.push("Instructions are required for rewrite operation");
-      }
-    } else {
-      if (!form.systemPrompt.trim()) {
-        errs.push("System prompt is required");
-      }
-      if (!form.userPromptTemplate.trim()) {
-        errs.push("User prompt template is required");
-      }
+    if (!form.systemPrompt.trim()) {
+      errs.push("System prompt is required");
     }
+    if (!form.userPromptTemplate.trim()) {
+      errs.push("User prompt template is required");
+    }
+
     return errs;
   };
 
@@ -205,56 +197,37 @@ export function ChapterPromptEditor({
         </div>
       </div>
 
-      {form.operation === "rewrite" ? (
-        <div className="space-y-2">
-          <Label htmlFor="prompt-instructions">Instructions</Label>
-          <Textarea
-            id="prompt-instructions"
-            value={form.instructions}
-            onChange={(e) => setForm((prev) => ({ ...prev, instructions: e.target.value }))}
-            placeholder="Instructions for rewriting the chapter content..."
-            className="min-h-[200px] font-mono text-sm"
-          />
-          <p className="text-xs text-muted-foreground">
-            Describe how the AI should rewrite the chapter text. The input will be the full chapter
-            text.
-          </p>
-        </div>
-      ) : (
-        <>
-          <div className="space-y-2">
-            <Label htmlFor="prompt-system">System Prompt</Label>
-            <Textarea
-              id="prompt-system"
-              value={form.systemPrompt}
-              onChange={(e) => setForm((prev) => ({ ...prev, systemPrompt: e.target.value }))}
-              placeholder="System instructions for the AI..."
-              className="min-h-[150px] font-mono text-sm"
-            />
-          </div>
+      <div className="space-y-2">
+        <Label htmlFor="prompt-system">System Prompt</Label>
+        <Textarea
+          id="prompt-system"
+          value={form.systemPrompt}
+          onChange={(e) => setForm((prev) => ({ ...prev, systemPrompt: e.target.value }))}
+          placeholder="System instructions for the AI..."
+          className="min-h-[150px] font-mono text-sm"
+        />
+      </div>
 
-          <div className="space-y-2">
-            <Label htmlFor="prompt-user">User Prompt Template</Label>
-            <Textarea
-              id="prompt-user"
-              value={form.userPromptTemplate}
-              onChange={(e) => setForm((prev) => ({ ...prev, userPromptTemplate: e.target.value }))}
-              placeholder="User message template with {{variables}}..."
-              className="min-h-[150px] font-mono text-sm"
-            />
-            <div className="text-xs text-muted-foreground space-y-1">
-              <p className="font-medium">Available placeholders:</p>
-              <ul className="list-disc pl-4">
-                {placeholders.map((p) => (
-                  <li key={p.placeholder}>
-                    <code className="bg-muted px-1 rounded">{p.placeholder}</code> - {p.description}
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </div>
-        </>
-      )}
+      <div className="space-y-2">
+        <Label htmlFor="prompt-user">User Prompt Template</Label>
+        <Textarea
+          id="prompt-user"
+          value={form.userPromptTemplate}
+          onChange={(e) => setForm((prev) => ({ ...prev, userPromptTemplate: e.target.value }))}
+          placeholder="User message template with {{variables}}..."
+          className="min-h-[150px] font-mono text-sm"
+        />
+        <div className="text-xs text-muted-foreground space-y-1">
+          <p className="font-medium">Available placeholders:</p>
+          <ul className="list-disc pl-4">
+            {placeholders.map((p) => (
+              <li key={p.placeholder}>
+                <code className="bg-muted px-1 rounded">{p.placeholder}</code> - {p.description}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
 
       <div className="rounded-md bg-muted p-4">
         <div className="flex items-center gap-2 mb-2">
