@@ -48,7 +48,7 @@ export function useScrollAndSelection({
       const seg = segments[mid];
       if (currentTime < seg.start) {
         high = mid - 1;
-      } else if (currentTime > seg.end) {
+      } else if (currentTime >= seg.end) {
         low = mid + 1;
       } else {
         return seg;

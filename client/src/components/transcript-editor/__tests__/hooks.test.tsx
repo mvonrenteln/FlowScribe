@@ -357,6 +357,33 @@ describe("useScrollAndSelection", () => {
     });
   });
 
+  it("prefers the next segment at an exact boundary time", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const seekToTime = vi.fn();
+    const setIsPlaying = vi.fn();
+
+    renderHook(() =>
+      useScrollAndSelection({
+        segments,
+        currentTime: 1,
+        selectedSegmentId: "segment-1",
+        isPlaying: false,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: [segments[1]],
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        seekToTime,
+        setIsPlaying,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(setSelectedSegmentId).toHaveBeenCalledWith("segment-2");
+    });
+  });
+
   it("scrolls to the active segment when selection is stale", async () => {
     const setSelectedSegmentId = vi.fn();
     const seekToTime = vi.fn();
