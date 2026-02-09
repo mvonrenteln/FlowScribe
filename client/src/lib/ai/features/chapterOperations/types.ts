@@ -27,6 +27,8 @@ export interface ChapterPrompt {
   type: "chapter-detect";
   /** Operation discriminator */
   operation: ChapterOperation;
+  /** Rewrite scope for rewrite operation */
+  rewriteScope?: "chapter" | "paragraph";
   /** Metadata subtype for metadata operations */
   metadataType?: "title" | "summary" | "notes";
   /** System prompt (defines behavior) */

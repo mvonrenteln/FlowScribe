@@ -41,11 +41,6 @@ const PLACEHOLDER_HELP = {
     { placeholder: "{{currentSummary}}", description: "Current summary (if available)" },
     { placeholder: "{{currentNotes}}", description: "Current notes (if available)" },
   ],
-  rewrite: [
-    { placeholder: "{{chapterSegments}}", description: "Full content of the chapter" },
-    { placeholder: "{{chapterTitle}}", description: "Current chapter title" },
-    { placeholder: "{{wordCount}}", description: "Approximate word count of source" },
-  ],
 } as const;
 
 export interface ChapterPromptFormData {
@@ -54,6 +49,7 @@ export interface ChapterPromptFormData {
   operation: "detection" | "rewrite" | "metadata";
   systemPrompt: string;
   userPromptTemplate: string;
+  rewriteScope?: "chapter" | "paragraph";
 }
 
 const getEmptyForm = (operation: ChapterPromptFormData["operation"]): ChapterPromptFormData => ({
@@ -63,6 +59,7 @@ const getEmptyForm = (operation: ChapterPromptFormData["operation"]): ChapterPro
   systemPrompt: operation === "detection" ? DEFAULT_CHAPTER_DETECTION_SYSTEM_PROMPT : "",
   userPromptTemplate:
     operation === "detection" ? DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE : "",
+  rewriteScope: operation === "rewrite" ? "chapter" : undefined,
 });
 
 interface ChapterPromptEditorProps {
@@ -95,11 +92,52 @@ export function ChapterPromptEditor({
       initialData?.userPromptTemplate ||
       (initialOperation === "detection" ? DEFAULT_CHAPTER_DETECTION_USER_PROMPT_TEMPLATE : ""),
     operation: initialOperation,
+    rewriteScope:
+      initialData?.rewriteScope ?? (initialOperation === "rewrite" ? "chapter" : undefined),
   });
 
   const [errors, setErrors] = useState<string[]>([]);
 
-  const placeholders = PLACEHOLDER_HELP[form.operation] || [];
+  const placeholders = (() => {
+    if (form.operation === "rewrite") {
+      if (form.rewriteScope === "paragraph") {
+        return [
+          { placeholder: "{{paragraphContent}}", description: "Paragraph to rewrite" },
+          {
+            placeholder: "{{previousParagraphs}}",
+            description: "Previous paragraphs for context (array)",
+          },
+          {
+            placeholder: "{{paragraphContextCount}}",
+            description: "Number of previous paragraphs provided",
+          },
+          { placeholder: "{{chapterTitle}}", description: "Current chapter title" },
+          { placeholder: "{{chapterSummary}}", description: "Current chapter summary" },
+          { placeholder: "{{chapterNotes}}", description: "Current chapter notes" },
+          { placeholder: "{{chapterTags}}", description: "Current chapter tags" },
+          { placeholder: "{{customInstructions}}", description: "User-provided instructions" },
+        ];
+      }
+      return [
+        { placeholder: "{{chapterContent}}", description: "Full content of the chapter" },
+        { placeholder: "{{chapterTitle}}", description: "Current chapter title" },
+        { placeholder: "{{chapterSummary}}", description: "Current chapter summary" },
+        { placeholder: "{{chapterNotes}}", description: "Current chapter notes" },
+        { placeholder: "{{chapterTags}}", description: "Current chapter tags" },
+        {
+          placeholder: "{{previousChapterSummaries}}",
+          description: "Summaries of previous chapters (array)",
+        },
+        {
+          placeholder: "{{previousChapterText}}",
+          description: "Text of the previous chapter (truncated)",
+        },
+        { placeholder: "{{contextWordLimit}}", description: "Word limit for previous chapter" },
+        { placeholder: "{{customInstructions}}", description: "User-provided instructions" },
+      ];
+    }
+    return PLACEHOLDER_HELP[form.operation] || [];
+  })();
 
   const validate = (): string[] => {
     const errs: string[] = [];
@@ -196,6 +234,27 @@ export function ChapterPromptEditor({
           </Select>
         </div>
       </div>
+
+      {form.operation === "rewrite" && (
+        <div className="space-y-2">
+          <Label htmlFor="prompt-scope">Rewrite Scope</Label>
+          <Select
+            value={form.rewriteScope ?? "chapter"}
+            onValueChange={(val) =>
+              setForm((prev) => ({ ...prev, rewriteScope: val as "chapter" | "paragraph" }))
+            }
+            disabled={isEditing || isBuiltIn}
+          >
+            <SelectTrigger id="prompt-scope">
+              <SelectValue placeholder="Select scope" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="chapter">Chapter</SelectItem>
+              <SelectItem value="paragraph">Paragraph</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      )}
 
       <div className="space-y-2">
         <Label htmlFor="prompt-system">System Prompt</Label>

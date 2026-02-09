@@ -7,14 +7,22 @@
  */
 
 import type { StoreApi } from "zustand";
-import { rewriteChapter } from "@/lib/ai/features/rewrite/service";
+import { toast } from "@/hooks/use-toast";
+import { getI18nInstance } from "@/i18n/config";
+import { rewriteChapter, rewriteParagraph } from "@/lib/ai/features/rewrite/service";
 import { createLogger } from "@/lib/logging";
+import {
+  getPreviousParagraphs,
+  replaceParagraphAtIndex,
+  splitRewrittenParagraphs,
+} from "@/lib/rewriteParagraphs";
 import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 const logger = createLogger({ feature: "RewriteSlice", namespace: "Store" });
+const t = getI18nInstance().t.bind(getI18nInstance());
 
 // ==================== Types ====================
 
@@ -39,6 +47,11 @@ export interface RewriteSlice {
   rewriteChapterId: string | null;
   rewriteError: string | null;
   rewriteAbortController: AbortController | null;
+  paragraphRewriteInProgress: boolean;
+  paragraphRewriteChapterId: string | null;
+  paragraphRewriteParagraphIndex: number | null;
+  paragraphRewriteError: string | null;
+  paragraphRewriteAbortController: AbortController | null;
 
   // Actions - Configuration
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
@@ -55,6 +68,13 @@ export interface RewriteSlice {
   // Actions - Processing
   startRewrite: (chapterId: string, promptId: string, customInstructions?: string) => Promise<void>;
   cancelRewrite: () => void;
+  startParagraphRewrite: (
+    chapterId: string,
+    paragraphIndex: number,
+    promptId: string,
+    customInstructions?: string,
+  ) => Promise<void>;
+  cancelParagraphRewrite: () => void;
 }
 
 // ==================== Initial State ====================
@@ -64,6 +84,11 @@ export const initialRewriteState = {
   rewriteChapterId: null,
   rewriteError: null,
   rewriteAbortController: null,
+  paragraphRewriteInProgress: false,
+  paragraphRewriteChapterId: null,
+  paragraphRewriteParagraphIndex: null,
+  paragraphRewriteError: null,
+  paragraphRewriteAbortController: null,
 };
 
 // ==================== Slice Creator ====================
@@ -217,6 +242,111 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       rewriteInProgress: false,
       rewriteChapterId: null,
       rewriteAbortController: null,
+    });
+  },
+
+  startParagraphRewrite: async (chapterId, paragraphIndex, promptId, customInstructions) => {
+    const state = get();
+
+    const chapter = state.chapters.find((c) => c.id === chapterId);
+    if (!chapter || !chapter.rewrittenText) {
+      logger.error("Chapter or rewritten text not found.", { chapterId });
+      return;
+    }
+
+    const prompt = state.aiChapterDetectionConfig.prompts.find((p) => p.id === promptId);
+    if (!prompt) {
+      logger.error("Prompt not found.", { promptId });
+      return;
+    }
+    if (prompt.operation !== "rewrite" || prompt.rewriteScope !== "paragraph") {
+      logger.error("Prompt is not a paragraph rewrite prompt.", { promptId });
+      return;
+    }
+    if (!prompt.systemPrompt?.trim() || !prompt.userPromptTemplate?.trim()) {
+      logger.error("Rewrite prompt missing systemPrompt or userPromptTemplate.", { promptId });
+      return;
+    }
+
+    const paragraphs = splitRewrittenParagraphs(chapter.rewrittenText);
+    const paragraph = paragraphs[paragraphIndex];
+    if (!paragraph) {
+      logger.error("Paragraph index out of bounds.", { paragraphIndex });
+      return;
+    }
+
+    const previousParagraphs = getPreviousParagraphs(
+      paragraphs,
+      paragraphIndex,
+      state.aiChapterDetectionConfig.paragraphContextCount,
+    );
+
+    const abortController = new AbortController();
+
+    set({
+      paragraphRewriteInProgress: true,
+      paragraphRewriteChapterId: chapterId,
+      paragraphRewriteParagraphIndex: paragraphIndex,
+      paragraphRewriteError: null,
+      paragraphRewriteAbortController: abortController,
+    });
+
+    try {
+      const result = await rewriteParagraph({
+        chapter,
+        paragraphContent: paragraph,
+        previousParagraphs,
+        paragraphContextCount: state.aiChapterDetectionConfig.paragraphContextCount,
+        prompt,
+        providerId: state.aiChapterDetectionConfig.selectedProviderId,
+        model: state.aiChapterDetectionConfig.selectedModel,
+        signal: abortController.signal,
+        includeParagraphContext: state.aiChapterDetectionConfig.includeParagraphContext,
+        customInstructions,
+      });
+
+      set({
+        paragraphRewriteInProgress: false,
+        paragraphRewriteChapterId: null,
+        paragraphRewriteParagraphIndex: null,
+        paragraphRewriteAbortController: null,
+      });
+
+      const updatedText = replaceParagraphAtIndex(
+        chapter.rewrittenText,
+        paragraphIndex,
+        result.rewrittenText,
+      );
+      get().updateChapterRewrite(chapterId, updatedText);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Unknown error";
+      logger.error("Paragraph rewrite failed.", { error });
+
+      set({
+        paragraphRewriteInProgress: false,
+        paragraphRewriteChapterId: null,
+        paragraphRewriteParagraphIndex: null,
+        paragraphRewriteError: message,
+        paragraphRewriteAbortController: null,
+      });
+
+      toast({
+        title: t("rewrite.paragraph.errorTitle", { defaultValue: "Paragraph rewrite failed" }),
+        description: message,
+        variant: "destructive",
+      });
+    }
+  },
+
+  cancelParagraphRewrite: () => {
+    const state = get();
+    state.paragraphRewriteAbortController?.abort();
+
+    set({
+      paragraphRewriteInProgress: false,
+      paragraphRewriteChapterId: null,
+      paragraphRewriteParagraphIndex: null,
+      paragraphRewriteAbortController: null,
     });
   },
 });

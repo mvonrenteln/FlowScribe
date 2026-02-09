@@ -27,6 +27,8 @@ describe("normalizeAIChapterDetectionConfig", () => {
     const result = normalizeAIChapterDetectionConfig(null);
     expect(result.prompts.find((p) => p.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id)).toBeTruthy();
     expect(result.activePromptId).toBe(DEFAULT_CHAPTER_DETECTION_PROMPT.id);
+    expect(result.includeParagraphContext).toBe(true);
+    expect(result.paragraphContextCount).toBe(2);
   });
 
   it("preserves custom prompts and built-in edits", () => {
@@ -42,6 +44,10 @@ describe("normalizeAIChapterDetectionConfig", () => {
       tagIds: [],
       prompts: [editedBuiltIn, customPrompt],
       activePromptId: "custom-1",
+      includeContext: true,
+      contextWordLimit: 500,
+      includeParagraphContext: true,
+      paragraphContextCount: 2,
     };
 
     const result = normalizeAIChapterDetectionConfig(config);
@@ -69,6 +75,8 @@ describe("normalizeAIChapterDetectionConfig", () => {
       activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
       includeContext: true,
       contextWordLimit: 500,
+      includeParagraphContext: true,
+      paragraphContextCount: 2,
     };
 
     const result = normalizeAIChapterDetectionConfig(config);
@@ -83,5 +91,29 @@ describe("normalizeAIChapterDetectionConfig", () => {
       ]),
     );
     expect(metadataIds.has("custom-metadata")).toBe(false);
+  });
+
+  it("defaults rewrite scope for rewrite prompts", () => {
+    const rewritePrompt = makeCustomPrompt({
+      id: "rewrite-1",
+      operation: "rewrite",
+      rewriteScope: undefined,
+    });
+    const config: AIChapterDetectionConfig = {
+      batchSize: 25,
+      minChapterLength: 5,
+      maxChapterLength: 40,
+      tagIds: [],
+      prompts: [rewritePrompt],
+      activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
+      includeContext: true,
+      contextWordLimit: 500,
+      includeParagraphContext: true,
+      paragraphContextCount: 2,
+    };
+
+    const result = normalizeAIChapterDetectionConfig(config);
+    const resolved = result.prompts.find((p) => p.id === "rewrite-1");
+    expect(resolved?.rewriteScope).toBe("chapter");
   });
 });

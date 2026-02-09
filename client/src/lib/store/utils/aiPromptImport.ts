@@ -18,6 +18,7 @@ const toUpdates = (item: PromptExportItem): Partial<AIPrompt> => ({
   quickAccess: item.quickAccess,
   isBuiltIn: item.isBuiltIn,
   operation: item.operation,
+  rewriteScope: item.rewriteScope,
   metadataType: item.metadataType,
 });
 
@@ -89,6 +90,7 @@ export const buildPromptImportPlan = (
         isDefault: false,
         quickAccess: Boolean(item.quickAccess),
         operation: item.operation,
+        rewriteScope: item.rewriteScope,
         metadataType: item.metadataType,
       },
     });

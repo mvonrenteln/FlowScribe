@@ -143,4 +143,25 @@ describe("buildPromptImportPlan", () => {
     expect(plan.creates).toHaveLength(0);
     expect(plan.updates).toHaveLength(2);
   });
+
+  it("preserves rewrite scope when importing chapter rewrite prompts", () => {
+    const existing = emptyByType();
+
+    const items = [
+      {
+        name: "Paragraph Refine",
+        type: "chapter-detect" as const,
+        operation: "rewrite" as const,
+        rewriteScope: "paragraph" as const,
+        systemPrompt: "System",
+        userPromptTemplate: "User",
+        isBuiltIn: false,
+        quickAccess: false,
+      },
+    ];
+
+    const plan = buildPromptImportPlan(existing, items);
+    expect(plan.creates).toHaveLength(1);
+    expect(plan.creates[0]?.data.rewriteScope).toBe("paragraph");
+  });
 });

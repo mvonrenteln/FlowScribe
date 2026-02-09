@@ -48,6 +48,10 @@ describe("chapterMetadataActions", () => {
       selectSegmentsInChapter: vi.fn().mockReturnValue(mockSegments),
       aiChapterDetectionConfig: {
         prompts: [mockPrompt],
+        includeContext: true,
+        contextWordLimit: 500,
+        includeParagraphContext: true,
+        paragraphContextCount: 2,
       },
       updateChapter: vi.fn(),
     };

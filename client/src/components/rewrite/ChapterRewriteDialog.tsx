@@ -33,7 +33,9 @@ interface ChapterRewriteDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   chapterId: string;
-  onStartRewrite: () => void;
+  onStartRewrite?: () => void;
+  mode?: "chapter" | "paragraph";
+  paragraphIndex?: number;
 }
 
 export function ChapterRewriteDialog({
@@ -41,19 +43,27 @@ export function ChapterRewriteDialog({
   onOpenChange,
   chapterId,
   onStartRewrite,
+  mode = "chapter",
+  paragraphIndex,
 }: ChapterRewriteDialogProps) {
   const chapterDetectionConfig = useTranscriptStore((s) => s.aiChapterDetectionConfig);
   const chapter = useTranscriptStore((s) => s.chapters.find((item) => item.id === chapterId));
-  const prompts = useMemo(
-    () =>
-      chapterDetectionConfig.prompts.filter(
-        (prompt) => prompt.type === "chapter-detect" && prompt.operation === "rewrite",
-      ),
-    [chapterDetectionConfig.prompts],
-  );
+  const prompts = useMemo(() => {
+    const scope = mode === "paragraph" ? "paragraph" : "chapter";
+    return chapterDetectionConfig.prompts.filter(
+      (prompt) =>
+        prompt.type === "chapter-detect" &&
+        prompt.operation === "rewrite" &&
+        (prompt.rewriteScope ?? "chapter") === scope,
+    );
+  }, [chapterDetectionConfig.prompts, mode]);
   const startRewrite = useTranscriptStore((s) => s.startRewrite);
+  const startParagraphRewrite = useTranscriptStore((s) => s.startParagraphRewrite);
   const isProcessing = useTranscriptStore((s) => s.rewriteInProgress);
   const processingChapterId = useTranscriptStore((s) => s.rewriteChapterId);
+  const paragraphProcessing = useTranscriptStore((s) => s.paragraphRewriteInProgress);
+  const paragraphProcessingChapterId = useTranscriptStore((s) => s.paragraphRewriteChapterId);
+  const paragraphProcessingIndex = useTranscriptStore((s) => s.paragraphRewriteParagraphIndex);
   const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
   const { t } = useTranslation();
@@ -119,7 +129,12 @@ export function ChapterRewriteDialog({
     }
   }, [open, selectedPromptId, defaultPromptId, prompts]);
 
-  const isProcessingThis = isProcessing && processingChapterId === chapterId;
+  const isProcessingThis =
+    mode === "paragraph"
+      ? paragraphProcessing &&
+        paragraphProcessingChapterId === chapterId &&
+        paragraphProcessingIndex === paragraphIndex
+      : isProcessing && processingChapterId === chapterId;
 
   const handleStart = useCallback(() => {
     if (!selectedPromptId) return;
@@ -130,11 +145,16 @@ export function ChapterRewriteDialog({
       selectedModel,
     });
 
-    // Start rewrite to set processing state
-    startRewrite(chapterId, selectedPromptId, customInstructions);
+    if (mode === "paragraph") {
+      if (paragraphIndex === undefined || paragraphIndex === null) return;
+      startParagraphRewrite(chapterId, paragraphIndex, selectedPromptId, customInstructions);
+    } else {
+      // Start rewrite to set processing state
+      startRewrite(chapterId, selectedPromptId, customInstructions);
+      // Close dialog and open view - parent component handles the transition
+      onStartRewrite?.();
+    }
 
-    // Close dialog and open view - parent component handles the transition
-    onStartRewrite();
     onOpenChange(false);
   }, [
     selectedPromptId,
@@ -143,9 +163,12 @@ export function ChapterRewriteDialog({
     chapterId,
     updateRewriteConfig,
     startRewrite,
+    startParagraphRewrite,
     onStartRewrite,
     onOpenChange,
     customInstructions,
+    mode,
+    paragraphIndex,
   ]);
 
   return (
@@ -154,10 +177,14 @@ export function ChapterRewriteDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
-            Rewrite Chapter
+            {mode === "paragraph"
+              ? t("rewrite.dialog.paragraph.title")
+              : t("rewrite.dialog.chapter.title")}
           </DialogTitle>
           <DialogDescription>
-            Select a prompt and start reformulating the chapter.
+            {mode === "paragraph"
+              ? t("rewrite.dialog.paragraph.description")
+              : t("rewrite.dialog.chapter.description")}
           </DialogDescription>
         </DialogHeader>
 

@@ -28,12 +28,16 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
   activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
   includeContext: true,
   contextWordLimit: 500,
+  includeParagraphContext: true,
+  paragraphContextCount: 2,
 };
 
 const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
   ...prompt,
   type: "chapter-detect",
   operation: prompt.operation ?? "detection",
+  rewriteScope:
+    prompt.operation === "rewrite" ? (prompt.rewriteScope ?? "chapter") : prompt.rewriteScope,
   isBuiltIn: prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id || BUILTIN_PROMPT_IDS.has(prompt.id),
   isDefault:
     prompt.id === DEFAULT_CHAPTER_DETECTION_PROMPT.id ? true : Boolean(prompt.isDefault ?? false),
@@ -224,6 +228,12 @@ export const normalizeAIChapterDetectionConfig = (
         ? persistedRewriteConfig.contextWordLimit
         : 500;
 
+  const includeParagraphContext =
+    typeof config?.includeParagraphContext === "boolean" ? config.includeParagraphContext : true;
+
+  const paragraphContextCount =
+    typeof config?.paragraphContextCount === "number" ? config.paragraphContextCount : 2;
+
   return {
     batchSize: typeof config?.batchSize === "number" ? config.batchSize : base.batchSize,
     minChapterLength:
@@ -241,5 +251,7 @@ export const normalizeAIChapterDetectionConfig = (
     activePromptId,
     includeContext,
     contextWordLimit,
+    includeParagraphContext,
+    paragraphContextCount,
   };
 };

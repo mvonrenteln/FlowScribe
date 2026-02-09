@@ -35,17 +35,29 @@
       "wordCount": "{{rewritten}} words • {{original}} words original"
     },
     "dialog": {
+      "chapter": {
+        "title": "Kapitel neu formulieren",
+        "description": "Prompt auswählen und das Kapitel neu formulieren."
+      },
+      "paragraph": {
+        "title": "Abschnitt verfeinern",
+        "description": "Prompt auswählen und diesen Abschnitt verfeinern."
+      },
       "customInstructions": {
         "label": "Zusätzliche Anweisungen (optional)",
         "placeholder": "Zusätzliche Hinweise, die in den Prompt eingefügt werden"
       }
     },
     "actions": {
-      "cancel": "Cancel",
-      "save": "Save",
-      "reject": "Reject",
-      "regenerate": "Regenerate",
-      "accept": "Accept"
+      "cancel": "Abbrechen",
+      "save": "Speichern",
+      "refine": "Abschnitt verfeinern",
+      "reject": "Ablehnen",
+      "regenerate": "Neu generieren",
+      "accept": "Annehmen"
+    },
+    "paragraph": {
+      "errorTitle": "Abschnitt konnte nicht neu formuliert werden"
     }
   },
   "import": {

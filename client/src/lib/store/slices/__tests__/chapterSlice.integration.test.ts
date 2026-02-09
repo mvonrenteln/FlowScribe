@@ -63,6 +63,10 @@ const getBaseAIChapterDetectionConfig = () => ({
   tagIds: [],
   enableAutoDetection: false,
   confidenceThreshold: 0.7,
+  includeContext: true,
+  contextWordLimit: 500,
+  includeParagraphContext: true,
+  paragraphContextCount: 2,
 });
 
 // Mock store setup

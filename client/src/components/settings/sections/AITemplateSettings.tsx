@@ -353,6 +353,13 @@ function PromptCard({
                     Rewrite
                   </Badge>
                 )}
+                {promptItem.type === "chapter-detect" &&
+                  promptItem.operation === "rewrite" &&
+                  promptItem.rewriteScope === "paragraph" && (
+                    <Badge variant="outline" className="text-xs">
+                      Paragraph
+                    </Badge>
+                  )}
                 {promptItem.isBuiltIn && (
                   <Badge variant="outline" className="text-xs">
                     Built-in
@@ -507,6 +514,9 @@ export function AITemplateSettings() {
       if ("operation" in data) {
         promptData.operation = data.operation;
       }
+      if ("rewriteScope" in data) {
+        promptData.rewriteScope = data.rewriteScope;
+      }
 
       if (data.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -540,6 +550,9 @@ export function AITemplateSettings() {
 
       if ("operation" in data) {
         updates.operation = data.operation;
+      }
+      if ("rewriteScope" in data) {
+        updates.rewriteScope = data.rewriteScope;
       }
 
       if (activeTab === "speaker") {
@@ -613,6 +626,7 @@ export function AITemplateSettings() {
         isBuiltIn: false,
         quickAccess: false,
         ...(promptItem.operation && { operation: promptItem.operation }),
+        ...(promptItem.rewriteScope && { rewriteScope: promptItem.rewriteScope }),
       };
 
       if (promptItem.type === "speaker") {
@@ -868,6 +882,58 @@ export function AITemplateSettings() {
                     onChange={(e) =>
                       useTranscriptStore.getState().updateChapterDetectionConfig({
                         contextWordLimit: parseInt(e.target.value, 10) || 500,
+                      })
+                    }
+                    className="h-8 w-24 ml-auto"
+                  />
+                </div>
+              )}
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="include-paragraph-context" className="text-sm font-medium">
+                    Include Previous Paragraph Context
+                  </Label>
+                  <p className="text-xs text-muted-foreground">
+                    Provide the previous rewritten paragraphs when refining a single paragraph.
+                  </p>
+                </div>
+                <Checkbox
+                  id="include-paragraph-context"
+                  checked={
+                    useTranscriptStore.getState().aiChapterDetectionConfig.includeParagraphContext
+                  }
+                  onCheckedChange={(checked) =>
+                    useTranscriptStore
+                      .getState()
+                      .updateChapterDetectionConfig({ includeParagraphContext: !!checked })
+                  }
+                />
+              </div>
+
+              {useTranscriptStore.getState().aiChapterDetectionConfig.includeParagraphContext && (
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <Label htmlFor="paragraph-context-count" className="text-xs font-medium">
+                      Paragraph Context Count
+                    </Label>
+                    <span className="text-xs text-muted-foreground">
+                      {useTranscriptStore.getState().aiChapterDetectionConfig.paragraphContextCount}{" "}
+                      paragraphs
+                    </span>
+                  </div>
+                  <Input
+                    id="paragraph-context-count"
+                    type="number"
+                    min={1}
+                    max={10}
+                    step={1}
+                    value={
+                      useTranscriptStore.getState().aiChapterDetectionConfig.paragraphContextCount
+                    }
+                    onChange={(e) =>
+                      useTranscriptStore.getState().updateChapterDetectionConfig({
+                        paragraphContextCount: parseInt(e.target.value, 10) || 2,
                       })
                     }
                     className="h-8 w-24 ml-auto"
