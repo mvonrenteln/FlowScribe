@@ -53,7 +53,7 @@ export interface RewriteSlice {
   toggleQuickAccessRewritePrompt: (id: string) => void;
 
   // Actions - Processing
-  startRewrite: (chapterId: string, promptId: string) => Promise<void>;
+  startRewrite: (chapterId: string, promptId: string, customInstructions?: string) => Promise<void>;
   cancelRewrite: () => void;
 }
 
@@ -129,7 +129,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
   },
 
   // Processing
-  startRewrite: async (chapterId, promptId) => {
+  startRewrite: async (chapterId, promptId, customInstructions) => {
     const state = get();
 
     // Find chapter
@@ -179,6 +179,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         signal: abortController.signal,
         includeContext: state.aiChapterDetectionConfig.includeContext,
         contextWordLimit: state.aiChapterDetectionConfig.contextWordLimit,
+        customInstructions: customInstructions,
       });
 
       // Clear processing state first

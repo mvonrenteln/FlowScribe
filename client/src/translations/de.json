@@ -34,6 +34,12 @@
       "waiting": "Waiting for rewrite...",
       "wordCount": "{{rewritten}} words • {{original}} words original"
     },
+    "dialog": {
+      "customInstructions": {
+        "label": "Zusätzliche Anweisungen (optional)",
+        "placeholder": "Zusätzliche Hinweise, die in den Prompt eingefügt werden"
+      }
+    },
     "actions": {
       "cancel": "Cancel",
       "save": "Save",
