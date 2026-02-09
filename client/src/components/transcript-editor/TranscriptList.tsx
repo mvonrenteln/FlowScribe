@@ -240,25 +240,36 @@ function TranscriptListComponent({
     return hidden;
   }, [rewrittenChapters, segmentIndexById, segments]);
 
+  const visibleFilteredSegments = useMemo(
+    () => filteredSegments.filter((segment) => !hiddenSegmentIds.has(segment.id)),
+    [filteredSegments, hiddenSegmentIds],
+  );
+  const visibleFilteredIndexById = useMemo(
+    () => indexById(visibleFilteredSegments),
+    [visibleFilteredSegments],
+  );
+
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
-  let segmentsToRender = filteredSegments;
+  let segmentsToRender = visibleFilteredSegments;
   // Determine anchor: prefer activeSegmentId, then selectedSegmentId, then last visible segment
   const anchorId =
-    (activeSegmentId as string | undefined) ??
-    (selectedSegmentId as string | undefined) ??
-    (filteredSegments.length > 0 ? filteredSegments[filteredSegments.length - 1].id : undefined);
+    (activeSegmentId && visibleFilteredIndexById.has(activeSegmentId) && activeSegmentId) ||
+    (selectedSegmentId && visibleFilteredIndexById.has(selectedSegmentId) && selectedSegmentId) ||
+    (visibleFilteredSegments.length > 0
+      ? visibleFilteredSegments[visibleFilteredSegments.length - 1].id
+      : undefined);
 
-  const activeIndex = anchorId ? (filteredIndexById.get(anchorId) ?? -1) : -1;
+  const activeIndex = anchorId ? (visibleFilteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {
     // fallback: last N segments so user stays near the end instead of jumping elsewhere
-    const start = Math.max(0, filteredSegments.length - DEV_SLICE_SIZE);
-    segmentsToRender = filteredSegments.slice(start, filteredSegments.length);
+    const start = Math.max(0, visibleFilteredSegments.length - DEV_SLICE_SIZE);
+    segmentsToRender = visibleFilteredSegments.slice(start, visibleFilteredSegments.length);
   } else {
     const half = Math.floor(DEV_SLICE_SIZE / 2);
     const start = Math.max(0, activeIndex - half);
-    const end = Math.min(filteredSegments.length, start + DEV_SLICE_SIZE);
-    segmentsToRender = filteredSegments.slice(start, end);
+    const end = Math.min(visibleFilteredSegments.length, start + DEV_SLICE_SIZE);
+    segmentsToRender = visibleFilteredSegments.slice(start, end);
   }
 
   // Simple "virtualization": If there are many segments, we could limit rendering.
@@ -271,7 +282,7 @@ function TranscriptListComponent({
         className="max-w-4xl mx-auto p-4 space-y-2"
         data-transcript-container="true"
       >
-        {filteredSegments.length === 0 ? (
+        {visibleFilteredSegments.length === 0 ? (
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-lg font-medium mb-2">{emptyState.title}</p>
             <p className="text-sm">{emptyState.description}</p>
@@ -295,11 +306,6 @@ function TranscriptListComponent({
             const chapterSuggestionsForSegment = pendingChapterSuggestionsByStart.get(segment.id);
             const chapter = chapterByStartId.get(segment.id);
             const isChapterFocusTarget = chapter ? chapterFocusRequest === chapter.id : false;
-
-            // Check if this segment should be hidden (part of rewritten chapter)
-            if (hiddenSegmentIds.has(segment.id)) {
-              return null;
-            }
 
             // Check if we should show rewritten text for this chapter
             const displayMode = chapter
