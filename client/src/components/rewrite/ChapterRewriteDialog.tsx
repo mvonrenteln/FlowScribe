@@ -6,6 +6,7 @@
 
 import { Loader2, Sparkles } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,6 +24,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Textarea } from "@/components/ui/textarea";
 import { initializeSettings } from "@/lib/settings/settingsStorage";
 import { useTranscriptStore } from "@/lib/store";
 import type { AIPrompt } from "@/lib/store/types";
@@ -54,6 +56,8 @@ export function ChapterRewriteDialog({
   const processingChapterId = useTranscriptStore((s) => s.rewriteChapterId);
   const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
+  const { t } = useTranslation();
+
   // Local state
   const defaultPromptId = useMemo(() => {
     if (
@@ -66,6 +70,7 @@ export function ChapterRewriteDialog({
   }, [chapter?.rewritePromptId, prompts]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
   const [settings] = useState(() => initializeSettings());
+  const [customInstructions, setCustomInstructions] = useState<string>("");
 
   // Provider/Model selection
   const defaultProviderId =
@@ -126,7 +131,7 @@ export function ChapterRewriteDialog({
     });
 
     // Start rewrite to set processing state
-    startRewrite(chapterId, selectedPromptId);
+    startRewrite(chapterId, selectedPromptId, customInstructions);
 
     // Close dialog and open view - parent component handles the transition
     onStartRewrite();
@@ -140,6 +145,7 @@ export function ChapterRewriteDialog({
     startRewrite,
     onStartRewrite,
     onOpenChange,
+    customInstructions,
   ]);
 
   return (
@@ -252,6 +258,18 @@ export function ChapterRewriteDialog({
               </Select>
             </div>
           )}
+          {/* Custom Instructions */}
+          <div className="space-y-2">
+            <Label htmlFor="custom-instructions" className="text-sm">
+              {t("rewrite.dialog.customInstructions.label")}
+            </Label>
+            <Textarea
+              id="custom-instructions"
+              value={customInstructions}
+              onChange={(e) => setCustomInstructions(e.target.value)}
+              placeholder={t("rewrite.dialog.customInstructions.placeholder")}
+            />
+          </div>
         </div>
 
         <DialogFooter>
