@@ -36,6 +36,32 @@ export interface RewriteChapterParams {
 }
 
 /**
+ * Parameters for reformulating a paragraph within a rewritten chapter.
+ */
+export interface RewriteParagraphParams {
+  /** Chapter containing the paragraph */
+  chapter: Chapter;
+  /** Paragraph text to rewrite */
+  paragraphContent: string;
+  /** Previous paragraphs for context */
+  previousParagraphs: string[];
+  /** Paragraph context count */
+  paragraphContextCount: number;
+  /** Rewrite prompt to use (must have operation='rewrite') */
+  prompt: AIPrompt;
+  /** AI provider ID (optional, uses default if not specified) */
+  providerId?: string;
+  /** Model to use (optional, uses provider default if not specified) */
+  model?: string;
+  /** Custom instructions to append to prompt */
+  customInstructions?: string;
+  /** Abort signal for cancellation */
+  signal?: AbortSignal;
+  /** Include paragraph context in prompt */
+  includeParagraphContext: boolean;
+}
+
+/**
  * Result of a rewrite operation.
  */
 export interface RewriteResult {

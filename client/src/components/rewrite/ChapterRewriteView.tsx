@@ -12,6 +12,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
+import { ChapterRewriteDialog } from "./ChapterRewriteDialog";
 import { RewrittenTextDisplay } from "./RewrittenTextDisplay";
 
 interface ChapterRewriteViewProps {
@@ -42,10 +43,17 @@ export function ChapterRewriteView({
   const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
   const cancelRewrite = useTranscriptStore((s) => s.cancelRewrite);
   const startRewrite = useTranscriptStore((s) => s.startRewrite);
+  const paragraphRewriteInProgress = useTranscriptStore((s) => s.paragraphRewriteInProgress);
+  const paragraphRewriteChapterId = useTranscriptStore((s) => s.paragraphRewriteChapterId);
+  const paragraphRewriteParagraphIndex = useTranscriptStore(
+    (s) => s.paragraphRewriteParagraphIndex,
+  );
 
   const [rewrittenText, setRewrittenText] = useState<string>("");
   const [promptId, setPromptId] = useState<string>("");
   const [isMounted, setIsMounted] = useState(false);
+  const [paragraphDialogOpen, setParagraphDialogOpen] = useState(false);
+  const [paragraphDialogIndex, setParagraphDialogIndex] = useState<number | null>(null);
 
   // Refs for focus management
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -190,6 +198,11 @@ export function ChapterRewriteView({
     startRewrite(chapterId, promptId);
   }, [chapterId, promptId, startRewrite]);
 
+  const handleRefineParagraph = useCallback((index: number) => {
+    setParagraphDialogIndex(index);
+    setParagraphDialogOpen(true);
+  }, []);
+
   if (!chapter || !isMounted) {
     return null;
   }
@@ -278,7 +291,15 @@ export function ChapterRewriteView({
                 </div>
               </div>
             ) : rewrittenText ? (
-              <RewrittenTextDisplay chapterId={chapterId} text={rewrittenText} />
+              <RewrittenTextDisplay
+                chapterId={chapterId}
+                text={rewrittenText}
+                onRefineParagraph={handleRefineParagraph}
+                refiningParagraphIndex={
+                  paragraphRewriteChapterId === chapterId ? paragraphRewriteParagraphIndex : null
+                }
+                refineDisabled={paragraphRewriteInProgress}
+              />
             ) : (
               <div className="flex h-full items-center justify-center">
                 <p className="text-sm text-muted-foreground">{t("rewrite.view.waiting")}</p>
@@ -287,6 +308,19 @@ export function ChapterRewriteView({
           </div>
         </div>
       </div>
+
+      <ChapterRewriteDialog
+        open={paragraphDialogOpen}
+        onOpenChange={(open) => {
+          setParagraphDialogOpen(open);
+          if (!open) {
+            setParagraphDialogIndex(null);
+          }
+        }}
+        chapterId={chapterId}
+        mode="paragraph"
+        paragraphIndex={paragraphDialogIndex ?? undefined}
+      />
 
       {/* Footer Actions */}
       <div className="flex items-center justify-between border-t border-border bg-muted/30 px-4 py-3">

@@ -55,6 +55,8 @@ const resetStore = () => {
       ],
       includeContext: true,
       contextWordLimit: 500,
+      includeParagraphContext: true,
+      paragraphContextCount: 2,
     },
   });
 };

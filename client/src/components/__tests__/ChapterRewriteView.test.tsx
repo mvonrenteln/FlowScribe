@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { ChapterRewriteView } from "@/components/rewrite/ChapterRewriteView";
@@ -42,6 +43,43 @@ const resetStore = () => {
     rewriteError: null,
     filteredSegmentIds: new Set(),
     filtersActive: false,
+    aiChapterDetectionConfig: {
+      batchSize: 100,
+      minChapterLength: 10,
+      maxChapterLength: 80,
+      tagIds: [],
+      selectedProviderId: undefined,
+      selectedModel: undefined,
+      activePromptId: "prompt-1",
+      prompts: [
+        {
+          id: "prompt-1",
+          name: "Chapter Prompt",
+          type: "chapter-detect",
+          operation: "rewrite",
+          rewriteScope: "chapter",
+          systemPrompt: "System",
+          userPromptTemplate: "User",
+          isBuiltIn: false,
+          quickAccess: false,
+        },
+        {
+          id: "prompt-2",
+          name: "Paragraph Prompt",
+          type: "chapter-detect",
+          operation: "rewrite",
+          rewriteScope: "paragraph",
+          systemPrompt: "System",
+          userPromptTemplate: "User",
+          isBuiltIn: false,
+          quickAccess: false,
+        },
+      ],
+      includeContext: true,
+      contextWordLimit: 500,
+      includeParagraphContext: true,
+      paragraphContextCount: 2,
+    },
   });
 };
 
@@ -159,5 +197,19 @@ describe("ChapterRewriteView", () => {
     expect(screen.getByText("Second segment.")).toBeInTheDocument();
     expect(screen.queryByText("Hello world.")).not.toBeInTheDocument();
     expect(screen.queryByText("Third segment.")).not.toBeInTheDocument();
+  });
+
+  it("opens paragraph rewrite dialog from the rewritten column", async () => {
+    const user = userEvent.setup();
+    render(
+      <I18nProvider>
+        <ChapterRewriteView chapterId="chapter-1" onClose={() => {}} />
+      </I18nProvider>,
+    );
+
+    const refineButton = screen.getByRole("button", { name: "Refine paragraph" });
+    await user.click(refineButton);
+
+    expect(screen.getByText("Refine Paragraph")).toBeInTheDocument();
   });
 });

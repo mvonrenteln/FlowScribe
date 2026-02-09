@@ -5,7 +5,7 @@
  * Follows the same UX pattern as TranscriptSegment (double-click to edit).
  */
 
-import { Check, X } from "lucide-react";
+import { Check, Loader2, Sparkles, X } from "lucide-react";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -22,6 +22,12 @@ interface RewrittenParagraphProps {
   onSelect?: () => void;
   /** Search matches to highlight */
   searchMatches?: Array<{ start: number; end: number; match: string }>;
+  /** Called when paragraph should be refined */
+  onRefine?: () => void;
+  /** Whether this paragraph is currently refining */
+  isRefining?: boolean;
+  /** Disable refine action */
+  refineDisabled?: boolean;
 }
 
 /**
@@ -66,6 +72,9 @@ export function RewrittenParagraph({
   isSelected = false,
   onSelect,
   searchMatches = [],
+  onRefine,
+  isRefining = false,
+  refineDisabled = false,
 }: RewrittenParagraphProps) {
   const { t } = useTranslation();
   const [isEditing, setIsEditing] = useState(false);
@@ -247,14 +256,37 @@ export function RewrittenParagraph({
         }
       }}
       className={cn(
-        "cursor-pointer rounded p-3 transition-colors",
+        "group cursor-pointer rounded p-3 transition-colors",
         "hover:bg-muted/30",
         isSelected && "bg-muted/50",
       )}
     >
-      <p className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
-        {searchMatches.length > 0 ? renderTextWithHighlights(text, searchMatches) : text}
-      </p>
+      <div className="flex items-start justify-between gap-2">
+        <p className="whitespace-pre-wrap font-sans text-sm leading-relaxed text-foreground">
+          {searchMatches.length > 0 ? renderTextWithHighlights(text, searchMatches) : text}
+        </p>
+        {onRefine && (
+          <Button
+            type="button"
+            size="icon"
+            variant="ghost"
+            className="h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onRefine();
+            }}
+            disabled={refineDisabled || isRefining}
+            aria-label={t("rewrite.actions.refine")}
+          >
+            {isRefining ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Sparkles className="h-4 w-4" />
+            )}
+          </Button>
+        )}
+      </div>
     </div>
   );
 }

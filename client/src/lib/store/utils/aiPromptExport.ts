@@ -4,6 +4,7 @@ export interface PromptExportItem {
   name: string;
   type: PromptType;
   operation?: "detection" | "rewrite" | "metadata";
+  rewriteScope?: "chapter" | "paragraph";
   metadataType?: "title" | "summary" | "notes";
   systemPrompt: string;
   userPromptTemplate: string;
@@ -20,6 +21,7 @@ const toExportItem = (prompt: AIPrompt): PromptExportItem => ({
   name: prompt.name,
   type: prompt.type,
   operation: prompt.operation,
+  rewriteScope: prompt.rewriteScope,
   metadataType: prompt.metadataType,
   systemPrompt: prompt.systemPrompt,
   userPromptTemplate: prompt.userPromptTemplate,

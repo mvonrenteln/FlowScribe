@@ -163,6 +163,7 @@ export const BUILTIN_REWRITE_SUMMARIZE: Omit<ChapterPrompt, "id"> = {
   name: "Summarize",
   type: "chapter-detect",
   operation: "rewrite",
+  rewriteScope: "chapter",
   systemPrompt: REWRITE_SYSTEM_PROMPT,
   userPromptTemplate: `# Context
 
@@ -217,6 +218,7 @@ export const BUILTIN_REWRITE_NARRATIVE: Omit<ChapterPrompt, "id"> = {
   name: "Narrative Style",
   type: "chapter-detect",
   operation: "rewrite",
+  rewriteScope: "chapter",
   systemPrompt: REWRITE_SYSTEM_PROMPT,
   userPromptTemplate: `# Context
 
@@ -266,11 +268,49 @@ Transform into narrative form:
 };
 
 /**
+ * Built-in Paragraph Refine Prompt
+ */
+export const BUILTIN_REWRITE_PARAGRAPH_REFINE: Omit<ChapterPrompt, "id"> = {
+  name: "Refine Paragraph",
+  type: "chapter-detect",
+  operation: "rewrite",
+  rewriteScope: "paragraph",
+  systemPrompt: REWRITE_SYSTEM_PROMPT,
+  userPromptTemplate: `# Context
+
+{{#if previousParagraphs}}
+## Previous Paragraphs (for continuity):
+{{#each previousParagraphs}}
+- {{this}}
+{{/each}}
+{{/if}}
+
+# Paragraph
+
+{{paragraphContent}}
+
+# Task
+
+Rewrite the paragraph with improved clarity and flow:
+- Preserve the original meaning and facts
+- Keep it to a single paragraph
+- Maintain the surrounding context and style
+
+{{#if customInstructions}}
+## Additional Instructions:
+{{customInstructions}}
+{{/if}}`,
+  isBuiltIn: true,
+  quickAccess: false,
+};
+
+/**
  * All built-in rewrite prompts
  */
 export const BUILTIN_REWRITE_PROMPTS = [
   BUILTIN_REWRITE_SUMMARIZE,
   BUILTIN_REWRITE_NARRATIVE,
+  BUILTIN_REWRITE_PARAGRAPH_REFINE,
 ] as const;
 
 /**

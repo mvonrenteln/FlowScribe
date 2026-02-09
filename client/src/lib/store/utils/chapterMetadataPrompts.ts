@@ -8,6 +8,7 @@
 import {
   BUILTIN_NOTES_GENERATION,
   BUILTIN_REWRITE_NARRATIVE,
+  BUILTIN_REWRITE_PARAGRAPH_REFINE,
   BUILTIN_REWRITE_SUMMARIZE,
   BUILTIN_SUMMARY_GENERATION,
   BUILTIN_TITLE_SUGGESTION,
@@ -19,6 +20,7 @@ export const BUILTIN_SUMMARY_GENERATION_ID = "builtin-chapter-summary-generation
 export const BUILTIN_NOTES_GENERATION_ID = "builtin-chapter-notes-generation";
 export const BUILTIN_REWRITE_SUMMARIZE_ID = "builtin-chapter-rewrite-summarize";
 export const BUILTIN_REWRITE_NARRATIVE_ID = "builtin-chapter-rewrite-narrative";
+export const BUILTIN_REWRITE_PARAGRAPH_REFINE_ID = "builtin-chapter-rewrite-paragraph-refine";
 
 /**
  * Built-in metadata prompts with stable IDs compatible with AIPrompt interface.
@@ -48,6 +50,11 @@ export const BUILTIN_METADATA_PROMPTS: AIPrompt[] = [
   {
     ...BUILTIN_REWRITE_NARRATIVE,
     id: BUILTIN_REWRITE_NARRATIVE_ID,
+    type: "chapter-detect",
+  } as AIPrompt,
+  {
+    ...BUILTIN_REWRITE_PARAGRAPH_REFINE,
+    id: BUILTIN_REWRITE_PARAGRAPH_REFINE_ID,
     type: "chapter-detect",
   } as AIPrompt,
 ];

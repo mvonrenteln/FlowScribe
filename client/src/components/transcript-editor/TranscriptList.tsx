@@ -79,6 +79,11 @@ function TranscriptListComponent({
 
   // Get chapter display modes for rewritten text
   const chapterDisplayModes = useTranscriptStore((s) => s.chapterDisplayModes);
+  const paragraphRewriteInProgress = useTranscriptStore((s) => s.paragraphRewriteInProgress);
+  const paragraphRewriteChapterId = useTranscriptStore((s) => s.paragraphRewriteChapterId);
+  const paragraphRewriteParagraphIndex = useTranscriptStore(
+    (s) => s.paragraphRewriteParagraphIndex,
+  );
 
   // Rewrite dialog and view state - consolidated into single state object
   const [rewriteState, setRewriteState] = useState<{
@@ -86,11 +91,15 @@ function TranscriptListComponent({
     viewOpen: boolean;
     chapterId: string | null;
     triggerElement: HTMLElement | null;
+    mode: "chapter" | "paragraph";
+    paragraphIndex: number | null;
   }>({
     dialogOpen: false,
     viewOpen: false,
     chapterId: null,
     triggerElement: null,
+    mode: "chapter",
+    paragraphIndex: null,
   });
 
   const handleRewriteChapter = (chapterId: string) => {
@@ -99,6 +108,8 @@ function TranscriptListComponent({
       viewOpen: false,
       chapterId,
       triggerElement: document.activeElement as HTMLElement,
+      mode: "chapter",
+      paragraphIndex: null,
     });
   };
 
@@ -116,6 +127,19 @@ function TranscriptListComponent({
       viewOpen: false,
       chapterId: null,
       triggerElement: null,
+      mode: "chapter",
+      paragraphIndex: null,
+    });
+  };
+
+  const handleRefineParagraph = (chapterId: string, paragraphIndex: number) => {
+    setRewriteState({
+      dialogOpen: true,
+      viewOpen: false,
+      chapterId,
+      triggerElement: document.activeElement as HTMLElement,
+      mode: "paragraph",
+      paragraphIndex,
     });
   };
 
@@ -317,6 +341,13 @@ function TranscriptListComponent({
                     text={chapter.rewrittenText}
                     searchQuery={searchQuery}
                     isRegexSearch={isRegexSearch}
+                    onRefineParagraph={(index) => handleRefineParagraph(chapter.id, index)}
+                    refiningParagraphIndex={
+                      paragraphRewriteChapterId === chapter.id
+                        ? paragraphRewriteParagraphIndex
+                        : null
+                    }
+                    refineDisabled={paragraphRewriteInProgress}
                   />
                 ) : (
                   <TranscriptSegment
@@ -425,7 +456,9 @@ function TranscriptListComponent({
           open={rewriteState.dialogOpen}
           onOpenChange={(open) => setRewriteState((prev) => ({ ...prev, dialogOpen: open }))}
           chapterId={rewriteState.chapterId}
-          onStartRewrite={handleStartRewrite}
+          onStartRewrite={rewriteState.mode === "chapter" ? handleStartRewrite : undefined}
+          mode={rewriteState.mode}
+          paragraphIndex={rewriteState.paragraphIndex ?? undefined}
         />
       )}
 

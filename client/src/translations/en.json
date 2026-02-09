@@ -88,6 +88,14 @@
       "wordCount": "{{rewritten}} words • {{original}} words original"
     },
     "dialog": {
+      "chapter": {
+        "title": "Rewrite Chapter",
+        "description": "Select a prompt and start reformulating the chapter."
+      },
+      "paragraph": {
+        "title": "Refine Paragraph",
+        "description": "Select a prompt and refine this paragraph."
+      },
       "customInstructions": {
         "label": "Additional instructions (optional)",
         "placeholder": "Additional notes to include in the prompt"
@@ -96,9 +104,13 @@
     "actions": {
       "cancel": "Cancel",
       "save": "Save",
+      "refine": "Refine paragraph",
       "reject": "Reject",
       "regenerate": "Regenerate",
       "accept": "Accept"
+    },
+    "paragraph": {
+      "errorTitle": "Paragraph rewrite failed"
     }
   },
   "import": {

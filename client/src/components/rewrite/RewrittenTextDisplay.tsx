@@ -6,6 +6,7 @@
  */
 
 import { useCallback, useMemo, useState } from "react";
+import { splitRewrittenParagraphs } from "@/lib/rewriteParagraphs";
 import { createSearchRegex, findMatchesInText } from "@/lib/searchUtils";
 import { useTranscriptStore } from "@/lib/store";
 import { RewrittenParagraph } from "./RewrittenParagraph";
@@ -19,6 +20,12 @@ interface RewrittenTextDisplayProps {
   searchQuery?: string;
   /** Whether to use regex search */
   isRegexSearch?: boolean;
+  /** Called when user wants to refine a paragraph */
+  onRefineParagraph?: (index: number) => void;
+  /** Paragraph index currently refining */
+  refiningParagraphIndex?: number | null;
+  /** Disable refine actions */
+  refineDisabled?: boolean;
 }
 
 export function RewrittenTextDisplay({
@@ -26,12 +33,15 @@ export function RewrittenTextDisplay({
   text,
   searchQuery = "",
   isRegexSearch = false,
+  onRefineParagraph,
+  refiningParagraphIndex = null,
+  refineDisabled = false,
 }: RewrittenTextDisplayProps) {
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const updateChapterRewrite = useTranscriptStore((s) => s.updateChapterRewrite);
 
   // Split text into paragraphs by double newline
-  const paragraphs = text.split(/\n\n+/).filter((p) => p.trim().length > 0);
+  const paragraphs = splitRewrittenParagraphs(text);
 
   // Build search regex
   const searchRegex = useMemo(() => {
@@ -76,6 +86,9 @@ export function RewrittenTextDisplay({
           isSelected={selectedParagraphIndex === index}
           onSelect={() => setSelectedParagraphIndex(index)}
           searchMatches={paragraphMatches[index] || []}
+          onRefine={onRefineParagraph ? () => onRefineParagraph(index) : undefined}
+          isRefining={refiningParagraphIndex === index}
+          refineDisabled={refineDisabled}
         />
       ))}
     </div>

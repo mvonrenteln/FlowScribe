@@ -232,6 +232,11 @@ export interface InitialStoreState {
   rewriteChapterId: string | null;
   rewriteError: string | null;
   rewriteAbortController: AbortController | null;
+  paragraphRewriteInProgress: boolean;
+  paragraphRewriteChapterId: string | null;
+  paragraphRewriteParagraphIndex: number | null;
+  paragraphRewriteError: string | null;
+  paragraphRewriteAbortController: AbortController | null;
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: string[] | null;
   chapterMetadataTitleLoading: boolean;
@@ -510,6 +515,8 @@ export interface AIPrompt {
   quickAccess: boolean;
   /** Operation type for chapter prompts */
   operation?: "detection" | "rewrite" | "metadata";
+  /** Rewrite scope for chapter rewrite prompts */
+  rewriteScope?: "chapter" | "paragraph";
   /** Metadata subtype for chapter metadata prompts */
   metadataType?: "title" | "summary" | "notes";
 }
@@ -757,6 +764,10 @@ export interface AIChapterDetectionConfig {
   includeContext: boolean;
   /** Maximum words from previous chapter for context */
   contextWordLimit: number;
+  /** Include previous paragraph context for paragraph rewrites */
+  includeParagraphContext: boolean;
+  /** Number of previous paragraphs to include */
+  paragraphContextCount: number;
 }
 
 export interface AIChapterDetectionSlice {

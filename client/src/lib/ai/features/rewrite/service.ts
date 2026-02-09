@@ -13,7 +13,12 @@ import type { Segment } from "@/lib/store/types";
 import type { Chapter } from "@/types/chapter";
 import { executeFeature } from "../../core";
 import { parseTextResponse } from "../../parsing";
-import type { RewriteChapterParams, RewriteContext, RewriteResult } from "./types";
+import type {
+  RewriteChapterParams,
+  RewriteContext,
+  RewriteParagraphParams,
+  RewriteResult,
+} from "./types";
 
 const logger = createLogger({ feature: "RewriteService" });
 
@@ -124,6 +129,80 @@ export async function rewriteChapter(params: RewriteChapterParams): Promise<Rewr
       originalWordCount,
     });
   }
+
+  return {
+    rewrittenText,
+    wordCount,
+  };
+}
+
+/**
+ * Rewrite a single paragraph within a chapter using AI.
+ *
+ * @param params - Paragraph rewrite parameters
+ * @returns Rewrite result with text and metadata
+ */
+export async function rewriteParagraph(params: RewriteParagraphParams): Promise<RewriteResult> {
+  const {
+    chapter,
+    paragraphContent,
+    previousParagraphs,
+    paragraphContextCount,
+    prompt,
+    providerId,
+    model,
+    customInstructions,
+    signal,
+    includeParagraphContext,
+  } = params;
+
+  if (!prompt.systemPrompt || !prompt.userPromptTemplate) {
+    throw new Error("Rewrite prompt must have systemPrompt and userPromptTemplate");
+  }
+
+  const contextParagraphs = includeParagraphContext ? previousParagraphs : [];
+
+  const variables = {
+    chapterTitle: chapter.title,
+    chapterSummary: chapter.summary || "",
+    chapterNotes: chapter.notes || "",
+    chapterTags: chapter.tags?.join(", ") || "",
+    paragraphContent,
+    previousParagraphs: contextParagraphs,
+    paragraphContextCount,
+    customInstructions: customInstructions || "",
+  };
+
+  const result = await executeFeature<string>("chapter-rewrite", variables, {
+    customPrompt: {
+      systemPrompt: prompt.systemPrompt,
+      userPromptTemplate: prompt.userPromptTemplate,
+    },
+    signal,
+    providerId,
+    model,
+  });
+
+  if (!result.success || !result.data) {
+    logger.error("Paragraph rewrite failed.", { error: result.error });
+    throw new Error(result.error || "Failed to rewrite paragraph");
+  }
+
+  const parseResult = parseTextResponse(result.data, {
+    originalText: paragraphContent,
+    detectErrors: true,
+  });
+
+  if (parseResult.wasError) {
+    logger.warn("AI returned error-like response.", { warnings: parseResult.warnings });
+  }
+
+  const rewrittenText = parseResult.text.trim();
+  if (!rewrittenText) {
+    throw new Error("Rewrite returned empty text");
+  }
+
+  const wordCount = rewrittenText.split(/\s+/).length;
 
   return {
     rewrittenText,

@@ -80,7 +80,7 @@ To improve coherence across chapter boundaries, the AI can include context:
 - **Chapter metadata**: Title, summary, tags (if set)
 - **Contextual continuity**: AI maintains consistent tone and style
 
-Configure context settings in **Settings → AI Features → Chapter Rewrite**.
+Configure context settings in **Settings → AI Prompts → Chapters**.
 
 ---
 
@@ -92,6 +92,15 @@ Configure context settings in **Settings → AI Features → Chapter Rewrite**.
 2. Edit text inline with full Markdown support
 3. Changes save automatically when you click outside
 4. **Undo/Redo**: Standard shortcuts work (Cmd+Z / Ctrl+Z)
+
+### Refine a Single Paragraph
+
+1. Hover a paragraph and click the **Sparkles** button
+2. Choose a **paragraph rewrite prompt** (separate from chapter prompts)
+3. Add optional custom instructions
+4. The paragraph is replaced without changing chapter rewrite metadata
+
+Paragraph prompts can include the previous N rewritten paragraphs as context (configurable).
 
 ### After Accepting
 
@@ -131,7 +140,7 @@ FlowScribe includes three default styles optimized for different use cases:
 
 ### Custom Prompts
 
-Create your own rewrite styles in **Settings → AI Features → Rewrite**:
+Create your own rewrite styles in **Settings → AI Prompts → Chapters**:
 
 1. Click **"Add Custom Prompt"**
 2. Name your style (e.g., "Press Release", "Social Media")
