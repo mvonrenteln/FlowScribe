@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ChapterHeader } from "@/components/ChapterHeader";
 import { CHAPTER_DRAG_TYPE } from "@/lib/dragTypes";
 import type { Chapter, Tag } from "@/lib/store";
+import { useTranscriptStore } from "@/lib/store";
+import { BUILTIN_TITLE_SUGGESTION_ID } from "@/lib/store/utils/chapterMetadataPrompts";
 
 const mockChapter: Chapter = {
   id: "chapter-1",
@@ -84,6 +86,53 @@ describe("ChapterHeader", () => {
     await user.click(rewriteItem);
 
     expect(onRewriteChapter).toHaveBeenCalledWith(mockChapter.id);
+  });
+
+  it("opens and closes suggest title dialog without leaving pointer lock", async () => {
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    const suggestTitle = vi.fn();
+    const previousState = useTranscriptStore.getState();
+    useTranscriptStore.setState((state) => ({
+      suggestChapterTitle: suggestTitle,
+      chapterMetadataTitleLoading: false,
+      chapterMetadataSummaryLoading: false,
+      chapterMetadataNotesLoading: false,
+      chapterMetadataError: null,
+      chapterMetadataTitleSuggestions: ["New Chapter Title"],
+      aiChapterDetectionConfig: {
+        ...state.aiChapterDetectionConfig,
+        prompts: [],
+      },
+    }));
+    render(<ChapterHeader {...defaultProps} />);
+
+    const aiButton = screen.getByTestId(`button-chapter-ai-${mockChapter.id}`);
+    await user.click(aiButton);
+
+    const suggestItem = await screen.findByText("Suggest Title");
+    await user.click(suggestItem);
+
+    expect(suggestTitle).toHaveBeenCalledWith(mockChapter.id, BUILTIN_TITLE_SUGGESTION_ID);
+    await vi.advanceTimersByTimeAsync(0);
+    expect(screen.getByText("Suggest Chapter Title")).toBeInTheDocument();
+
+    const cancelButton = screen.getByRole("button", { name: /cancel/i });
+    await user.click(cancelButton);
+
+    await waitFor(() => {
+      expect(screen.queryByText("Suggest Chapter Title")).not.toBeInTheDocument();
+    });
+    expect(document.body.style.pointerEvents).toBe("");
+
+    useTranscriptStore.setState({
+      suggestChapterTitle: previousState.suggestChapterTitle,
+      chapterMetadataTitleLoading: previousState.chapterMetadataTitleLoading,
+      chapterMetadataSummaryLoading: previousState.chapterMetadataSummaryLoading,
+      chapterMetadataNotesLoading: previousState.chapterMetadataNotesLoading,
+      chapterMetadataError: previousState.chapterMetadataError,
+      chapterMetadataTitleSuggestions: previousState.chapterMetadataTitleSuggestions,
+      aiChapterDetectionConfig: previousState.aiChapterDetectionConfig,
+    });
   });
 
   it("enters edit mode when title is double-clicked", async () => {

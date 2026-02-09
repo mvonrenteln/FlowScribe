@@ -1,5 +1,5 @@
 import { BookOpen, FileText, Loader2, Sparkles, Wand2 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -39,7 +39,17 @@ export function ChapterAIMenu({
   onRewriteChapter,
   className,
 }: Readonly<ChapterAIMenuProps>) {
+  const [menuOpen, setMenuOpen] = useState(false);
   const [showTitleDialog, setShowTitleDialog] = useState(false);
+  const openTitleDialogTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (openTitleDialogTimeoutRef.current !== null) {
+        window.clearTimeout(openTitleDialogTimeoutRef.current);
+      }
+    };
+  }, []);
 
   // Store actions
   const suggestTitle = useTranscriptStore((state) => state.suggestChapterTitle);
@@ -67,7 +77,15 @@ export function ChapterAIMenu({
         (prompt) => prompt.operation === "metadata" && prompt.metadataType === "title",
       )?.id ?? BUILTIN_TITLE_SUGGESTION_ID;
     suggestTitle(chapterId, promptId);
-    setShowTitleDialog(true);
+    setMenuOpen(false);
+    if (openTitleDialogTimeoutRef.current !== null) {
+      window.clearTimeout(openTitleDialogTimeoutRef.current);
+    }
+    // Open after dropdown teardown to avoid Radix modal focus/pointer lock conflicts.
+    openTitleDialogTimeoutRef.current = window.setTimeout(() => {
+      setShowTitleDialog(true);
+      openTitleDialogTimeoutRef.current = null;
+    }, 0);
   };
 
   const handleGenerateSummary = () => {
@@ -90,7 +108,7 @@ export function ChapterAIMenu({
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu open={menuOpen} onOpenChange={setMenuOpen}>
         <DropdownMenuTrigger asChild>
           <Button
             variant="ghost"
