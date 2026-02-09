@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as coreModule from "../../../core";
-import type { AIFeatureOptions, AIFeatureResult, AIFeatureType } from "../../../core/types";
+import type { AIFeatureResult } from "../../../core/types";
 import { generateMetadata, generateNotes, generateSummary, suggestTitles } from "../service";
 import type { ChapterPrompt } from "../types";
 
@@ -19,6 +19,7 @@ describe("chapterOperations service", () => {
     id: "test-prompt",
     name: "Test Title Prompt", // Name suggests title, but operation is 'metadata' (tests cover both)
     operation: "metadata",
+    metadataType: "title",
     systemPrompt: "sys",
     userPromptTemplate: "user",
 
@@ -90,7 +91,7 @@ describe("chapterOperations service", () => {
 
     it("throws if required fields are missing for operation", async () => {
       // Prompt implies summary
-      const summaryPrompt = { ...mockPrompt, name: "Generate Summary" };
+      const summaryPrompt = { ...mockPrompt, name: "Generate Summary", metadataType: "summary" };
 
       // AI returns title structure instead
       executeFeatureSpy.mockResolvedValue({
@@ -137,7 +138,7 @@ describe("chapterOperations service", () => {
 
   describe("generateSummary", () => {
     it("returns summary on success", async () => {
-      const summaryPrompt = { ...mockPrompt, name: "Summary Generation" };
+      const summaryPrompt = { ...mockPrompt, name: "Summary Generation", metadataType: "summary" };
       executeFeatureSpy.mockResolvedValue({
         success: true,
         data: { operation: "summary", summary: "New Summary" },
@@ -151,7 +152,7 @@ describe("chapterOperations service", () => {
 
   describe("generateNotes", () => {
     it("returns notes on success", async () => {
-      const notesPrompt = { ...mockPrompt, name: "Notes Generation" };
+      const notesPrompt = { ...mockPrompt, name: "Notes Generation", metadataType: "notes" };
       executeFeatureSpy.mockResolvedValue({
         success: true,
         data: { operation: "notes", notes: "My Notes" },

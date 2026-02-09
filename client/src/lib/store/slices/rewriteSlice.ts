@@ -50,7 +50,6 @@ export interface RewriteSlice {
     updates: Partial<Pick<AIPrompt, "name" | "systemPrompt" | "userPromptTemplate">>,
   ) => void;
   deleteRewritePrompt: (id: string) => void;
-  setDefaultRewritePrompt: (id: string) => void;
   toggleQuickAccessRewritePrompt: (id: string) => void;
 
   // Actions - Processing
@@ -120,10 +119,6 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
 
   deleteRewritePrompt: (id) => {
     get().deleteChapterDetectionPrompt(id);
-  },
-
-  setDefaultRewritePrompt: (id) => {
-    get().setActiveChapterDetectionPrompt(id);
   },
 
   toggleQuickAccessRewritePrompt: (id) => {

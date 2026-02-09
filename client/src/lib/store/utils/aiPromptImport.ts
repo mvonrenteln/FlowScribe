@@ -17,6 +17,8 @@ const toUpdates = (item: PromptExportItem): Partial<AIPrompt> => ({
   userPromptTemplate: item.userPromptTemplate,
   quickAccess: item.quickAccess,
   isBuiltIn: item.isBuiltIn,
+  operation: item.operation,
+  metadataType: item.metadataType,
 });
 
 /**
@@ -45,6 +47,25 @@ export const buildPromptImportPlan = (
 
   for (const item of items) {
     if (!isPromptType(item.type)) continue;
+    if (item.type === "chapter-detect" && item.operation === "metadata") {
+      const metadataPrompts = existingByType["chapter-detect"].filter(
+        (prompt) => prompt.operation === "metadata",
+      );
+      const existing =
+        (item.metadataType
+          ? metadataPrompts.find((prompt) => prompt.metadataType === item.metadataType)
+          : metadataPrompts.find((prompt) => prompt.name === item.name)) ?? null;
+
+      if (existing) {
+        updates.push({
+          id: existing.id,
+          type: item.type,
+          updates: toUpdates(item),
+        });
+      }
+      continue;
+    }
+
     const existing = nameToExisting.get(item.type)?.get(item.name);
     if (existing) {
       updates.push({
@@ -52,6 +73,9 @@ export const buildPromptImportPlan = (
         type: item.type,
         updates: toUpdates(item),
       });
+      continue;
+    }
+    if (item.type === "chapter-detect" && item.operation === "metadata") {
       continue;
     }
     creates.push({
@@ -64,6 +88,8 @@ export const buildPromptImportPlan = (
         isBuiltIn: false,
         isDefault: false,
         quickAccess: Boolean(item.quickAccess),
+        operation: item.operation,
+        metadataType: item.metadataType,
       },
     });
   }

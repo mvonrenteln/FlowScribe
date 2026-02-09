@@ -45,6 +45,7 @@ export function ChapterAIMenu({
   const suggestTitle = useTranscriptStore((state) => state.suggestChapterTitle);
   const generateSummary = useTranscriptStore((state) => state.generateChapterSummary);
   const generateNotes = useTranscriptStore((state) => state.generateChapterNotes);
+  const chapterPrompts = useTranscriptStore((state) => state.aiChapterDetectionConfig.prompts);
 
   // Loading states
   const titleLoading = useTranscriptStore(
@@ -61,16 +62,28 @@ export function ChapterAIMenu({
   );
 
   const handleSuggestTitle = () => {
-    suggestTitle(chapterId, BUILTIN_TITLE_SUGGESTION_ID);
+    const promptId =
+      chapterPrompts.find(
+        (prompt) => prompt.operation === "metadata" && prompt.metadataType === "title",
+      )?.id ?? BUILTIN_TITLE_SUGGESTION_ID;
+    suggestTitle(chapterId, promptId);
     setShowTitleDialog(true);
   };
 
   const handleGenerateSummary = () => {
-    generateSummary(chapterId, BUILTIN_SUMMARY_GENERATION_ID);
+    const promptId =
+      chapterPrompts.find(
+        (prompt) => prompt.operation === "metadata" && prompt.metadataType === "summary",
+      )?.id ?? BUILTIN_SUMMARY_GENERATION_ID;
+    generateSummary(chapterId, promptId);
   };
 
   const handleGenerateNotes = () => {
-    generateNotes(chapterId, BUILTIN_NOTES_GENERATION_ID);
+    const promptId =
+      chapterPrompts.find(
+        (prompt) => prompt.operation === "metadata" && prompt.metadataType === "notes",
+      )?.id ?? BUILTIN_NOTES_GENERATION_ID;
+    generateNotes(chapterId, promptId);
   };
 
   const isLoading = titleLoading || summaryLoading || notesLoading;

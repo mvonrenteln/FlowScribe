@@ -40,6 +40,13 @@ export function TitleSuggestionDialog({
     }
   }, [open]);
 
+  // Fix pointer-events when dialog closes (same fix as in ChapterRewriteDialog)
+  useEffect(() => {
+    if (open) return;
+    document.body.style.pointerEvents = "";
+    document.documentElement.style.pointerEvents = "";
+  }, [open]);
+
   const handleApply = () => {
     if (chapterId && selectedTitle) {
       updateChapter(chapterId, { title: selectedTitle });

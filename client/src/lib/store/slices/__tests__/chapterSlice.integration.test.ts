@@ -52,6 +52,7 @@ const getBaseAIChapterDetectionConfig = () => ({
       id: "prompt-summary",
       name: "Generate Summary",
       operation: "metadata",
+      metadataType: "summary",
       systemPrompt: "sys",
       userPromptTemplate: "user",
     } as ChapterPrompt,
@@ -195,6 +196,7 @@ describe("ChapterMetadata Integration & Undo/Redo", () => {
             id: "prompt-notes",
             name: "Generate Notes", // implies 'notes' op
             operation: "metadata",
+            metadataType: "notes",
             systemPrompt: "sys",
             userPromptTemplate: "user",
           } as ChapterPrompt,

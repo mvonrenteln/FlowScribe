@@ -3,6 +3,8 @@ import type { AIPrompt, PromptType } from "../types";
 export interface PromptExportItem {
   name: string;
   type: PromptType;
+  operation?: "detection" | "rewrite" | "metadata";
+  metadataType?: "title" | "summary" | "notes";
   systemPrompt: string;
   userPromptTemplate: string;
   isBuiltIn?: boolean;
@@ -17,6 +19,8 @@ export interface PromptExportData {
 const toExportItem = (prompt: AIPrompt): PromptExportItem => ({
   name: prompt.name,
   type: prompt.type,
+  operation: prompt.operation,
+  metadataType: prompt.metadataType,
   systemPrompt: prompt.systemPrompt,
   userPromptTemplate: prompt.userPromptTemplate,
   isBuiltIn: prompt.isBuiltIn,

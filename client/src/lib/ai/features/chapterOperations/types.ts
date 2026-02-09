@@ -27,6 +27,8 @@ export interface ChapterPrompt {
   type: "chapter-detect";
   /** Operation discriminator */
   operation: ChapterOperation;
+  /** Metadata subtype for metadata operations */
+  metadataType?: "title" | "summary" | "notes";
   /** System prompt (defines behavior) */
   systemPrompt: string;
   /** User prompt template with {{variables}} */

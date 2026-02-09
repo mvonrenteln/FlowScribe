@@ -623,6 +623,10 @@ export const createAIChapterDetectionSlice = (
 
   addChapterDetectionPrompt: (prompt) => {
     const state = get();
+    if (prompt.operation === "metadata") {
+      logger.warn("Metadata prompts are fixed and cannot be created.");
+      return;
+    }
     const next = { ...prompt, id: generateId(), type: "chapter-detect" as const };
     set({
       aiChapterDetectionConfig: {
@@ -634,11 +638,21 @@ export const createAIChapterDetectionSlice = (
 
   updateChapterDetectionPrompt: (id, updates) => {
     const state = get();
+    const existing = state.aiChapterDetectionConfig.prompts.find((p) => p.id === id);
+    if (!existing) return;
+    const safeUpdates = { ...updates };
+    if (existing.operation === "metadata") {
+      delete safeUpdates.operation;
+      delete safeUpdates.metadataType;
+    } else if (updates.operation === "metadata") {
+      delete safeUpdates.operation;
+      delete safeUpdates.metadataType;
+    }
     set({
       aiChapterDetectionConfig: {
         ...state.aiChapterDetectionConfig,
         prompts: state.aiChapterDetectionConfig.prompts.map((p) =>
-          p.id === id ? { ...p, ...updates, type: "chapter-detect" as const } : p,
+          p.id === id ? { ...p, ...safeUpdates, type: "chapter-detect" as const } : p,
         ),
       },
     });
@@ -646,6 +660,11 @@ export const createAIChapterDetectionSlice = (
 
   deleteChapterDetectionPrompt: (id) => {
     const state = get();
+    const target = state.aiChapterDetectionConfig.prompts.find((p) => p.id === id);
+    if (target?.operation === "metadata") {
+      logger.warn("Metadata prompts are fixed and cannot be deleted.");
+      return;
+    }
     const prompts = state.aiChapterDetectionConfig.prompts.filter((p) => p.id !== id);
     const activePromptId =
       state.aiChapterDetectionConfig.activePromptId === id
@@ -658,6 +677,8 @@ export const createAIChapterDetectionSlice = (
 
   setActiveChapterDetectionPrompt: (id) => {
     const state = get();
+    const prompt = state.aiChapterDetectionConfig.prompts.find((p) => p.id === id);
+    if (prompt?.operation !== "detection") return;
     set({ aiChapterDetectionConfig: { ...state.aiChapterDetectionConfig, activePromptId: id } });
   },
 

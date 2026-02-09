@@ -72,13 +72,14 @@ Beyond bulk detection, you can use the AI to refine individual chapters at any t
 
 ### Prompt Customization
 
-All chapter-related AI features are managed via **Settings → AI Prompts → Chapters**. 
+All chapter-related AI features are managed via **Settings → AI Prompts → Chapters**.
 
 - **Operation Types**: Prompts are categorized by operation:
     - **Detection**: Used for initial segment-to-chapter boundaries.
-    - **Metadata**: Used for title suggestions, summaries, and notes.
+    - **Metadata**: Fixed prompts for title suggestions, summaries, and notes (one per type).
     - **Rewrite**: Used for transforming existing chapter content.
-- **Built-in Prompts**: The system provides optimized defaults for each operation, but you can create custom templates with placeholders like `{{chapterSegments}}` and `{{currentSummary}}`.
+- **Metadata Prompts Are Fixed**: There is exactly one editable prompt each for Title, Summary, and Notes. These can be edited but not duplicated or deleted.
+- **Detection & Rewrite Prompts**: You can create multiple prompts; detection prompts are selected in the AI batch panel, rewrite prompts are selected in the rewrite dialog.
 
 ---
 

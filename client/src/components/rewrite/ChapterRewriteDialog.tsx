@@ -41,6 +41,7 @@ export function ChapterRewriteDialog({
   onStartRewrite,
 }: ChapterRewriteDialogProps) {
   const chapterDetectionConfig = useTranscriptStore((s) => s.aiChapterDetectionConfig);
+  const chapter = useTranscriptStore((s) => s.chapters.find((item) => item.id === chapterId));
   const prompts = useMemo(
     () =>
       chapterDetectionConfig.prompts.filter(
@@ -54,13 +55,15 @@ export function ChapterRewriteDialog({
   const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
 
   // Local state
-  const defaultPromptId = useMemo(
-    () =>
-      prompts.find((prompt) => prompt.id === chapterDetectionConfig.activePromptId)?.id ??
-      prompts[0]?.id ??
-      "",
-    [chapterDetectionConfig.activePromptId, prompts],
-  );
+  const defaultPromptId = useMemo(() => {
+    if (
+      chapter?.rewritePromptId &&
+      prompts.some((prompt) => prompt.id === chapter.rewritePromptId)
+    ) {
+      return chapter.rewritePromptId;
+    }
+    return prompts[0]?.id ?? "";
+  }, [chapter?.rewritePromptId, prompts]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
   const [settings] = useState(() => initializeSettings());
 

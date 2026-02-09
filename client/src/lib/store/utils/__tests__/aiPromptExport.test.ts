@@ -15,12 +15,24 @@ describe("buildPromptExportData", () => {
         isDefault: true,
         quickAccess: false,
       },
+      {
+        id: "p-2",
+        name: "Chapter Title",
+        type: "chapter-detect",
+        operation: "metadata",
+        metadataType: "title",
+        systemPrompt: "System",
+        userPromptTemplate: "User",
+        isBuiltIn: true,
+        quickAccess: false,
+      },
     ];
 
     const result = buildPromptExportData(prompts);
     expect(result.version).toBe(1);
-    expect(result.prompts).toHaveLength(1);
+    expect(result.prompts).toHaveLength(2);
     expect(result).not.toHaveProperty("templates");
     expect(result.prompts[0]?.type).toBe("speaker");
+    expect(result.prompts[1]?.metadataType).toBe("title");
   });
 });

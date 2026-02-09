@@ -74,6 +74,48 @@ describe("buildPromptImportPlan", () => {
     expect(plan.creates[0]?.data.quickAccess).toBe(true);
   });
 
+  it("updates metadata prompts by metadataType and skips creation", () => {
+    const existing = emptyByType();
+    existing["chapter-detect"] = [
+      makePrompt({
+        id: "builtin-title",
+        name: "Title Suggestion",
+        type: "chapter-detect",
+        operation: "metadata",
+        metadataType: "title",
+        isBuiltIn: true,
+      }),
+    ];
+
+    const items = [
+      {
+        name: "Custom Title Prompt",
+        type: "chapter-detect" as const,
+        operation: "metadata" as const,
+        metadataType: "title" as const,
+        systemPrompt: "Updated system",
+        userPromptTemplate: "Updated user",
+        isBuiltIn: true,
+        quickAccess: false,
+      },
+      {
+        name: "Notes Prompt",
+        type: "chapter-detect" as const,
+        operation: "metadata" as const,
+        metadataType: "notes" as const,
+        systemPrompt: "System",
+        userPromptTemplate: "User",
+        isBuiltIn: true,
+        quickAccess: false,
+      },
+    ];
+
+    const plan = buildPromptImportPlan(existing, items);
+    expect(plan.updates).toHaveLength(1);
+    expect(plan.updates[0]?.id).toBe("builtin-title");
+    expect(plan.creates).toHaveLength(0);
+  });
+
   it("roundtrips export without creating duplicates", () => {
     const existing = emptyByType();
     existing.speaker = [

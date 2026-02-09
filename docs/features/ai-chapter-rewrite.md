@@ -160,8 +160,8 @@ Create your own rewrite styles in **Settings → AI Features → Rewrite**:
 
 ### Prompt Management
 
-- **Default prompt**: Sets which style appears first in dialog
-- **Quick access**: Choose up to 5 prompts for dropdown
+- **Prompt selection**: Choose a prompt in the rewrite dialog when you start a rewrite
+- **Quick access**: Pin frequently-used prompts to appear at the top of the dialog
 - **Custom prompts**: Add, edit, or delete your own styles
 
 ---
