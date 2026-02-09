@@ -514,6 +514,9 @@ export function AITemplateSettings() {
       if ("operation" in data) {
         promptData.operation = data.operation;
       }
+      if ("rewriteScope" in data) {
+        promptData.rewriteScope = data.rewriteScope;
+      }
 
       if (data.type === "speaker") {
         addSpeakerPrompt(promptData);
@@ -547,6 +550,9 @@ export function AITemplateSettings() {
 
       if ("operation" in data) {
         updates.operation = data.operation;
+      }
+      if ("rewriteScope" in data) {
+        updates.rewriteScope = data.rewriteScope;
       }
 
       if (activeTab === "speaker") {
@@ -620,6 +626,7 @@ export function AITemplateSettings() {
         isBuiltIn: false,
         quickAccess: false,
         ...(promptItem.operation && { operation: promptItem.operation }),
+        ...(promptItem.rewriteScope && { rewriteScope: promptItem.rewriteScope }),
       };
 
       if (promptItem.type === "speaker") {
