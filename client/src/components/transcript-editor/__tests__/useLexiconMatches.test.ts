@@ -2,6 +2,7 @@ import { renderHook } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import * as fuzzy from "@/lib/fuzzy";
 import type { Segment } from "@/lib/store";
+import { buildLexiconSessionIgnoreKey } from "@/lib/store/utils/lexicon";
 import { computeLexiconMatches, useLexiconMatches } from "../useLexiconMatches";
 
 describe("computeLexiconMatches", () => {
@@ -27,6 +28,7 @@ describe("computeLexiconMatches", () => {
       segments,
       lexiconEntries: [{ term: "known", variants: [], falsePositives: [] }],
       lexiconThreshold: 0.8,
+      lexiconSessionIgnores: [],
     });
 
     const match = lexiconMatchesBySegment.get("segment-1")?.get(0);
@@ -47,6 +49,7 @@ describe("computeLexiconMatches", () => {
       segments,
       lexiconEntries: [{ term: "read", variants: [], falsePositives: ["reed"] }],
       lexiconThreshold: 0.75,
+      lexiconSessionIgnores: [],
     });
 
     expect(hasLexiconEntries).toBe(true);
@@ -66,6 +69,7 @@ describe("computeLexiconMatches", () => {
       segments,
       lexiconEntries: [{ term: "hallow", variants: [], falsePositives: [] }],
       lexiconThreshold: 0.83,
+      lexiconSessionIgnores: [],
     });
 
     expect(lexiconMatchCount).toBe(1);
@@ -85,6 +89,7 @@ describe("computeLexiconMatches", () => {
       segments,
       lexiconEntries: [],
       lexiconThreshold: 0.8,
+      lexiconSessionIgnores: [],
     });
 
     expect(result.hasLexiconEntries).toBe(false);
@@ -108,10 +113,35 @@ describe("computeLexiconMatches", () => {
       segments,
       lexiconEntries: [{ term: "extraordinarylongword", variants: [], falsePositives: [] }],
       lexiconThreshold: 0.9,
+      lexiconSessionIgnores: [],
     });
 
     expect(similaritySpy).not.toHaveBeenCalled();
     similaritySpy.mockRestore();
+  });
+
+  it("skips session-ignored low-score matches without hiding exact matches", () => {
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-6",
+        words: [
+          { word: "hallo", start: 0, end: 1 },
+          { word: "hallow", start: 1, end: 2 },
+        ],
+      },
+    ];
+
+    const ignoreKey = buildLexiconSessionIgnoreKey("hallow", "hallo");
+    const { lexiconLowScoreMatchCount, lexiconMatchCount } = computeLexiconMatches({
+      segments,
+      lexiconEntries: [{ term: "hallow", variants: [], falsePositives: [] }],
+      lexiconThreshold: 0.83,
+      lexiconSessionIgnores: ignoreKey ? [ignoreKey] : [],
+    });
+
+    expect(lexiconMatchCount).toBe(1);
+    expect(lexiconLowScoreMatchCount).toBe(0);
   });
 });
 
@@ -138,6 +168,7 @@ describe("useLexiconMatches", () => {
 
     const similaritySpy = vi.spyOn(fuzzy, "similarityScore");
     const lexiconEntries = [{ term: "alphi", variants: [], falsePositives: [] }];
+    const lexiconSessionIgnores: string[] = [];
 
     const { rerender } = renderHook(
       ({ segments }) =>
@@ -145,6 +176,7 @@ describe("useLexiconMatches", () => {
           segments,
           lexiconEntries,
           lexiconThreshold: 0.8,
+          lexiconSessionIgnores,
         }),
       { initialProps: { segments: [segmentA, segmentB] } },
     );

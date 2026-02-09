@@ -57,4 +57,14 @@ describe("Lexicon slice", () => {
 
     expect(useTranscriptStore.getState().lexiconEntries).toEqual([]);
   });
+
+  it("stores session-scoped ignores for uncertain glossary matches", () => {
+    const { addLexiconSessionIgnore } = useTranscriptStore.getState();
+
+    addLexiconSessionIgnore("Welt", "Welt");
+    addLexiconSessionIgnore("Welt", "Welt");
+    addLexiconSessionIgnore("  ", " ");
+
+    expect(useTranscriptStore.getState().lexiconSessionIgnores).toHaveLength(1);
+  });
 });

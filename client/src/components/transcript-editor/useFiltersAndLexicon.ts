@@ -13,6 +13,7 @@ interface UseFiltersAndLexiconOptions {
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
   lexiconHighlightBackground: boolean;
+  lexiconSessionIgnores: string[];
   spellcheckEnabled: boolean;
   spellcheckMatchesBySegment: Map<string, Map<number, unknown>>;
   // Confidence from store
@@ -54,6 +55,7 @@ export function useFiltersAndLexicon({
   lexiconThreshold,
   lexiconHighlightUnderline,
   lexiconHighlightBackground,
+  lexiconSessionIgnores,
   spellcheckEnabled,
   spellcheckMatchesBySegment,
   highlightLowConfidence,
@@ -151,6 +153,7 @@ export function useFiltersAndLexicon({
     segments,
     lexiconEntries,
     lexiconThreshold,
+    lexiconSessionIgnores,
   });
 
   const lexiconHighlightEnabled = lexiconHighlightUnderline || lexiconHighlightBackground;

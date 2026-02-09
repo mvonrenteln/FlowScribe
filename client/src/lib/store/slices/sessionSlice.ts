@@ -20,6 +20,7 @@ import type {
 } from "../types";
 import { buildGlobalStatePayload } from "../utils/globalState";
 import { generateId } from "../utils/id";
+import { normalizeLexiconSessionIgnores } from "../utils/lexicon";
 import { buildRevisionKey, cloneSessionForRevision } from "../utils/session";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
@@ -41,6 +42,7 @@ const buildPersistedSession = (state: TranscriptStore): PersistedSession => ({
   speakers: state.speakers,
   tags: state.tags,
   chapters: state.chapters,
+  lexiconSessionIgnores: state.lexiconSessionIgnores,
   selectedSegmentId: state.selectedSegmentId,
   selectedChapterId: state.selectedChapterId,
   currentTime: state.currentTime,
@@ -120,6 +122,12 @@ export const createSessionSlice = (
     const nextChapters = shouldResetTranscript
       ? []
       : (session?.chapters ?? (shouldPromoteCurrent ? state.chapters : []));
+    const nextLexiconSessionIgnores = shouldResetTranscript
+      ? []
+      : normalizeLexiconSessionIgnores(
+          session?.lexiconSessionIgnores ??
+            (shouldPromoteCurrent ? state.lexiconSessionIgnores : []),
+        );
     const nextSelectedSegmentId = shouldResetTranscript ? null : selectedSegmentId;
     const nextSelectedChapterId = shouldResetTranscript
       ? null
@@ -162,6 +170,7 @@ export const createSessionSlice = (
       speakers: nextSpeakers,
       tags: nextTags,
       chapters: nextChapters,
+      lexiconSessionIgnores: nextLexiconSessionIgnores,
       selectedSegmentId: nextSelectedSegmentId,
       selectedChapterId: nextSelectedChapterId,
       currentTime: nextCurrentTime,
@@ -196,6 +205,9 @@ export const createSessionSlice = (
       state.sessionLabel ?? reference?.name ?? state.transcriptRef?.name ?? null,
     );
     const baseSessionKey = getBaseSessionKey(session, state.baseSessionKey);
+    const nextLexiconSessionIgnores = normalizeLexiconSessionIgnores(
+      session?.lexiconSessionIgnores ?? (shouldPromoteCurrent ? state.lexiconSessionIgnores : []),
+    );
     const selectedSegmentId =
       session?.selectedSegmentId &&
       session.segments.some((segment) => segment.id === session.selectedSegmentId)
@@ -215,6 +227,7 @@ export const createSessionSlice = (
       speakers: session?.speakers ?? (shouldPromoteCurrent ? state.speakers : []),
       tags: session?.tags ?? (shouldPromoteCurrent ? state.tags : []),
       chapters: session?.chapters ?? (shouldPromoteCurrent ? state.chapters : []),
+      lexiconSessionIgnores: nextLexiconSessionIgnores,
       selectedSegmentId,
       selectedChapterId,
       currentTime: session?.currentTime ?? (shouldPromoteCurrent ? state.currentTime : 0),
@@ -270,6 +283,7 @@ export const createSessionSlice = (
       speakers: session.speakers,
       tags: session.tags ?? [],
       chapters: session.chapters ?? [],
+      lexiconSessionIgnores: normalizeLexiconSessionIgnores(session.lexiconSessionIgnores),
       selectedSegmentId,
       selectedChapterId,
       currentTime: session.currentTime ?? 0,

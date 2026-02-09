@@ -68,6 +68,7 @@ describe("Search Logic in useFiltersAndLexicon", () => {
     lexiconThreshold: 0.8,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    lexiconSessionIgnores: [],
     spellcheckEnabled: false,
     spellcheckMatchesBySegment: new Map(),
     ...confidenceProps,

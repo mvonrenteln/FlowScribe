@@ -30,6 +30,7 @@ export const createBaseState = (): TranscriptStore => {
     lexiconThreshold: 0.82,
     lexiconHighlightUnderline: false,
     lexiconHighlightBackground: false,
+    lexiconSessionIgnores: [],
     spellcheckEnabled: false,
     spellcheckLanguages: ["de"],
     spellcheckIgnoreWords: [],

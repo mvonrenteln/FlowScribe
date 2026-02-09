@@ -13,6 +13,7 @@ const confidenceProps = {
   confidenceScoresVersion: 0,
   setHighlightLowConfidence: vi.fn(),
   setManualConfidenceThreshold: vi.fn(),
+  lexiconSessionIgnores: [],
 };
 
 describe("useFiltersAndLexicon", () => {

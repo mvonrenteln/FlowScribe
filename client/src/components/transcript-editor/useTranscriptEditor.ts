@@ -47,7 +47,7 @@ export const useTranscriptEditor = () => {
       setDuration: state.setDuration,
       seekToTime: state.seekToTime,
       clearSeekRequest: state.clearSeekRequest,
-      addLexiconFalsePositive: state.addLexiconFalsePositive,
+      addLexiconSessionIgnore: state.addLexiconSessionIgnore,
       addLexiconEntry: state.addLexiconEntry,
       addSpellcheckIgnoreWord: state.addSpellcheckIgnoreWord,
       setSpellcheckEnabled: state.setSpellcheckEnabled,
@@ -81,6 +81,7 @@ export const useTranscriptEditor = () => {
   const lexiconHighlightBackground = useTranscriptStore(
     (state) => state.lexiconHighlightBackground,
   );
+  const lexiconSessionIgnores = useTranscriptStore((state) => state.lexiconSessionIgnores);
   const setLexiconHighlightUnderline = useTranscriptStore(
     (state) => state.setLexiconHighlightUnderline,
   );
@@ -173,7 +174,7 @@ export const useTranscriptEditor = () => {
     clearSeekRequest,
     loadSpellcheckCustomDictionaries,
     addSpellcheckIgnoreWord,
-    addLexiconFalsePositive,
+    addLexiconSessionIgnore,
     addLexiconEntry,
     setSpellcheckEnabled,
     setSpellcheckLanguages,
@@ -298,6 +299,7 @@ export const useTranscriptEditor = () => {
     lexiconThreshold,
     lexiconHighlightUnderline,
     lexiconHighlightBackground,
+    lexiconSessionIgnores,
     spellcheckEnabled,
     spellcheckMatchesBySegment,
     highlightLowConfidence,
@@ -428,7 +430,7 @@ export const useTranscriptEditor = () => {
     updateSegmentText,
     updateSegmentSpeaker,
     mergeSegments,
-    addLexiconFalsePositive,
+    addLexiconSessionIgnore,
     selectChapterForSegment: useTranscriptStore.getState().selectChapterForSegment,
     filterLowConfidence,
     activeSpeakerName,

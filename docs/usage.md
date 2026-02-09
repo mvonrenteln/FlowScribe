@@ -85,7 +85,7 @@ Enable **Glossary** or **Uncertain Glossary Matches** in the sidebar to review o
 Hover a highlighted word to open the tooltip.
 
 - **Apply** replaces the word with the correct glossary term.
-- **Ignore** adds the current word as a false positive so it no longer appears.
+- **Ignore** hides the uncertain match for this session (it does not change the global glossary).
 
 ![Glossary tooltip apply/ignore](screenshots/glossary-tooltip-apply-ignore.png)
 

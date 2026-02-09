@@ -78,6 +78,7 @@ export interface PersistedSession {
   selectedChapterId?: string | null;
   currentTime: number;
   isWhisperXFormat: boolean;
+  lexiconSessionIgnores?: string[];
   updatedAt?: number;
   kind?: SessionKind;
   label?: string | null;
@@ -159,6 +160,7 @@ export interface InitialStoreState {
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
   lexiconHighlightBackground: boolean;
+  lexiconSessionIgnores: string[];
   spellcheckEnabled: boolean;
   spellcheckLanguages: SpellcheckLanguage[];
   spellcheckIgnoreWords: string[];
@@ -397,6 +399,7 @@ export interface LexiconSlice {
     falsePositives?: string[],
   ) => void;
   addLexiconFalsePositive: (term: string, value: string) => void;
+  addLexiconSessionIgnore: (term: string, value: string) => void;
   setLexiconThreshold: (value: number) => void;
   setLexiconHighlightUnderline: (value: boolean) => void;
   setLexiconHighlightBackground: (value: boolean) => void;

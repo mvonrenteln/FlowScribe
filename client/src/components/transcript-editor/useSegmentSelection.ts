@@ -40,7 +40,7 @@ interface UseSegmentSelectionParams {
   updateSegmentText: TranscriptStore["updateSegmentText"];
   updateSegmentSpeaker: TranscriptStore["updateSegmentSpeaker"];
   mergeSegments: TranscriptStore["mergeSegments"];
-  addLexiconFalsePositive: TranscriptStore["addLexiconFalsePositive"];
+  addLexiconSessionIgnore: TranscriptStore["addLexiconSessionIgnore"];
   selectChapterForSegment: TranscriptStore["selectChapterForSegment"];
   filterLowConfidence: boolean;
   activeSpeakerName: string | null | undefined;
@@ -66,7 +66,7 @@ export const useSegmentSelection = ({
   updateSegmentText,
   updateSegmentSpeaker,
   mergeSegments,
-  addLexiconFalsePositive,
+  addLexiconSessionIgnore,
   selectChapterForSegment,
   filterLowConfidence,
   activeSpeakerName,
@@ -283,7 +283,7 @@ export const useSegmentSelection = ({
           onConfirm: () => confirmSegment(segment.id),
           onToggleBookmark: () => toggleSegmentBookmark(segment.id),
           onIgnoreLexiconMatch: (term: string, value: string) =>
-            addLexiconFalsePositive(term, value),
+            addLexiconSessionIgnore(term, value),
           onDelete: () => deleteSegment(segment.id),
         };
         handlerCacheRef.current.set(segment.id, handlers);
@@ -308,7 +308,7 @@ export const useSegmentSelection = ({
       return handlers;
     });
   }, [
-    addLexiconFalsePositive,
+    addLexiconSessionIgnore,
     confirmSegment,
     deleteSegment,
     filteredSegments,

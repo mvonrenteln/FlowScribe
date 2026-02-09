@@ -36,6 +36,7 @@ export interface PersistenceSelection {
   lexiconThreshold: number;
   lexiconHighlightUnderline: boolean;
   lexiconHighlightBackground: boolean;
+  lexiconSessionIgnores: string[];
   spellcheckEnabled: boolean;
   spellcheckLanguages: SpellcheckLanguage[];
   spellcheckIgnoreWords: string[];
@@ -82,6 +83,7 @@ export const selectPersistenceState = (state: TranscriptStore): PersistenceSelec
   lexiconThreshold: state.lexiconThreshold,
   lexiconHighlightUnderline: state.lexiconHighlightUnderline,
   lexiconHighlightBackground: state.lexiconHighlightBackground,
+  lexiconSessionIgnores: state.lexiconSessionIgnores,
   spellcheckEnabled: state.spellcheckEnabled,
   spellcheckLanguages: state.spellcheckLanguages,
   spellcheckIgnoreWords: state.spellcheckIgnoreWords,
@@ -116,6 +118,7 @@ export const arePersistenceSelectionsEqual = (
   left.lexiconThreshold === right.lexiconThreshold &&
   left.lexiconHighlightUnderline === right.lexiconHighlightUnderline &&
   left.lexiconHighlightBackground === right.lexiconHighlightBackground &&
+  left.lexiconSessionIgnores === right.lexiconSessionIgnores &&
   left.spellcheckEnabled === right.spellcheckEnabled &&
   left.spellcheckLanguages === right.spellcheckLanguages &&
   left.spellcheckIgnoreWords === right.spellcheckIgnoreWords &&

@@ -7,6 +7,7 @@ import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptStore } from "../types";
 import { generateId } from "../utils/id";
+import { normalizeLexiconSessionIgnores } from "../utils/lexicon";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
 import { addToHistory } from "./historySlice";
 
@@ -152,6 +153,7 @@ export const createSegmentsSlice = (
         speakers: session.speakers,
         tags: session.tags ?? [],
         chapters: session.chapters ?? [],
+        lexiconSessionIgnores: normalizeLexiconSessionIgnores(session.lexiconSessionIgnores),
         selectedSegmentId: selectedFromSession,
         selectedChapterId: session.selectedChapterId ?? null,
         currentTime: session.currentTime ?? 0,
@@ -183,6 +185,7 @@ export const createSegmentsSlice = (
       speakers,
       tags: importedTags,
       chapters: [],
+      lexiconSessionIgnores: [],
       selectedSegmentId,
       selectedChapterId: null,
       isWhisperXFormat: data.isWhisperXFormat || false,

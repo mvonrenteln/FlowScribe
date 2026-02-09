@@ -1,6 +1,37 @@
+import { normalizeToken } from "@/lib/fuzzy";
 import type { LexiconEntry, PersistedGlobalState } from "../types";
 
 export const normalizeLexiconTerm = (value: string) => value.trim().toLowerCase();
+
+/**
+ * Build a normalized key for session-scoped lexicon ignores.
+ *
+ * Combines the lexicon term and matched value so we can skip fuzzy matches
+ * without mutating the global glossary state.
+ */
+export const buildLexiconSessionIgnoreKey = (term: string, value: string): string | null => {
+  const normalizedTerm = normalizeToken(term);
+  const normalizedValue = normalizeToken(value);
+  if (!normalizedTerm || !normalizedValue) return null;
+  return `${normalizedTerm}::${normalizedValue}`;
+};
+
+/**
+ * Normalize session-scoped lexicon ignore keys from persisted data.
+ */
+export const normalizeLexiconSessionIgnores = (values: unknown): string[] => {
+  if (!Array.isArray(values)) return [];
+  const seen = new Set<string>();
+  return values
+    .filter((value): value is string => typeof value === "string")
+    .map((value) => value.trim())
+    .filter((value) => value.length > 0)
+    .filter((value) => {
+      if (seen.has(value)) return false;
+      seen.add(value);
+      return true;
+    });
+};
 
 const normalizeLexiconVariants = (variants: string[]) => {
   const seen = new Set<string>();

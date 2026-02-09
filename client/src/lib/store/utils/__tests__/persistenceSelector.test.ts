@@ -41,6 +41,7 @@ const baseSelection: PersistenceSelection = {
   lexiconThreshold: 0.5,
   lexiconHighlightUnderline: false,
   lexiconHighlightBackground: false,
+  lexiconSessionIgnores: [],
   spellcheckEnabled: false,
   spellcheckLanguages: [],
   spellcheckIgnoreWords: [],

@@ -1,6 +1,7 @@
 import { useMemo, useRef } from "react";
 import { normalizeToken, similarityScore } from "@/lib/fuzzy";
 import type { LexiconEntry, Segment } from "@/lib/store";
+import { buildLexiconSessionIgnoreKey } from "@/lib/store/utils/lexicon";
 import { wordLeadingRegex, wordTrailingRegex } from "@/lib/wordBoundaries";
 
 export interface LexiconMatchMeta {
@@ -24,6 +25,7 @@ interface ComputeLexiconMatchesOptions {
   segments: Segment[];
   lexiconEntries: LexiconEntry[];
   lexiconThreshold: number;
+  lexiconSessionIgnores: string[];
 }
 
 export interface LexiconMatchesResult {
@@ -76,6 +78,7 @@ const computeSegmentMatches = (
   segment: Segment,
   lexiconEntries: NormalizedLexiconEntry[],
   lexiconThreshold: number,
+  lexiconSessionIgnoreKeys: Set<string>,
 ): Map<number, LexiconMatchMeta> => {
   const wordMatches = new Map<number, LexiconMatchMeta>();
 
@@ -91,6 +94,7 @@ const computeSegmentMatches = (
     let bestScore = 0;
     let bestTerm = "";
     let bestPartIndex: number | undefined;
+    let bestRawPart = "";
 
     parts.forEach((part, partIndex) => {
       const normalizedPart = normalizeToken(part);
@@ -144,11 +148,18 @@ const computeSegmentMatches = (
           bestScore = candidateScore;
           bestTerm = entry.term;
           bestPartIndex = parts.length > 1 ? partIndex : undefined;
+          bestRawPart = rawPart;
         }
       });
     });
 
     if (bestScore >= lexiconThreshold) {
+      if (bestScore < 1 && bestRawPart) {
+        const ignoreKey = buildLexiconSessionIgnoreKey(bestTerm, bestRawPart);
+        if (ignoreKey && lexiconSessionIgnoreKeys.has(ignoreKey)) {
+          return;
+        }
+      }
       wordMatches.set(index, { term: bestTerm, score: bestScore, partIndex: bestPartIndex });
     }
   });
@@ -160,8 +171,10 @@ export const computeLexiconMatches = ({
   segments,
   lexiconEntries,
   lexiconThreshold,
+  lexiconSessionIgnores,
 }: ComputeLexiconMatchesOptions): LexiconMatchesResult => {
   const lexiconEntriesNormalized = normalizeLexiconEntries(lexiconEntries);
+  const lexiconSessionIgnoreKeys = new Set(lexiconSessionIgnores);
 
   if (lexiconEntriesNormalized.length === 0) {
     return {
@@ -175,7 +188,12 @@ export const computeLexiconMatches = ({
   const lexiconMatchesBySegment = new Map<string, Map<number, LexiconMatchMeta>>();
   segments.forEach((segment) => {
     if (segment.confirmed) return;
-    const wordMatches = computeSegmentMatches(segment, lexiconEntriesNormalized, lexiconThreshold);
+    const wordMatches = computeSegmentMatches(
+      segment,
+      lexiconEntriesNormalized,
+      lexiconThreshold,
+      lexiconSessionIgnoreKeys,
+    );
     if (wordMatches.size > 0) {
       lexiconMatchesBySegment.set(segment.id, wordMatches);
     }
@@ -204,16 +222,19 @@ export const useLexiconMatches = ({
   segments,
   lexiconEntries,
   lexiconThreshold,
+  lexiconSessionIgnores,
 }: ComputeLexiconMatchesOptions): LexiconMatchesResult => {
   const previousRef = useRef<{
     segments: Segment[];
     lexiconEntries: LexiconEntry[];
     lexiconThreshold: number;
+    lexiconSessionIgnores: string[];
     matches: Map<string, Map<number, LexiconMatchMeta>>;
   }>({
     segments: [],
     lexiconEntries: [],
     lexiconThreshold,
+    lexiconSessionIgnores: [],
     matches: new Map(),
   });
 
@@ -235,6 +256,7 @@ export const useLexiconMatches = ({
         segments,
         lexiconEntries,
         lexiconThreshold,
+        lexiconSessionIgnores,
         matches: empty.lexiconMatchesBySegment,
       };
       return empty;
@@ -242,10 +264,12 @@ export const useLexiconMatches = ({
 
     const reuseMatches =
       previousRef.current.lexiconEntries === lexiconEntries &&
-      previousRef.current.lexiconThreshold === lexiconThreshold;
+      previousRef.current.lexiconThreshold === lexiconThreshold &&
+      previousRef.current.lexiconSessionIgnores === lexiconSessionIgnores;
     const matches = new Map<string, Map<number, LexiconMatchMeta>>();
     let lexiconMatchCount = 0;
     let lexiconLowScoreMatchCount = 0;
+    const lexiconSessionIgnoreKeys = new Set(lexiconSessionIgnores);
     const previousSegmentsById = reuseMatches
       ? new Map(previousRef.current.segments.map((segment) => [segment.id, segment]))
       : null;
@@ -256,7 +280,12 @@ export const useLexiconMatches = ({
       if (reuseMatches && previousSegmentsById?.get(segment.id) === segment) {
         wordMatches = previousRef.current.matches.get(segment.id) ?? new Map();
       } else {
-        wordMatches = computeSegmentMatches(segment, lexiconEntriesNormalized, lexiconThreshold);
+        wordMatches = computeSegmentMatches(
+          segment,
+          lexiconEntriesNormalized,
+          lexiconThreshold,
+          lexiconSessionIgnoreKeys,
+        );
       }
       if (wordMatches.size > 0) {
         matches.set(segment.id, wordMatches);
@@ -279,8 +308,9 @@ export const useLexiconMatches = ({
       segments,
       lexiconEntries,
       lexiconThreshold,
+      lexiconSessionIgnores,
       matches,
     };
     return result;
-  }, [segments, lexiconEntries, lexiconEntriesNormalized, lexiconThreshold]);
+  }, [segments, lexiconEntries, lexiconEntriesNormalized, lexiconSessionIgnores, lexiconThreshold]);
 };

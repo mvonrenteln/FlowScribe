@@ -64,7 +64,10 @@ import { normalizeAISegmentMergeConfig } from "./store/utils/aiSegmentMergeConfi
 import { normalizeAISpeakerConfig } from "./store/utils/aiSpeakerConfig";
 import { memoizedBuildSegmentIndexMap, memoizedBuildSegmentMaps } from "./store/utils/chapters";
 import { buildGlobalStatePayload } from "./store/utils/globalState";
-import { normalizeLexiconEntriesFromGlobal } from "./store/utils/lexicon";
+import {
+  normalizeLexiconEntriesFromGlobal,
+  normalizeLexiconSessionIgnores,
+} from "./store/utils/lexicon";
 import {
   arePersistenceSelectionsEqual,
   selectPersistenceState,
@@ -201,6 +204,7 @@ const initialState: InitialStoreState = {
   lexiconThreshold: globalState?.lexiconThreshold ?? 0.82,
   lexiconHighlightUnderline: Boolean(globalState?.lexiconHighlightUnderline),
   lexiconHighlightBackground: Boolean(globalState?.lexiconHighlightBackground),
+  lexiconSessionIgnores: normalizeLexiconSessionIgnores(activeSession?.lexiconSessionIgnores),
   spellcheckEnabled: Boolean(globalState?.spellcheckEnabled),
   spellcheckLanguages: resolvedSpellcheckSelection.languages,
   spellcheckIgnoreWords: normalizeSpellcheckIgnoreWords(globalState?.spellcheckIgnoreWords ?? []),
@@ -304,6 +308,7 @@ if (canUseLocalStorage()) {
         previous.speakers !== state.speakers ||
         previous.tags !== state.tags ||
         previous.chapters !== state.chapters ||
+        previous.lexiconSessionIgnores !== state.lexiconSessionIgnores ||
         !isSameFileReference(previous.audioRef, state.audioRef) ||
         !isSameFileReference(previous.transcriptRef, state.transcriptRef) ||
         previous.isWhisperXFormat !== state.isWhisperXFormat;
@@ -325,6 +330,7 @@ if (canUseLocalStorage()) {
           speakers: state.speakers,
           tags: state.tags,
           chapters: state.chapters,
+          lexiconSessionIgnores: state.lexiconSessionIgnores,
           selectedSegmentId: state.selectedSegmentId,
           selectedChapterId: state.selectedChapterId,
           currentTime: state.currentTime,
@@ -341,6 +347,7 @@ if (canUseLocalStorage()) {
           nextEntry.speakers = state.speakers;
           nextEntry.tags = state.tags;
           nextEntry.chapters = state.chapters;
+          nextEntry.lexiconSessionIgnores = state.lexiconSessionIgnores;
           nextEntry.isWhisperXFormat = state.isWhisperXFormat;
           // Only update timestamp if content changed, not just on activation
           if (baseChanged || !previous) {

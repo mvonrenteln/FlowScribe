@@ -1,6 +1,10 @@
 import type { StoreApi } from "zustand";
 import type { LexiconSlice, TranscriptStore } from "../types";
-import { normalizeLexiconTerm, uniqueEntries } from "../utils/lexicon";
+import {
+  buildLexiconSessionIgnoreKey,
+  normalizeLexiconTerm,
+  uniqueEntries,
+} from "../utils/lexicon";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -50,6 +54,14 @@ export const createLexiconSlice = (set: StoreSetter, get: StoreGetter): LexiconS
       }),
     );
     set({ lexiconEntries: next });
+  },
+
+  addLexiconSessionIgnore: (term, value) => {
+    const key = buildLexiconSessionIgnoreKey(term, value);
+    if (!key) return;
+    const { lexiconSessionIgnores } = get();
+    if (lexiconSessionIgnores.includes(key)) return;
+    set({ lexiconSessionIgnores: [...lexiconSessionIgnores, key] });
   },
 
   setLexiconThreshold: (value) => {
