@@ -278,4 +278,103 @@ describe("TranscriptList rewrite dialog", () => {
 
     expect(screen.getByTestId("segment-seg-56")).toBeInTheDocument();
   });
+
+  it("exposes a scroll anchor for rewritten chapter start segments", () => {
+    const segment = {
+      id: "seg-1",
+      speaker: "Speaker 1",
+      start: 0,
+      end: 1,
+      text: "Hello world.",
+      words: [],
+      tags: [],
+    };
+    const chapter = {
+      id: "chapter-1",
+      title: "Intro",
+      startSegmentId: "seg-1",
+      endSegmentId: "seg-1",
+      segmentCount: 1,
+      createdAt: Date.now(),
+      source: "manual" as const,
+      rewrittenText: "Rewritten chapter body",
+    };
+
+    useTranscriptStore.setState({
+      segments: [segment],
+      chapters: [chapter],
+      chapterDisplayModes: {
+        "chapter-1": "rewritten",
+      },
+    });
+
+    const props: React.ComponentProps<typeof TranscriptList> = {
+      containerRef: { current: null },
+      filteredSegments: [segment],
+      speakers: [{ id: "speaker-1", name: "Speaker 1", color: "red" }],
+      chapters: [chapter],
+      selectedChapterId: null,
+      activeSegmentId: "seg-1",
+      selectedSegmentId: "seg-1",
+      activeWordIndex: -1,
+      splitWordIndex: null,
+      showLexiconMatches: false,
+      lexiconHighlightUnderline: false,
+      lexiconHighlightBackground: false,
+      lexiconMatchesBySegment: new Map(),
+      showSpellcheckMatches: false,
+      spellcheckMatchesBySegment: new Map(),
+      highlightLowConfidence: false,
+      lowConfidenceThreshold: null,
+      editRequestId: null,
+      onClearEditRequest: vi.fn(),
+      segmentHandlers: [
+        {
+          onSelect: vi.fn(),
+          onSelectOnly: vi.fn(),
+          onTextChange: vi.fn(),
+          onSpeakerChange: vi.fn(),
+          onSplit: vi.fn(),
+          onConfirm: vi.fn(),
+          onToggleBookmark: vi.fn(),
+          onIgnoreLexiconMatch: vi.fn(),
+          onMergeWithPrevious: vi.fn(),
+          onMergeWithNext: vi.fn(),
+          onDelete: vi.fn(),
+        },
+      ],
+      onSeek: vi.fn(),
+      onIgnoreSpellcheckMatch: vi.fn(),
+      onAddSpellcheckToGlossary: vi.fn(),
+      emptyState: {
+        title: "Empty",
+        description: "No segments available.",
+      },
+      searchQuery: "",
+      isRegexSearch: false,
+      currentMatch: {
+        segmentId: "seg-1",
+        startIndex: 0,
+        endIndex: 1,
+        text: "He",
+      },
+      allMatches: [],
+      replaceQuery: "",
+      onReplaceCurrent: vi.fn(),
+      onMatchClick: vi.fn(),
+      findMatchIndex: vi.fn(),
+      onStartChapterAtSegment: vi.fn(),
+      onSelectChapter: vi.fn(),
+      onUpdateChapter: vi.fn(),
+      onDeleteChapter: vi.fn(),
+      chapterFocusRequest: null,
+      onChapterFocusRequestHandled: vi.fn(),
+      isTranscriptEditing: false,
+    };
+
+    render(<TranscriptList {...props} />);
+
+    expect(screen.queryByTestId("segment-seg-1")).not.toBeInTheDocument();
+    expect(screen.getByTestId("rewritten-anchor-seg-1")).toBeInTheDocument();
+  });
 });

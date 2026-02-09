@@ -457,6 +457,74 @@ describe("useScrollAndSelection", () => {
     HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
   });
 
+  it("scrolls rewritten anchors to the start instead of center", async () => {
+    const setSelectedSegmentId = vi.fn();
+    const seekToTime = vi.fn();
+    const setIsPlaying = vi.fn();
+    const scrollIntoView = vi.fn();
+    const originalScrollIntoView = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+    const rafSpy = vi
+      .spyOn(globalThis, "requestAnimationFrame")
+      .mockImplementation((callback: FrameRequestCallback) => {
+        callback(0);
+        return 0;
+      });
+
+    const { result, rerender } = renderHook((props) => useScrollAndSelection(props), {
+      initialProps: {
+        segments,
+        currentTime: 2.4,
+        selectedSegmentId: "segment-1",
+        isPlaying: false,
+        isTranscriptEditing: () => false,
+        activeSpeakerName: undefined,
+        filteredSegments: segments,
+        restrictPlaybackToFiltered: false,
+        lowConfidenceThreshold: 0.2,
+        setSelectedSegmentId,
+        seekToTime,
+        setIsPlaying,
+      },
+    });
+
+    const viewport = document.createElement("div");
+    const container = document.createElement("div");
+    const rewrittenAnchor = document.createElement("div");
+    rewrittenAnchor.dataset.segmentId = "segment-2";
+    rewrittenAnchor.dataset.rewrittenAnchor = "true";
+    container.appendChild(rewrittenAnchor);
+    viewport.appendChild(container);
+    document.body.appendChild(viewport);
+
+    act(() => {
+      const transcriptListRef = result.current
+        .transcriptListRef as MutableRefObject<HTMLElement | null>;
+      transcriptListRef.current = container;
+    });
+    rerender({
+      segments,
+      currentTime: 2.4,
+      selectedSegmentId: "segment-1",
+      isPlaying: false,
+      isTranscriptEditing: () => false,
+      activeSpeakerName: undefined,
+      filteredSegments: segments,
+      restrictPlaybackToFiltered: false,
+      lowConfidenceThreshold: 0.2,
+      setSelectedSegmentId,
+      seekToTime,
+      setIsPlaying,
+    });
+
+    await waitFor(() => {
+      expect(scrollIntoView).toHaveBeenCalledWith({ block: "start", behavior: "auto" });
+    });
+
+    rafSpy.mockRestore();
+    HTMLElement.prototype.scrollIntoView = originalScrollIntoView;
+  });
+
   it("scrolls during playback even if visibility check is strict", async () => {
     const setSelectedSegmentId = vi.fn();
     const seekToTime = vi.fn();

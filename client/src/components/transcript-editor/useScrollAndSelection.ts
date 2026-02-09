@@ -285,8 +285,11 @@ export function useScrollAndSelection({
     lastSelectedIdRef.current = selectedSegmentId;
     lastActiveIdRef.current = activeSegment?.id ?? null;
 
+    const scrollBlock: ScrollLogicalPosition =
+      resolvedTarget?.dataset.rewrittenAnchor === "true" ? "start" : "center";
+
     scrollSegmentIntoView(scrollTargetId, resolvedTarget ?? null, {
-      block: "center",
+      block: scrollBlock,
       behavior,
     });
   }, [

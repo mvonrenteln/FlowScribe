@@ -342,19 +342,25 @@ function TranscriptListComponent({
                 )}
 
                 {showRewritten && chapter?.rewrittenText ? (
-                  <RewrittenTextDisplay
-                    chapterId={chapter.id}
-                    text={chapter.rewrittenText}
-                    searchQuery={searchQuery}
-                    isRegexSearch={isRegexSearch}
-                    onRefineParagraph={(index) => handleRefineParagraph(chapter.id, index)}
-                    refiningParagraphIndex={
-                      paragraphRewriteChapterId === chapter.id
-                        ? paragraphRewriteParagraphIndex
-                        : null
-                    }
-                    refineDisabled={paragraphRewriteInProgress}
-                  />
+                  <div
+                    data-segment-id={segment.id}
+                    data-rewritten-anchor="true"
+                    data-testid={`rewritten-anchor-${segment.id}`}
+                  >
+                    <RewrittenTextDisplay
+                      chapterId={chapter.id}
+                      text={chapter.rewrittenText}
+                      searchQuery={searchQuery}
+                      isRegexSearch={isRegexSearch}
+                      onRefineParagraph={(index) => handleRefineParagraph(chapter.id, index)}
+                      refiningParagraphIndex={
+                        paragraphRewriteChapterId === chapter.id
+                          ? paragraphRewriteParagraphIndex
+                          : null
+                      }
+                      refineDisabled={paragraphRewriteInProgress}
+                    />
+                  </div>
                 ) : (
                   <TranscriptSegment
                     segment={segment}
