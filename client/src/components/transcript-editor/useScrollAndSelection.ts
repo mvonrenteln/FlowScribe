@@ -48,7 +48,7 @@ export function useScrollAndSelection({
       const seg = segments[mid];
       if (currentTime < seg.start) {
         high = mid - 1;
-      } else if (currentTime > seg.end) {
+      } else if (currentTime >= seg.end) {
         low = mid + 1;
       } else {
         return seg;
@@ -285,8 +285,11 @@ export function useScrollAndSelection({
     lastSelectedIdRef.current = selectedSegmentId;
     lastActiveIdRef.current = activeSegment?.id ?? null;
 
+    const scrollBlock: ScrollLogicalPosition =
+      resolvedTarget?.dataset.rewrittenAnchor === "true" ? "start" : "center";
+
     scrollSegmentIntoView(scrollTargetId, resolvedTarget ?? null, {
-      block: "center",
+      block: scrollBlock,
       behavior,
     });
   }, [
