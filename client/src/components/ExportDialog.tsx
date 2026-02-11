@@ -12,11 +12,9 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { indexById } from "@/lib/arrayUtils";
-import { buildJSONExport } from "@/lib/exportUtils";
+import { buildJSONExport, buildTXTExport } from "@/lib/exportUtils";
 import type { Segment, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
-import { getSegmentTags } from "@/lib/store/utils/segmentTags";
 
 interface ExportDialogProps {
   open: boolean;
@@ -59,15 +57,11 @@ const ExportDialogComponent = ({
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
   const [useRewritten, setUseRewritten] = useState(false);
+  const [includeChapterHeadings, setIncludeChapterHeadings] = useState(false);
+  const [includeChapterSummaries, setIncludeChapterSummaries] = useState(false);
 
   // Get chapters from store
   const chapters = useTranscriptStore((state) => state.chapters);
-
-  // Pre-compute tagsById Map once
-  const tagsById = useMemo(() => new Map(tags.map((t) => [t.id, t])), [tags]);
-
-  // Pre-compute segment index map for fast range lookups
-  const segmentIndexById = useMemo(() => indexById(segments), [segments]);
 
   // Determine which segments to export
   const segmentsToExport = useFilters ? filteredSegments : segments;
@@ -81,84 +75,20 @@ const ExportDialogComponent = ({
   const exportedSRT = useMemo(() => formatSRT(segmentsToExport), [segmentsToExport]);
 
   const exportedTXT = useMemo(() => {
-    // If useRewritten is enabled and there are chapters, try chapter-based export
-    if (useRewritten && chapters.length > 0) {
-      const parts: string[] = [];
-
-      for (const chapter of chapters) {
-        const startIndex = segmentIndexById.get(chapter.startSegmentId) ?? -1;
-        const endIndex = segmentIndexById.get(chapter.endSegmentId) ?? -1;
-
-        // Find segments in this chapter that are in segmentsToExport
-        const chapterSegments = segmentsToExport.filter((seg) => {
-          if (startIndex === -1 || endIndex === -1) return false;
-          const segmentIndex = segmentIndexById.get(seg.id) ?? -1;
-          return segmentIndex >= startIndex && segmentIndex <= endIndex;
-        });
-
-        // Skip chapters with no segments in the export
-        if (chapterSegments.length === 0) {
-          continue;
-        }
-
-        // Chapter header
-        parts.push(`# ${chapter.title}`);
-        if (chapter.summary) {
-          parts.push(`\n${chapter.summary}\n`);
-        }
-
-        // Use rewritten text if available, otherwise fall back to segments
-        if (chapter.rewrittenText) {
-          parts.push(chapter.rewrittenText);
-        } else {
-          const formatTime = (seconds: number): string => {
-            const mins = Math.floor(seconds / 60);
-            const secs = Math.floor(seconds % 60);
-            return `${mins}:${secs.toString().padStart(2, "0")}`;
-          };
-
-          const segmentTexts = chapterSegments.map((segment) => {
-            const segmentTagIds = getSegmentTags(segment);
-            const tagNames = segmentTagIds
-              .map((tagId) => tagsById.get(tagId)?.name)
-              .filter((name): name is string => !!name);
-
-            const speakerLabel =
-              tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
-
-            return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
-          });
-
-          parts.push(segmentTexts.join("\n\n"));
-        }
-
-        parts.push("\n\n");
-      }
-
-      return parts.join("\n");
-    }
-
-    // Default segment-based export
-    return segmentsToExport
-      .map((segment) => {
-        const formatTime = (seconds: number): string => {
-          const mins = Math.floor(seconds / 60);
-          const secs = Math.floor(seconds % 60);
-          return `${mins}:${secs.toString().padStart(2, "0")}`;
-        };
-
-        const segmentTagIds = getSegmentTags(segment);
-        const tagNames = segmentTagIds
-          .map((tagId) => tagsById.get(tagId)?.name)
-          .filter((name): name is string => !!name);
-
-        const speakerLabel =
-          tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
-
-        return `[${formatTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
-      })
-      .join("\n\n");
-  }, [segmentsToExport, tagsById, useRewritten, chapters, segmentIndexById]);
+    return buildTXTExport(segmentsToExport, segments, tags, chapters, {
+      useRewrittenText: useRewritten,
+      includeChapterHeadings,
+      includeChapterSummaries,
+    });
+  }, [
+    segmentsToExport,
+    segments,
+    tags,
+    chapters,
+    useRewritten,
+    includeChapterHeadings,
+    includeChapterSummaries,
+  ]);
 
   // Memoize the export description text
   const exportDescription = useMemo(
@@ -269,18 +199,48 @@ const ExportDialogComponent = ({
             </div>
 
             {format === "txt" && chapters.length > 0 && (
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="use-rewritten"
-                  checked={useRewritten}
-                  onCheckedChange={(checked) => setUseRewritten(checked === true)}
-                />
-                <Label htmlFor="use-rewritten" className="cursor-pointer">
-                  <span className="font-medium">Use rewritten text (where available)</span>
-                  <p className="text-sm text-muted-foreground">
-                    Organize by chapters and use rewritten text when available
-                  </p>
-                </Label>
+              <div className="flex flex-col gap-3">
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="use-rewritten"
+                    checked={useRewritten}
+                    onCheckedChange={(checked) => setUseRewritten(checked === true)}
+                  />
+                  <Label htmlFor="use-rewritten" className="cursor-pointer">
+                    <span className="font-medium">Use rewritten text (where available)</span>
+                    <p className="text-sm text-muted-foreground">
+                      Export chapter rewrite text instead of segment text where available
+                    </p>
+                  </Label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="include-chapter-headings"
+                    checked={includeChapterHeadings}
+                    onCheckedChange={(checked) => setIncludeChapterHeadings(checked === true)}
+                  />
+                  <Label htmlFor="include-chapter-headings" className="cursor-pointer">
+                    <span className="font-medium">Include chapter headings</span>
+                    <p className="text-sm text-muted-foreground">
+                      Add chapter titles to plain text exports
+                    </p>
+                  </Label>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <Checkbox
+                    id="include-chapter-summaries"
+                    checked={includeChapterSummaries}
+                    onCheckedChange={(checked) => setIncludeChapterSummaries(checked === true)}
+                  />
+                  <Label htmlFor="include-chapter-summaries" className="cursor-pointer">
+                    <span className="font-medium">Include chapter summaries</span>
+                    <p className="text-sm text-muted-foreground">
+                      Add chapter summaries to plain text exports
+                    </p>
+                  </Label>
+                </div>
               </div>
             )}
           </div>

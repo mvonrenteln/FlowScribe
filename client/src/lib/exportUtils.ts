@@ -1,5 +1,7 @@
+import { indexById } from "@/lib/arrayUtils";
 import type { Chapter } from "@/types/chapter";
 import type { Segment, Tag } from "./store/types";
+import { getSegmentTags } from "./store/utils/segmentTags";
 
 export interface JSONExportChapter {
   id: string;
@@ -34,6 +36,12 @@ export interface JSONExport {
   segments: Array<Segment & { tags: string[] }>;
   tags?: JSONExportTag[];
   chapters?: JSONExportChapter[];
+}
+
+export interface TXTExportOptions {
+  useRewrittenText?: boolean;
+  includeChapterHeadings?: boolean;
+  includeChapterSummaries?: boolean;
 }
 
 const mapTagIdsToNames = (tags: string[] | undefined, tagsById: Map<string, string>) =>
@@ -87,6 +95,88 @@ export function buildJSONExport(
         }
       : {}),
   };
+}
+
+const formatTxtTime = (seconds: number): string => {
+  const mins = Math.floor(seconds / 60);
+  const secs = Math.floor(seconds % 60);
+  return `${mins}:${secs.toString().padStart(2, "0")}`;
+};
+
+const formatSegmentTXT = (segment: Segment, tagsById: Map<string, Tag>): string => {
+  const segmentTagIds = getSegmentTags(segment);
+  const tagNames = segmentTagIds
+    .map((tagId) => tagsById.get(tagId)?.name)
+    .filter((name): name is string => !!name);
+
+  const speakerLabel =
+    tagNames.length > 0 ? `${segment.speaker} (${tagNames.join(", ")})` : segment.speaker;
+
+  return `[${formatTxtTime(segment.start)}] ${speakerLabel}: ${segment.text}`;
+};
+
+/**
+ * Build a plain text export payload with optional chapter metadata and rewrites.
+ */
+export function buildTXTExport(
+  segmentsToExport: Segment[],
+  allSegments: Segment[],
+  tags: Tag[],
+  chapters: Chapter[] = [],
+  options: TXTExportOptions = {},
+): string {
+  const {
+    useRewrittenText = false,
+    includeChapterHeadings = false,
+    includeChapterSummaries = false,
+  } = options;
+
+  const tagsById = new Map(tags.map((t) => [t.id, t]));
+  const segmentIndexById = indexById(allSegments);
+
+  const shouldExportByChapter =
+    chapters.length > 0 && (useRewrittenText || includeChapterHeadings || includeChapterSummaries);
+
+  if (shouldExportByChapter) {
+    const parts: string[] = [];
+
+    for (const chapter of chapters) {
+      const startIndex = segmentIndexById.get(chapter.startSegmentId) ?? -1;
+      const endIndex = segmentIndexById.get(chapter.endSegmentId) ?? -1;
+
+      const chapterSegments = segmentsToExport.filter((segment) => {
+        if (startIndex === -1 || endIndex === -1) return false;
+        const segmentIndex = segmentIndexById.get(segment.id) ?? -1;
+        return segmentIndex >= startIndex && segmentIndex <= endIndex;
+      });
+
+      if (chapterSegments.length === 0) {
+        continue;
+      }
+
+      if (includeChapterHeadings) {
+        parts.push(`# ${chapter.title}`);
+      }
+
+      if (includeChapterSummaries && chapter.summary) {
+        parts.push(`\n${chapter.summary}\n`);
+      }
+
+      if (useRewrittenText && chapter.rewrittenText) {
+        parts.push(chapter.rewrittenText);
+      } else {
+        parts.push(
+          chapterSegments.map((segment) => formatSegmentTXT(segment, tagsById)).join("\n\n"),
+        );
+      }
+
+      parts.push("\n\n");
+    }
+
+    return parts.join("\n").trim();
+  }
+
+  return segmentsToExport.map((segment) => formatSegmentTXT(segment, tagsById)).join("\n\n");
 }
 
 export default buildJSONExport;

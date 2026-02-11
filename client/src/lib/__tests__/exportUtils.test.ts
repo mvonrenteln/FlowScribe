@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { Chapter } from "@/types/chapter";
-import { buildJSONExport } from "../exportUtils";
+import { buildJSONExport, buildTXTExport } from "../exportUtils";
 import type { Segment, Tag } from "../store/types";
 
 describe("buildJSONExport", () => {
@@ -76,5 +76,82 @@ describe("buildJSONExport", () => {
       { name: "Guest", color: "#000" },
     ]);
     expect(exported.chapters?.[0]?.tags).toEqual(["Guest", "unknown"]);
+  });
+});
+
+describe("buildTXTExport", () => {
+  const tags: Tag[] = [{ id: "t1", name: "Host", color: "#fff" }];
+  const segments: Segment[] = [
+    {
+      id: "s1",
+      speaker: "A",
+      tags: ["t1"],
+      start: 0,
+      end: 5,
+      text: "First segment.",
+      words: [],
+    },
+    {
+      id: "s2",
+      speaker: "B",
+      tags: [],
+      start: 5,
+      end: 10,
+      text: "Second segment.",
+      words: [],
+    },
+  ];
+  const chapters: Chapter[] = [
+    {
+      id: "c1",
+      title: "Intro",
+      summary: "Short intro summary.",
+      startSegmentId: "s1",
+      endSegmentId: "s2",
+      segmentCount: 2,
+      createdAt: 1,
+      source: "manual",
+      rewrittenText: "Rewritten intro text.",
+    },
+  ];
+
+  it("exports plain segment text by default without chapter heading or summary", () => {
+    const exported = buildTXTExport(segments, segments, tags, chapters);
+
+    expect(exported).toContain("[0:00] A (Host): First segment.");
+    expect(exported).toContain("[0:05] B: Second segment.");
+    expect(exported).not.toContain("# Intro");
+    expect(exported).not.toContain("Short intro summary.");
+  });
+
+  it("includes chapter heading and summary when both options are enabled", () => {
+    const exported = buildTXTExport(segments, segments, tags, chapters, {
+      includeChapterHeadings: true,
+      includeChapterSummaries: true,
+    });
+
+    expect(exported).toContain("# Intro");
+    expect(exported).toContain("Short intro summary.");
+    expect(exported).toContain("[0:00] A (Host): First segment.");
+  });
+
+  it("includes only chapter summary when summary option is enabled alone", () => {
+    const exported = buildTXTExport(segments, segments, tags, chapters, {
+      includeChapterSummaries: true,
+    });
+
+    expect(exported).toContain("Short intro summary.");
+    expect(exported).not.toContain("# Intro");
+    expect(exported).toContain("[0:00] A (Host): First segment.");
+  });
+
+  it("uses rewritten text without forcing chapter heading and summary", () => {
+    const exported = buildTXTExport(segments, segments, tags, chapters, {
+      useRewrittenText: true,
+    });
+
+    expect(exported).toContain("Rewritten intro text.");
+    expect(exported).not.toContain("# Intro");
+    expect(exported).not.toContain("Short intro summary.");
   });
 });
