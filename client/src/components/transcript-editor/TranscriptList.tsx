@@ -252,19 +252,30 @@ function TranscriptListComponent({
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = visibleFilteredSegments;
-  // Determine anchor: prefer activeSegmentId, then selectedSegmentId, then last visible segment
+  // Determine anchor: prefer active/selected if visible, otherwise nearest visible segment.
   const anchorId =
     (activeSegmentId && visibleFilteredIndexById.has(activeSegmentId) && activeSegmentId) ||
     (selectedSegmentId && visibleFilteredIndexById.has(selectedSegmentId) && selectedSegmentId) ||
-    (visibleFilteredSegments.length > 0
-      ? visibleFilteredSegments[visibleFilteredSegments.length - 1].id
-      : undefined);
+    (() => {
+      if (visibleFilteredSegments.length === 0) return undefined;
+      const sourceId = activeSegmentId ?? selectedSegmentId;
+      if (!sourceId) return visibleFilteredSegments[0]?.id;
+      const sourceIndex = segmentIndexById.get(sourceId);
+      if (sourceIndex === undefined) return visibleFilteredSegments[0]?.id;
+
+      let previousVisible: (typeof visibleFilteredSegments)[number] | undefined;
+      for (const segment of visibleFilteredSegments) {
+        const index = segmentIndexById.get(segment.id);
+        if (index === undefined) continue;
+        if (index >= sourceIndex) return segment.id;
+        previousVisible = segment;
+      }
+      return previousVisible?.id ?? visibleFilteredSegments[0]?.id;
+    })();
 
   const activeIndex = anchorId ? (visibleFilteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {
-    // fallback: last N segments so user stays near the end instead of jumping elsewhere
-    const start = Math.max(0, visibleFilteredSegments.length - DEV_SLICE_SIZE);
-    segmentsToRender = visibleFilteredSegments.slice(start, visibleFilteredSegments.length);
+    segmentsToRender = visibleFilteredSegments.slice(0, DEV_SLICE_SIZE);
   } else {
     const half = Math.floor(DEV_SLICE_SIZE / 2);
     const start = Math.max(0, activeIndex - half);
