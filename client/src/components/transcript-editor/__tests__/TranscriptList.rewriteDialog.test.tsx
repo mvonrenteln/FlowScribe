@@ -370,6 +370,99 @@ describe("TranscriptList rewrite dialog", () => {
     expect(screen.queryByTestId("segment-seg-60")).not.toBeInTheDocument();
   });
 
+  it("anchors the window to active time context when selected segment is still visible", () => {
+    const segments = Array.from({ length: 120 }, (_, index) => {
+      const id = `seg-${index + 1}`;
+      return {
+        id,
+        speaker: "Speaker 1",
+        start: index,
+        end: index + 0.8,
+        text: `Text ${index + 1}`,
+        words: [],
+        tags: [],
+      };
+    });
+
+    useTranscriptStore.setState({
+      segments,
+      chapters: [],
+      chapterDisplayModes: {},
+    });
+
+    const filteredSegments = segments.filter(
+      (segment) => Number(segment.id.split("-")[1]) % 2 === 0,
+    );
+    const segmentHandlers = filteredSegments.map(() => ({
+      onSelect: vi.fn(),
+      onSelectOnly: vi.fn(),
+      onTextChange: vi.fn(),
+      onSpeakerChange: vi.fn(),
+      onSplit: vi.fn(),
+      onConfirm: vi.fn(),
+      onToggleBookmark: vi.fn(),
+      onIgnoreLexiconMatch: vi.fn(),
+      onMergeWithPrevious: vi.fn(),
+      onMergeWithNext: vi.fn(),
+      onDelete: vi.fn(),
+    }));
+
+    const props: React.ComponentProps<typeof TranscriptList> = {
+      containerRef: { current: null },
+      filteredSegments,
+      speakers: [{ id: "speaker-1", name: "Speaker 1", color: "red" }],
+      chapters: [],
+      selectedChapterId: null,
+      activeSegmentId: "seg-101",
+      selectedSegmentId: "seg-20",
+      activeWordIndex: -1,
+      splitWordIndex: null,
+      showLexiconMatches: false,
+      lexiconHighlightUnderline: false,
+      lexiconHighlightBackground: false,
+      lexiconMatchesBySegment: new Map(),
+      showSpellcheckMatches: false,
+      spellcheckMatchesBySegment: new Map(),
+      highlightLowConfidence: false,
+      lowConfidenceThreshold: null,
+      editRequestId: null,
+      onClearEditRequest: vi.fn(),
+      segmentHandlers,
+      onSeek: vi.fn(),
+      onIgnoreSpellcheckMatch: vi.fn(),
+      onAddSpellcheckToGlossary: vi.fn(),
+      emptyState: {
+        title: "Empty",
+        description: "No segments available.",
+      },
+      searchQuery: "",
+      isRegexSearch: false,
+      currentMatch: {
+        segmentId: "seg-20",
+        startIndex: 0,
+        endIndex: 1,
+        text: "T",
+      },
+      allMatches: [],
+      replaceQuery: "",
+      onReplaceCurrent: vi.fn(),
+      onMatchClick: vi.fn(),
+      findMatchIndex: vi.fn(),
+      onStartChapterAtSegment: vi.fn(),
+      onSelectChapter: vi.fn(),
+      onUpdateChapter: vi.fn(),
+      onDeleteChapter: vi.fn(),
+      chapterFocusRequest: null,
+      onChapterFocusRequestHandled: vi.fn(),
+      isTranscriptEditing: false,
+    };
+
+    render(<TranscriptList {...props} />);
+
+    expect(screen.getByTestId("segment-seg-102")).toBeInTheDocument();
+    expect(screen.queryByTestId("segment-seg-2")).not.toBeInTheDocument();
+  });
+
   it("exposes a scroll anchor for rewritten chapter start segments", () => {
     const segment = {
       id: "seg-1",

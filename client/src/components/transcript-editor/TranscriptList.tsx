@@ -252,16 +252,12 @@ function TranscriptListComponent({
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = visibleFilteredSegments;
-  // Determine anchor: prefer active/selected if visible, otherwise nearest visible segment.
-  const anchorId =
-    (activeSegmentId && visibleFilteredIndexById.has(activeSegmentId) && activeSegmentId) ||
-    (selectedSegmentId && visibleFilteredIndexById.has(selectedSegmentId) && selectedSegmentId) ||
-    (() => {
+  const getNearestVisibleAnchorId = useCallback(
+    (sourceId: string | null | undefined) => {
       if (visibleFilteredSegments.length === 0) return undefined;
-      const sourceId = activeSegmentId ?? selectedSegmentId;
       if (!sourceId) return visibleFilteredSegments[0]?.id;
       const sourceIndex = segmentIndexById.get(sourceId);
-      if (sourceIndex === undefined) return visibleFilteredSegments[0]?.id;
+      if (sourceIndex === undefined) return undefined;
 
       let previousVisible: (typeof visibleFilteredSegments)[number] | undefined;
       for (const segment of visibleFilteredSegments) {
@@ -271,7 +267,22 @@ function TranscriptListComponent({
         previousVisible = segment;
       }
       return previousVisible?.id ?? visibleFilteredSegments[0]?.id;
-    })();
+    },
+    [segmentIndexById, visibleFilteredSegments],
+  );
+
+  // Determine anchor: follow active playback time first (incl. nearest visible fallback),
+  // then selection fallback.
+  const anchorId =
+    (activeSegmentId &&
+      (visibleFilteredIndexById.has(activeSegmentId)
+        ? activeSegmentId
+        : getNearestVisibleAnchorId(activeSegmentId))) ||
+    (selectedSegmentId &&
+      (visibleFilteredIndexById.has(selectedSegmentId)
+        ? selectedSegmentId
+        : getNearestVisibleAnchorId(selectedSegmentId))) ||
+    visibleFilteredSegments[0]?.id;
 
   const activeIndex = anchorId ? (visibleFilteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {

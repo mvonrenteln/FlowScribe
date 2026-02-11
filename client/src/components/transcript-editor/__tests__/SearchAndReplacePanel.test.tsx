@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { SearchAndReplacePanel } from "../SearchAndReplacePanel";
 
@@ -66,6 +66,26 @@ describe("SearchAndReplacePanel", () => {
     expect(props.onReplaceAll).toHaveBeenCalled();
   });
 
+  it("steps through matches with arrow up/down in search input", () => {
+    const goToNextMatch = vi.fn();
+    const goToPrevMatch = vi.fn();
+    const props = {
+      ...defaultProps,
+      totalMatches: 3,
+      currentMatchIndex: 1,
+      goToNextMatch,
+      goToPrevMatch,
+    };
+    render(<SearchAndReplacePanel {...props} />);
+
+    const input = screen.getByTestId("input-search-transcript");
+    fireEvent.keyDown(input, { key: "ArrowDown" });
+    expect(goToNextMatch).toHaveBeenCalledTimes(1);
+
+    fireEvent.keyDown(input, { key: "ArrowUp" });
+    expect(goToPrevMatch).toHaveBeenCalledTimes(1);
+  });
+
   it("calls onReplaceQueryChange when typing", () => {
     render(<SearchAndReplacePanel {...defaultProps} />);
     fireEvent.click(screen.getByTitle(/toggle replace/i));
@@ -75,5 +95,3 @@ describe("SearchAndReplacePanel", () => {
     expect(defaultProps.onReplaceQueryChange).toHaveBeenCalledWith("new value");
   });
 });
-
-import { act } from "@testing-library/react";

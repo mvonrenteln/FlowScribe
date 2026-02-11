@@ -14,6 +14,7 @@ interface UseNavigationHotkeysOptions {
   setSelectedSegmentId: (id: string | null) => void;
   clearSpeakerFilter: () => void;
   selectedSegmentId: string | null;
+  filteredSegments: Segment[];
   segments: Segment[];
   speakers: Speaker[];
   tags: Tag[];
@@ -54,6 +55,7 @@ export function useNavigationHotkeys({
   setSelectedSegmentId,
   clearSpeakerFilter,
   selectedSegmentId,
+  filteredSegments,
   segments,
   speakers,
   tags,
@@ -217,11 +219,20 @@ export function useNavigationHotkeys({
       if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
         const index = getSelectedSegmentIndex();
-        if (index > 0) {
-          const mergedId = mergeSegments(segments[index - 1].id, selectedSegmentId);
-          if (mergedId) {
-            setSelectedSegmentId(mergedId);
-          }
+        if (index <= 0) return;
+        const previousFilteredSegment = filteredSegments[index - 1];
+        if (!previousFilteredSegment) return;
+
+        const currentIndexInAll = segments.findIndex((segment) => segment.id === selectedSegmentId);
+        const previousIndexInAll = segments.findIndex(
+          (segment) => segment.id === previousFilteredSegment.id,
+        );
+        if (currentIndexInAll === -1 || previousIndexInAll === -1) return;
+        if (Math.abs(currentIndexInAll - previousIndexInAll) !== 1) return;
+
+        const mergedId = mergeSegments(previousFilteredSegment.id, selectedSegmentId);
+        if (mergedId) {
+          setSelectedSegmentId(mergedId);
         }
       }
     },
@@ -234,11 +245,20 @@ export function useNavigationHotkeys({
       if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
         const index = getSelectedSegmentIndex();
-        if (index < segments.length - 1) {
-          const mergedId = mergeSegments(selectedSegmentId, segments[index + 1].id);
-          if (mergedId) {
-            setSelectedSegmentId(mergedId);
-          }
+        if (index < 0 || index >= filteredSegments.length - 1) return;
+        const nextFilteredSegment = filteredSegments[index + 1];
+        if (!nextFilteredSegment) return;
+
+        const currentIndexInAll = segments.findIndex((segment) => segment.id === selectedSegmentId);
+        const nextIndexInAll = segments.findIndex(
+          (segment) => segment.id === nextFilteredSegment.id,
+        );
+        if (currentIndexInAll === -1 || nextIndexInAll === -1) return;
+        if (Math.abs(currentIndexInAll - nextIndexInAll) !== 1) return;
+
+        const mergedId = mergeSegments(selectedSegmentId, nextFilteredSegment.id);
+        if (mergedId) {
+          setSelectedSegmentId(mergedId);
         }
       }
     },

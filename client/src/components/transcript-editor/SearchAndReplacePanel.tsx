@@ -70,6 +70,14 @@ export function SearchAndReplacePanel({
       onSearchQueryChange("");
       onReplaceQueryChange("");
       setShowReplace(false);
+    } else if (e.key === "ArrowDown") {
+      e.preventDefault();
+      e.stopPropagation();
+      goToNextMatch();
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      e.stopPropagation();
+      goToPrevMatch();
     } else if (e.altKey) {
       if (e.key.toLowerCase() === "r") {
         e.preventDefault();
