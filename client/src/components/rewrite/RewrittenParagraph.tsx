@@ -218,8 +218,9 @@ export function RewrittenParagraph({
           value={draftText}
           onChange={handleDraftChange}
           onKeyDown={handleEditKeyDown}
+          // Keep a stable edit box height while allowing longer content to scroll.
           className={cn(
-            "w-full resize-none overflow-hidden rounded border-none bg-transparent",
+            "w-full resize-none overflow-y-auto rounded border-none bg-transparent",
             "font-sans text-sm leading-relaxed text-foreground",
             "focus:outline-none focus:ring-0",
           )}
