@@ -34,6 +34,10 @@ describe("useNavigationHotkeys", () => {
     setSelectedSegmentId,
     clearSpeakerFilter: vi.fn(),
     selectedSegmentId: "segment-1",
+    filteredSegments: [
+      { id: "segment-1", speaker: "SPEAKER_00", start: 0, end: 1, text: "", words: [], tags: [] },
+      { id: "segment-2", speaker: "SPEAKER_01", start: 2, end: 3, text: "", words: [], tags: [] },
+    ],
     segments: [
       { id: "segment-1", speaker: "SPEAKER_00", start: 0, end: 1, text: "", words: [], tags: [] },
       { id: "segment-2", speaker: "SPEAKER_01", start: 2, end: 3, text: "", words: [], tags: [] },
@@ -100,6 +104,18 @@ describe("useNavigationHotkeys", () => {
       useNavigationHotkeys({
         ...baseOptions,
         mergeSegments: mergeSegments.mockReturnValue("merged-id"),
+        filteredSegments: [
+          ...baseOptions.filteredSegments,
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
+        ],
         segments: [
           ...baseOptions.segments,
           {
@@ -135,6 +151,131 @@ describe("useNavigationHotkeys", () => {
     hotkeyHandlers.get("delete")?.(new KeyboardEvent("keydown", { key: "Delete" }));
     expect(deleteSegment).toHaveBeenCalledWith("segment-2");
     expect(setSelectedSegmentId).toHaveBeenCalledWith(null);
+  });
+
+  it("merges using filtered neighbors for p/m hotkeys", () => {
+    renderHook(() =>
+      useNavigationHotkeys({
+        ...baseOptions,
+        selectedSegmentId: "segment-3",
+        getSelectedSegmentIndex: () => 1,
+        mergeSegments: mergeSegments.mockReturnValue("merged-id"),
+        filteredSegments: [
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_01",
+            start: 2,
+            end: 3,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
+        ],
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_99",
+            start: 0,
+            end: 1,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_01",
+            start: 2,
+            end: 3,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
+        ],
+      }),
+    );
+
+    hotkeyHandlers.get("p")?.(new KeyboardEvent("keydown", { key: "p" }));
+    expect(mergeSegments).toHaveBeenCalledWith("segment-2", "segment-3");
+  });
+
+  it("does not merge non-adjacent segments in original order", () => {
+    renderHook(() =>
+      useNavigationHotkeys({
+        ...baseOptions,
+        selectedSegmentId: "segment-3",
+        getSelectedSegmentIndex: () => 1,
+        filteredSegments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
+        ],
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            start: 0,
+            end: 1,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-2",
+            speaker: "SPEAKER_01",
+            start: 2,
+            end: 3,
+            text: "",
+            words: [],
+            tags: [],
+          },
+          {
+            id: "segment-3",
+            speaker: "SPEAKER_00",
+            start: 4,
+            end: 5,
+            text: "",
+            words: [],
+            tags: [],
+          },
+        ],
+      }),
+    );
+
+    hotkeyHandlers.get("p")?.(new KeyboardEvent("keydown", { key: "p" }));
+    expect(mergeSegments).not.toHaveBeenCalled();
   });
 
   it("starts editing with the edit hotkey", () => {

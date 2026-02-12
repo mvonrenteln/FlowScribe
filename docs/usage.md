@@ -99,6 +99,7 @@ Hover a highlighted word to open the tooltip.
 ## 8) Export
 
 Export your cleaned transcript as JSON, SRT, or plain text.
+- For plain text export, chapter headings and chapter summaries are controlled by separate options and both are disabled by default.
 
 ![Export dialog](screenshots/export-dialog.png)
 

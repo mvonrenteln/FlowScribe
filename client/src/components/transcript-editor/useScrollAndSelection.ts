@@ -62,6 +62,10 @@ export function useScrollAndSelection({
     () => new Set(filteredSegments.map((segment) => segment.id)),
     [filteredSegments],
   );
+  const segmentIndexById = useMemo(
+    () => new Map(segments.map((segment, index) => [segment.id, index])),
+    [segments],
+  );
 
   const isActiveSegmentVisible = useMemo(() => {
     if (!activeSegment) return false;
@@ -71,6 +75,11 @@ export function useScrollAndSelection({
   // Sync selection during playback or when time changes manually
   useEffect(() => {
     if (isTranscriptEditing()) return;
+    const isFilteredView = filteredSegments.length !== segments.length;
+    const hasVisibleSelection = Boolean(
+      selectedSegmentId && filteredSegmentIds.has(selectedSegmentId),
+    );
+
     if (activeSegment && isActiveSegmentVisible) {
       if (activeSegment.id !== selectedSegmentId) {
         setSelectedSegmentId(activeSegment.id);
@@ -78,10 +87,50 @@ export function useScrollAndSelection({
       return;
     }
 
+    if (!filteredSegments.length) return;
+
+    if (hasVisibleSelection && isFilteredView) {
+      return;
+    }
+
+    const getNearestFilteredSegment = (anchorIndex: number) => {
+      if (anchorIndex < 0) {
+        return filteredSegments[0];
+      }
+
+      for (const segment of filteredSegments) {
+        const index = segmentIndexById.get(segment.id);
+        if (index !== undefined && index >= anchorIndex) {
+          return segment;
+        }
+      }
+
+      return filteredSegments[filteredSegments.length - 1];
+    };
+
+    if (activeSegment) {
+      const nearestSegment = getNearestFilteredSegment(
+        segmentIndexById.get(activeSegment.id) ?? -1,
+      );
+      if (nearestSegment && nearestSegment.id !== selectedSegmentId) {
+        setSelectedSegmentId(nearestSegment.id);
+      }
+      return;
+    }
+
     if (!activeSegment) {
-      const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
-      if (nextSegment && nextSegment.id !== selectedSegmentId) {
-        setSelectedSegmentId(nextSegment.id);
+      if (!isFilteredView) {
+        const nextSegment = filteredSegments.find((segment) => segment.start > currentTime);
+        if (nextSegment && nextSegment.id !== selectedSegmentId) {
+          setSelectedSegmentId(nextSegment.id);
+        }
+        return;
+      }
+      const selectedIndex =
+        selectedSegmentId !== null ? (segmentIndexById.get(selectedSegmentId) ?? -1) : -1;
+      const fallbackSegment = getNearestFilteredSegment(selectedIndex);
+      if (fallbackSegment && fallbackSegment.id !== selectedSegmentId) {
+        setSelectedSegmentId(fallbackSegment.id);
       }
     }
   }, [
@@ -92,6 +141,9 @@ export function useScrollAndSelection({
     setSelectedSegmentId,
     currentTime,
     filteredSegments,
+    filteredSegmentIds,
+    segmentIndexById,
+    segments.length,
   ]);
 
   const lastInteractionTimeRef = useRef(0);

@@ -2,7 +2,7 @@ import { Fragment, useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
-import { sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { getDynamicChapterRangeIndices, sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
 import { ChapterRewriteDialog } from "../rewrite/ChapterRewriteDialog";
@@ -226,19 +226,21 @@ function TranscriptListComponent({
     const hidden = new Set<string>();
     // Only process chapters that are actually rewritten and displayed as such
     for (const chapter of rewrittenChapters) {
-      const startIndex = segmentIndexById.get(chapter.startSegmentId);
-      const endIndex = segmentIndexById.get(chapter.endSegmentId);
-      if (startIndex !== undefined && endIndex !== undefined) {
-        // Build segment IDs from indices without accessing segments array
-        // All segments except the first one (where rewritten text is shown)
-        for (let i = startIndex + 1; i <= endIndex; i++) {
-          const segment = segments[i];
-          if (segment) hidden.add(segment.id);
-        }
+      const range = getDynamicChapterRangeIndices(
+        chapter.id,
+        chapters,
+        segmentIndexById,
+        segments.length,
+      );
+      if (!range) continue;
+      // All segments except the first one (where rewritten text is shown)
+      for (let i = range.startIndex + 1; i <= range.endIndex; i++) {
+        const segment = segments[i];
+        if (segment) hidden.add(segment.id);
       }
     }
     return hidden;
-  }, [rewrittenChapters, segmentIndexById, segments]);
+  }, [rewrittenChapters, chapters, segmentIndexById, segments]);
 
   const visibleFilteredSegments = useMemo(
     () => filteredSegments.filter((segment) => !hiddenSegmentIds.has(segment.id)),
@@ -252,19 +254,41 @@ function TranscriptListComponent({
   // Render a sliding window of N segments centered on the active/selected/last segment
   const DEV_SLICE_SIZE = 50;
   let segmentsToRender = visibleFilteredSegments;
-  // Determine anchor: prefer activeSegmentId, then selectedSegmentId, then last visible segment
+  const getNearestVisibleAnchorId = useCallback(
+    (sourceId: string | null | undefined) => {
+      if (visibleFilteredSegments.length === 0) return undefined;
+      if (!sourceId) return visibleFilteredSegments[0]?.id;
+      const sourceIndex = segmentIndexById.get(sourceId);
+      if (sourceIndex === undefined) return undefined;
+
+      let previousVisible: (typeof visibleFilteredSegments)[number] | undefined;
+      for (const segment of visibleFilteredSegments) {
+        const index = segmentIndexById.get(segment.id);
+        if (index === undefined) continue;
+        if (index >= sourceIndex) return segment.id;
+        previousVisible = segment;
+      }
+      return previousVisible?.id ?? visibleFilteredSegments[0]?.id;
+    },
+    [segmentIndexById, visibleFilteredSegments],
+  );
+
+  // Determine anchor: follow active playback time first (incl. nearest visible fallback),
+  // then selection fallback.
   const anchorId =
-    (activeSegmentId && visibleFilteredIndexById.has(activeSegmentId) && activeSegmentId) ||
-    (selectedSegmentId && visibleFilteredIndexById.has(selectedSegmentId) && selectedSegmentId) ||
-    (visibleFilteredSegments.length > 0
-      ? visibleFilteredSegments[visibleFilteredSegments.length - 1].id
-      : undefined);
+    (activeSegmentId &&
+      (visibleFilteredIndexById.has(activeSegmentId)
+        ? activeSegmentId
+        : getNearestVisibleAnchorId(activeSegmentId))) ||
+    (selectedSegmentId &&
+      (visibleFilteredIndexById.has(selectedSegmentId)
+        ? selectedSegmentId
+        : getNearestVisibleAnchorId(selectedSegmentId))) ||
+    visibleFilteredSegments[0]?.id;
 
   const activeIndex = anchorId ? (visibleFilteredIndexById.get(anchorId) ?? -1) : -1;
   if (activeIndex === -1) {
-    // fallback: last N segments so user stays near the end instead of jumping elsewhere
-    const start = Math.max(0, visibleFilteredSegments.length - DEV_SLICE_SIZE);
-    segmentsToRender = visibleFilteredSegments.slice(start, visibleFilteredSegments.length);
+    segmentsToRender = visibleFilteredSegments.slice(0, DEV_SLICE_SIZE);
   } else {
     const half = Math.floor(DEV_SLICE_SIZE / 2);
     const start = Math.max(0, activeIndex - half);

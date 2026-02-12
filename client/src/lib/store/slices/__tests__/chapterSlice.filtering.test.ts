@@ -100,6 +100,40 @@ describe("ChapterSlice with Filtering", () => {
       expect(segmentsInChapter).toHaveLength(4);
       expect(segmentsInChapter.map((s) => s.id)).toEqual(["seg-1", "seg-2", "seg-3", "seg-4"]);
     });
+
+    it("updates chapter segment ranges after moving the next chapter start", () => {
+      useTranscriptStore.setState({
+        ...useTranscriptStore.getState(),
+        chapters: [
+          {
+            id: "chapter-1",
+            title: "Chapter 1",
+            startSegmentId: "seg-1",
+            endSegmentId: "seg-2",
+            segmentCount: 2,
+            createdAt: 1,
+            source: "manual",
+          },
+          {
+            id: "chapter-2",
+            title: "Chapter 2",
+            startSegmentId: "seg-3",
+            endSegmentId: "seg-4",
+            segmentCount: 2,
+            createdAt: 2,
+            source: "manual",
+          },
+        ],
+      });
+
+      const initial = useTranscriptStore.getState().selectSegmentsInChapter("chapter-1");
+      expect(initial.map((segment) => segment.id)).toEqual(["seg-1", "seg-2"]);
+
+      useTranscriptStore.getState().moveChapterStart("chapter-2", "seg-4");
+
+      const updated = useTranscriptStore.getState().selectSegmentsInChapter("chapter-1");
+      expect(updated.map((segment) => segment.id)).toEqual(["seg-1", "seg-2", "seg-3"]);
+    });
   });
 
   describe("selectSegmentsInChapter with active filters", () => {

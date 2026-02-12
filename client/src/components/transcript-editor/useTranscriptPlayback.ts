@@ -128,6 +128,7 @@ export const useTranscriptPlayback = ({
     setSelectedSegmentId,
     clearSpeakerFilter: onClearSpeakerFilter,
     selectedSegmentId,
+    filteredSegments,
     segments,
     speakers,
     tags,

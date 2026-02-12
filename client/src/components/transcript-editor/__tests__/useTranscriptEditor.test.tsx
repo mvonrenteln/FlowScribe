@@ -162,12 +162,13 @@ describe("useTranscriptEditor", () => {
             id: "segment-2",
             speaker: "SPEAKER_00",
             tags: [],
-            start: 1,
-            end: 2,
+            start: 5,
+            end: 6,
             text: "Servus",
-            words: [{ word: "Servus", start: 1, end: 2 }],
+            words: [{ word: "Servus", start: 5, end: 6 }],
           },
         ],
+        currentTime: 0,
         selectedSegmentId: null,
       });
     });
@@ -178,10 +179,14 @@ describe("useTranscriptEditor", () => {
     });
 
     act(() => {
-      result.current.filterPanelProps.onSearchQueryChange("Hallo");
+      result.current.filterPanelProps.onSearchQueryChange("Servus");
     });
 
-    expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+    await waitFor(() => {
+      expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+      expect(useTranscriptStore.getState().currentTime).toBe(5);
+      expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+    });
   });
 
   it("clears active filters when switching sessions", async () => {
