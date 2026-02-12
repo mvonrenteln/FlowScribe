@@ -2,7 +2,7 @@ import type { StoreApi } from "zustand";
 import type { Chapter } from "@/types/chapter";
 import type { ChapterSlice, TranscriptStore } from "../types";
 import {
-  getChapterRangeIndices,
+  getDynamicChapterRangeIndices,
   hasOverlappingChapters,
   memoizedBuildSegmentIndexMap,
   normalizeChapterCounts,
@@ -315,22 +315,38 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
   selectChapterById: (id) => get().chapters.find((chapter) => chapter.id === id),
 
   selectChapterForSegment: (segmentId) => {
-    const { chapters } = get();
+    const { chapters, segments } = get();
     const indexById = memoizedBuildSegmentIndexMap(get().segments);
     const segmentIndex = indexById.get(segmentId);
     if (segmentIndex === undefined) return undefined;
-    return chapters.find((chapter) => {
-      const range = getChapterRangeIndices(chapter, indexById);
-      if (!range) return false;
-      return segmentIndex >= range.startIndex && segmentIndex <= range.endIndex;
-    });
+    const ordered = sortChaptersByStart(chapters, indexById);
+    for (let i = 0; i < ordered.length; i++) {
+      const chapter = ordered[i];
+      const startIndex = indexById.get(chapter.startSegmentId);
+      if (startIndex === undefined) continue;
+
+      const nextChapter = ordered[i + 1];
+      const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+      if (nextStartIndex !== undefined && nextStartIndex <= startIndex) continue;
+
+      const endIndex =
+        nextStartIndex !== undefined ? nextStartIndex - 1 : Math.max(0, segments.length - 1);
+      if (segmentIndex >= startIndex && segmentIndex <= endIndex) {
+        return chapter;
+      }
+    }
+    return undefined;
   },
 
   selectSegmentsInChapter: (chapterId) => {
     const { chapters, segments, filteredSegmentIds, filtersActive } = get();
 
     // Build cache key from relevant state
-    const cacheKey = `${chapterId}:${filtersActive ? "1" : "0"}:${filteredSegmentIds.size}:${segments.length}`;
+    const chapterBoundarySignature = chapters
+      .map((chapter) => `${chapter.id}:${chapter.startSegmentId}`)
+      .join("|");
+    const filteredSignature = filtersActive ? Array.from(filteredSegmentIds).join("|") : "";
+    const cacheKey = `${chapterId}:${segments.length}:${filtersActive ? "1" : "0"}:${chapterBoundarySignature}:${filteredSignature}`;
     const cached = segmentsInChapterCache.get(cacheKey);
     if (cached !== undefined) return cached;
 
@@ -341,7 +357,7 @@ export const createChapterSlice = (set: StoreSetter, get: StoreGetter): ChapterS
     }
 
     const indexById = memoizedBuildSegmentIndexMap(segments);
-    const range = getChapterRangeIndices(chapter, indexById);
+    const range = getDynamicChapterRangeIndices(chapter.id, chapters, indexById, segments.length);
     if (!range) {
       segmentsInChapterCache.set(cacheKey, []);
       return [];

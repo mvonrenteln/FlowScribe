@@ -2,7 +2,7 @@ import { Fragment, useCallback, useMemo, useState } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
-import { sortChaptersByStart } from "@/lib/store/utils/chapters";
+import { getDynamicChapterRangeIndices, sortChaptersByStart } from "@/lib/store/utils/chapters";
 import { useSegmentIndexById } from "../../lib/store";
 import { ChapterHeader } from "../ChapterHeader";
 import { ChapterRewriteDialog } from "../rewrite/ChapterRewriteDialog";
@@ -226,19 +226,21 @@ function TranscriptListComponent({
     const hidden = new Set<string>();
     // Only process chapters that are actually rewritten and displayed as such
     for (const chapter of rewrittenChapters) {
-      const startIndex = segmentIndexById.get(chapter.startSegmentId);
-      const endIndex = segmentIndexById.get(chapter.endSegmentId);
-      if (startIndex !== undefined && endIndex !== undefined) {
-        // Build segment IDs from indices without accessing segments array
-        // All segments except the first one (where rewritten text is shown)
-        for (let i = startIndex + 1; i <= endIndex; i++) {
-          const segment = segments[i];
-          if (segment) hidden.add(segment.id);
-        }
+      const range = getDynamicChapterRangeIndices(
+        chapter.id,
+        chapters,
+        segmentIndexById,
+        segments.length,
+      );
+      if (!range) continue;
+      // All segments except the first one (where rewritten text is shown)
+      for (let i = range.startIndex + 1; i <= range.endIndex; i++) {
+        const segment = segments[i];
+        if (segment) hidden.add(segment.id);
       }
     }
     return hidden;
-  }, [rewrittenChapters, segmentIndexById, segments]);
+  }, [rewrittenChapters, chapters, segmentIndexById, segments]);
 
   const visibleFilteredSegments = useMemo(
     () => filteredSegments.filter((segment) => !hiddenSegmentIds.has(segment.id)),

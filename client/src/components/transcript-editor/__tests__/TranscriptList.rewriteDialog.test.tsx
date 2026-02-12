@@ -279,6 +279,121 @@ describe("TranscriptList rewrite dialog", () => {
     expect(screen.getByTestId("segment-seg-56")).toBeInTheDocument();
   });
 
+  it("hides all segments until the next chapter start in rewritten mode", () => {
+    const segments = Array.from({ length: 6 }, (_, index) => {
+      const id = `seg-${index + 1}`;
+      return {
+        id,
+        speaker: "Speaker 1",
+        start: index,
+        end: index + 0.8,
+        text: `Text ${index + 1}`,
+        words: [],
+        tags: [],
+      };
+    });
+
+    const chapters = [
+      {
+        id: "chapter-1",
+        title: "Rewritten chapter",
+        startSegmentId: "seg-1",
+        endSegmentId: "seg-2",
+        segmentCount: 2,
+        createdAt: Date.now(),
+        source: "manual" as const,
+        rewrittenText: "Rewritten chapter body",
+      },
+      {
+        id: "chapter-2",
+        title: "Next chapter",
+        startSegmentId: "seg-5",
+        endSegmentId: "seg-6",
+        segmentCount: 2,
+        createdAt: Date.now(),
+        source: "manual" as const,
+      },
+    ];
+
+    useTranscriptStore.setState({
+      segments,
+      chapters,
+      chapterDisplayModes: {
+        "chapter-1": "rewritten",
+      },
+    });
+
+    const segmentHandlers = segments.map(() => ({
+      onSelect: vi.fn(),
+      onSelectOnly: vi.fn(),
+      onTextChange: vi.fn(),
+      onSpeakerChange: vi.fn(),
+      onSplit: vi.fn(),
+      onConfirm: vi.fn(),
+      onToggleBookmark: vi.fn(),
+      onIgnoreLexiconMatch: vi.fn(),
+      onMergeWithPrevious: vi.fn(),
+      onMergeWithNext: vi.fn(),
+      onDelete: vi.fn(),
+    }));
+
+    const props: React.ComponentProps<typeof TranscriptList> = {
+      containerRef: { current: null },
+      filteredSegments: segments,
+      speakers: [{ id: "speaker-1", name: "Speaker 1", color: "red" }],
+      chapters,
+      selectedChapterId: null,
+      activeSegmentId: "seg-1",
+      selectedSegmentId: "seg-1",
+      activeWordIndex: -1,
+      splitWordIndex: null,
+      showLexiconMatches: false,
+      lexiconHighlightUnderline: false,
+      lexiconHighlightBackground: false,
+      lexiconMatchesBySegment: new Map(),
+      showSpellcheckMatches: false,
+      spellcheckMatchesBySegment: new Map(),
+      highlightLowConfidence: false,
+      lowConfidenceThreshold: null,
+      editRequestId: null,
+      onClearEditRequest: vi.fn(),
+      segmentHandlers,
+      onSeek: vi.fn(),
+      onIgnoreSpellcheckMatch: vi.fn(),
+      onAddSpellcheckToGlossary: vi.fn(),
+      emptyState: {
+        title: "Empty",
+        description: "No segments available.",
+      },
+      searchQuery: "",
+      isRegexSearch: false,
+      currentMatch: {
+        segmentId: "seg-1",
+        startIndex: 0,
+        endIndex: 1,
+        text: "T",
+      },
+      allMatches: [],
+      replaceQuery: "",
+      onReplaceCurrent: vi.fn(),
+      onMatchClick: vi.fn(),
+      findMatchIndex: vi.fn(),
+      onStartChapterAtSegment: vi.fn(),
+      onSelectChapter: vi.fn(),
+      onUpdateChapter: vi.fn(),
+      onDeleteChapter: vi.fn(),
+      chapterFocusRequest: null,
+      onChapterFocusRequestHandled: vi.fn(),
+      isTranscriptEditing: false,
+    };
+
+    render(<TranscriptList {...props} />);
+
+    expect(screen.queryByTestId("segment-seg-3")).not.toBeInTheDocument();
+    expect(screen.queryByTestId("segment-seg-4")).not.toBeInTheDocument();
+    expect(screen.getByTestId("segment-seg-5")).toBeInTheDocument();
+  });
+
   it("does not jump to the end when selected segment is filtered out", () => {
     const segments = Array.from({ length: 60 }, (_, index) => {
       const id = `seg-${index + 1}`;

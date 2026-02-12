@@ -82,6 +82,37 @@ export const getChapterRangeIndices = (
 };
 
 /**
+ * Resolve a chapter range from chapter starts only.
+ * A chapter ends immediately before the next chapter start (or at the final segment).
+ */
+export const getDynamicChapterRangeIndices = (
+  chapterId: string,
+  chapters: Chapter[],
+  indexById: Map<string, number>,
+  segmentsLength: number,
+): { startIndex: number; endIndex: number } | null => {
+  if (segmentsLength <= 0 || chapters.length === 0) return null;
+
+  const ordered = sortChaptersByStart(chapters, indexById);
+  const chapterIndex = ordered.findIndex((chapter) => chapter.id === chapterId);
+  if (chapterIndex < 0) return null;
+
+  const chapter = ordered[chapterIndex];
+  const startIndex = indexById.get(chapter.startSegmentId);
+  if (startIndex === undefined) return null;
+
+  const nextChapter = ordered[chapterIndex + 1];
+  const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+  if (nextStartIndex !== undefined && nextStartIndex <= startIndex) return null;
+
+  const maxIndex = segmentsLength - 1;
+  const endIndex = nextStartIndex !== undefined ? Math.min(maxIndex, nextStartIndex - 1) : maxIndex;
+
+  if (endIndex < startIndex) return null;
+  return { startIndex, endIndex };
+};
+
+/**
  * Sort chapters by their start segment position.
  */
 export const sortChaptersByStart = (chapters: Chapter[], indexById: Map<string, number>) =>
