@@ -144,4 +144,43 @@ describe("ChaptersOutlinePanel", () => {
     expect(title.contains(meta)).toBe(false);
     expect(grid.children).toHaveLength(2);
   });
+
+  it("applies a distinct style to the active chapter", () => {
+    render(
+      <ChaptersOutlinePanel
+        open={true}
+        onOpenChange={vi.fn()}
+        chapters={chapters}
+        selectedChapterId="chapter-1"
+        onJumpToChapter={vi.fn()}
+      />,
+    );
+
+    const chapterButton = screen.getByRole("button", { name: /Intro/ });
+    expect(chapterButton).toHaveClass("ring-1");
+    expect(chapterButton).toHaveClass("bg-primary/15");
+    expect(chapterButton).toHaveClass("border-primary/40");
+  });
+
+  it("scrolls the selected chapter into view when opened", () => {
+    const scrollIntoView = vi.fn();
+    const original = HTMLElement.prototype.scrollIntoView;
+    HTMLElement.prototype.scrollIntoView = scrollIntoView;
+
+    try {
+      render(
+        <ChaptersOutlinePanel
+          open={true}
+          onOpenChange={vi.fn()}
+          chapters={chapters}
+          selectedChapterId="chapter-1"
+          onJumpToChapter={vi.fn()}
+        />,
+      );
+    } finally {
+      HTMLElement.prototype.scrollIntoView = original;
+    }
+
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: "nearest" });
+  });
 });

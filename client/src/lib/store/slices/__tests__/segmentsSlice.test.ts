@@ -74,6 +74,36 @@ const makeStore = (initialSegments: Segment[], initialChapters: Chapter[]) => {
 };
 
 describe("segmentsSlice chapter updates", () => {
+  it("updates selectedChapterId from selected segment using dynamic chapter starts", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const s2: Segment = { id: "s2", start: 1, end: 2, words: [{ word: "b", start: 1, end: 2 }] };
+    const s3: Segment = { id: "s3", start: 2, end: 3, words: [{ word: "c", start: 2, end: 3 }] };
+    const chapters = [
+      // Intentionally stale endSegmentId to verify dynamic boundary resolution.
+      { id: "c1", startSegmentId: "s1", endSegmentId: "s1" },
+      { id: "c2", startSegmentId: "s3", endSegmentId: "s3" },
+    ];
+    const store = makeStore([s1, s2, s3], chapters);
+
+    store.slice.setSelectedSegmentId("s2");
+    expect(store.getState().selectedChapterId).toBe("c1");
+
+    store.slice.setSelectedSegmentId("s3");
+    expect(store.getState().selectedChapterId).toBe("c2");
+  });
+
+  it("clears selectedChapterId when selected segment is not part of a chapter", () => {
+    const s1: Segment = { id: "s1", start: 0, end: 1, words: [{ word: "a", start: 0, end: 1 }] };
+    const chapters = [{ id: "c1", startSegmentId: "s1", endSegmentId: "s1" }];
+    const store = makeStore([s1], chapters);
+
+    store.slice.setSelectedSegmentId(null);
+
+    const state = store.getState();
+    expect(state.selectedSegmentId).toBeNull();
+    expect(state.selectedChapterId).toBeNull();
+  });
+
   it("updates chapters when splitting a segment", () => {
     const s1: Segment = {
       id: "s1",
