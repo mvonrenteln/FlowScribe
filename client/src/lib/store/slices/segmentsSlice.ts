@@ -6,6 +6,7 @@ import type { Chapter } from "@/types/chapter";
 import { SPEAKER_COLORS } from "../constants";
 import type { StoreContext } from "../context";
 import type { Segment, SegmentsSlice, TranscriptImportTag, TranscriptStore } from "../types";
+import { memoizedBuildSegmentIndexMap, sortChaptersByStart } from "../utils/chapters";
 import { generateId } from "../utils/id";
 import { applyTextUpdateToSegment } from "../utils/segmentText";
 import { addToHistory } from "./historySlice";
@@ -78,6 +79,40 @@ function remapAndFilterChapters(
         Boolean(ch) && validIds.has(ch.startSegmentId) && validIds.has(ch.endSegmentId),
     );
 }
+
+/**
+ * Resolve the chapter id for a segment using dynamic chapter boundaries
+ * (chapter start -> next chapter start - 1).
+ */
+const getChapterIdForSegment = (
+  segmentId: string | null,
+  chapters: Chapter[],
+  segments: Segment[],
+): string | null => {
+  if (!segmentId || chapters.length === 0 || segments.length === 0) return null;
+
+  const indexById = memoizedBuildSegmentIndexMap(segments);
+  const segmentIndex = indexById.get(segmentId);
+  if (segmentIndex === undefined) return null;
+
+  const ordered = sortChaptersByStart(chapters, indexById);
+  for (let i = 0; i < ordered.length; i += 1) {
+    const chapter = ordered[i];
+    const chapterStartIndex = indexById.get(chapter.startSegmentId);
+    if (chapterStartIndex === undefined) continue;
+
+    const nextChapter = ordered[i + 1];
+    const nextStartIndex = nextChapter ? indexById.get(nextChapter.startSegmentId) : undefined;
+    const chapterEndIndex =
+      nextStartIndex !== undefined ? nextStartIndex - 1 : Math.max(0, segments.length - 1);
+
+    if (segmentIndex >= chapterStartIndex && segmentIndex <= chapterEndIndex) {
+      return chapter.id;
+    }
+  }
+
+  return null;
+};
 
 export const createSegmentsSlice = (
   set: StoreSetter,
@@ -267,20 +302,22 @@ export const createSegmentsSlice = (
 
   setSelectedSegmentId: (id) =>
     set((state) => {
+      const selectedChapterId = getChapterIdForSegment(id, state.chapters, state.segments);
       if (state.historyIndex < 0) {
-        return { selectedSegmentId: id };
+        return { selectedSegmentId: id, selectedChapterId };
       }
       const history = [...state.history];
       const current = history[state.historyIndex];
       if (!current) {
-        return { selectedSegmentId: id };
+        return { selectedSegmentId: id, selectedChapterId };
       }
       history[state.historyIndex] = {
         ...current,
         selectedSegmentId: id,
+        selectedChapterId,
         currentTime: state.currentTime,
       };
-      return { selectedSegmentId: id, history };
+      return { selectedSegmentId: id, selectedChapterId, history };
     }),
 
   setFilteredSegmentIds: (ids, filtersActive) => {

@@ -1,5 +1,5 @@
 import { X } from "lucide-react";
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +28,7 @@ export function ChaptersOutlinePanel({
 }: ChaptersOutlinePanelProps) {
   const indexById = useSegmentIndexById();
   const tags = useTranscriptStore((state) => state.tags);
+  const chapterButtonRefs = useRef(new Map<string, HTMLButtonElement>());
   const sortedChapters = useMemo(
     () => sortChaptersByStart(chapters, indexById),
     [chapters, indexById],
@@ -44,6 +45,12 @@ export function ChaptersOutlinePanel({
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [onOpenChange, open]);
+
+  useEffect(() => {
+    if (!open || !selectedChapterId) return;
+    const selectedButton = chapterButtonRefs.current.get(selectedChapterId);
+    selectedButton?.scrollIntoView({ block: "nearest" });
+  }, [open, selectedChapterId]);
 
   const renderSummary = (chapter: Chapter) => {
     const summary = chapter.summary;
@@ -87,13 +94,22 @@ export function ChaptersOutlinePanel({
             return (
               <button
                 key={chapter.id}
+                ref={(element) => {
+                  if (element) {
+                    chapterButtonRefs.current.set(chapter.id, element);
+                    return;
+                  }
+                  chapterButtonRefs.current.delete(chapter.id);
+                }}
                 type="button"
                 onClick={() => onJumpToChapter(chapter.id)}
                 title={summary || undefined}
                 aria-current={chapter.id === selectedChapterId ? "true" : undefined}
                 className={cn(
-                  "block w-full min-w-0 max-w-full rounded-md px-2 py-2 text-left transition-colors",
-                  chapter.id === selectedChapterId ? "bg-accent/40" : "hover:bg-muted/40",
+                  "block w-full min-w-0 max-w-full rounded-md border px-2 py-2 text-left transition-colors",
+                  chapter.id === selectedChapterId
+                    ? "border-primary/40 bg-primary/15 shadow-sm ring-1 ring-primary/40"
+                    : "border-transparent hover:bg-muted/40",
                 )}
               >
                 {/**
