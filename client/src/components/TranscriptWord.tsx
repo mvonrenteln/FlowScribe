@@ -97,9 +97,9 @@ export const TranscriptWord = memo(
       // Check if the current match overlap with this word's range in the segment
       return currentMatch.startIndex < wordRange.end && currentMatch.endIndex > wordRange.start;
     }, [currentMatch, wordRange]);
-    const isCurrentMatchStart = useMemo(() => {
+    const isCurrentMatchAnchor = useMemo(() => {
       if (!currentMatch || !wordRange) return false;
-      return currentMatch.startIndex === wordRange.start;
+      return currentMatch.startIndex >= wordRange.start && currentMatch.startIndex < wordRange.end;
     }, [currentMatch, wordRange]);
     const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
     const shouldBackground =
@@ -321,7 +321,7 @@ export const TranscriptWord = memo(
         : word.word;
 
     let resolvedReplacePreview: string | null = null;
-    if (isCurrentMatchStart && replaceQuery && onReplaceCurrent) {
+    if (isCurrentMatchAnchor && replaceQuery && onReplaceCurrent) {
       if (isRegexSearch && currentMatch) {
         try {
           const regex = createSearchRegex(searchQuery ?? "", true);
