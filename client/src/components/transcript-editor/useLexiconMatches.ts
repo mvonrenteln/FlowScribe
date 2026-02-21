@@ -15,6 +15,8 @@ interface NormalizedLexiconEntry {
   normalizedLength: number;
   raw: string;
   variantRawSet: Set<string>;
+  variantNormalizedSet: Set<string>;
+  variantPhraseTokens: string[][];
   falsePositiveRawSet: Set<string>;
   falsePositiveNormalizedSet: Set<string>;
   falsePositiveNormalized: string[];
@@ -42,6 +44,12 @@ const normalizeLexiconEntries = (lexiconEntries: LexiconEntry[]): NormalizedLexi
         .map((variant) => ({
           normalized: normalizeToken(variant),
           raw: variant.trim().toLowerCase(),
+          phraseTokens: variant
+            .trim()
+            .toLowerCase()
+            .split(/\s+/)
+            .map((token) => normalizeToken(token))
+            .filter(Boolean),
         }))
         .filter((variant) => variant.normalized.length > 0);
       const falsePositives = (entry.falsePositives ?? [])
@@ -57,6 +65,12 @@ const normalizeLexiconEntries = (lexiconEntries: LexiconEntry[]): NormalizedLexi
         normalizedLength: normalized.length,
         raw,
         variantRawSet: new Set(variants.map((variant) => variant.raw).filter(Boolean)),
+        variantNormalizedSet: new Set(
+          variants.map((variant) => variant.normalized).filter(Boolean),
+        ),
+        variantPhraseTokens: variants
+          .map((variant) => variant.phraseTokens)
+          .filter((tokens) => tokens.length > 1),
         falsePositiveRawSet: new Set(falsePositives.map((value) => value.raw).filter(Boolean)),
         falsePositiveNormalizedSet: new Set(falsePositives.map((value) => value.normalized)),
         falsePositiveNormalized: falsePositives.map((value) => value.normalized),
@@ -78,6 +92,43 @@ const computeSegmentMatches = (
   lexiconThreshold: number,
 ): Map<number, LexiconMatchMeta> => {
   const wordMatches = new Map<number, LexiconMatchMeta>();
+  const normalizedWords = segment.words.map((word) => {
+    const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
+    const trailing = word.word.match(wordTrailingRegex)?.[0] ?? "";
+    const core = word.word.slice(leading.length, word.word.length - trailing.length);
+    return {
+      core,
+      raw: core.trim().toLowerCase(),
+      normalized: normalizeToken(core),
+    };
+  });
+
+  lexiconEntries.forEach((entry) => {
+    entry.variantPhraseTokens.forEach((phraseTokens) => {
+      for (
+        let wordIndex = 0;
+        wordIndex <= normalizedWords.length - phraseTokens.length;
+        wordIndex += 1
+      ) {
+        let isPhraseMatch = true;
+        for (let offset = 0; offset < phraseTokens.length; offset += 1) {
+          if (normalizedWords[wordIndex + offset]?.normalized !== phraseTokens[offset]) {
+            isPhraseMatch = false;
+            break;
+          }
+        }
+        if (!isPhraseMatch) continue;
+
+        for (let offset = 0; offset < phraseTokens.length; offset += 1) {
+          const phraseIndex = wordIndex + offset;
+          const existing = wordMatches.get(phraseIndex);
+          if (!existing || existing.score < 0.99) {
+            wordMatches.set(phraseIndex, { term: entry.term, score: 0.99 });
+          }
+        }
+      }
+    });
+  });
 
   segment.words.forEach((word, index) => {
     const leading = word.word.match(wordLeadingRegex)?.[0] ?? "";
@@ -88,8 +139,8 @@ const computeSegmentMatches = (
     const parts = core.includes("-") ? core.split("-").filter(Boolean) : [core];
     if (parts.length === 0) return;
 
-    let bestScore = 0;
-    let bestTerm = "";
+    let bestScore = wordMatches.get(index)?.score ?? 0;
+    let bestTerm = wordMatches.get(index)?.term ?? "";
     let bestPartIndex: number | undefined;
 
     parts.forEach((part, partIndex) => {
@@ -101,7 +152,8 @@ const computeSegmentMatches = (
       lexiconEntries.forEach((entry) => {
         const rawTerm = entry.raw;
         const isExactTermMatch = rawPart === rawTerm;
-        const hasVariantMatch = entry.variantRawSet.has(rawPart);
+        const hasVariantMatch =
+          entry.variantRawSet.has(rawPart) || entry.variantNormalizedSet.has(normalizedPart);
 
         let candidateScore = 0;
         if (isExactTermMatch) {

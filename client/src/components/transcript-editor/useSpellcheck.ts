@@ -26,6 +26,59 @@ export interface UseSpellcheckOptions {
   lexiconEntries: LexiconEntry[];
 }
 
+const tokenizeLexiconPhrase = (value: string) =>
+  value
+    .split(/\s+/)
+    .map((token) => normalizeSpellcheckTerm(token))
+    .filter(Boolean);
+
+const buildIgnoredLexiconPhrases = (lexiconEntries: LexiconEntry[]) => {
+  const phrases: string[][] = [];
+  lexiconEntries.forEach((entry) => {
+    const candidates = [entry.term, ...(entry.variants ?? [])];
+    candidates.forEach((candidate) => {
+      const tokens = tokenizeLexiconPhrase(candidate);
+      if (tokens.length > 1) {
+        phrases.push(tokens);
+      }
+    });
+  });
+
+  return Array.from(new Map(phrases.map((tokens) => [tokens.join(" "), tokens])).values()).sort(
+    (left, right) => right.length - left.length,
+  );
+};
+
+const findIgnoredWordIndexes = (segment: Segment, ignoredLexiconPhrases: string[][]) => {
+  if (ignoredLexiconPhrases.length === 0 || segment.words.length === 0) return new Set<number>();
+  const normalizedWords = segment.words.map((word) => normalizeSpellcheckTerm(word.word));
+  const ignoredIndexes = new Set<number>();
+
+  for (let wordIndex = 0; wordIndex < normalizedWords.length; wordIndex += 1) {
+    for (const phraseTokens of ignoredLexiconPhrases) {
+      if (wordIndex + phraseTokens.length > normalizedWords.length) continue;
+      if (normalizedWords[wordIndex] !== phraseTokens[0]) continue;
+
+      let matchesPhrase = true;
+      for (let offset = 1; offset < phraseTokens.length; offset += 1) {
+        if (normalizedWords[wordIndex + offset] !== phraseTokens[offset]) {
+          matchesPhrase = false;
+          break;
+        }
+      }
+
+      if (matchesPhrase) {
+        for (let offset = 0; offset < phraseTokens.length; offset += 1) {
+          ignoredIndexes.add(wordIndex + offset);
+        }
+        break;
+      }
+    }
+  }
+
+  return ignoredIndexes;
+};
+
 export function useSpellcheck({
   spellcheckEnabled,
   spellcheckLanguages,
@@ -176,6 +229,11 @@ export function useSpellcheck({
     return ignored;
   }, [lexiconEntries, spellcheckIgnoreWords]);
 
+  const ignoredLexiconPhrases = useMemo(
+    () => buildIgnoredLexiconPhrases(lexiconEntries),
+    [lexiconEntries],
+  );
+
   const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
 
   const isSuperset = useCallback((subset: Set<string>, superset: Set<string>) => {
@@ -187,11 +245,20 @@ export function useSpellcheck({
   }, []);
 
   const filterMatchesForSegment = useCallback(
-    (segment: Segment, matches: Map<number, SpellcheckMatchMeta>, ignored: Set<string>) => {
+    (
+      segment: Segment,
+      matches: Map<number, SpellcheckMatchMeta>,
+      ignored: Set<string>,
+      ignoredWordIndexes: Set<number>,
+    ) => {
       if (matches.size === 0) return matches;
       let didChange = false;
       const nextMatches = new Map<number, SpellcheckMatchMeta>();
       matches.forEach((value, index) => {
+        if (ignoredWordIndexes.has(index)) {
+          didChange = true;
+          return;
+        }
         const word = segment.words[index]?.word;
         if (!word) {
           didChange = true;
@@ -243,6 +310,7 @@ export function useSpellcheck({
       previousSpellcheckersRef.current === spellcheckers &&
       previousRunCompleted;
     const matches = new Map<string, Map<number, SpellcheckMatchMeta>>();
+    const ignoredWordIndexesBySegment = new Map<string, Set<number>>();
     const segmentsToProcess: Segment[] = [];
     let matchCount = 0;
     let segmentIndex = 0;
@@ -262,7 +330,14 @@ export function useSpellcheck({
         if (previousSegment === segment) {
           const previousMatches = previousMatchesRef.current.get(segment.id);
           if (previousMatches) {
-            const filtered = filterMatchesForSegment(segment, previousMatches, ignoredWordsSet);
+            const ignoredWordIndexes = findIgnoredWordIndexes(segment, ignoredLexiconPhrases);
+            ignoredWordIndexesBySegment.set(segment.id, ignoredWordIndexes);
+            const filtered = filterMatchesForSegment(
+              segment,
+              previousMatches,
+              ignoredWordsSet,
+              ignoredWordIndexes,
+            );
             if (filtered.size > 0) {
               matches.set(segment.id, filtered);
               matchCount += filtered.size;
@@ -333,8 +408,18 @@ export function useSpellcheck({
         const segment = segmentsToProcess[segmentIndex];
         const words = segment.words;
         const wordMatches = matches.get(segment.id) ?? new Map<number, SpellcheckMatchMeta>();
+        const ignoredWordIndexes =
+          ignoredWordIndexesBySegment.get(segment.id) ??
+          findIgnoredWordIndexes(segment, ignoredLexiconPhrases);
+        ignoredWordIndexesBySegment.set(segment.id, ignoredWordIndexes);
 
         while (wordIndex < words.length && iterations < CHUNK_SIZE) {
+          if (ignoredWordIndexes.has(wordIndex)) {
+            wordIndex += 1;
+            iterations += 1;
+            processedSinceUpdate += 1;
+            continue;
+          }
           const word = words[wordIndex];
           const match = getSpellcheckMatch(
             word.word,
@@ -409,6 +494,7 @@ export function useSpellcheck({
   }, [
     filterMatchesForSegment,
     ignoredKey,
+    ignoredLexiconPhrases,
     ignoredWordsSet,
     isSuperset,
     segments,
