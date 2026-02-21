@@ -304,6 +304,128 @@ describe("useSpellcheck", () => {
     );
   });
 
+  it("ignores lexicon variants reliably across reruns", async () => {
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Glimmer Klimper Dumba",
+      words: [
+        { word: "Glimmer", start: 0, end: 0.3 },
+        { word: "Klimper", start: 0.3, end: 0.6 },
+        { word: "Dumba", start: 0.6, end: 1 },
+      ],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Glymbar"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = [
+      {
+        term: "Glymbar",
+        variants: ["Glimmer", "Klimper", "Dumba"],
+        falsePositives: [],
+      },
+    ];
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+      },
+      { timeout: 1000 },
+    );
+
+    getSpellcheckMatchMock.mockClear();
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords,
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it("ignores two-word lexicon variants when words appear consecutively", async () => {
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Neue Wortform bleibt",
+      words: [
+        { word: "Neue", start: 0, end: 0.3 },
+        { word: "Wortform", start: 0.3, end: 0.6 },
+        { word: "bleibt", start: 0.6, end: 1 },
+      ],
+    };
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["x"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    const lexiconEntries = [
+      {
+        term: "Zielbegriff",
+        variants: ["Neue Wortform"],
+        falsePositives: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useSpellcheck({
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments: [segment],
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      }),
+    );
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(0)).toBe(false);
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(1)).toBe(false);
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(2)).toBe(true);
+      },
+      { timeout: 1000 },
+    );
+  });
   it("recomputes matches if a previous run was interrupted", async () => {
     const originalRequestIdle = (
       globalThis as typeof globalThis & {
