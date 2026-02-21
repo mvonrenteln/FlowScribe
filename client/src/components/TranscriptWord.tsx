@@ -97,6 +97,10 @@ export const TranscriptWord = memo(
       // Check if the current match overlap with this word's range in the segment
       return currentMatch.startIndex < wordRange.end && currentMatch.endIndex > wordRange.start;
     }, [currentMatch, wordRange]);
+    const isCurrentMatchAnchor = useMemo(() => {
+      if (!currentMatch || !wordRange) return false;
+      return currentMatch.startIndex >= wordRange.start && currentMatch.startIndex < wordRange.end;
+    }, [currentMatch, wordRange]);
     const shouldUnderline = isLexiconMatch && lexiconHighlightUnderline;
     const shouldBackground =
       isLexiconMatch && lexiconHighlightBackground && (lexiconMatch?.score ?? 0) < 1;
@@ -311,8 +315,13 @@ export const TranscriptWord = memo(
     );
     const showMore = suggestions.length > 3;
 
+    const matchedPreviewText =
+      currentMatch && typeof segmentText === "string"
+        ? segmentText.slice(currentMatch.startIndex, currentMatch.endIndex)
+        : word.word;
+
     let resolvedReplacePreview: string | null = null;
-    if (isCurrentMatch && replaceQuery && onReplaceCurrent) {
+    if (isCurrentMatchAnchor && replaceQuery && onReplaceCurrent) {
       if (isRegexSearch && currentMatch) {
         try {
           const regex = createSearchRegex(searchQuery ?? "", true);
@@ -374,7 +383,7 @@ export const TranscriptWord = memo(
             </div>
             <div className="flex items-center gap-2">
               <code className="text-[11px] bg-muted px-1.5 py-0.5 rounded border shadow-sm">
-                {word.word}
+                {matchedPreviewText}
               </code>
               <span className="text-muted-foreground text-xs">→</span>
               <code className="text-[11px] bg-primary/10 text-primary px-1.5 py-0.5 rounded font-bold border border-primary/20 shadow-sm">
