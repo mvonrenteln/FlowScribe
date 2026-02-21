@@ -881,7 +881,7 @@ export function AITemplateSettings() {
                     value={useTranscriptStore.getState().aiChapterDetectionConfig.contextWordLimit}
                     onChange={(e) =>
                       useTranscriptStore.getState().updateChapterDetectionConfig({
-                        contextWordLimit: parseInt(e.target.value, 10) || 500,
+                        contextWordLimit: Number.parseInt(e.target.value, 10) || 500,
                       })
                     }
                     className="h-8 w-24 ml-auto"
@@ -933,7 +933,7 @@ export function AITemplateSettings() {
                     }
                     onChange={(e) =>
                       useTranscriptStore.getState().updateChapterDetectionConfig({
-                        paragraphContextCount: parseInt(e.target.value, 10) || 2,
+                        paragraphContextCount: Number.parseInt(e.target.value, 10) || 2,
                       })
                     }
                     className="h-8 w-24 ml-auto"
