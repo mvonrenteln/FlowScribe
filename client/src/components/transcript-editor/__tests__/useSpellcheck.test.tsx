@@ -389,6 +389,7 @@ describe("useSpellcheck", () => {
         { word: "bleibt", start: 0.6, end: 1 },
       ],
     };
+    const segments = [segment];
 
     loadSpellcheckersMock.mockResolvedValue([{}]);
     getSpellcheckMatchMock.mockReturnValue({ suggestions: ["x"] });
@@ -404,18 +405,18 @@ describe("useSpellcheck", () => {
       },
     ];
 
-    const { result } = renderHook(() =>
-      useSpellcheck({
+    const { result } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
         spellcheckEnabled: true,
         spellcheckLanguages,
         spellcheckCustomEnabled: false,
         spellcheckCustomDictionaries,
         loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
-        segments: [segment],
+        segments,
         spellcheckIgnoreWords,
         lexiconEntries,
-      }),
-    );
+      },
+    });
 
     await waitFor(
       () => {
