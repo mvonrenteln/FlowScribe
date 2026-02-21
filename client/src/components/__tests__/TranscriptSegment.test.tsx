@@ -194,6 +194,43 @@ describe("TranscriptSegment", () => {
     });
   });
 
+  it("shows a single replace preview for multi-word matches", () => {
+    const onReplaceCurrent = vi.fn();
+    const englishSegment: Segment = {
+      ...segment,
+      text: "Hello world",
+      words: [
+        { word: "Hello", start: 0, end: 1 },
+        { word: "world", start: 1, end: 2 },
+      ],
+    };
+
+    render(
+      <TranscriptSegment
+        segment={englishSegment}
+        speakers={speakers}
+        tags={[]}
+        isSelected={false}
+        isActive={true}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+        searchQuery="Hello world"
+        replaceQuery="Good morning"
+        currentMatch={{ segmentId: "seg-1", startIndex: 0, endIndex: 11, text: "Hello world" }}
+        onReplaceCurrent={onReplaceCurrent}
+      />,
+    );
+
+    expect(screen.getAllByText("Replace Preview")).toHaveLength(1);
+    expect(screen.getByText("Hello world")).toBeInTheDocument();
+    expect(screen.getByText("Good morning")).toBeInTheDocument();
+  });
   it("renders word tokens and seeks on click", async () => {
     const onSeek = vi.fn();
     const onSelect = vi.fn();
