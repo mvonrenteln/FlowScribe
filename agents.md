@@ -55,6 +55,12 @@ When using agents/tools, make sure file edits are saved to disk before `check/li
 - Public API surface, exported functions, modules and significant internal functions should include concise JSDoc-style comments describing purpose, inputs, outputs, and side effects.
 - Developer docs should include brief how-to steps for enabling debug modes, configuration options, and example usage when applicable.
 
+### 5) Additional coding constraints
+
+- Do not use `any`, including in tests.
+- After finishing a task, respond with a commit message suggestion (semantic commit with a title and a longer body).
+- Do not write comments explaining why code was deleted, and do not comment out code. Always delete it directly.
+
 
 ## Critical invariants (highest blast radius)
 
