@@ -386,6 +386,70 @@ describe("useSpellcheck", () => {
     );
   });
 
+  it("filters cached hyphen-part matches when ignored words expand", async () => {
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Fahrtenlesen-Probe",
+      words: [{ word: "Fahrtenlesen-Probe", start: 0, end: 1 }],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Proben"], partIndex: 1 });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+    const initialIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords: initialIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)).toEqual({
+          suggestions: ["Proben"],
+          partIndex: 1,
+        });
+      },
+      { timeout: 1000 },
+    );
+
+    getSpellcheckMatchMock.mockClear();
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords: ["probe"],
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
+
   it("invalidates cache when variant list changes for unchanged segments", async () => {
     // Regression: cacheKey must include variant information so that adding or
     // removing a variant forces recomputation even when segments are referentially

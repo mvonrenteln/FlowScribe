@@ -380,6 +380,11 @@ export function useSpellcheck({
       if (matches.size === 0) return matches;
       let didChange = false;
       const nextMatches = new Map<number, SpellcheckMatchMeta>();
+      const getNormalizedIgnoredTarget = (word: string, partIndex?: number) => {
+        if (partIndex === undefined) return normalizeSpellcheckTerm(word);
+        const part = word.split("-")[partIndex];
+        return normalizeSpellcheckTerm(part ?? word);
+      };
       matches.forEach((value, index) => {
         if (ignoredWordIndexes.has(index)) {
           didChange = true;
@@ -390,7 +395,7 @@ export function useSpellcheck({
           didChange = true;
           return;
         }
-        const normalized = normalizeSpellcheckTerm(word);
+        const normalized = getNormalizedIgnoredTarget(word, value.partIndex);
         // Variant matches must never be filtered by ignored words / false
         // positives — consistent with useLexiconMatches.ts where explicit
         // variants always win over false-positive entries.
