@@ -386,6 +386,73 @@ describe("useSpellcheck", () => {
     );
   });
 
+  it("invalidates cache when variant list changes for unchanged segments", async () => {
+    // Regression: cacheKey must include variant information so that adding or
+    // removing a variant forces recomputation even when segments are referentially
+    // identical and term/falsePositives are unchanged.
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Glimmer bleibt",
+      words: [
+        { word: "Glimmer", start: 0, end: 0.5 },
+        { word: "bleibt", start: 0.5, end: 1 },
+      ],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue(null);
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+
+    // Initial: no variants → no matches
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries: [{ term: "Glymbar", variants: [] as string[], falsePositives: [] }],
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+      },
+      { timeout: 1000 },
+    );
+
+    // Now add "Glimmer" as variant — same segment reference, same term
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords,
+      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer"], falsePositives: [] }],
+    });
+
+    await waitFor(
+      () => {
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
+      },
+      { timeout: 1000 },
+    );
+  });
+
   it("flags single-word lexicon variants with the canonical term as suggestion", async () => {
     const segment = {
       id: "segment-1",

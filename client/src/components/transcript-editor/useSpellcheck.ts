@@ -347,6 +347,21 @@ export function useSpellcheck({
 
   const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
 
+  /** Stable key that changes whenever variant mappings change.
+   *  Included in cacheKey so that adding/removing variants invalidates
+   *  cached spellcheck results for unchanged segments. */
+  const variantKey = useMemo(() => {
+    const singleWord = Array.from(variantMatchMap.entries())
+      .map(([k, v]) => `${k}:${v}`)
+      .sort()
+      .join(",");
+    const multiWord = multiWordVariantPhrases
+      .map((e) => `${e.tokens.join(" ")}:${e.term}`)
+      .sort()
+      .join(",");
+    return `${singleWord}|${multiWord}`;
+  }, [variantMatchMap, multiWordVariantPhrases]);
+
   const isSuperset = useCallback((subset: Set<string>, superset: Set<string>) => {
     if (subset.size > superset.size) return false;
     for (const value of subset) {
@@ -410,7 +425,7 @@ export function useSpellcheck({
 
     previousRunCompletedRef.current = false;
 
-    const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}`;
+    const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}|${variantKey}`;
     const previousIgnoredWords = previousIgnoredWordsRef.current;
     const ignoredWordsExpanded = isSuperset(previousIgnoredWords, ignoredWordsSet);
     const canReuseForIgnoreChange =
@@ -641,6 +656,7 @@ export function useSpellcheck({
     spellcheckEnabled,
     spellcheckLanguageKey,
     spellcheckers,
+    variantKey,
     variantMatchMap,
   ]);
 
