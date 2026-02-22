@@ -117,6 +117,77 @@ describe("useSpellcheck", () => {
     );
   });
 
+  it("includes ignore key in spellcheck suggestion cache argument", async () => {
+    const segments = [
+      {
+        id: "segment-1",
+        speaker: "SPEAKER_00",
+        tags: [],
+        start: 0,
+        end: 1,
+        text: "Wrd",
+        words: [{ word: "Wrd", start: 0, end: 1 }],
+      },
+    ];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
+    const { rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords: ["foo"],
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(getSpellcheckMatchMock).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+
+    const initialCall = getSpellcheckMatchMock.mock.calls[0];
+    expect(String(initialCall?.[2])).toContain("ignore:foo");
+
+    getSpellcheckMatchMock.mockClear();
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments: [
+        {
+          ...segments[0],
+          id: "segment-2",
+        },
+      ],
+      spellcheckIgnoreWords: ["bar"],
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        expect(getSpellcheckMatchMock).toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+
+    const updatedCall = getSpellcheckMatchMock.mock.calls[0];
+    expect(String(updatedCall?.[2])).toContain("ignore:bar");
+  });
+
   it("skips confirmed segments when collecting matches", async () => {
     const segments = [
       {

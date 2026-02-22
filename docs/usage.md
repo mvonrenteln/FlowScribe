@@ -131,6 +131,8 @@ Press **Alt+R** to instantly apply your default revision template to the selecte
 - Configure languages (German, English)
 - Manage ignored words and custom dictionaries
 - Import .oxt/.aff/.dic dictionary files
+- Ignored words suppress exact matches (they are not underlined)
+- If a word is still unknown, very similar ignored words can appear as additional suggestions in the popup
 
 ### Glossary
 - Manage glossary terms with variants and false positives

@@ -346,6 +346,10 @@ export function useSpellcheck({
   );
 
   const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
+  const spellcheckSuggestionKey = useMemo(
+    () => `${spellcheckLanguageKey}|ignore:${ignoredKey}`,
+    [ignoredKey, spellcheckLanguageKey],
+  );
 
   /** Stable key that changes whenever variant mappings change.
    *  Included in cacheKey so that adding/removing variants invalidates
@@ -430,7 +434,7 @@ export function useSpellcheck({
 
     previousRunCompletedRef.current = false;
 
-    const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}|${variantKey}`;
+    const cacheKey = `${spellcheckSuggestionKey}|${variantKey}`;
     const previousIgnoredWords = previousIgnoredWordsRef.current;
     const ignoredWordsExpanded = isSuperset(previousIgnoredWords, ignoredWordsSet);
     const canReuseForIgnoreChange =
@@ -593,7 +597,12 @@ export function useSpellcheck({
           const variantTerm = variantMatchMap.get(normalizedWord);
           const match = variantTerm
             ? { suggestions: [variantTerm], isVariant: true }
-            : getSpellcheckMatch(word.word, spellcheckers, spellcheckLanguageKey, ignoredWordsSet);
+            : getSpellcheckMatch(
+                word.word,
+                spellcheckers,
+                spellcheckSuggestionKey,
+                ignoredWordsSet,
+              );
           if (match) {
             wordMatches.set(wordIndex, match);
             matchCount += 1;
@@ -660,14 +669,13 @@ export function useSpellcheck({
     };
   }, [
     filterMatchesForSegment,
-    ignoredKey,
     ignoredLexiconPhrases,
     ignoredWordsSet,
     isSuperset,
     multiWordVariantPhrases,
     segments,
     spellcheckEnabled,
-    spellcheckLanguageKey,
+    spellcheckSuggestionKey,
     spellcheckers,
     variantKey,
     variantMatchMap,

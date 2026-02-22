@@ -113,6 +113,58 @@ describe("getSpellcheckSuggestions", () => {
     expect(second).toEqual(["alpha"]);
     expect(suggest).toHaveBeenCalledTimes(1);
   });
+
+  it("adds fuzzy ignore candidates with distance up to 2 for unknown tokens", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        () => false,
+        () => ["welten"],
+      ),
+    ];
+    const ignored = new Set(["welten", "weltt", "walten"]);
+    const result = getSpellcheckSuggestions("welte", checkers, "ignore-fuzzy", ignored);
+    expect(result).toEqual(["welten", "weltt", "walten"]);
+  });
+
+  it("uses stricter ignore distance for short tokens", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        () => false,
+        () => [],
+      ),
+    ];
+    const ignored = new Set(["abd", "abde"]);
+    const result = getSpellcheckSuggestions("abc", checkers, "ignore-short", ignored);
+    expect(result).toEqual(["abd"]);
+  });
+
+  it("does not include ignore suggestions for correctly recognized words", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        (word) => word === "hello",
+        () => [],
+      ),
+    ];
+    const ignored = new Set(["hallo", "hella"]);
+    const result = getSpellcheckSuggestions("hello", checkers, "ignore-correct", ignored);
+    expect(result).toBeNull();
+  });
+
+  it("deduplicates identical suggestions between ignore and checker sources", () => {
+    const checkers = [
+      makeChecker(
+        "de",
+        () => false,
+        () => ["welten", "welte"],
+      ),
+    ];
+    const ignored = new Set(["welten"]);
+    const result = getSpellcheckSuggestions("welte", checkers, "ignore-dedupe", ignored);
+    expect(result).toEqual(["welten"]);
+  });
 });
 
 describe("getSpellcheckMatch", () => {
