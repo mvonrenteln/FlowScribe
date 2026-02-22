@@ -35,18 +35,88 @@ const tokenizeLexiconPhrase = (value: string) =>
 const buildIgnoredLexiconPhrases = (lexiconEntries: LexiconEntry[]) => {
   const phrases: string[][] = [];
   lexiconEntries.forEach((entry) => {
-    const candidates = [entry.term, ...(entry.variants ?? [])];
-    candidates.forEach((candidate) => {
-      const tokens = tokenizeLexiconPhrase(candidate);
-      if (tokens.length > 1) {
-        phrases.push(tokens);
-      }
-    });
+    // Only the canonical term itself is suppressed (no spellcheck marker).
+    // Multi-word variants are handled separately as matches, not suppressions.
+    const tokens = tokenizeLexiconPhrase(entry.term);
+    if (tokens.length > 1) {
+      phrases.push(tokens);
+    }
   });
 
   return Array.from(new Map(phrases.map((tokens) => [tokens.join(" "), tokens])).values()).sort(
     (left, right) => right.length - left.length,
   );
+};
+
+/** Entry for a multi-word variant: the token sequence plus the canonical term to suggest. */
+type MultiWordVariantEntry = { tokens: string[]; term: string };
+
+/**
+ * Build an ordered list of multi-word variant sequences together with their
+ * canonical glossary term.  Longer sequences are sorted first so that the
+ * most specific match wins.
+ */
+const buildMultiWordVariantPhrases = (lexiconEntries: LexiconEntry[]): MultiWordVariantEntry[] => {
+  const map = new Map<string, MultiWordVariantEntry>();
+  lexiconEntries.forEach((entry) => {
+    const term = entry.term.trim();
+    if (!term) return;
+    (entry.variants ?? []).forEach((variant) => {
+      const tokens = tokenizeLexiconPhrase(variant);
+      if (tokens.length > 1) {
+        const key = tokens.join(" ");
+        if (!map.has(key)) {
+          map.set(key, { tokens, term });
+        }
+      }
+    });
+  });
+  return Array.from(map.values()).sort((a, b) => b.tokens.length - a.tokens.length);
+};
+
+/**
+ * Scan a segment for multi-word variant sequences and return a map of
+ * wordIndex → SpellcheckMatchMeta for the first word of each matched sequence.
+ * Remaining words of the sequence are added to `ignoredIndexes` so they are
+ * not independently flagged.
+ *
+ * @param ignoredIndexes - Mutated in place: word indices for the non-first
+ *   words of each matched sequence are added so the caller's main loop skips them.
+ */
+const findMultiWordVariantMatches = (
+  segment: Segment,
+  multiWordVariantPhrases: MultiWordVariantEntry[],
+  ignoredIndexes: Set<number>,
+): Map<number, SpellcheckMatchMeta> => {
+  const result = new Map<number, SpellcheckMatchMeta>();
+  if (multiWordVariantPhrases.length === 0 || segment.words.length === 0) return result;
+  const normalizedWords = segment.words.map((w) => normalizeSpellcheckTerm(w.word));
+
+  for (let wordIndex = 0; wordIndex < normalizedWords.length; wordIndex += 1) {
+    for (const { tokens, term } of multiWordVariantPhrases) {
+      if (wordIndex + tokens.length > normalizedWords.length) continue;
+      if (normalizedWords[wordIndex] !== tokens[0]) continue;
+
+      let allMatch = true;
+      for (let offset = 1; offset < tokens.length; offset += 1) {
+        if (normalizedWords[wordIndex + offset] !== tokens[offset]) {
+          allMatch = false;
+          break;
+        }
+      }
+
+      if (allMatch) {
+        // Mark the first word as the match carrier
+        result.set(wordIndex, { suggestions: [term] });
+        // Mark remaining words as ignored so they are skipped in the main loop
+        for (let offset = 1; offset < tokens.length; offset += 1) {
+          ignoredIndexes.add(wordIndex + offset);
+        }
+        break;
+      }
+    }
+  }
+  return result;
 };
 
 const findIgnoredWordIndexes = (segment: Segment, ignoredLexiconPhrases: string[][]) => {
@@ -219,18 +289,56 @@ export function useSpellcheck({
       if (term) {
         ignored.add(term);
       }
-      (entry.variants ?? []).forEach((variant) => {
-        const normalized = normalizeSpellcheckTerm(variant);
+      // False positives are suppressed (no spellcheck marker).
+      (entry.falsePositives ?? []).forEach((fp) => {
+        const normalized = normalizeSpellcheckTerm(fp);
         if (normalized) {
           ignored.add(normalized);
         }
       });
+      // Variants are NOT suppressed – they are flagged as matches with the
+      // canonical term as suggestion (see variantMatchMap below).
     });
     return ignored;
   }, [lexiconEntries, spellcheckIgnoreWords]);
 
+  /**
+   * Maps normalized single-word variant → canonical term (suggestion).
+   * Used to flag variants directly, bypassing the spellchecker so that
+   * even valid dictionary words are correctly identified as variants.
+   */
+  const variantMatchMap = useMemo(() => {
+    const map = new Map<string, string>();
+    lexiconEntries.forEach((entry) => {
+      const term = entry.term.trim();
+      if (!term) return;
+      (entry.variants ?? []).forEach((variant) => {
+        const tokens = variant
+          .split(/\s+/)
+          .map((t) => normalizeSpellcheckTerm(t))
+          .filter(Boolean);
+        // Only single-word variants go into this map;
+        // multi-word variants are flagged via buildMultiWordVariantPhrases/findMultiWordVariantMatches.
+        if (tokens.length === 1) {
+          map.set(tokens[0], term);
+        }
+      });
+    });
+    return map;
+  }, [lexiconEntries]);
+
   const ignoredLexiconPhrases = useMemo(
     () => buildIgnoredLexiconPhrases(lexiconEntries),
+    [lexiconEntries],
+  );
+
+  /**
+   * Multi-word variant phrases together with their canonical term.
+   * Used to inject match entries for consecutive word sequences that represent
+   * a known variant of a glossary term.
+   */
+  const multiWordVariantPhrases = useMemo(
+    () => buildMultiWordVariantPhrases(lexiconEntries),
     [lexiconEntries],
   );
 
@@ -311,6 +419,7 @@ export function useSpellcheck({
       previousRunCompleted;
     const matches = new Map<string, Map<number, SpellcheckMatchMeta>>();
     const ignoredWordIndexesBySegment = new Map<string, Set<number>>();
+    const multiWordVariantProcessedSegments = new Set<string>();
     const segmentsToProcess: Segment[] = [];
     let matchCount = 0;
     let segmentIndex = 0;
@@ -413,6 +522,22 @@ export function useSpellcheck({
           findIgnoredWordIndexes(segment, ignoredLexiconPhrases);
         ignoredWordIndexesBySegment.set(segment.id, ignoredWordIndexes);
 
+        // Pre-populate wordMatches with multi-word variant hits (first word of
+        // each sequence carries the suggestion; remaining words are added to
+        // ignoredWordIndexes so the inner loop skips them).
+        if (!multiWordVariantProcessedSegments.has(segment.id)) {
+          multiWordVariantProcessedSegments.add(segment.id);
+          const multiWordMatches = findMultiWordVariantMatches(
+            segment,
+            multiWordVariantPhrases,
+            ignoredWordIndexes,
+          );
+          for (const [idx, meta] of multiWordMatches) {
+            wordMatches.set(idx, meta);
+            matchCount += 1;
+          }
+        }
+
         while (wordIndex < words.length && iterations < CHUNK_SIZE) {
           if (ignoredWordIndexes.has(wordIndex)) {
             wordIndex += 1;
@@ -420,13 +545,21 @@ export function useSpellcheck({
             processedSinceUpdate += 1;
             continue;
           }
+          // Skip words that were already matched by the multi-word variant pass
+          if (wordMatches.has(wordIndex)) {
+            wordIndex += 1;
+            iterations += 1;
+            processedSinceUpdate += 1;
+            continue;
+          }
           const word = words[wordIndex];
-          const match = getSpellcheckMatch(
-            word.word,
-            spellcheckers,
-            spellcheckLanguageKey,
-            ignoredWordsSet,
-          );
+          // Direct variant lookup: check before the spellchecker so that valid
+          // dictionary words listed as variants are still flagged.
+          const normalizedWord = normalizeSpellcheckTerm(word.word);
+          const variantTerm = variantMatchMap.get(normalizedWord);
+          const match = variantTerm
+            ? { suggestions: [variantTerm] }
+            : getSpellcheckMatch(word.word, spellcheckers, spellcheckLanguageKey, ignoredWordsSet);
           if (match) {
             wordMatches.set(wordIndex, match);
             matchCount += 1;
@@ -497,10 +630,12 @@ export function useSpellcheck({
     ignoredLexiconPhrases,
     ignoredWordsSet,
     isSuperset,
+    multiWordVariantPhrases,
     segments,
     spellcheckEnabled,
     spellcheckLanguageKey,
     spellcheckers,
+    variantMatchMap,
   ]);
 
   const spellcheckMatchCount = useMemo(() => {

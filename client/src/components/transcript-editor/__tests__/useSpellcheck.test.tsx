@@ -304,7 +304,7 @@ describe("useSpellcheck", () => {
     );
   });
 
-  it("ignores lexicon variants reliably across reruns", async () => {
+  it("flags single-word lexicon variants with the canonical term as suggestion", async () => {
     const segment = {
       id: "segment-1",
       speaker: "SPEAKER_00",
@@ -321,7 +321,9 @@ describe("useSpellcheck", () => {
     const segments = [segment];
 
     loadSpellcheckersMock.mockResolvedValue([{}]);
-    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Glymbar"] });
+    // The spellchecker mock should NOT be consulted for variant words;
+    // direct lookup must produce the suggestion independently.
+    getSpellcheckMatchMock.mockReturnValue(null);
 
     const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
     const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
@@ -347,12 +349,20 @@ describe("useSpellcheck", () => {
       },
     });
 
+    // All three variant words should be flagged with the canonical term as suggestion
     await waitFor(
       () => {
-        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"] });
+        expect(segMatches?.get(1)).toEqual({ suggestions: ["Glymbar"] });
+        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"] });
       },
       { timeout: 1000 },
     );
+
+    // Variants must be detected via direct lookup – spellchecker should not be
+    // the source for these matches
+    expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
 
     getSpellcheckMatchMock.mockClear();
     rerender({
@@ -366,16 +376,20 @@ describe("useSpellcheck", () => {
       lexiconEntries,
     });
 
+    // After rerender with same props, matches should be stable and spellchecker
+    // should still not be called (cached).
     await waitFor(
       () => {
-        expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"] });
+        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"] });
         expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
       },
       { timeout: 1000 },
     );
   });
 
-  it("ignores two-word lexicon variants when words appear consecutively", async () => {
+  it("flags two-word lexicon variants with the canonical term as suggestion", async () => {
     const segment = {
       id: "segment-1",
       speaker: "SPEAKER_00",
@@ -392,6 +406,8 @@ describe("useSpellcheck", () => {
     const segments = [segment];
 
     loadSpellcheckersMock.mockResolvedValue([{}]);
+    // The spellchecker mock returns a match for "bleibt" (index 2) but
+    // must NOT be consulted for the multi-word variant (indices 0+1).
     getSpellcheckMatchMock.mockReturnValue({ suggestions: ["x"] });
 
     const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
@@ -420,9 +436,13 @@ describe("useSpellcheck", () => {
 
     await waitFor(
       () => {
-        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(0)).toBe(false);
-        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(1)).toBe(false);
-        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.has(2)).toBe(true);
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        // Index 0: first word of variant → carries suggestion for the full variant
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Zielbegriff"] });
+        // Index 1: second word of variant → suppressed (no independent match)
+        expect(segMatches?.has(1)).toBe(false);
+        // Index 2: normal word → spellchecker match
+        expect(segMatches?.get(2)).toEqual({ suggestions: ["x"] });
       },
       { timeout: 1000 },
     );

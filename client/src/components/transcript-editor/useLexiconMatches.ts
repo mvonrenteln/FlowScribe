@@ -169,25 +169,31 @@ const computeSegmentMatches = (
 
         if (candidateScore < lexiconThreshold) return;
 
-        if (
-          entry.falsePositiveRawSet.has(rawPart) ||
-          entry.falsePositiveNormalizedSet.has(normalizedPart)
-        ) {
-          return;
-        }
+        // False positives only filter fuzzy similarity matches, not explicit variants or exact terms.
+        // A word listed as both a variant and a false positive should always match as a variant.
+        if (!isExactTermMatch && !hasVariantMatch) {
+          if (
+            entry.falsePositiveRawSet.has(rawPart) ||
+            entry.falsePositiveNormalizedSet.has(normalizedPart)
+          ) {
+            return;
+          }
 
-        let bestFalsePositiveScore = 0;
-        if (entry.falsePositiveNormalized.length > 0) {
-          for (const falsePositive of entry.falsePositiveNormalized) {
-            if (!canReachThreshold(normalizedPartLength, falsePositive.length, lexiconThreshold)) {
-              continue;
-            }
-            const score = similarityScore(normalizedPart, falsePositive);
-            if (score > bestFalsePositiveScore) {
-              bestFalsePositiveScore = score;
-            }
-            if (bestFalsePositiveScore >= lexiconThreshold) {
-              return;
+          let bestFalsePositiveScore = 0;
+          if (entry.falsePositiveNormalized.length > 0) {
+            for (const falsePositive of entry.falsePositiveNormalized) {
+              if (
+                !canReachThreshold(normalizedPartLength, falsePositive.length, lexiconThreshold)
+              ) {
+                continue;
+              }
+              const score = similarityScore(normalizedPart, falsePositive);
+              if (score > bestFalsePositiveScore) {
+                bestFalsePositiveScore = score;
+              }
+              if (bestFalsePositiveScore >= lexiconThreshold) {
+                return;
+              }
             }
           }
         }

@@ -34,6 +34,28 @@ describe("computeLexiconMatches", () => {
     expect(match?.partIndex).toBe(1);
   });
 
+  it("variant matches are not blocked when the word is also listed as a false positive", () => {
+    // Regression for: variant+false-positive conflict where false positive incorrectly
+    // suppressed an explicit variant match. Variants must always win.
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-variant-fp",
+        words: [{ word: "Glimmer", start: 0, end: 1 }],
+      },
+    ];
+
+    const { lexiconMatchesBySegment, lexiconLowScoreMatchCount } = computeLexiconMatches({
+      segments,
+      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer"], falsePositives: ["Glimmer"] }],
+      lexiconThreshold: 0.8,
+    });
+
+    // "Glimmer" is an explicit variant → must match despite being in false positives
+    expect(lexiconMatchesBySegment.get("segment-variant-fp")?.get(0)?.term).toBe("Glymbar");
+    expect(lexiconLowScoreMatchCount).toBe(1);
+  });
+
   it("ignores false positives even when the similarity is above the threshold", () => {
     const segments: Segment[] = [
       {
@@ -226,6 +248,32 @@ describe("computeLexiconMatches", () => {
     expect(matches?.get(4)?.score).toBeLessThan(1);
     expect(matches?.get(5)?.score).toBeLessThan(1);
   });
+  it("returns zero matches when all segments are confirmed", () => {
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-confirmed",
+        confirmed: true,
+        words: [
+          { word: "Glimmer", start: 0, end: 0.5 },
+          { word: "Klimper", start: 0.5, end: 1 },
+        ],
+      },
+    ];
+
+    const result = computeLexiconMatches({
+      segments,
+      lexiconEntries: [{ term: "Glymbar", variants: ["Glimmer", "Klimper"], falsePositives: [] }],
+      lexiconThreshold: 0.82,
+    });
+
+    // Confirmed segments must be skipped even when their words are known variants
+    expect(result.hasLexiconEntries).toBe(true);
+    expect(result.lexiconMatchCount).toBe(0);
+    expect(result.lexiconLowScoreMatchCount).toBe(0);
+    expect(result.lexiconMatchesBySegment.size).toBe(0);
+  });
+
   it("returns empty results when there are no lexicon entries", () => {
     const segments: Segment[] = [
       {
@@ -270,6 +318,50 @@ describe("computeLexiconMatches", () => {
 });
 
 describe("useLexiconMatches", () => {
+  it("counts single-word lexicon variant matches as uncertain (score < 1)", () => {
+    // Regression test: variants that are valid dictionary words (e.g. "Glimmer")
+    // must still be identified as uncertain glossary matches (lexiconLowScoreMatchCount > 0).
+    // The variant match always scores 0.99, not 1, so it is counted.
+    const segment: Segment = {
+      id: "segment-variant",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Glimmer Klimper erschienen",
+      words: [
+        { word: "Glimmer", start: 0, end: 0.4 },
+        { word: "Klimper", start: 0.4, end: 0.7 },
+        { word: "erschienen", start: 0.7, end: 1 },
+      ],
+    };
+
+    const lexiconEntries = [
+      {
+        term: "Glymbar",
+        variants: ["Glimmer", "Klimper", "Dumba", "Klimba", "Lümmer"],
+        falsePositives: [],
+      },
+    ];
+
+    const { result } = renderHook(() =>
+      useLexiconMatches({
+        segments: [segment],
+        lexiconEntries,
+        lexiconThreshold: 0.82,
+      }),
+    );
+
+    // Both "Glimmer" and "Klimper" are variants → score 0.99 → uncertain
+    expect(result.current.lexiconLowScoreMatchCount).toBe(2);
+    expect(result.current.lexiconMatchCount).toBe(2);
+    const matches = result.current.lexiconMatchesBySegment.get("segment-variant");
+    expect(matches?.get(0)?.term).toBe("Glymbar");
+    expect(matches?.get(0)?.score).toBe(0.99);
+    expect(matches?.get(1)?.term).toBe("Glymbar");
+    expect(matches?.get(1)?.score).toBe(0.99);
+  });
+
   it("reuses matches for unchanged segments", () => {
     const segmentA: Segment = {
       id: "segment-a",

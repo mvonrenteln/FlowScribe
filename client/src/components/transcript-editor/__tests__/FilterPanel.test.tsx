@@ -447,7 +447,9 @@ describe("FilterPanel", () => {
     expect(screen.queryByText("Andere")).not.toBeInTheDocument();
   });
 
-  it("ignores glossary false positives in the filter", async () => {
+  it("variant matches are not blocked by false positives", async () => {
+    // A word listed as both a variant and a false positive of the same entry should
+    // still match as a variant. Explicit variants override false positive exclusions.
     act(() => {
       useTranscriptStore.setState({
         segments: [
@@ -467,6 +469,42 @@ describe("FilterPanel", () => {
             term: "Glymbar",
             variants: ["Glimmer"],
             falsePositives: ["Glimmer"],
+          },
+        ],
+        lexiconThreshold: 0.8,
+      });
+    });
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
+
+    const glossaryButton = screen.getByTestId("button-filter-glossary");
+    expect(glossaryButton.textContent).not.toContain("0");
+  });
+
+  it("false positives block fuzzy similarity matches in the filter", async () => {
+    // A word that fuzzy-matches a term (but is not an explicit variant) should be
+    // excluded from the glossary filter when listed as a false positive.
+    act(() => {
+      useTranscriptStore.setState({
+        segments: [
+          {
+            id: "segment-1",
+            speaker: "SPEAKER_00",
+            tags: [],
+            start: 0,
+            end: 1,
+            text: "Klimbes",
+            words: [{ word: "Klimbes", start: 0, end: 1 }],
+          },
+        ],
+        speakers: [{ id: "speaker-0", name: "SPEAKER_00", color: "red" }],
+        lexiconEntries: [
+          {
+            term: "Klimber",
+            variants: [],
+            falsePositives: ["Klimbes"],
           },
         ],
         lexiconThreshold: 0.8,
