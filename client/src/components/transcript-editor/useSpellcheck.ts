@@ -556,6 +556,14 @@ export function useSpellcheck({
           for (const [idx, meta] of multiWordMatches) {
             wordMatches.set(idx, meta);
             matchCount += 1;
+            if (matchCount >= SPELLCHECK_MATCH_LIMIT) {
+              if (wordMatches.size > 0) {
+                matches.set(segment.id, wordMatches);
+              }
+              setSpellcheckMatchesBySegment(new Map(matches));
+              setSpellcheckMatchLimitReached(true);
+              return;
+            }
           }
         }
 

@@ -596,6 +596,65 @@ describe("useSpellcheck", () => {
       { timeout: 1000 },
     );
   });
+
+  it("enforces match limit for multi-word variant phrases", async () => {
+    // Regression: the multi-word variant pre-pass must check SPELLCHECK_MATCH_LIMIT
+    // and set spellcheckMatchLimitReached when the limit is exceeded, preventing
+    // unbounded match maps from multi-word variants.
+
+    // Create enough segments with multi-word variants to exceed the limit (1000)
+    const SPELLCHECK_MATCH_LIMIT = 1000;
+    const segmentCount = Math.floor(SPELLCHECK_MATCH_LIMIT / 2) + 10; // 510 segments
+    const segments = Array.from({ length: segmentCount }, (_, i) => ({
+      id: `segment-${i}`,
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: i,
+      end: i + 1,
+      text: "Neue Wortform andere Phrase",
+      words: [
+        { word: "Neue", start: i, end: i + 0.25 },
+        { word: "Wortform", start: i + 0.25, end: i + 0.5 },
+        { word: "andere", start: i + 0.5, end: i + 0.75 },
+        { word: "Phrase", start: i + 0.75, end: i + 1 },
+      ],
+    }));
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    getSpellcheckMatchMock.mockReturnValue(null);
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const spellcheckIgnoreWords = Array.from(baseSpellcheckIgnoreWords);
+    // Two multi-word variants per segment → 1020 total matches
+    const lexiconEntries = [
+      { term: "Term1", variants: ["Neue Wortform"], falsePositives: [] },
+      { term: "Term2", variants: ["andere Phrase"], falsePositives: [] },
+    ];
+
+    const { result } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords,
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        // Limit must be enforced
+        expect(result.current.spellcheckMatchLimitReached).toBe(true);
+        expect(result.current.spellcheckMatchCount).toBe(SPELLCHECK_MATCH_LIMIT);
+      },
+      { timeout: 3000 },
+    );
+  });
+
   it("recomputes matches if a previous run was interrupted", async () => {
     const originalRequestIdle = (
       globalThis as typeof globalThis & {
