@@ -86,17 +86,13 @@ export function SettingsSheet({
           </Button>
         </SheetTrigger>
       )}
-      <SheetContent
-        side="right"
-        className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0"
-        aria-describedby="settings-description"
-      >
+      <SheetContent side="right" className="w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl p-0">
         <SheetHeader className="px-6 py-4 border-b">
           <SheetTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Settings
           </SheetTitle>
-          <SheetDescription id="settings-description">
+          <SheetDescription>
             Configure AI providers, appearance, and other application settings.
           </SheetDescription>
         </SheetHeader>
