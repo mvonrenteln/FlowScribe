@@ -13,6 +13,9 @@ const logger = createLogger({ feature: "Spellcheck", namespace: "UI" });
 export interface SpellcheckMatchMeta {
   suggestions: string[];
   partIndex?: number;
+  /** When true, this match originated from an explicit lexicon variant lookup
+   *  and must not be filtered by the ignored-words / false-positive set. */
+  isVariant?: boolean;
 }
 
 export interface UseSpellcheckOptions {
@@ -107,7 +110,7 @@ const findMultiWordVariantMatches = (
 
       if (allMatch) {
         // Mark the first word as the match carrier
-        result.set(wordIndex, { suggestions: [term] });
+        result.set(wordIndex, { suggestions: [term], isVariant: true });
         // Mark remaining words as ignored so they are skipped in the main loop
         for (let offset = 1; offset < tokens.length; offset += 1) {
           ignoredIndexes.add(wordIndex + offset);
@@ -373,7 +376,10 @@ export function useSpellcheck({
           return;
         }
         const normalized = normalizeSpellcheckTerm(word);
-        if (normalized && ignored.has(normalized)) {
+        // Variant matches must never be filtered by ignored words / false
+        // positives — consistent with useLexiconMatches.ts where explicit
+        // variants always win over false-positive entries.
+        if (!value.isVariant && normalized && ignored.has(normalized)) {
           didChange = true;
           return;
         }
@@ -558,7 +564,7 @@ export function useSpellcheck({
           const normalizedWord = normalizeSpellcheckTerm(word.word);
           const variantTerm = variantMatchMap.get(normalizedWord);
           const match = variantTerm
-            ? { suggestions: [variantTerm] }
+            ? { suggestions: [variantTerm], isVariant: true }
             : getSpellcheckMatch(word.word, spellcheckers, spellcheckLanguageKey, ignoredWordsSet);
           if (match) {
             wordMatches.set(wordIndex, match);

@@ -304,6 +304,88 @@ describe("useSpellcheck", () => {
     );
   });
 
+  it("preserves variant matches in cache-reuse path when word is also a false positive", async () => {
+    // Regression: filterMatchesForSegment must not remove variant matches
+    // via ignoredWordsSet when the cache-reuse path (canReuseForIgnoreChange)
+    // is taken. This is consistent with useLexiconMatches.ts where explicit
+    // variants always win over false-positive entries.
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "gar ist klar",
+      words: [
+        { word: "gar", start: 0, end: 0.3 },
+        { word: "ist", start: 0.3, end: 0.6 },
+        { word: "klar", start: 0.6, end: 1 },
+      ],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    // The spellchecker is not consulted for variant words.
+    getSpellcheckMatchMock.mockReturnValue(null);
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    // Entry has "gar" as both variant AND false positive.
+    const lexiconEntries = [
+      {
+        term: "Gor",
+        variants: ["gar"],
+        falsePositives: ["gar"],
+      },
+    ];
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords: [] as string[],
+        lexiconEntries,
+      },
+    });
+
+    // First run: variant match must be created
+    await waitFor(
+      () => {
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Gor"], isVariant: true });
+      },
+      { timeout: 1000 },
+    );
+
+    // Now ignore an unrelated word → triggers canReuseForIgnoreChange path
+    getSpellcheckMatchMock.mockClear();
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords: ["somethingelse"],
+      lexiconEntries,
+    });
+
+    // The variant match for "gar" must survive the cache-reuse filter
+    await waitFor(
+      () => {
+        const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Gor"], isVariant: true });
+        // Spellchecker must not be called again (reuse path)
+        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
+
   it("flags single-word lexicon variants with the canonical term as suggestion", async () => {
     const segment = {
       id: "segment-1",
@@ -353,9 +435,9 @@ describe("useSpellcheck", () => {
     await waitFor(
       () => {
         const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
-        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"] });
-        expect(segMatches?.get(1)).toEqual({ suggestions: ["Glymbar"] });
-        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"] });
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
+        expect(segMatches?.get(1)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
+        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
       },
       { timeout: 1000 },
     );
@@ -381,8 +463,8 @@ describe("useSpellcheck", () => {
     await waitFor(
       () => {
         const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
-        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"] });
-        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"] });
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
+        expect(segMatches?.get(2)).toEqual({ suggestions: ["Glymbar"], isVariant: true });
         expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
       },
       { timeout: 1000 },
@@ -438,7 +520,7 @@ describe("useSpellcheck", () => {
       () => {
         const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
         // Index 0: first word of variant → carries suggestion for the full variant
-        expect(segMatches?.get(0)).toEqual({ suggestions: ["Zielbegriff"] });
+        expect(segMatches?.get(0)).toEqual({ suggestions: ["Zielbegriff"], isVariant: true });
         // Index 1: second word of variant → suppressed (no independent match)
         expect(segMatches?.has(1)).toBe(false);
         // Index 2: normal word → spellchecker match
