@@ -175,7 +175,6 @@ export function useSpellcheck({
   const previousCacheKeyRef = useRef<string | null>(null);
   const previousSpellcheckersRef = useRef(spellcheckers);
   const previousRunCompletedRef = useRef(false);
-  const previousIgnoredWordsRef = useRef<Set<string>>(new Set());
 
   // When custom dictionaries are enabled, they replace built-in languages
   const effectiveSpellcheckLanguages = useMemo(
@@ -346,6 +345,10 @@ export function useSpellcheck({
   );
 
   const ignoredKey = useMemo(() => Array.from(ignoredWordsSet).sort().join("|"), [ignoredWordsSet]);
+  const spellcheckSuggestionKey = useMemo(
+    () => `${spellcheckLanguageKey}|ignore:${ignoredKey}`,
+    [ignoredKey, spellcheckLanguageKey],
+  );
 
   /** Stable key that changes whenever variant mappings change.
    *  Included in cacheKey so that adding/removing variants invalidates
@@ -362,54 +365,6 @@ export function useSpellcheck({
     return `${singleWord}|${multiWord}`;
   }, [variantMatchMap, multiWordVariantPhrases]);
 
-  const isSuperset = useCallback((subset: Set<string>, superset: Set<string>) => {
-    if (subset.size > superset.size) return false;
-    for (const value of subset) {
-      if (!superset.has(value)) return false;
-    }
-    return true;
-  }, []);
-
-  const filterMatchesForSegment = useCallback(
-    (
-      segment: Segment,
-      matches: Map<number, SpellcheckMatchMeta>,
-      ignored: Set<string>,
-      ignoredWordIndexes: Set<number>,
-    ) => {
-      if (matches.size === 0) return matches;
-      let didChange = false;
-      const nextMatches = new Map<number, SpellcheckMatchMeta>();
-      const getNormalizedIgnoredTarget = (word: string, partIndex?: number) => {
-        if (partIndex === undefined) return normalizeSpellcheckTerm(word);
-        const part = word.split("-")[partIndex];
-        return normalizeSpellcheckTerm(part ?? word);
-      };
-      matches.forEach((value, index) => {
-        if (ignoredWordIndexes.has(index)) {
-          didChange = true;
-          return;
-        }
-        const word = segment.words[index]?.word;
-        if (!word) {
-          didChange = true;
-          return;
-        }
-        const normalized = getNormalizedIgnoredTarget(word, value.partIndex);
-        // Variant matches must never be filtered by ignored words / false
-        // positives — consistent with useLexiconMatches.ts where explicit
-        // variants always win over false-positive entries.
-        if (!value.isVariant && normalized && ignored.has(normalized)) {
-          didChange = true;
-          return;
-        }
-        nextMatches.set(index, value);
-      });
-      return didChange ? nextMatches : matches;
-    },
-    [],
-  );
-
   useEffect(() => {
     const SPELLCHECK_MATCH_LIMIT = 1000;
     const runId = spellcheckRunIdRef.current + 1;
@@ -424,21 +379,18 @@ export function useSpellcheck({
       previousCacheKeyRef.current = null;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
-      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
     previousRunCompletedRef.current = false;
 
-    const cacheKey = `${spellcheckLanguageKey}|${ignoredKey}|${variantKey}`;
-    const previousIgnoredWords = previousIgnoredWordsRef.current;
-    const ignoredWordsExpanded = isSuperset(previousIgnoredWords, ignoredWordsSet);
-    const canReuseForIgnoreChange =
-      ignoredWordsExpanded &&
-      previousRunCompleted &&
-      previousSpellcheckersRef.current === spellcheckers &&
-      previousSegmentsRef.current.length > 0;
-
+    // cacheKey includes the ignore list via spellcheckSuggestionKey so that
+    // reuseMatches is invalidated whenever the ignore set changes. This forces
+    // a full reprocess, which is required because getSpellcheckSuggestions now
+    // augments suggestions with fuzzy ignore candidates from ignoredWordsSet.
+    // Those candidates are computed fresh (not cached) and must be re-evaluated
+    // on every ignore-list change.
+    const cacheKey = `${spellcheckSuggestionKey}|${variantKey}`;
     const reuseMatches =
       previousCacheKeyRef.current === cacheKey &&
       previousSpellcheckersRef.current === spellcheckers &&
@@ -453,36 +405,7 @@ export function useSpellcheck({
     let processedSinceUpdate = 0;
     let cancelled = false;
 
-    if (canReuseForIgnoreChange) {
-      const previousSegmentsById = new Map(
-        previousSegmentsRef.current.map((segment) => [segment.id, segment]),
-      );
-      segments.forEach((segment) => {
-        const previousSegment = previousSegmentsById.get(segment.id);
-        if (segment.confirmed) {
-          return;
-        }
-        if (previousSegment === segment) {
-          const previousMatches = previousMatchesRef.current.get(segment.id);
-          if (previousMatches) {
-            const ignoredWordIndexes = findIgnoredWordIndexes(segment, ignoredLexiconPhrases);
-            ignoredWordIndexesBySegment.set(segment.id, ignoredWordIndexes);
-            const filtered = filterMatchesForSegment(
-              segment,
-              previousMatches,
-              ignoredWordsSet,
-              ignoredWordIndexes,
-            );
-            if (filtered.size > 0) {
-              matches.set(segment.id, filtered);
-              matchCount += filtered.size;
-            }
-          }
-          return;
-        }
-        segmentsToProcess.push(segment);
-      });
-    } else if (reuseMatches) {
+    if (reuseMatches) {
       const previousSegmentsById = new Map(
         previousSegmentsRef.current.map((segment) => [segment.id, segment]),
       );
@@ -508,7 +431,6 @@ export function useSpellcheck({
     previousSegmentsRef.current = segments;
     previousCacheKeyRef.current = cacheKey;
     previousSpellcheckersRef.current = spellcheckers;
-    previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
 
     if (matchCount >= SPELLCHECK_MATCH_LIMIT) {
       setSpellcheckMatchesBySegment(new Map(matches));
@@ -517,7 +439,6 @@ export function useSpellcheck({
       previousCacheKeyRef.current = cacheKey;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
-      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
@@ -527,7 +448,6 @@ export function useSpellcheck({
       previousCacheKeyRef.current = cacheKey;
       previousSpellcheckersRef.current = spellcheckers;
       previousRunCompletedRef.current = true;
-      previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       return;
     }
 
@@ -593,7 +513,17 @@ export function useSpellcheck({
           const variantTerm = variantMatchMap.get(normalizedWord);
           const match = variantTerm
             ? { suggestions: [variantTerm], isVariant: true }
-            : getSpellcheckMatch(word.word, spellcheckers, spellcheckLanguageKey, ignoredWordsSet);
+            : getSpellcheckMatch(
+                word.word,
+                spellcheckers,
+                // Pass the language key without the ignore list: the spellcheck
+                // cache now stores only dictionary suggestions (not ignore-based
+                // fuzzy candidates), so the cache key must not vary by ignore
+                // words. Ignore candidates are always computed fresh inside
+                // getSpellcheckSuggestions using the ignoredWordsSet argument.
+                spellcheckLanguageKey,
+                ignoredWordsSet,
+              );
           if (match) {
             wordMatches.set(wordIndex, match);
             matchCount += 1;
@@ -639,13 +569,11 @@ export function useSpellcheck({
         previousCacheKeyRef.current = cacheKey;
         previousSpellcheckersRef.current = spellcheckers;
         previousRunCompletedRef.current = true;
-        previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       } else {
         previousMatchesRef.current = new Map(matches);
         previousCacheKeyRef.current = cacheKey;
         previousSpellcheckersRef.current = spellcheckers;
         previousRunCompletedRef.current = true;
-        previousIgnoredWordsRef.current = new Set(ignoredWordsSet);
       }
     };
 
@@ -659,15 +587,13 @@ export function useSpellcheck({
       }
     };
   }, [
-    filterMatchesForSegment,
-    ignoredKey,
     ignoredLexiconPhrases,
     ignoredWordsSet,
-    isSuperset,
     multiWordVariantPhrases,
     segments,
     spellcheckEnabled,
     spellcheckLanguageKey,
+    spellcheckSuggestionKey,
     spellcheckers,
     variantKey,
     variantMatchMap,

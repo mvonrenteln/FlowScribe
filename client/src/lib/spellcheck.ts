@@ -1,4 +1,5 @@
 import nspell from "nspell";
+import { levenshteinDistance } from "@/lib/fuzzy";
 import type { SpellcheckCustomDictionary } from "@/lib/store";
 import { wordEdgeRegex } from "@/lib/wordBoundaries";
 
@@ -125,6 +126,62 @@ const isCorrectForLanguage = (
   return false;
 };
 
+const maxIgnoreDistanceForToken = (normalizedToken: string) => (normalizedToken.length < 5 ? 1 : 2);
+
+/**
+ * Build ignore-based suggestion candidates for unknown spellcheck tokens.
+ * The ignore list itself does not create standalone matches; it only augments
+ * suggestion output after the spellchecker marked a token as unknown.
+ */
+const getIgnoreSuggestions = (normalizedToken: string, ignoredWords: Set<string>) => {
+  if (!normalizedToken) return [];
+  const maxDistance = maxIgnoreDistanceForToken(normalizedToken);
+  const candidates: Array<{ value: string; distance: number }> = [];
+
+  ignoredWords.forEach((ignoredWord) => {
+    const normalizedIgnored = normalizeSpellcheckTerm(ignoredWord);
+    if (!normalizedIgnored || normalizedIgnored === normalizedToken) return;
+    if (Math.abs(normalizedIgnored.length - normalizedToken.length) > maxDistance) return;
+    const distance = levenshteinDistance(normalizedToken, normalizedIgnored);
+    if (distance <= maxDistance) {
+      candidates.push({ value: ignoredWord, distance });
+    }
+  });
+
+  candidates.sort((left, right) => {
+    if (left.distance !== right.distance) return left.distance - right.distance;
+    return left.value.localeCompare(right.value);
+  });
+
+  return candidates.map((candidate) => candidate.value);
+};
+
+/**
+ * Merge ignore-based and dictionary-based suggestions while preserving
+ * source priority and removing normalized duplicates.
+ */
+const mergeSuggestions = (
+  normalizedToken: string,
+  ignoreSuggestions: string[],
+  checkerSuggestions: string[],
+) => {
+  const merged: string[] = [];
+  const seen = new Set<string>();
+  const addSuggestion = (suggestion: string) => {
+    const trimmed = suggestion.trim();
+    if (!trimmed) return;
+    const normalizedSuggestion = normalizeSpellcheckTerm(trimmed);
+    if (!normalizedSuggestion || normalizedSuggestion === normalizedToken) return;
+    if (seen.has(normalizedSuggestion)) return;
+    seen.add(normalizedSuggestion);
+    merged.push(trimmed);
+  };
+
+  ignoreSuggestions.forEach(addSuggestion);
+  checkerSuggestions.forEach(addSuggestion);
+  return merged;
+};
+
 export const getSpellcheckSuggestions = (
   word: string,
   checkers: LoadedSpellchecker[],
@@ -153,27 +210,29 @@ export const getSpellcheckSuggestions = (
   correctCache.set(cacheKey, isCorrect);
   if (isCorrect) return null;
 
-  const cachedSuggestions = suggestionCache.get(cacheKey);
-  if (cachedSuggestions) return cachedSuggestions;
+  // Only dictionary/checker suggestions are cached. Ignore-based fuzzy candidates
+  // depend on the ignoredWords set (call-specific) and must always be computed
+  // fresh so that newly-added ignore words immediately appear as suggestions for
+  // existing unknown tokens.
+  const cachedCheckerSuggestions = suggestionCache.get(cacheKey);
+  const checkerSuggestions: string[] = cachedCheckerSuggestions ?? [];
+  if (!cachedCheckerSuggestions) {
+    checkers.forEach(({ checker }) => {
+      try {
+        checker.suggest(token).forEach((suggestion) => {
+          const trimmed = suggestion.trim();
+          if (!trimmed) return;
+          checkerSuggestions.push(trimmed);
+        });
+      } catch {
+        // ignore failed suggestion
+      }
+    });
+    suggestionCache.set(cacheKey, checkerSuggestions);
+  }
 
-  const suggestionSet = new Set<string>();
-  checkers.forEach(({ checker }) => {
-    try {
-      checker.suggest(token).forEach((suggestion) => {
-        const trimmed = suggestion.trim();
-        if (!trimmed) return;
-        suggestionSet.add(trimmed);
-      });
-    } catch {
-      // ignore failed suggestion
-    }
-  });
-
-  const suggestions = Array.from(suggestionSet).filter(
-    (suggestion) => normalizeSpellcheckTerm(suggestion) !== normalized,
-  );
-  suggestionCache.set(cacheKey, suggestions);
-  return suggestions;
+  const ignoreSuggestions = getIgnoreSuggestions(normalized, ignoredWords);
+  return mergeSuggestions(normalized, ignoreSuggestions, checkerSuggestions);
 };
 
 export const getSpellcheckMatch = (
