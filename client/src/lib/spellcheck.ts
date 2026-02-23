@@ -210,26 +210,29 @@ export const getSpellcheckSuggestions = (
   correctCache.set(cacheKey, isCorrect);
   if (isCorrect) return null;
 
-  const cachedSuggestions = suggestionCache.get(cacheKey);
-  if (cachedSuggestions) return cachedSuggestions;
-
-  const checkerSuggestions: string[] = [];
-  checkers.forEach(({ checker }) => {
-    try {
-      checker.suggest(token).forEach((suggestion) => {
-        const trimmed = suggestion.trim();
-        if (!trimmed) return;
-        checkerSuggestions.push(trimmed);
-      });
-    } catch {
-      // ignore failed suggestion
-    }
-  });
+  // Only dictionary/checker suggestions are cached. Ignore-based fuzzy candidates
+  // depend on the ignoredWords set (call-specific) and must always be computed
+  // fresh so that newly-added ignore words immediately appear as suggestions for
+  // existing unknown tokens.
+  const cachedCheckerSuggestions = suggestionCache.get(cacheKey);
+  const checkerSuggestions: string[] = cachedCheckerSuggestions ?? [];
+  if (!cachedCheckerSuggestions) {
+    checkers.forEach(({ checker }) => {
+      try {
+        checker.suggest(token).forEach((suggestion) => {
+          const trimmed = suggestion.trim();
+          if (!trimmed) return;
+          checkerSuggestions.push(trimmed);
+        });
+      } catch {
+        // ignore failed suggestion
+      }
+    });
+    suggestionCache.set(cacheKey, checkerSuggestions);
+  }
 
   const ignoreSuggestions = getIgnoreSuggestions(normalized, ignoredWords);
-  const suggestions = mergeSuggestions(normalized, ignoreSuggestions, checkerSuggestions);
-  suggestionCache.set(cacheKey, suggestions);
-  return suggestions;
+  return mergeSuggestions(normalized, ignoreSuggestions, checkerSuggestions);
 };
 
 export const getSpellcheckMatch = (

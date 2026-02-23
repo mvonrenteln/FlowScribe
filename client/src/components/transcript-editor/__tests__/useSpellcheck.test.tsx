@@ -117,7 +117,11 @@ describe("useSpellcheck", () => {
     );
   });
 
-  it("includes ignore key in spellcheck suggestion cache argument", async () => {
+  it("passes ignored words to spellcheck match as a Set argument", async () => {
+    // The spellcheck suggestion cache now stores only dictionary suggestions
+    // (not ignore-based fuzzy candidates). Ignore words are therefore passed
+    // directly as the 4th argument to getSpellcheckMatch rather than being
+    // baked into the languagesKey (3rd argument).
     const segments = [
       {
         id: "segment-1",
@@ -158,7 +162,9 @@ describe("useSpellcheck", () => {
     );
 
     const initialCall = getSpellcheckMatchMock.mock.calls[0];
-    expect(String(initialCall?.[2])).toContain("ignore:foo");
+    // Ignored words are passed as a Set (4th arg), not encoded in languagesKey
+    expect(initialCall?.[3]).toBeInstanceOf(Set);
+    expect((initialCall?.[3] as Set<string>).has("foo")).toBe(true);
 
     getSpellcheckMatchMock.mockClear();
     rerender({
@@ -185,7 +191,8 @@ describe("useSpellcheck", () => {
     );
 
     const updatedCall = getSpellcheckMatchMock.mock.calls[0];
-    expect(String(updatedCall?.[2])).toContain("ignore:bar");
+    expect(updatedCall?.[3]).toBeInstanceOf(Set);
+    expect((updatedCall?.[3] as Set<string>).has("bar")).toBe(true);
   });
 
   it("skips confirmed segments when collecting matches", async () => {
@@ -324,7 +331,12 @@ describe("useSpellcheck", () => {
     const segments = [segment];
 
     loadSpellcheckersMock.mockResolvedValue([{}]);
-    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+    // Mock is ignore-aware: returns null when the ignored word matches, simulating
+    // the real getSpellcheckSuggestions behaviour (which gates on ignoredWords.has).
+    getSpellcheckMatchMock.mockImplementation(
+      (_word: string, _checkers: unknown[], _langKey: string, ignoredWords: Set<string>) =>
+        ignoredWords.has("wrd") ? null : { suggestions: ["Word"] },
+    );
 
     const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
     const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
@@ -366,20 +378,21 @@ describe("useSpellcheck", () => {
       lexiconEntries,
     });
 
+    // getSpellcheckMatch is called again (full reprocess); mock returns null
+    // because ignoredWords now contains "wrd", so the match is suppressed.
     await waitFor(
       () => {
         expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
-        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
       },
       { timeout: 1000 },
     );
   });
 
-  it("preserves variant matches in cache-reuse path when word is also a false positive", async () => {
-    // Regression: filterMatchesForSegment must not remove variant matches
-    // via ignoredWordsSet when the cache-reuse path (canReuseForIgnoreChange)
-    // is taken. This is consistent with useLexiconMatches.ts where explicit
-    // variants always win over false-positive entries.
+  it("preserves variant matches when ignore list grows for unchanged segments", async () => {
+    // Regression: variant matches (isVariant: true) must not be removed when
+    // the ignore list grows, even when the word is also listed as a false positive.
+    // Consistent with useLexiconMatches.ts where explicit variants always win
+    // over false-positive entries.
     const segment = {
       id: "segment-1",
       speaker: "SPEAKER_00",
@@ -432,7 +445,7 @@ describe("useSpellcheck", () => {
       { timeout: 1000 },
     );
 
-    // Now ignore an unrelated word → triggers canReuseForIgnoreChange path
+    // Now ignore an unrelated word → triggers full reprocess
     getSpellcheckMatchMock.mockClear();
     rerender({
       spellcheckEnabled: true,
@@ -445,13 +458,12 @@ describe("useSpellcheck", () => {
       lexiconEntries,
     });
 
-    // The variant match for "gar" must survive the cache-reuse filter
+    // The variant match for "gar" must survive the full reprocess: the word
+    // is looked up via variantMatchMap before getSpellcheckMatch is reached.
     await waitFor(
       () => {
         const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
         expect(segMatches?.get(0)).toEqual({ suggestions: ["Gor"], isVariant: true });
-        // Spellchecker must not be called again (reuse path)
-        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
       },
       { timeout: 1000 },
     );
@@ -470,7 +482,11 @@ describe("useSpellcheck", () => {
     const segments = [segment];
 
     loadSpellcheckersMock.mockResolvedValue([{}]);
-    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Proben"], partIndex: 1 });
+    // Mock is ignore-aware: "probe" (normalised form of "Probe") suppresses the match.
+    getSpellcheckMatchMock.mockImplementation(
+      (_word: string, _checkers: unknown[], _langKey: string, ignoredWords: Set<string>) =>
+        ignoredWords.has("probe") ? null : { suggestions: ["Proben"], partIndex: 1 },
+    );
 
     const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
     const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
@@ -512,10 +528,84 @@ describe("useSpellcheck", () => {
       lexiconEntries,
     });
 
+    // Full reprocess runs; mock returns null because "probe" is now ignored.
     await waitFor(
       () => {
         expect(result.current.spellcheckMatchesBySegment.size).toBe(0);
-        expect(getSpellcheckMatchMock).not.toHaveBeenCalled();
+      },
+      { timeout: 1000 },
+    );
+  });
+
+  it("recomputes fuzzy ignore suggestions when ignore list grows", async () => {
+    // Regression for P1: when the ignore list grows, getSpellcheckMatch must be
+    // re-run for unchanged segments so that newly-added ignore words appear as
+    // fuzzy suggestion candidates for existing unknown tokens.
+    const segment = {
+      id: "segment-1",
+      speaker: "SPEAKER_00",
+      tags: [],
+      start: 0,
+      end: 1,
+      text: "Wrdd",
+      words: [{ word: "Wrdd", start: 0, end: 1 }],
+    };
+    const segments = [segment];
+
+    loadSpellcheckersMock.mockResolvedValue([{}]);
+    // Initially: no ignore-based suggestions
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Word"] });
+
+    const spellcheckLanguages = Array.from(baseSpellcheckLanguages);
+    const spellcheckCustomDictionaries = Array.from(baseSpellcheckCustomDictionaries);
+    const lexiconEntries = Array.from(baseLexiconEntries);
+
+    const { result, rerender } = renderHook((props: UseSpellcheckOptions) => useSpellcheck(props), {
+      initialProps: {
+        spellcheckEnabled: true,
+        spellcheckLanguages,
+        spellcheckCustomEnabled: false,
+        spellcheckCustomDictionaries,
+        loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+        segments,
+        spellcheckIgnoreWords: [] as string[],
+        lexiconEntries,
+      },
+    });
+
+    await waitFor(
+      () => {
+        expect(result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)).toEqual({
+          suggestions: ["Word"],
+        });
+      },
+      { timeout: 1000 },
+    );
+
+    // After ignore list grows, simulate that the real getSpellcheckSuggestions
+    // now returns a fuzzy ignore candidate in the suggestions list.
+    getSpellcheckMatchMock.mockClear();
+    getSpellcheckMatchMock.mockReturnValue({ suggestions: ["Wrde", "Word"] });
+
+    rerender({
+      spellcheckEnabled: true,
+      spellcheckLanguages,
+      spellcheckCustomEnabled: false,
+      spellcheckCustomDictionaries,
+      loadSpellcheckCustomDictionaries: loadSpellcheckCustomDictionariesMock,
+      segments,
+      spellcheckIgnoreWords: ["wrde"],
+      lexiconEntries,
+    });
+
+    await waitFor(
+      () => {
+        // getSpellcheckMatch must have been called again (no stale reuse)
+        expect(getSpellcheckMatchMock).toHaveBeenCalled();
+        // Updated suggestions including the newly-added ignore candidate must be visible
+        expect(
+          result.current.spellcheckMatchesBySegment.get("segment-1")?.get(0)?.suggestions,
+        ).toEqual(["Wrde", "Word"]);
       },
       { timeout: 1000 },
     );
