@@ -78,7 +78,7 @@ describe("segmentMerge utils", () => {
   it("calculateTimeGap and isTimeGapAcceptable", () => {
     expect(calculateTimeGap(segA, segB)).toBeCloseTo(1.3 - 1.2, 5);
     expect(isTimeGapAcceptable(0.1, 0.5)).toBe(true);
-    expect(isTimeGapAcceptable(1.0, 0.5)).toBe(false);
+    expect(isTimeGapAcceptable(1, 0.5)).toBe(false);
   });
 
   it("sentence heuristics", () => {
@@ -250,7 +250,7 @@ describe("segmentMerge utils", () => {
       const idContext = createSimpleIdContext(segments);
       const pairs = collectSegmentPairsWithSimpleIds(
         segments,
-        1.0, // maxTimeGap
+        1, // maxTimeGap
         true, // sameSpeakerOnly
         idContext.mapping,
         idContext.getSimpleId,
@@ -274,7 +274,7 @@ describe("segmentMerge utils", () => {
       const idContext = createSimpleIdContext(segments);
       const pairs = collectSegmentPairsWithSimpleIds(
         segments,
-        1.0, // maxTimeGap
+        1, // maxTimeGap
         false, // sameSpeakerOnly
         idContext.mapping,
         idContext.getSimpleId,
@@ -342,7 +342,7 @@ describe("segmentMerge utils", () => {
       const idContext = createSimpleIdContext(segments);
       const pairs = collectSegmentPairsWithSimpleIds(
         segments,
-        1.0,
+        1,
         true,
         idContext.mapping,
         idContext.getSimpleId,
@@ -362,7 +362,7 @@ describe("segmentMerge utils", () => {
       const idContext = createSimpleIdContext(segments);
       const pairs = collectSegmentPairsWithSimpleIds(
         segments,
-        1.0,
+        1,
         true,
         idContext.mapping,
         idContext.getSimpleId,
@@ -381,7 +381,7 @@ describe("segmentMerge utils", () => {
       const idContext = createSimpleIdContext(segments);
       const pairs = collectSegmentPairsWithSimpleIds(
         segments,
-        1.0,
+        1,
         true,
         idContext.mapping,
         idContext.getSimpleId,

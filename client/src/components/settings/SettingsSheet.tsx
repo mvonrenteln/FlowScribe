@@ -20,6 +20,7 @@ import { SettingsNav, type SettingsSection } from "./SettingsNav";
 import { AIServerSettings } from "./sections/AIServerSettings";
 import { AITemplateSettings } from "./sections/AITemplateSettings";
 import { AppearanceSettings } from "./sections/AppearanceSettings";
+import { BackupSettings } from "./sections/BackupSettings";
 import { ConfidenceSettings } from "./sections/ConfidenceSettings";
 import { GlossarySettings } from "./sections/GlossarySettings";
 import { SpellcheckSettings } from "./sections/SpellcheckSettings";
@@ -67,6 +68,8 @@ export function SettingsSheet({
         return <GlossarySettings />;
       case "confidence":
         return <ConfidenceSettings />;
+      case "backup":
+        return <BackupSettings />;
       default:
         return <AIServerSettings />;
     }

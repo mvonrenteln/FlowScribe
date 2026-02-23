@@ -1,3 +1,4 @@
+import type { BackupConfig } from "@/lib/backup/types";
 import type {
   AIChapterDetectionConfig,
   AIRevisionConfig,
@@ -9,6 +10,7 @@ import type {
 } from "../types";
 
 export interface GlobalStatePayload extends PersistedGlobalState {
+  backupConfig: BackupConfig;
   lexiconEntries: LexiconEntry[];
   lexiconTerms: string[];
   lexiconThreshold: number;
@@ -27,6 +29,7 @@ export interface GlobalStatePayload extends PersistedGlobalState {
 }
 
 export const buildGlobalStatePayload = (state: TranscriptStore): GlobalStatePayload => ({
+  backupConfig: state.backupConfig,
   lexiconEntries: state.lexiconEntries,
   lexiconTerms: state.lexiconEntries.map((entry) => entry.term),
   lexiconThreshold: state.lexiconThreshold,

@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { BackupScheduler } from "@/lib/backup/BackupScheduler";
+import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
 import { mark } from "@/lib/logging";
 import {
@@ -228,6 +230,8 @@ const initialState: InitialStoreState = {
   ),
   // Rewrite state
   ...initialRewriteState,
+  // Backup config (persisted in global state)
+  backupConfig: { ...DEFAULT_BACKUP_CONFIG, ...(globalState?.backupConfig ?? {}) },
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: null,
   chapterMetadataTitleLoading: false,
@@ -278,9 +282,30 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createRewriteSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
+      setBackupConfig: (patch) =>
+        set((state) => ({ backupConfig: { ...state.backupConfig, ...patch } })),
     };
   }),
 );
+
+// Initialize backup scheduler (browser only, not in test environment)
+if (typeof window !== "undefined" && !import.meta.env.VITEST) {
+  const initBackup = async () => {
+    const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
+    const { DownloadProvider } = await import("@/lib/backup/providers/DownloadProvider");
+
+    const fsProvider = new FileSystemProvider();
+    await fsProvider.initialize();
+
+    const provider = fsProvider.isSupported() ? fsProvider : new DownloadProvider();
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(useTranscriptStore);
+
+    // Store scheduler reference for access from UI
+    (window as Window & { __backupScheduler?: BackupScheduler }).__backupScheduler = scheduler;
+  };
+  void initBackup();
+}
 
 if (canUseLocalStorage()) {
   let __storeSubscriptionCount = 0;
@@ -397,6 +422,7 @@ if (canUseLocalStorage()) {
       const nextGlobalPayload = buildGlobalStatePayload(useTranscriptStore.getState());
       const globalChanged =
         !lastGlobalPayload ||
+        lastGlobalPayload.backupConfig !== nextGlobalPayload.backupConfig ||
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
