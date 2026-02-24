@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import type { BackupConfig } from "@/lib/backup/types";
+import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
 import type { AIRevisionConfig, AISpeakerConfig } from "@/lib/store/types";
 import {
   arePersistenceSelectionsEqual,
@@ -19,6 +21,8 @@ const baseRevisionConfig: AIRevisionConfig = {
   defaultPromptId: null,
   quickAccessPromptIds: [],
 };
+
+const baseBackupConfig: BackupConfig = { ...DEFAULT_BACKUP_CONFIG };
 
 const baseSelection: PersistenceSelection = {
   sessionKey: "session-1",
@@ -47,6 +51,22 @@ const baseSelection: PersistenceSelection = {
   spellcheckCustomEnabled: false,
   aiSpeakerConfig: baseSpeakerConfig,
   aiRevisionConfig: baseRevisionConfig,
+  aiSegmentMergeConfig: {
+    maxGapMs: 0,
+    suggestCrossSegment: false,
+    suggestionMode: "auto",
+    prompts: [],
+    defaultPromptId: null,
+    quickAccessPromptIds: [],
+  },
+  aiChapterDetectionConfig: {
+    includeContext: false,
+    contextWordLimit: 0,
+    defaultPromptId: "",
+    quickAccessPromptIds: [],
+    prompts: [],
+  },
+  backupConfig: baseBackupConfig,
 };
 
 describe("getPersistTimeBucket", () => {
@@ -73,5 +93,22 @@ describe("arePersistenceSelectionsEqual", () => {
   it("detects changes to persisted selection fields", () => {
     const updated = { ...baseSelection, selectedSegmentId: "seg-2" };
     expect(arePersistenceSelectionsEqual(baseSelection, updated)).toBe(false);
+  });
+
+  it("detects backupConfig identity changes (regression: backup dir lost on reload)", () => {
+    const updatedBackup: BackupConfig = {
+      ...baseBackupConfig,
+      enabled: true,
+      status: "enabled",
+      locationLabel: "my-backup-folder",
+    };
+    const updated = { ...baseSelection, backupConfig: updatedBackup };
+    expect(arePersistenceSelectionsEqual(baseSelection, updated)).toBe(false);
+  });
+
+  it("treats equal backupConfig references as unchanged", () => {
+    const left = { ...baseSelection, backupConfig: baseBackupConfig };
+    const right = { ...baseSelection, backupConfig: baseBackupConfig };
+    expect(arePersistenceSelectionsEqual(left, right)).toBe(true);
   });
 });
