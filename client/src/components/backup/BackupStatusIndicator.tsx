@@ -11,6 +11,7 @@ interface BackupStatusIndicatorProps {
 
 export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorProps) {
   const backupConfig = useTranscriptStore((s) => s.backupConfig);
+  const backupState = useTranscriptStore((s) => s.backupState);
 
   // Listen for backup reminder events
   useEffect(() => {
@@ -47,7 +48,7 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
   if (!backupConfig.enabled) return null;
 
   const getIcon = () => {
-    switch (backupConfig.status) {
+    switch (backupState.status) {
       case "enabled":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case "paused":
@@ -60,15 +61,15 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
   };
 
   const getTooltip = () => {
-    switch (backupConfig.status) {
+    switch (backupState.status) {
       case "enabled":
-        return backupConfig.lastBackupAt
-          ? `Last backup: ${new Date(backupConfig.lastBackupAt).toLocaleTimeString()}`
+        return backupState.lastBackupAt
+          ? `Last backup: ${new Date(backupState.lastBackupAt).toLocaleTimeString()}`
           : "Backup enabled";
       case "paused":
         return "Backup paused – folder not accessible";
       case "error":
-        return `Backup error: ${backupConfig.lastError ?? "unknown"}`;
+        return `Backup error: ${backupState.lastError ?? "unknown"}`;
       default:
         return "Backup";
     }

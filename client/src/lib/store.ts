@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
 import { BackupScheduler } from "@/lib/backup/BackupScheduler";
-import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
+import { type BackupStatus, DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "@/lib/backup/types";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
 import { mark } from "@/lib/logging";
 import {
@@ -230,8 +230,13 @@ const initialState: InitialStoreState = {
   ),
   // Rewrite state
   ...initialRewriteState,
-  // Backup config (persisted in global state)
+  // Backup config (persisted in global state — config only, no runtime state)
   backupConfig: { ...DEFAULT_BACKUP_CONFIG, ...(globalState?.backupConfig ?? {}) },
+  // Backup runtime state — transient, never persisted, reset on every load
+  backupState: {
+    ...DEFAULT_BACKUP_STATE,
+    status: (globalState?.backupConfig?.enabled ? "enabled" : "disabled") as BackupStatus,
+  },
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: null,
   chapterMetadataTitleLoading: false,
@@ -284,6 +289,8 @@ export const useTranscriptStore = create<TranscriptStore>()(
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
       setBackupConfig: (patch) =>
         set((state) => ({ backupConfig: { ...state.backupConfig, ...patch } })),
+      setBackupState: (patch) =>
+        set((state) => ({ backupState: { ...state.backupState, ...patch } })),
     };
   }),
 );

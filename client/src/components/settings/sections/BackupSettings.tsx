@@ -27,7 +27,9 @@ function formatLastBackup(lastBackupAt: number | null): string {
 
 export function BackupSettings() {
   const backupConfig = useTranscriptStore((s) => s.backupConfig);
+  const backupState = useTranscriptStore((s) => s.backupState);
   const setBackupConfig = useTranscriptStore((s) => s.setBackupConfig);
+  const setBackupState = useTranscriptStore((s) => s.setBackupState);
   const [enabling, setEnabling] = useState(false);
 
   const handleEnable = useCallback(async () => {
@@ -42,15 +44,14 @@ export function BackupSettings() {
         if (result.ok) {
           setBackupConfig({
             enabled: true,
-            status: "enabled",
             providerType: "filesystem",
             locationLabel: result.locationLabel,
-            lastError: null,
           });
+          setBackupState({ status: "enabled", lastError: null });
           // Trigger initial backup
           window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
         } else if (result.error !== "Cancelled") {
-          setBackupConfig({ lastError: result.error });
+          setBackupState({ lastError: result.error });
         }
       } else {
         const dlProvider = new DownloadProvider();
@@ -58,28 +59,28 @@ export function BackupSettings() {
         if (result.ok) {
           setBackupConfig({
             enabled: true,
-            status: "enabled",
             providerType: "download",
             locationLabel: result.locationLabel,
-            lastError: null,
           });
+          setBackupState({ status: "enabled", lastError: null });
         }
       }
     } finally {
       setEnabling(false);
     }
-  }, [setBackupConfig]);
+  }, [setBackupConfig, setBackupState]);
 
   const handleDisable = useCallback(() => {
-    setBackupConfig({ enabled: false, status: "disabled" });
-  }, [setBackupConfig]);
+    setBackupConfig({ enabled: false });
+    setBackupState({ status: "disabled", lastError: null });
+  }, [setBackupConfig, setBackupState]);
 
   const handleBackupNow = useCallback(() => {
     window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
   }, []);
 
   const renderStatusIcon = () => {
-    switch (backupConfig.status) {
+    switch (backupState.status) {
       case "enabled":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
       case "paused":
@@ -116,8 +117,8 @@ export function BackupSettings() {
                 {enabling && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
                 {hasFsAccess() ? "Choose backup folder" : "Enable download backups"}
               </Button>
-              {backupConfig.lastError && (
-                <p className="text-sm text-destructive">{backupConfig.lastError}</p>
+              {backupState.lastError && (
+                <p className="text-sm text-destructive">{backupState.lastError}</p>
               )}
             </div>
           ) : (
@@ -130,20 +131,20 @@ export function BackupSettings() {
                   </p>
                 </div>
                 <div className="text-xs text-muted-foreground">
-                  Last backup: {formatLastBackup(backupConfig.lastBackupAt)}
+                  Last backup: {formatLastBackup(backupState.lastBackupAt)}
                 </div>
               </div>
 
-              {backupConfig.status === "paused" && (
+              {backupState.status === "paused" && (
                 <div className="rounded-md bg-amber-50 border border-amber-200 p-3 text-sm text-amber-800 dark:bg-amber-950 dark:border-amber-800 dark:text-amber-200">
                   Backup folder is not accessible. Re-open your browser and grant permission, or
                   choose a new folder.
                 </div>
               )}
 
-              {backupConfig.status === "error" && backupConfig.lastError && (
+              {backupState.status === "error" && backupState.lastError && (
                 <div className="rounded-md bg-destructive/10 border border-destructive/20 p-3 text-sm text-destructive">
-                  {backupConfig.lastError}
+                  {backupState.lastError}
                 </div>
               )}
 

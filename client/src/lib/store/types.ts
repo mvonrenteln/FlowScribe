@@ -1,5 +1,5 @@
 import type { MergeBatchLogEntry } from "@/lib/ai/features/segmentMerge/types";
-import type { BackupConfig } from "@/lib/backup/types";
+import type { BackupConfig, BackupState } from "@/lib/backup/types";
 import type { FileReference } from "@/lib/fileReference";
 import type { Chapter, ChapterUpdate } from "@/types/chapter";
 
@@ -241,6 +241,7 @@ export interface InitialStoreState {
   paragraphRewriteAbortController: AbortController | null;
   // Backup
   backupConfig: BackupConfig;
+  backupState: BackupState;
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: string[] | null;
   chapterMetadataTitleLoading: boolean;
@@ -272,6 +273,7 @@ export type TranscriptStore = InitialStoreState &
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
     setBackupConfig: (patch: Partial<BackupConfig>) => void;
+    setBackupState: (patch: Partial<BackupState>) => void;
   };
 
 export interface ConfidenceSlice {

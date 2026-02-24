@@ -4,14 +4,15 @@ export type BackupProviderType = "filesystem" | "download";
 export type BackupStatus = "disabled" | "enabled" | "paused" | "error";
 export type BackupReason = "scheduled" | "critical" | "manual" | "enabled" | "before-unload";
 
+/**
+ * User-controlled backup configuration. Persisted to localStorage.
+ * Contains only settings that the user explicitly chooses — no runtime state.
+ */
 export interface BackupConfig {
   providerType: BackupProviderType;
   enabled: boolean;
   includeGlobalState: boolean;
   locationLabel: string | null;
-  lastBackupAt: number | null;
-  lastError: string | null;
-  status: BackupStatus;
   maxSnapshotsPerSession: number;
   maxGlobalSnapshots: number;
   disableDirtyReminders: boolean;
@@ -24,13 +25,26 @@ export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
   enabled: false,
   includeGlobalState: true,
   locationLabel: null,
-  lastBackupAt: null,
-  lastError: null,
-  status: "disabled",
   maxSnapshotsPerSession: 50,
   maxGlobalSnapshots: 20,
   disableDirtyReminders: false,
   backupIntervalMinutes: 20,
+};
+
+/**
+ * Transient backup runtime state. Not persisted — reset on every page load.
+ * Updated by the scheduler during normal operation.
+ */
+export interface BackupState {
+  status: BackupStatus;
+  lastBackupAt: number | null;
+  lastError: string | null;
+}
+
+export const DEFAULT_BACKUP_STATE: BackupState = {
+  status: "disabled",
+  lastBackupAt: null,
+  lastError: null,
 };
 
 export interface SnapshotEntry {

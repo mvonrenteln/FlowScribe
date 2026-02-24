@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BackupProvider } from "../BackupProvider";
 import { BackupScheduler } from "../BackupScheduler";
-import type { BackupConfig } from "../types";
-import { DEFAULT_BACKUP_CONFIG } from "../types";
+import type { BackupConfig, BackupState } from "../types";
+import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 
 // Mock storage module
 vi.mock("@/lib/storage", () => ({
@@ -52,8 +52,12 @@ const makeStore = (config?: Partial<BackupConfig>) => {
     sessionKey: "session-key",
     sessionLabel: null as string | null,
     backupConfig: { ...DEFAULT_BACKUP_CONFIG, enabled: true, ...config },
+    backupState: { ...DEFAULT_BACKUP_STATE, status: "enabled" } as BackupState,
     setBackupConfig: vi.fn((patch: Partial<BackupConfig>) => {
       state.backupConfig = { ...state.backupConfig, ...patch };
+    }),
+    setBackupState: vi.fn((patch: Partial<BackupState>) => {
+      state.backupState = { ...state.backupState, ...patch };
     }),
   };
   const listeners = new Set<() => void>();
@@ -278,7 +282,7 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
-  it("updates backupConfig after a successful backup", async () => {
+  it("updates backupState after a successful backup", async () => {
     const provider = makeMockProvider();
     const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
@@ -292,10 +296,9 @@ describe("BackupScheduler", () => {
     await Promise.resolve();
     await Promise.resolve();
 
-    const setConfigCalls = (store.getState().setBackupConfig as ReturnType<typeof vi.fn>).mock
-      .calls;
-    expect(setConfigCalls.length).toBeGreaterThan(0);
-    const lastCall = setConfigCalls[setConfigCalls.length - 1][0] as Partial<BackupConfig>;
+    const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock.calls;
+    expect(setStateCalls.length).toBeGreaterThan(0);
+    const lastCall = setStateCalls[setStateCalls.length - 1][0] as Partial<BackupState>;
     expect(lastCall).toMatchObject({ status: "enabled" });
     expect(lastCall.lastBackupAt).toBeTypeOf("number");
     scheduler.stop();

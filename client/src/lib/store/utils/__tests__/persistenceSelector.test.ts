@@ -99,7 +99,6 @@ describe("arePersistenceSelectionsEqual", () => {
     const updatedBackup: BackupConfig = {
       ...baseBackupConfig,
       enabled: true,
-      status: "enabled",
       locationLabel: "my-backup-folder",
     };
     const updated = { ...baseSelection, backupConfig: updatedBackup };

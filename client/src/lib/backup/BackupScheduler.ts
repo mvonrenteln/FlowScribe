@@ -2,7 +2,13 @@ import { readGlobalState, readSessionsState } from "@/lib/storage";
 import type { BackupProvider } from "./BackupProvider";
 import { pruneManifest } from "./retention";
 import { computeChecksum, serializeSnapshot } from "./snapshotSerializer";
-import type { BackupConfig, BackupManifest, BackupReason, SnapshotEntry } from "./types";
+import type {
+  BackupConfig,
+  BackupManifest,
+  BackupReason,
+  BackupState,
+  SnapshotEntry,
+} from "./types";
 import { APP_VERSION, EMPTY_MANIFEST, SCHEMA_VERSION } from "./types";
 
 /**
@@ -24,7 +30,9 @@ interface MinimalStoreState {
   sessionKey: string;
   sessionLabel: string | null;
   backupConfig: BackupConfig;
+  backupState: BackupState;
   setBackupConfig: (patch: Partial<BackupConfig>) => void;
+  setBackupState: (patch: Partial<BackupState>) => void;
 }
 
 interface MinimalStore {
@@ -259,7 +267,7 @@ export class BackupScheduler {
     try {
       const accessible = await this.provider.verifyAccess();
       if (!accessible) {
-        state.setBackupConfig({ status: "paused", lastError: "Backup folder not accessible" });
+        state.setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
         return;
       }
 
@@ -379,14 +387,14 @@ export class BackupScheduler {
       }
       await this.provider.writeManifest(pruned);
 
-      state.setBackupConfig({
+      state.setBackupState({
         lastBackupAt: Date.now(),
         lastError: null,
         status: "enabled",
       });
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      state.setBackupConfig({ status: "error", lastError: errorMsg });
+      state.setBackupState({ status: "error", lastError: errorMsg });
     }
   }
 
@@ -407,7 +415,7 @@ export class BackupScheduler {
     if (!hasLongDirty) return;
 
     // Only remind for download provider or paused status
-    if (!this.provider.isSupported() || state.backupConfig.status === "paused") {
+    if (!this.provider.isSupported() || state.backupState.status === "paused") {
       try {
         window.dispatchEvent(
           new CustomEvent("flowscribe:backup-reminder", {
