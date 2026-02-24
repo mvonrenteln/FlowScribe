@@ -632,6 +632,7 @@ export const useTranscriptEditor = () => {
     canRedo: canRedoChecked,
     onShowShortcuts: () => setShowShortcuts(true),
     onShowExport: () => setShowExport(true),
+    onOpenSettings: () => setShowSettings(true),
     aiCommandPanelOpen: showAICommandPanel,
     onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
     chaptersOutlineOpen: showChaptersOutline,

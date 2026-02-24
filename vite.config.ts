@@ -31,6 +31,7 @@ export default defineConfig({
       strict: true,
       deny: ["**/.*"],
     },
+    allowedHosts: ["host.docker.internal"],
   },
   test: {
     environment: "jsdom",
