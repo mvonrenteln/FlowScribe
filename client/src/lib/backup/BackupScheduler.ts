@@ -5,8 +5,17 @@ import { computeChecksum, serializeSnapshot } from "./snapshotSerializer";
 import type { BackupConfig, BackupManifest, BackupReason, SnapshotEntry } from "./types";
 import { APP_VERSION, EMPTY_MANIFEST, SCHEMA_VERSION } from "./types";
 
+/**
+ * Grace period after the last content change. When the hard interval fires,
+ * a backup is deferred by up to DEBOUNCE_MS to avoid writing a snapshot
+ * mid-edit. The interval itself is the primary driver — not this timer.
+ */
 const DEBOUNCE_MS = 30_000;
-const HARD_INTERVAL_MS = 3 * 60_000;
+/**
+ * Maximum total deferral after the interval fires. If the user edits
+ * continuously, the backup happens at most MAX_DEFER_MS later anyway.
+ */
+const MAX_DEFER_MS = 5 * 60_000;
 const REMINDER_INTERVAL_MS = 20 * 60_000;
 const DIRTY_REMINDER_THRESHOLD_MS = 20 * 60_000;
 
@@ -61,12 +70,22 @@ function isDownloadProvider(p: BackupProvider): p is BackupProvider & DownloadPr
  */
 export class BackupScheduler {
   private provider: BackupProvider;
-  private dirtySessions = new Map<string, { dirtyAt: number; lastBackedUpState: string }>();
+  private dirtySessions = new Map<
+    string,
+    { isDirty: boolean; dirtyAt: number; lastBackedUpState: string }
+  >();
   private globalDirty = false;
   private lastBackedUpGlobalKey: string | null = null;
-  private debounceTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Timestamp of the last real content change (segment count change). */
+  private lastContentChangeAt = 0;
+  /** Timer for the grace-period deferral after the interval fires. */
+  private deferTimer: ReturnType<typeof setTimeout> | null = null;
+  /** When the interval first fired for the current dirty cycle (for MAX_DEFER_MS cap). */
+  private intervalFiredAt = 0;
   private hardIntervalTimer: ReturnType<typeof setInterval> | null = null;
   private reminderTimer: ReturnType<typeof setInterval> | null = null;
+  /** Tracks the currently active hard-interval duration so we can detect config changes. */
+  private currentIntervalMs = 20 * 60_000;
   private criticalEventHandler: ((e: Event) => void) | null = null;
   private unsubscribeStore: (() => void) | null = null;
   private store: MinimalStore | null = null;
@@ -78,18 +97,33 @@ export class BackupScheduler {
   start(store: MinimalStore): void {
     this.store = store;
 
+    // Seed the dirty-tracking baseline so that the very first store notification
+    // with unchanged content does not spuriously schedule a backup.
+    const seed = store.getState();
+    if (seed.sessionKey) {
+      const seedDirtyKey = `${seed.sessionKey}:${seed.segments.length}`;
+      this.dirtySessions.set(seed.sessionKey, {
+        isDirty: false,
+        dirtyAt: Date.now(),
+        lastBackedUpState: seedDirtyKey,
+      });
+    }
+
     // Subscribe to store changes
     this.unsubscribeStore = store.subscribe(() => {
       this.onStateChange(store.getState());
     });
 
-    // Hard interval: backup every 3 minutes regardless
+    // Hard interval: the primary backup trigger, fires every backupIntervalMinutes.
+    const initialIntervalMs = store.getState().backupConfig.backupIntervalMinutes * 60_000;
+    this.currentIntervalMs = initialIntervalMs;
     this.hardIntervalTimer = setInterval(() => {
       const state = store.getState();
       if (state.backupConfig.enabled && this.hasDirty()) {
-        void this.backupBatch("scheduled");
+        if (this.intervalFiredAt === 0) this.intervalFiredAt = Date.now();
+        this.attemptScheduledBackup();
       }
-    }, HARD_INTERVAL_MS);
+    }, initialIntervalMs);
 
     // Reminder interval for download provider / paused state
     this.reminderTimer = setInterval(() => {
@@ -115,14 +149,14 @@ export class BackupScheduler {
   }
 
   stop(): void {
-    if (this.debounceTimer) clearTimeout(this.debounceTimer);
+    if (this.deferTimer) clearTimeout(this.deferTimer);
     if (this.hardIntervalTimer) clearInterval(this.hardIntervalTimer);
     if (this.reminderTimer) clearInterval(this.reminderTimer);
     if (this.criticalEventHandler) {
       window.removeEventListener("flowscribe:backup-critical", this.criticalEventHandler);
     }
     if (this.unsubscribeStore) this.unsubscribeStore();
-    this.debounceTimer = null;
+    this.deferTimer = null;
     this.hardIntervalTimer = null;
     this.reminderTimer = null;
     this.criticalEventHandler = null;
@@ -132,41 +166,88 @@ export class BackupScheduler {
   private onStateChange(state: MinimalStoreState): void {
     if (!state.backupConfig.enabled) return;
 
+    // Restart hard interval when the user changes backupIntervalMinutes
+    const configuredIntervalMs = state.backupConfig.backupIntervalMinutes * 60_000;
+    if (configuredIntervalMs !== this.currentIntervalMs) {
+      this.restartHardInterval(configuredIntervalMs);
+    }
+
     const sessionKey = state.sessionKey;
-    // Cheap dirty key: segments length + sessionKey
+    // Cheap dirty key: segments length + sessionKey — filters out pure UI state changes
     const dirtyKey = `${sessionKey}:${state.segments.length}`;
     const existing = this.dirtySessions.get(sessionKey);
 
-    if (!existing || existing.lastBackedUpState !== dirtyKey) {
+    const sessionContentChanged = !existing || existing.lastBackedUpState !== dirtyKey;
+    if (sessionContentChanged) {
+      // Record when the user last made a real content change.
+      // The hard interval uses this to decide whether to defer.
+      this.lastContentChangeAt = Date.now();
       this.dirtySessions.set(sessionKey, {
+        isDirty: true,
         dirtyAt: existing?.dirtyAt ?? Date.now(),
         lastBackedUpState: dirtyKey,
       });
     }
 
-    // Mark global state as potentially dirty on any store change
+    // Mark global state as potentially dirty; reset only after successful backup.
     this.globalDirty = true;
+  }
 
-    this.scheduleBatch();
+  private restartHardInterval(intervalMs: number): void {
+    if (this.hardIntervalTimer) clearInterval(this.hardIntervalTimer);
+    this.currentIntervalMs = intervalMs;
+    this.hardIntervalTimer = setInterval(() => {
+      const state = this.store?.getState();
+      if (state?.backupConfig.enabled && this.hasDirty()) {
+        if (this.intervalFiredAt === 0) this.intervalFiredAt = Date.now();
+        this.attemptScheduledBackup();
+      }
+    }, intervalMs);
   }
 
   private hasDirty(): boolean {
-    return this.dirtySessions.size > 0 || this.globalDirty;
+    const anySessionDirty = Array.from(this.dirtySessions.values()).some((s) => s.isDirty);
+    return anySessionDirty || this.globalDirty;
   }
 
-  private scheduleBatch(): void {
-    if (this.debounceTimer) clearTimeout(this.debounceTimer);
-    this.debounceTimer = setTimeout(() => {
-      this.debounceTimer = null;
-      void this.backupBatch("scheduled");
-    }, DEBOUNCE_MS);
+  /**
+   * Called by the hard interval. Writes a scheduled backup unless the user is
+   * actively editing, in which case it defers by DEBOUNCE_MS (30 s). The
+   * deferral is capped at MAX_DEFER_MS (5 min) after the interval first fired.
+   */
+  private attemptScheduledBackup(): void {
+    if (!this.hasDirty()) {
+      this.intervalFiredAt = 0;
+      return;
+    }
+
+    const now = Date.now();
+    const msSinceEdit = now - this.lastContentChangeAt;
+    const msSinceIntervalFired = now - this.intervalFiredAt;
+
+    if (msSinceEdit < DEBOUNCE_MS && msSinceIntervalFired < MAX_DEFER_MS) {
+      // User is actively editing — defer until the grace period expires.
+      if (this.deferTimer) clearTimeout(this.deferTimer);
+      const remaining = DEBOUNCE_MS - msSinceEdit + 100;
+      this.deferTimer = setTimeout(() => {
+        this.deferTimer = null;
+        this.attemptScheduledBackup();
+      }, remaining);
+      return;
+    }
+
+    // User is idle (or MAX_DEFER_MS exceeded) — backup now.
+    this.intervalFiredAt = 0;
+    void this.backupBatch("scheduled");
   }
 
   async backupNow(reason: BackupReason): Promise<void> {
-    if (this.debounceTimer) {
-      clearTimeout(this.debounceTimer);
-      this.debounceTimer = null;
+    // Cancel any pending grace-period deferral
+    if (this.deferTimer) {
+      clearTimeout(this.deferTimer);
+      this.deferTimer = null;
     }
+    this.intervalFiredAt = 0;
     await this.backupBatch(reason);
   }
 
@@ -190,7 +271,8 @@ export class BackupScheduler {
       const sessionsState = readSessionsState();
 
       // Backup dirty sessions
-      for (const [sessionKey] of this.dirtySessions) {
+      for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
+        if (!dirtyEntry.isDirty) continue;
         const session = sessionsState.sessions[sessionKey];
         if (!session) continue;
 
@@ -224,7 +306,18 @@ export class BackupScheduler {
         await this.provider.writeSnapshot(entry, data);
         manifest.snapshots.push(entry);
       }
+      // After backup, reset dirty tracking to the current state so the next
+      // identical notification is not treated as a content change.
       this.dirtySessions.clear();
+      const currentState = this.store.getState();
+      if (currentState.sessionKey) {
+        const currentDirtyKey = `${currentState.sessionKey}:${currentState.segments.length}`;
+        this.dirtySessions.set(currentState.sessionKey, {
+          isDirty: false,
+          dirtyAt: Date.now(),
+          lastBackedUpState: currentDirtyKey,
+        });
+      }
 
       // Backup global state if needed
       if (this.globalDirty && state.backupConfig.includeGlobalState) {
@@ -302,11 +395,12 @@ export class BackupScheduler {
     const state = this.store.getState();
     if (!state.backupConfig.enabled) return;
     if (state.backupConfig.disableDirtyReminders) return;
-    if (this.dirtySessions.size === 0) return;
+    const dirtySessions = Array.from(this.dirtySessions.values()).filter((s) => s.isDirty);
+    if (dirtySessions.length === 0) return;
 
     // Check if any session has been dirty for more than 20 minutes
     const now = Date.now();
-    const hasLongDirty = Array.from(this.dirtySessions.values()).some(
+    const hasLongDirty = dirtySessions.some(
       ({ dirtyAt }) => now - dirtyAt > DIRTY_REMINDER_THRESHOLD_MS,
     );
 

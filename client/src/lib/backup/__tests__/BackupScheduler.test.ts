@@ -82,19 +82,21 @@ describe("BackupScheduler", () => {
     vi.restoreAllMocks();
   });
 
-  it("detects dirty session when segments change", async () => {
+  // All tests use backupIntervalMinutes: 5 (300 s) to keep timer advances short.
+  const INTERVAL_MS = 5 * 60_000;
+
+  it("backs up after the configured interval when not actively editing", async () => {
     const provider = makeMockProvider();
-    const store = makeStore();
+    const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
-    // Notify with new state (2 segments — dirtyKey changes)
+    // Mark session dirty (segment count changes)
     store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
     store.notify();
 
-    // Advance time past debounce and flush all pending promises
-    await vi.advanceTimersByTimeAsync(31_000);
-    // Flush the async backupBatch chain
+    // Advance just past the 5-minute interval
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -103,23 +105,30 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
-  it("debounce collapses rapid changes into one backup call", async () => {
+  it("defers backup by grace period when user is actively editing at interval fire time", async () => {
     const provider = makeMockProvider();
-    const store = makeStore();
+    const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
-    // Rapid changes within debounce window
-    for (let i = 1; i <= 5; i++) {
-      store.setState({ segments: Array(i).fill({ id: `${i}` }) as unknown[] });
-      store.notify();
-      await vi.advanceTimersByTimeAsync(5_000);
-    }
+    // Mark session dirty early on
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
 
-    // Still within debounce window (5 * 5s = 25s < 30s debounce)
+    // Just before the interval fires (4:55), simulate a new content change
+    // so lastContentChangeAt is only 5 s old when the interval fires
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS - 5_000);
+    store.setState({ segments: [{ id: "1" }, { id: "2" }, { id: "3" }] as unknown[] });
+    store.notify();
+
+    // Interval fires at 5 min — user edited 5 s ago → defer ~25 s
+    await vi.advanceTimersByTimeAsync(5_001);
+    await Promise.resolve();
+
+    // Must NOT have backed up yet (inside 30 s grace period)
     expect(provider.writeSnapshot).not.toHaveBeenCalled();
 
-    // Advance past debounce and flush
+    // Advance past the grace period (30 s after last edit)
     await vi.advanceTimersByTimeAsync(30_000);
     await Promise.resolve();
     await Promise.resolve();
@@ -129,9 +138,85 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
-  it("critical event triggers immediate backup", async () => {
+  it("forces backup after MAX_DEFER_MS even if user edits continuously", async () => {
     const provider = makeMockProvider();
-    const store = makeStore();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    let segCount = 2;
+    store.setState({ segments: Array(segCount).fill({ id: "x" }) as unknown[] });
+    store.notify();
+
+    // Advance in 20-second steps making content changes each time.
+    // After 5 min: interval fires and starts deferring.
+    // After 5 more min (MAX_DEFER_MS): backup is forced despite active editing.
+    const steps = (10 * 60_000) / 20_000; // 30 steps of 20 s = 10 min total
+    for (let i = 0; i < steps; i++) {
+      await vi.advanceTimersByTimeAsync(20_000);
+      segCount++;
+      store.setState({ segments: Array(segCount).fill({ id: "x" }) as unknown[] });
+      store.notify();
+    }
+
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(provider.writeSnapshot).toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("does not backup before the interval fires even with many content changes", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    // Rapid content changes — do not trigger backup on their own
+    for (let i = 1; i <= 10; i++) {
+      store.setState({ segments: Array(i).fill({ id: `${i}` }) as unknown[] });
+      store.notify();
+      await vi.advanceTimersByTimeAsync(20_000);
+    }
+
+    // Total elapsed: 200 s < 300 s interval → no backup yet
+    expect(provider.writeSnapshot).not.toHaveBeenCalled();
+
+    // Advance past the interval
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(provider.writeSnapshot).toHaveBeenCalledTimes(1);
+    scheduler.stop();
+  });
+
+  it("non-content changes (same segment count) do not mark session dirty", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    // Notify without changing segment count (pure UI-state changes)
+    store.notify();
+    store.notify();
+    store.notify();
+
+    // Advance past the interval — interval fires, but isDirty is false → no backup
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(provider.writeSnapshot).not.toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("critical event triggers immediate backup bypassing the grace period", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
@@ -154,14 +239,14 @@ describe("BackupScheduler", () => {
 
   it("does not backup when disabled", async () => {
     const provider = makeMockProvider();
-    const store = makeStore({ enabled: false });
+    const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
     store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
     store.notify();
 
-    await vi.advanceTimersByTimeAsync(60_000);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS + 60_000);
     await Promise.resolve();
 
     expect(provider.writeSnapshot).not.toHaveBeenCalled();
@@ -173,12 +258,12 @@ describe("BackupScheduler", () => {
     const provider = makeMockProvider();
     // Provider does not support FS (simulates Firefox)
     (provider.isSupported as ReturnType<typeof vi.fn>).mockReturnValue(false);
-    const store = makeStore({ disableDirtyReminders: true });
+    const store = makeStore({ disableDirtyReminders: true, backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
-    // Mark dirty
-    store.setState({ segments: [{ id: "1" }] as unknown[] });
+    // Mark dirty (segment count must change so isDirty = true)
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
     store.notify();
 
     // Advance past reminder interval (20 min)
@@ -193,16 +278,16 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
-  it("updates backupConfig after successful backup", async () => {
+  it("updates backupConfig after a successful backup", async () => {
     const provider = makeMockProvider();
-    const store = makeStore();
+    const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
     store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
     store.notify();
 
-    await vi.advanceTimersByTimeAsync(31_000);
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
     await Promise.resolve();
     await Promise.resolve();
     await Promise.resolve();
@@ -213,6 +298,69 @@ describe("BackupScheduler", () => {
     const lastCall = setConfigCalls[setConfigCalls.length - 1][0] as Partial<BackupConfig>;
     expect(lastCall).toMatchObject({ status: "enabled" });
     expect(lastCall.lastBackupAt).toBeTypeOf("number");
+    scheduler.stop();
+  });
+
+  it("does not backup before the interval and does backup after it", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+
+    // 4 min — interval has not fired yet
+    await vi.advanceTimersByTimeAsync(4 * 60_000);
+    await Promise.resolve();
+    expect(provider.writeSnapshot).not.toHaveBeenCalled();
+
+    // Past 5 min — interval fires
+    await vi.advanceTimersByTimeAsync(60_000 + 1_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect(provider.writeSnapshot).toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("restarts hard interval when backupIntervalMinutes changes", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 20 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    // First dirty cycle: advance past 20-min interval
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+    await vi.advanceTimersByTimeAsync(20 * 60_000 + 1_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls.length;
+    expect(callsAfterFirst).toBeGreaterThan(0);
+
+    // Dirty again
+    store.setState({ segments: [{ id: "1" }, { id: "2" }, { id: "3" }] as unknown[] });
+
+    // Change config to 5-minute interval — scheduler should restart hard interval
+    store.setState({
+      backupConfig: { ...store.getState().backupConfig, backupIntervalMinutes: 5 },
+    });
+    store.notify();
+
+    // Should not fire on the previous 20-min schedule any earlier than 5 min from now;
+    // advance 5 min + 1 s to trigger the new shorter interval
+    await vi.advanceTimersByTimeAsync(5 * 60_000 + 1_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    expect((provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls.length).toBeGreaterThan(
+      callsAfterFirst,
+    );
     scheduler.stop();
   });
 });

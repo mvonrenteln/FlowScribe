@@ -15,6 +15,8 @@ export interface BackupConfig {
   maxSnapshotsPerSession: number;
   maxGlobalSnapshots: number;
   disableDirtyReminders: boolean;
+  /** Minimum minutes between automatic backups (hard interval). Default: 20. Range: 5–60. */
+  backupIntervalMinutes: number;
 }
 
 export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
@@ -28,6 +30,7 @@ export const DEFAULT_BACKUP_CONFIG: BackupConfig = {
   maxSnapshotsPerSession: 50,
   maxGlobalSnapshots: 20,
   disableDirtyReminders: false,
+  backupIntervalMinutes: 20,
 };
 
 export interface SnapshotEntry {

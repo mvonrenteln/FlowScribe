@@ -192,7 +192,28 @@ export function BackupSettings() {
 
               <Separator />
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label htmlFor="backup-interval">Backup every (minutes)</Label>
+                  <Input
+                    id="backup-interval"
+                    type="number"
+                    min={5}
+                    max={60}
+                    value={backupConfig.backupIntervalMinutes}
+                    onChange={(e) => {
+                      const v = Number(e.target.value);
+                      if (v >= 5 && v <= 60) setBackupConfig({ backupIntervalMinutes: v });
+                    }}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Minimum minutes between automatic backups (5–60). Ongoing edits may delay a
+                    backup by up to 5 extra minutes.
+                  </p>
+                </div>
+
+                <Separator />
+
                 <div className="space-y-1.5">
                   <Label htmlFor="max-per-session">Max snapshots per session</Label>
                   <Input
