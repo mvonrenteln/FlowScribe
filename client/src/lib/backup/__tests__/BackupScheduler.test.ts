@@ -615,4 +615,98 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
   });
+
+  // ─── isSaving / isDirty state tracking ────────────────────────────────────
+
+  describe("isSaving and isDirty state tracking", () => {
+    it("sets isDirty=true in backupState when content changes", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Simulate content change
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const dirtyCall = setStateCalls.find(([patch]) => patch.isDirty === true);
+      expect(dirtyCall).toBeDefined();
+
+      scheduler.stop();
+    });
+
+    it("sets isSaving=true then isSaving=false and isDirty=false after successful backup", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+
+      // isSaving=true must have been set before the backup write
+      const savingStartCall = setStateCalls.find(([patch]) => patch.isSaving === true);
+      expect(savingStartCall).toBeDefined();
+
+      // Final call must clear isSaving and isDirty
+      const lastPatch = setStateCalls[setStateCalls.length - 1][0];
+      expect(lastPatch).toMatchObject({ isSaving: false, isDirty: false, status: "enabled" });
+
+      scheduler.stop();
+    });
+
+    it("clears isSaving=false on backup error", async () => {
+      const provider = makeMockProvider();
+      (provider.verifyAccess as ReturnType<typeof vi.fn>).mockResolvedValue(true);
+      (provider.writeSnapshot as ReturnType<typeof vi.fn>).mockRejectedValue(
+        new Error("disk full"),
+      );
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+
+      const lastPatch = setStateCalls[setStateCalls.length - 1][0];
+      expect(lastPatch).toMatchObject({ status: "error", isSaving: false });
+
+      scheduler.stop();
+    });
+
+    it("does not set isDirty when content is unchanged (no-op notify)", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Notify without changing content
+      store.notify();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const dirtyCall = setStateCalls.find(([patch]) => patch.isDirty === true);
+      expect(dirtyCall).toBeUndefined();
+
+      scheduler.stop();
+    });
+  });
 });

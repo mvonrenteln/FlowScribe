@@ -118,6 +118,8 @@ export class BackupScheduler {
   private criticalEventHandler: ((e: Event) => void) | null = null;
   private unsubscribeStore: (() => void) | null = null;
   private store: MinimalStore | null = null;
+  /** Guards against re-entrant onStateChange calls triggered by setBackupState within the handler. */
+  private isHandlingStateChange = false;
 
   constructor(provider: BackupProvider) {
     this.provider = provider;
@@ -198,6 +200,8 @@ export class BackupScheduler {
   }
 
   private onStateChange(state: MinimalStoreState): void {
+    // Guard against re-entrant calls caused by setBackupState within this handler.
+    if (this.isHandlingStateChange) return;
     if (!state.backupConfig.enabled) return;
 
     // Restart hard interval when the user changes backupIntervalMinutes
@@ -230,6 +234,10 @@ export class BackupScheduler {
         lastBackedUpTags: state.tags,
         lastBackedUpChapters: state.chapters,
       });
+      // Suppress re-entrant call triggered by this setBackupState.
+      this.isHandlingStateChange = true;
+      state.setBackupState({ isDirty: true });
+      this.isHandlingStateChange = false;
     }
 
     // Mark global state dirty only when a user-facing global setting actually changed.
@@ -308,6 +316,8 @@ export class BackupScheduler {
     if (!this.store) return;
     const state = this.store.getState();
     if (!state.backupConfig.enabled) return;
+
+    state.setBackupState({ isSaving: true });
 
     try {
       const accessible = await this.provider.verifyAccess();
@@ -437,10 +447,12 @@ export class BackupScheduler {
         lastBackupAt: Date.now(),
         lastError: null,
         status: "enabled",
+        isSaving: false,
+        isDirty: false,
       });
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
-      state.setBackupState({ status: "error", lastError: errorMsg });
+      state.setBackupState({ status: "error", lastError: errorMsg, isSaving: false });
     }
   }
 

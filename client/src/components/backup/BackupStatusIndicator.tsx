@@ -1,5 +1,6 @@
-import { AlertCircle, CheckCircle2, HardDrive, PauseCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Clock, HardDrive, Loader2, PauseCircle } from "lucide-react";
 import { useCallback, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
@@ -10,6 +11,7 @@ interface BackupStatusIndicatorProps {
 }
 
 export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorProps) {
+  const { t } = useTranslation();
   const backupConfig = useTranscriptStore((s) => s.backupConfig);
   const backupState = useTranscriptStore((s) => s.backupState);
 
@@ -19,15 +21,15 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
       const customEvent = e as CustomEvent<{ canDisable?: boolean }>;
       const canDisable = customEvent.detail?.canDisable ?? false;
       toast({
-        title: "Unsaved backup",
+        title: t("backup.reminder.title"),
         description: canDisable
-          ? "Your session has unsaved changes. Open backup settings to trigger a download."
-          : "Your session has unsaved changes that haven't been backed up.",
+          ? t("backup.reminder.descriptionWithDownload")
+          : t("backup.reminder.descriptionNoDownload"),
       });
     };
     window.addEventListener("flowscribe:backup-reminder", handler);
     return () => window.removeEventListener("flowscribe:backup-reminder", handler);
-  }, []);
+  }, [t]);
 
   const handleClick = useCallback(() => {
     if (backupConfig.providerType === "download") {
@@ -48,6 +50,12 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
   if (!backupConfig.enabled) return null;
 
   const getIcon = () => {
+    if (backupState.isSaving) {
+      return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />;
+    }
+    if (backupState.isDirty && backupState.status === "enabled") {
+      return <Clock className="h-4 w-4 text-amber-500" />;
+    }
     switch (backupState.status) {
       case "enabled":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -61,17 +69,25 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
   };
 
   const getTooltip = () => {
+    if (backupState.isSaving) {
+      return t("backup.indicator.tooltipSaving");
+    }
+    if (backupState.isDirty && backupState.status === "enabled") {
+      return t("backup.indicator.tooltipPending");
+    }
     switch (backupState.status) {
       case "enabled":
         return backupState.lastBackupAt
-          ? `Last backup: ${new Date(backupState.lastBackupAt).toLocaleTimeString()}`
-          : "Backup enabled";
+          ? t("backup.indicator.tooltipEnabled", {
+              time: new Date(backupState.lastBackupAt).toLocaleTimeString(),
+            })
+          : t("backup.indicator.tooltipEnabledNever");
       case "paused":
-        return "Backup paused – folder not accessible";
+        return t("backup.indicator.tooltipPaused");
       case "error":
-        return `Backup error: ${backupState.lastError ?? "unknown"}`;
+        return t("backup.indicator.tooltipError", { error: backupState.lastError ?? "unknown" });
       default:
-        return "Backup";
+        return t("backup.indicator.tooltipDefault");
     }
   };
 
@@ -84,7 +100,7 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
             size="icon"
             className="h-8 w-8"
             onClick={handleClick}
-            aria-label="Backup status"
+            aria-label={t("backup.indicator.ariaLabel")}
           >
             {getIcon()}
           </Button>

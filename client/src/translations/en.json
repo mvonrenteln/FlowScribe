@@ -269,5 +269,22 @@
     "request": "Request rejected. Check model and parameters.",
     "providerUnavailable": "Provider error. Please try again later.",
     "connection": "Connection failed. Check your network and base URL."
+  },
+  "backup": {
+    "indicator": {
+      "ariaLabel": "Backup status",
+      "tooltipSaving": "Saving backup\u2026",
+      "tooltipPending": "Backup pending \u2013 changes not yet saved",
+      "tooltipEnabled": "Last backup: {{time}}",
+      "tooltipEnabledNever": "Backup enabled",
+      "tooltipPaused": "Backup paused \u2013 folder not accessible",
+      "tooltipError": "Backup error: {{error}}",
+      "tooltipDefault": "Backup"
+    },
+    "reminder": {
+      "title": "Unsaved backup",
+      "descriptionWithDownload": "Your session has unsaved changes. Open backup settings to trigger a download.",
+      "descriptionNoDownload": "Your session has unsaved changes that haven't been backed up."
+    }
   }
 }

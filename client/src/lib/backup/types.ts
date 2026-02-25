@@ -39,12 +39,18 @@ export interface BackupState {
   status: BackupStatus;
   lastBackupAt: number | null;
   lastError: string | null;
+  /** True while a backup write operation is in progress. Used to show a spinner in the UI. */
+  isSaving: boolean;
+  /** True when there are unsaved content changes since the last successful backup. */
+  isDirty: boolean;
 }
 
 export const DEFAULT_BACKUP_STATE: BackupState = {
   status: "disabled",
   lastBackupAt: null,
   lastError: null,
+  isSaving: false,
+  isDirty: false,
 };
 
 export interface SnapshotEntry {

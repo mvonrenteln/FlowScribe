@@ -216,5 +216,22 @@
     "request": "Anfrage abgelehnt. Modell und Parameter prüfen.",
     "providerUnavailable": "Anbieterfehler. Bitte später erneut versuchen.",
     "connection": "Verbindung fehlgeschlagen. Netzwerk und Base URL prüfen."
+  },
+  "backup": {
+    "indicator": {
+      "ariaLabel": "Backup-Status",
+      "tooltipSaving": "Backup wird gespeichert\u2026",
+      "tooltipPending": "Backup ausstehend \u2013 Änderungen noch nicht gesichert",
+      "tooltipEnabled": "Letztes Backup: {{time}}",
+      "tooltipEnabledNever": "Backup aktiviert",
+      "tooltipPaused": "Backup pausiert \u2013 Ordner nicht erreichbar",
+      "tooltipError": "Backup-Fehler: {{error}}",
+      "tooltipDefault": "Backup"
+    },
+    "reminder": {
+      "title": "Nicht gesichertes Backup",
+      "descriptionWithDownload": "Deine Sitzung enthält ungesicherte Änderungen. Öffne die Backup-Einstellungen, um einen Download auszulösen.",
+      "descriptionNoDownload": "Deine Sitzung enthält ungesicherte Änderungen, die noch nicht gesichert wurden."
+    }
   }
 }
