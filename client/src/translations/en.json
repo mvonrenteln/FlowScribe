@@ -285,6 +285,10 @@
       "title": "Unsaved backup",
       "descriptionWithDownload": "Your session has unsaved changes. Open backup settings to trigger a download.",
       "descriptionNoDownload": "Your session has unsaved changes that haven't been backed up."
+    },
+    "backupNow": {
+      "successTitle": "Backup saved",
+      "successDescription": "Your session has been backed up successfully."
     }
   }
 }

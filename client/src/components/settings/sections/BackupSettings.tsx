@@ -1,5 +1,6 @@
 import { AlertCircle, CheckCircle2, HardDrive, Loader2, PauseCircle } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 
 type ExtendedWindow = Window & { showDirectoryPicker?: unknown };
 const hasFsAccess = () =>
@@ -12,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
+import { toast } from "@/hooks/use-toast";
 import { useTranscriptStore } from "@/lib/store";
 
 function formatLastBackup(lastBackupAt: number | null): string {
@@ -26,6 +28,7 @@ function formatLastBackup(lastBackupAt: number | null): string {
 }
 
 export function BackupSettings() {
+  const { t } = useTranslation();
   const backupConfig = useTranscriptStore((s) => s.backupConfig);
   const backupState = useTranscriptStore((s) => s.backupState);
   const setBackupConfig = useTranscriptStore((s) => s.setBackupConfig);
@@ -74,6 +77,17 @@ export function BackupSettings() {
     setBackupConfig({ enabled: false });
     setBackupState({ status: "disabled", lastError: null });
   }, [setBackupConfig, setBackupState]);
+
+  useEffect(() => {
+    const handler = () => {
+      toast({
+        title: t("backup.backupNow.successTitle"),
+        description: t("backup.backupNow.successDescription"),
+      });
+    };
+    window.addEventListener("flowscribe:backup-complete", handler);
+    return () => window.removeEventListener("flowscribe:backup-complete", handler);
+  }, [t]);
 
   const handleBackupNow = useCallback(() => {
     window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));

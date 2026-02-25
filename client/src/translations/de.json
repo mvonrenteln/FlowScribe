@@ -232,6 +232,10 @@
       "title": "Nicht gesichertes Backup",
       "descriptionWithDownload": "Deine Sitzung enthält ungesicherte Änderungen. Öffne die Backup-Einstellungen, um einen Download auszulösen.",
       "descriptionNoDownload": "Deine Sitzung enthält ungesicherte Änderungen, die noch nicht gesichert wurden."
+    },
+    "backupNow": {
+      "successTitle": "Backup gespeichert",
+      "successDescription": "Deine Sitzung wurde erfolgreich gesichert."
     }
   }
 }

@@ -450,6 +450,10 @@ export class BackupScheduler {
         isSaving: false,
         isDirty: false,
       });
+
+      if (reason === "critical") {
+        window.dispatchEvent(new CustomEvent("flowscribe:backup-complete"));
+      }
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       state.setBackupState({ status: "error", lastError: errorMsg, isSaving: false });

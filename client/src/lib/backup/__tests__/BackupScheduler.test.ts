@@ -248,6 +248,53 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
+  it("dispatches flowscribe:backup-complete after a successful critical backup", async () => {
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+
+    window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+    await vi.advanceTimersByTimeAsync(0);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const completeEvents = dispatchSpy.mock.calls.filter(
+      ([e]) => e instanceof CustomEvent && (e as CustomEvent).type === "flowscribe:backup-complete",
+    );
+    expect(completeEvents).toHaveLength(1);
+    scheduler.stop();
+  });
+
+  it("does not dispatch flowscribe:backup-complete for scheduled backups", async () => {
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5 });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+
+    // Advance to trigger scheduled backup
+    await vi.advanceTimersByTimeAsync(INTERVAL_MS + 60_000);
+    await Promise.resolve();
+    await Promise.resolve();
+    await Promise.resolve();
+
+    const completeEvents = dispatchSpy.mock.calls.filter(
+      ([e]) => e instanceof CustomEvent && (e as CustomEvent).type === "flowscribe:backup-complete",
+    );
+    expect(completeEvents).toHaveLength(0);
+    scheduler.stop();
+  });
+
   it("does not backup when disabled", async () => {
     const provider = makeMockProvider();
     const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
