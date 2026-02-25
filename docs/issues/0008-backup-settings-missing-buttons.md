@@ -59,11 +59,9 @@ No "Open backup folder", no "View snapshots".
 
 ## Desired Solution
 
-### "Open backup folder"
+### ~~"Open backup folder"~~ — dropped
 
-Chrome/Edge: Use `FileSystemProvider` to retrieve the stored `FileSystemDirectoryHandle` and open the folder in the OS file manager via `showOpenFilePicker` or `window.showDirectoryPicker`.
-
-**Note**: The File System Access API does not provide a direct "Reveal in Finder/Explorer" function. Alternative: Show a tooltip with the stored `locationLabel` path + a copy-to-clipboard button to copy the path.
+The File System Access API exposes only `FileSystemDirectoryHandle.name` (the last path segment), never the full filesystem path. A "copy folder name" button is not useful enough to justify the UI noise. Feature is dropped; the existing **"Change folder"** button already lets users re-select the folder via the OS picker.
 
 ### "View snapshots" / Snapshot browser
 

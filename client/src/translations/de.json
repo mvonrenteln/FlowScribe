@@ -236,6 +236,33 @@
     "backupNow": {
       "successTitle": "Backup gespeichert",
       "successDescription": "Deine Sitzung wurde erfolgreich gesichert."
+    },
+    "settings": {
+      "viewSnapshotsButton": "Snapshots anzeigen"
+    },
+    "snapshots": {
+      "title": "Snapshots",
+      "session": "Sitzung",
+      "allSessions": "Alle Sitzungen",
+      "loading": "Snapshots werden geladen…",
+      "error": "Snapshots konnten nicht geladen werden.",
+      "accessDenied": "Backup-Ordner nicht erreichbar. Bitte Berechtigungen über \"Ordner wechseln\" erneut erteilen.",
+      "noSnapshots": "Keine Snapshots gefunden.",
+      "colDateTime": "Datum / Uhrzeit",
+      "colReason": "Grund",
+      "colSize": "Größe",
+      "colAction": "Aktion",
+      "restoreButton": "Wiederherstellen",
+      "restoring": "Wird wiederhergestellt…",
+      "restoreSuccessTitle": "Snapshot wiederhergestellt",
+      "restoreSuccessDescription": "Lade die App neu, um die wiederhergestellte Sitzung zu laden.",
+      "restoreErrorTitle": "Wiederherstellung fehlgeschlagen",
+      "reasonScheduled": "Geplant",
+      "reasonCritical": "Kritische Änderung",
+      "reasonManual": "Manuell",
+      "reasonEnabled": "Bei Aktivierung",
+      "reasonBeforeUnload": "Vor Schließen",
+      "unknownSession": "Unbekannte Sitzung"
     }
   }
 }

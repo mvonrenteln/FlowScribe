@@ -289,6 +289,33 @@
     "backupNow": {
       "successTitle": "Backup saved",
       "successDescription": "Your session has been backed up successfully."
+    },
+    "settings": {
+      "viewSnapshotsButton": "View snapshots"
+    },
+    "snapshots": {
+      "title": "Snapshots",
+      "session": "Session",
+      "allSessions": "All sessions",
+      "loading": "Loading snapshots…",
+      "error": "Could not load snapshots.",
+      "accessDenied": "Backup folder is not accessible. Please re-grant permissions via \"Change folder\".",
+      "noSnapshots": "No snapshots found.",
+      "colDateTime": "Date / Time",
+      "colReason": "Reason",
+      "colSize": "Size",
+      "colAction": "Action",
+      "restoreButton": "Restore",
+      "restoring": "Restoring…",
+      "restoreSuccessTitle": "Snapshot restored",
+      "restoreSuccessDescription": "Reload the app to load the restored session.",
+      "restoreErrorTitle": "Restore failed",
+      "reasonScheduled": "Scheduled",
+      "reasonCritical": "Critical change",
+      "reasonManual": "Manual",
+      "reasonEnabled": "On enable",
+      "reasonBeforeUnload": "Before close",
+      "unknownSession": "Unknown session"
     }
   }
 }

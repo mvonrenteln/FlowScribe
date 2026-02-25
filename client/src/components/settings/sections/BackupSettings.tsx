@@ -1,4 +1,4 @@
-import { AlertCircle, CheckCircle2, HardDrive, Loader2, PauseCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, HardDrive, List, Loader2, PauseCircle } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 
@@ -15,6 +15,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { useTranscriptStore } from "@/lib/store";
+import { SnapshotBrowser } from "./SnapshotBrowser";
 
 function formatLastBackup(lastBackupAt: number | null): string {
   if (!lastBackupAt) return "Never";
@@ -34,6 +35,7 @@ export function BackupSettings() {
   const setBackupConfig = useTranscriptStore((s) => s.setBackupConfig);
   const setBackupState = useTranscriptStore((s) => s.setBackupState);
   const [enabling, setEnabling] = useState(false);
+  const [showSnapshotBrowser, setShowSnapshotBrowser] = useState(false);
 
   const handleEnable = useCallback(async () => {
     setEnabling(true);
@@ -162,10 +164,16 @@ export function BackupSettings() {
                 </div>
               )}
 
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" size="sm" onClick={handleBackupNow}>
                   Backup now
                 </Button>
+                {backupConfig.providerType === "filesystem" && (
+                  <Button variant="outline" size="sm" onClick={() => setShowSnapshotBrowser(true)}>
+                    <List className="mr-1 h-3 w-3" />
+                    {t("backup.settings.viewSnapshotsButton")}
+                  </Button>
+                )}
                 <Button variant="outline" size="sm" onClick={handleEnable} disabled={enabling}>
                   {enabling && <Loader2 className="mr-2 h-3 w-3 animate-spin" />}
                   Change folder
@@ -262,6 +270,14 @@ export function BackupSettings() {
           )}
         </CardContent>
       </Card>
+
+      {backupConfig.providerType === "filesystem" && (
+        <SnapshotBrowser
+          open={showSnapshotBrowser}
+          onClose={() => setShowSnapshotBrowser(false)}
+          providerType="filesystem"
+        />
+      )}
     </div>
   );
 }
