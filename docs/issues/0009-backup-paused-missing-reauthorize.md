@@ -1,19 +1,21 @@
-# Backup: Paused-Zustand hat keinen "Re-authorize"-Button
+# Backup: Paused state has no "Re-authorize" button
 
 **Type:** Bug
 **Oberticket:** [#0005 External Backup System](./0005-external-backup-system.md)
 
 ---
 
+
 ## Problem
 
-Wenn der Backup-Ordner nach einem Browser-Neustart keine Leseberechtigung mehr hat (status = `"paused"`), zeigt die Settings-UI nur einen Warnhinweis-Text, aber keinen dedizierten **"Re-authorize"**-Button. Der Benutzer muss stattdessen "Change folder" klicken und denselben Ordner neu auswählen, was unintuiv ist.
+If the backup folder loses read permission after a browser restart (status = `"paused"`), the settings UI only shows a warning text, but no dedicated **"Re-authorize"** button. The user has to click "Change folder" and select the same folder again, which is unintuitive.
 
 ---
 
-## Erwartetes Verhalten (Spec)
 
-Aus dem Spec [#0005, Abschnitt "Backup tab (paused — permission lost)"]:
+## Expected Behavior (Spec)
+
+From the spec [#0005, section "Backup tab (paused — permission lost)"]:
 
 ```
 ┌─ Backup ──────────────────────────────────────────────────────────────┐
@@ -28,11 +30,13 @@ Aus dem Spec [#0005, Abschnitt "Backup tab (paused — permission lost)"]:
 └───────────────────────────────────────────────────────────────────────┘
 ```
 
-Der "Re-authorize"-Button ruft `requestPermission({ mode: "readwrite" })` auf dem gespeicherten Handle auf — **ohne** den Benutzer einen Ordner neu auswählen zu lassen.
+
+The "Re-authorize" button calls `requestPermission({ mode: "readwrite" })` on the stored handle — **without** requiring the user to select a folder again.
 
 ---
 
-## Ist-Zustand
+
+## Current State
 
 In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSettings.tsx):
 
@@ -45,13 +49,16 @@ In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSe
 )}
 ```
 
-Kein Button — der Benutzer muss "Change folder" klicken und erneut navigieren.
+
+No button — the user has to click "Change folder" and navigate again.
 
 ---
 
-## Gewünschte Lösung
 
-Neuer Handler `handleReauthorize`:
+## Desired Solution
+
+
+New handler `handleReauthorize`:
 
 ```typescript
 const handleReauthorize = useCallback(async () => {
@@ -67,7 +74,8 @@ const handleReauthorize = useCallback(async () => {
 }, [setBackupConfig]);
 ```
 
-`FileSystemProvider` braucht eine neue Methode `reauthorize()`:
+
+`FileSystemProvider` needs a new method `reauthorize()`:
 ```typescript
 async reauthorize(): Promise<boolean> {
   const handle = await this.getHandle();
@@ -79,7 +87,8 @@ async reauthorize(): Promise<boolean> {
 }
 ```
 
-Im Paused-State der Settings:
+
+In the paused state of the settings:
 ```tsx
 {backupConfig.status === "paused" && (
   <div className="rounded-md bg-amber-50 ...">
@@ -91,8 +100,9 @@ Im Paused-State der Settings:
 
 ---
 
-## Betroffene Dateien
 
-- `client/src/lib/backup/providers/FileSystemProvider.ts` — neue Methode `reauthorize()`
-- `client/src/lib/backup/BackupProvider.ts` — Interface erweitern
-- `client/src/components/settings/sections/BackupSettings.tsx` — Handler + Button
+## Affected Files
+
+- `client/src/lib/backup/providers/FileSystemProvider.ts` — new method `reauthorize()`
+- `client/src/lib/backup/BackupProvider.ts` — extend interface
+- `client/src/components/settings/sections/BackupSettings.tsx` — handler + button

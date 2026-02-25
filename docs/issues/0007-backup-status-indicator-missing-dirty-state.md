@@ -1,19 +1,21 @@
-# Backup: Toolbar-Indikator zeigt keinen Dirty-Zustand
+# Backup: Toolbar indicator does not show dirty state
 
 **Type:** Bug
 **Oberticket:** [#0005 External Backup System](./0005-external-backup-system.md)
 
 ---
 
+
 ## Problem
 
-Der `BackupStatusIndicator` in der Toolbar kennt nur drei Zustände: `enabled` (grün), `paused` (amber), `error` (rot). Der Spec beschreibt zusätzlich einen **Amber-Zustand für "dirty > X Minuten"**, der anzeigt, dass ungesicherte Änderungen vorliegen.
+The `BackupStatusIndicator` in the toolbar only knows three states: `enabled` (green), `paused` (amber), `error` (red). The spec also describes an **amber state for "dirty > X minutes"** to indicate that there are unsaved changes.
 
 ---
 
-## Erwartetes Verhalten (Spec)
 
-Aus dem Spec [#0005, Abschnitt "Toolbar Status Indicator"]:
+## Expected Behavior (Spec)
+
+From the spec [#0005, section "Toolbar Status Indicator"]:
 
 | State | Visual | Tooltip |
 |-------|--------|---------|
@@ -24,7 +26,8 @@ Aus dem Spec [#0005, Abschnitt "Toolbar Status Indicator"]:
 
 ---
 
-## Ist-Zustand
+
+## Current State
 
 In [`BackupStatusIndicator.tsx`](../../client/src/components/backup/BackupStatusIndicator.tsx):
 
@@ -39,22 +42,24 @@ const getIcon = () => {
 };
 ```
 
-Der Indikator liest nur `backupConfig.status` aus dem Store. Es gibt keine Information darüber, ob gerade ungesicherte Änderungen vorliegen oder wann zuletzt etwas geändert wurde.
+
+The indicator only reads `backupConfig.status` from the store. There is no information about whether there are currently unsaved changes or when something was last changed.
 
 ---
 
-## Gewünschte Lösung
 
-Der Indikator soll amber werden, wenn:
-- Backup ist `enabled`
-- Es gibt ungesicherte Änderungen (`dirty`)
-- Die letzte Sicherung ist älter als der konfigurierte Schwellwert (z.B. 5 Minuten oder die Hälfte des konfigurierten Intervalls)
+## Desired Solution
 
-**Option A**: `BackupScheduler` schreibt einen `isDirty: boolean`-Flag in den Store (`backupConfig` oder separater Slice), den der Indikator lesen kann.
+The indicator should turn amber if:
+- Backup is `enabled`
+- There are unsaved changes (`dirty`)
+- The last backup is older than the configured threshold (e.g. 5 minutes or half the configured interval)
 
-**Option B**: Der Indikator liest `backupConfig.lastBackupAt` und vergleicht mit `Date.now()`. Wenn die Differenz > Threshold und Backup enabled, amber anzeigen.
+**Option A**: `BackupScheduler` writes an `isDirty: boolean` flag to the store (`backupConfig` or a separate slice), which the indicator can read.
 
-Option B ist simpler und benötigt keine Scheduler-Änderung.
+**Option B**: The indicator reads `backupConfig.lastBackupAt` and compares it to `Date.now()`. If the difference > threshold and backup is enabled, show amber.
+
+Option B is simpler and does not require scheduler changes.
 
 ---
 

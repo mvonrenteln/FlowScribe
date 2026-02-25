@@ -1,22 +1,24 @@
-# Backup: Settings im deaktivierten Zustand unvollständig
+# Backup: Settings incomplete in disabled state
 
 **Type:** Bug
 **Oberticket:** [#0005 External Backup System](./0005-external-backup-system.md)
 
 ---
 
+
 ## Problem
 
-Der deaktivierte Zustand der Backup-Settings zeigt nur den "Choose backup folder"-Button. Zwei im Spec vorgesehene Elemente fehlen:
+The disabled state of the backup settings only shows the "Choose backup folder" button. Two elements specified in the spec are missing:
 
-1. **"Automatic backups [Off]"-Toggle** — fehlt komplett
-2. **"Remind me to save"-Toggle** — ist nur im aktivierten Zustand vorhanden, nicht im deaktivierten
+1. **"Automatic backups [Off]" toggle** — completely missing
+2. **"Remind me to save" toggle** — only present in enabled state, not in disabled
 
 ---
 
-## Erwartetes Verhalten (Spec)
 
-Aus dem Spec [#0005, Abschnitt "Backup tab (disabled state)"]:
+## Expected Behavior (Spec)
+
+From the spec [#0005, section "Backup tab (disabled state)"]:
 
 ```
 ┌─ Backup ──────────────────────────────────────────────────────────────┐
@@ -35,7 +37,8 @@ Aus dem Spec [#0005, Abschnitt "Backup tab (disabled state)"]:
 
 ---
 
-## Ist-Zustand
+
+## Current State
 
 In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSettings.tsx), disabled branch (`!backupConfig.enabled`):
 
@@ -49,25 +52,28 @@ In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSe
 </div>
 ```
 
-Kein Toggle, kein Remind-Toggle.
+
+No toggle, no remind toggle.
 
 ---
 
-## Diskussion: "Automatic backups"-Toggle
 
-Der Toggle macht im disabled-State nur Sinn wenn ein "Off"-Schalter angezeigt wird, der das Aktivieren ermöglicht. Die aktuelle Implementierung nutzt stattdessen einen Button ("Choose backup folder"), was für den primären Flow (FileSystem API) idiomatischer ist — der Toggle würde genau dasselbe tun.
+## Discussion: "Automatic backups" toggle
 
-**Empfehlung**: Den Toggle weglassen, aber stattdessen die Beschreibung verbessern. Alternativ: Toggle anzeigen, der beim Einschalten den Folder-Picker öffnet.
+The toggle only makes sense in the disabled state if an "Off" switch is shown that enables activation. The current implementation instead uses a button ("Choose backup folder"), which is more idiomatic for the primary flow (FileSystem API) — the toggle would do exactly the same.
+
+**Recommendation**: Omit the toggle, but improve the description instead. Alternatively: show a toggle that opens the folder picker when enabled.
 
 ---
 
-## Gewünschte Lösung
 
-### "Remind me to save"-Toggle im deaktivierten Zustand
+## Desired Solution
 
-Dieser Toggle ist auch ohne Backup-Ordner relevant — er steuert, ob bei ungesicherten Änderungen nach 20 Minuten ein Toast erscheint (besonders relevant für Firefox-Nutzer ohne Auto-Backup).
+### "Remind me to save" toggle in disabled state
 
-Den Toggle-Block aus dem enabled-State in einen gemeinsamen Abschnitt unterhalb beider Branches verschieben:
+This toggle is also relevant without a backup folder — it controls whether a toast appears after 20 minutes of unsaved changes (especially relevant for Firefox users without auto-backup).
+
+Move the toggle block from the enabled state to a shared section below both branches:
 
 ```tsx
 {/* Gilt unabhängig vom Aktivierungszustand */}
@@ -89,6 +95,7 @@ Den Toggle-Block aus dem enabled-State in einen gemeinsamen Abschnitt unterhalb 
 
 ---
 
-## Betroffene Dateien
 
-- `client/src/components/settings/sections/BackupSettings.tsx` — "Remind me"-Toggle aus dem enabled-Branch in einen gemeinsamen Bereich verschieben
+## Affected Files
+
+- `client/src/components/settings/sections/BackupSettings.tsx` — move "Remind me" toggle from enabled branch to shared area

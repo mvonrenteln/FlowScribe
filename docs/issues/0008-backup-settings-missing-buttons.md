@@ -1,27 +1,30 @@
-# Backup: "Open backup folder" und "View snapshots" fehlen in den Settings
+# Backup: "Open backup folder" and "View snapshots" missing in Settings
 
 **Type:** Bug
 **Oberticket:** [#0005 External Backup System](./0005-external-backup-system.md)
 
 ---
 
+
 ## Problem
 
-Im aktivierten Zustand der Backup-Settings fehlen zwei im Spec vorgesehene Aktionen:
-1. **"Open backup folder"** — Öffnet den Backup-Ordner im Datei-Explorer
-2. **"View snapshots"** — Öffnet einen Snapshot-Browser zur Übersicht und manuellen Wiederherstellung
+In the enabled state of the backup settings, two actions specified in the spec are missing:
+1. **"Open backup folder"** — Opens the backup folder in the file explorer
+2. **"View snapshots"** — Opens a snapshot browser for overview and manual restore
 
 ---
 
-## Erwartetes Verhalten (Spec)
 
-Aus dem Spec [#0005, Abschnitt "Backup tab (enabled state)"]:
+## Expected Behavior (Spec)
+
+From the spec [#0005, section "Backup tab (enabled state)"]:
 
 ```
 │  [ Backup now ]  [ Open backup folder ]  [ View snapshots ]
 ```
 
-Und dazu der vollständige Snapshot-Browser:
+
+And the complete snapshot browser:
 
 ```
 ┌─ Snapshots ─────────────────────────────────────────────────────────┐
@@ -37,7 +40,8 @@ Und dazu der vollständige Snapshot-Browser:
 
 ---
 
-## Ist-Zustand
+
+## Current State
 
 In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSettings.tsx) (enabled-State):
 
@@ -47,29 +51,32 @@ In [`BackupSettings.tsx`](../../client/src/components/settings/sections/BackupSe
 <Button variant="ghost"   size="sm" onClick={handleDisable}>Disable</Button>
 ```
 
-Kein "Open backup folder", kein "View snapshots".
+
+No "Open backup folder", no "View snapshots".
 
 ---
 
-## Gewünschte Lösung
+
+## Desired Solution
 
 ### "Open backup folder"
 
-Chrome/Edge: Über `FileSystemProvider` das gespeicherte `FileSystemDirectoryHandle` abrufen und per `showOpenFilePicker` oder `window.showDirectoryPicker` den Ordner im OS-Dateimanager öffnen.
+Chrome/Edge: Use `FileSystemProvider` to retrieve the stored `FileSystemDirectoryHandle` and open the folder in the OS file manager via `showOpenFilePicker` or `window.showDirectoryPicker`.
 
-**Hinweis**: Die File System Access API bietet keine direkte "Reveal in Finder/Explorer"-Funktion. Alternative: Tooltip mit dem gespeicherten `locationLabel`-Pfad anzeigen + Copy-to-Clipboard-Button, der den Pfad kopiert.
+**Note**: The File System Access API does not provide a direct "Reveal in Finder/Explorer" function. Alternative: Show a tooltip with the stored `locationLabel` path + a copy-to-clipboard button to copy the path.
 
-### "View snapshots" / Snapshot-Browser
+### "View snapshots" / Snapshot browser
 
-Neuer Abschnitt in `BackupSettings.tsx` (oder eigene Unterkomponente `SnapshotBrowser.tsx`):
-- Liest `manifest.json` via `provider.readManifest()`
-- Gruppiert Snapshots nach Session (`sessionKeyHash` / `sessionLabel`)
-- Zeigt Tabelle mit Datum, Reason, Größe, [Restore]-Button
-- [Restore] ruft `restoreSnapshot(provider, entry)` aus `restore.ts` auf
+New section in `BackupSettings.tsx` (or a separate subcomponent `SnapshotBrowser.tsx`):
+- Reads `manifest.json` via `provider.readManifest()`
+- Groups snapshots by session (`sessionKeyHash` / `sessionLabel`)
+- Displays a table with date, reason, size, [Restore] button
+- [Restore] calls `restoreSnapshot(provider, entry)` from `restore.ts`
 
 ---
 
-## Betroffene Dateien
+
+## Affected Files
 
 - `client/src/components/settings/sections/BackupSettings.tsx` — Button "Open backup folder" + "View snapshots"
-- `client/src/components/settings/sections/SnapshotBrowser.tsx` — neu zu erstellen
+- `client/src/components/settings/sections/SnapshotBrowser.tsx` — to be created
