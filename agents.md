@@ -8,7 +8,7 @@ This repo is a frontend-only Vite/React/TypeScript app: an audio transcription e
 - Zustand for state management
 - Tailwind CSS with shadcn/ui components
 - Build: npm, Vitest, biome
-- i18n
+- **i18n: react-i18next — all user-facing strings must use `t()`, keys in `client/src/translations/en.json` (default) and `de.json` (see Non-negotiable #5)**
 
 ## Repo map (only the important slices)
 
@@ -55,7 +55,20 @@ When using agents/tools, make sure file edits are saved to disk before `check/li
 - Public API surface, exported functions, modules and significant internal functions should include concise JSDoc-style comments describing purpose, inputs, outputs, and side effects.
 - Developer docs should include brief how-to steps for enabling debug modes, configuration options, and example usage when applicable.
 
-### 5) Additional coding constraints
+### 5) All user-facing strings MUST use i18n — NO hardcoded text
+
+Every string visible to the user (labels, tooltips, toasts, aria-labels, placeholders, error messages, button text) **must** go through the `react-i18next` translation system. Hardcoded string literals in JSX or component logic are a bug.
+
+- Use `const { t } = useTranslation();` in every component that renders user-facing text.
+- Add the key to **`client/src/translations/en.json`** first (English is the default/fallback).
+- Add the German translation to **`client/src/translations/de.json`** as well.
+- Group keys by feature namespace (e.g. `backup.indicator.tooltipSaving`).
+- Include `t` in dependency arrays of `useEffect`/`useCallback` when used inside them.
+- This applies equally to `toast()` calls, `aria-label` props, and dynamic strings like error messages.
+
+**Why this is a non-negotiable:** i18n violations are invisible to TypeScript and linting — they can only be caught by code review. Every agent task that touches UI must check this explicitly before marking work as done.
+
+### 6) Additional coding constraints
 
 - Do not use `any`, including in tests.
 - After finishing a task, respond with a commit message suggestion (semantic commit with a title and a longer body).
