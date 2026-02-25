@@ -242,6 +242,15 @@ export interface InitialStoreState {
   // Backup
   backupConfig: BackupConfig;
   backupState: BackupState;
+  /**
+   * A stable fingerprint derived from all persisted global-state fields (lexicon,
+   * spellcheck, AI configs, backupConfig, etc.). Updated by the persistence
+   * subscriber whenever `buildGlobalStatePayload` returns a new reference for any
+   * field. Session-only changes (segments, currentTime, UI state) must NOT affect
+   * this value. The BackupScheduler uses it to decide whether a global snapshot
+   * is needed without examining the full global state on every tick.
+   */
+  globalStateFingerprint: string;
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: string[] | null;
   chapterMetadataTitleLoading: boolean;
@@ -274,6 +283,7 @@ export type TranscriptStore = InitialStoreState &
     setQuotaErrorShown: (shown: boolean) => void;
     setBackupConfig: (patch: Partial<BackupConfig>) => void;
     setBackupState: (patch: Partial<BackupState>) => void;
+    setGlobalStateFingerprint: (fp: string) => void;
   };
 
 export interface ConfidenceSlice {

@@ -4,6 +4,9 @@ import { BackupScheduler } from "../BackupScheduler";
 import type { BackupConfig, BackupState } from "../types";
 import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 
+// Mutable mock so individual tests can override readGlobalState per-call.
+const mockReadGlobalState = vi.fn(() => null as Record<string, unknown> | null);
+
 // Mock storage module
 vi.mock("@/lib/storage", () => ({
   readSessionsState: () => ({
@@ -21,7 +24,7 @@ vi.mock("@/lib/storage", () => ({
     },
     activeSessionKey: "session-key",
   }),
-  readGlobalState: () => null,
+  readGlobalState: () => mockReadGlobalState(),
 }));
 
 // Mock snapshotSerializer to avoid slow crypto/compression in unit tests
@@ -51,6 +54,7 @@ const makeStore = (config?: Partial<BackupConfig>) => {
     segments: [{ id: "1" }] as unknown[],
     sessionKey: "session-key",
     sessionLabel: null as string | null,
+    globalStateFingerprint: "fp-initial",
     backupConfig: { ...DEFAULT_BACKUP_CONFIG, enabled: true, ...config },
     backupState: { ...DEFAULT_BACKUP_STATE, status: "enabled" } as BackupState,
     setBackupConfig: vi.fn((patch: Partial<BackupConfig>) => {
@@ -365,5 +369,136 @@ describe("BackupScheduler", () => {
       callsAfterFirst,
     );
     scheduler.stop();
+  });
+
+  // ─── Global-dirty isolation tests ─────────────────────────────────────────
+
+  describe("global dirty isolation", () => {
+    beforeEach(() => {
+      mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+    });
+
+    afterEach(() => {
+      mockReadGlobalState.mockReturnValue(null);
+    });
+
+    it("does NOT write a global snapshot when only session content changes", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+      // Start with fingerprint that never changes (global state unchanged)
+      scheduler.start(store);
+
+      // Only session segments change — globalStateFingerprint stays the same
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(0);
+
+      // Session snapshot must still have been written
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+      expect(sessionCalls.length).toBeGreaterThan(0);
+
+      scheduler.stop();
+    });
+
+    it("DOES write a global snapshot when globalStateFingerprint changes", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Change the fingerprint to signal global state modification
+      store.setState({ globalStateFingerprint: "fp-changed" });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls.length).toBeGreaterThan(0);
+
+      scheduler.stop();
+    });
+
+    it("does NOT write a session snapshot when only global state changes", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Change only fingerprint — session segments unchanged
+      store.setState({ globalStateFingerprint: "fp-global-only" });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+      expect(sessionCalls).toHaveLength(0);
+
+      scheduler.stop();
+    });
+
+    it("resets globalDirty after a successful backup and does not re-write unchanged global state", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // First cycle: global fingerprint changes → triggers global backup
+      store.setState({
+        segments: [{ id: "1" }, { id: "2" }] as unknown[],
+        globalStateFingerprint: "fp-v2",
+      });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls
+        .length;
+      expect(callsAfterFirst).toBeGreaterThan(0);
+
+      // Second cycle: same fingerprint, different session content
+      store.setState({ segments: [{ id: "1" }, { id: "2" }, { id: "3" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterSecond = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls;
+      const globalCallsSecond = (callsAfterSecond as Array<[{ sessionKeyHash: string }]>).filter(
+        ([entry]) => entry.sessionKeyHash === "global",
+      );
+
+      // Global snapshot should NOT have been written a second time
+      expect(globalCallsSecond).toHaveLength(1);
+
+      scheduler.stop();
+    });
   });
 });

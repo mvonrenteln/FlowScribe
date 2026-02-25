@@ -237,6 +237,9 @@ const initialState: InitialStoreState = {
     ...DEFAULT_BACKUP_STATE,
     status: (globalState?.backupConfig?.enabled ? "enabled" : "disabled") as BackupStatus,
   },
+  // Fingerprint of the persisted global state. Initialized to "0" so the first
+  // real change always produces a new value. Updated by the persistence subscriber.
+  globalStateFingerprint: "0",
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: null,
   chapterMetadataTitleLoading: false,
@@ -291,6 +294,7 @@ export const useTranscriptStore = create<TranscriptStore>()(
         set((state) => ({ backupConfig: { ...state.backupConfig, ...patch } })),
       setBackupState: (patch) =>
         set((state) => ({ backupState: { ...state.backupState, ...patch } })),
+      setGlobalStateFingerprint: (fp: string) => set({ globalStateFingerprint: fp }),
     };
   }),
 );
@@ -459,6 +463,11 @@ if (canUseLocalStorage()) {
 
       if (globalChanged) {
         lastGlobalPayload = nextGlobalPayload;
+        // Increment the fingerprint so the BackupScheduler can detect global-state
+        // changes without re-examining the full payload on every store tick.
+        const prev = useTranscriptStore.getState().globalStateFingerprint;
+        const next = String(Number(prev) + 1);
+        useTranscriptStore.getState().setGlobalStateFingerprint(next);
       }
     },
     { equalityFn: arePersistenceSelectionsEqual },

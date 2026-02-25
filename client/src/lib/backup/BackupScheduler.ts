@@ -29,6 +29,13 @@ interface MinimalStoreState {
   segments: unknown[];
   sessionKey: string;
   sessionLabel: string | null;
+  /**
+   * A stable fingerprint of the persisted global state fields (e.g. lexicon,
+   * spellcheck, AI configs, backupConfig). Changes whenever a user-facing global
+   * setting changes. Must NOT change on session-only edits, playback, UI state, etc.
+   * Computed by `store.ts` and exposed on the store for the scheduler.
+   */
+  globalStateFingerprint: string;
   backupConfig: BackupConfig;
   backupState: BackupState;
   setBackupConfig: (patch: Partial<BackupConfig>) => void;
@@ -83,7 +90,10 @@ export class BackupScheduler {
     { isDirty: boolean; dirtyAt: number; lastBackedUpState: string }
   >();
   private globalDirty = false;
-  private lastBackedUpGlobalKey: string | null = null;
+  /** The globalStateFingerprint value at the time of the last successful global backup. */
+  private lastBackedUpGlobalFingerprint: string | null = null;
+  /** The last fingerprint seen from the store, used to detect real global-state changes. */
+  private lastSeenGlobalFingerprint: string | null = null;
   /** Timestamp of the last real content change (segment count change). */
   private lastContentChangeAt = 0;
   /** Timer for the grace-period deferral after the interval fires. */
@@ -116,6 +126,9 @@ export class BackupScheduler {
         lastBackedUpState: seedDirtyKey,
       });
     }
+    // Seed the global-state fingerprint baseline so that the initial store
+    // notification (with an unchanged global state) does not spuriously set globalDirty.
+    this.lastSeenGlobalFingerprint = seed.globalStateFingerprint;
 
     // Subscribe to store changes
     this.unsubscribeStore = store.subscribe(() => {
@@ -197,8 +210,18 @@ export class BackupScheduler {
       });
     }
 
-    // Mark global state as potentially dirty; reset only after successful backup.
-    this.globalDirty = true;
+    // Mark global state dirty only when a user-facing global setting actually changed.
+    // The fingerprint is updated by store.ts exclusively when buildGlobalStatePayload
+    // returns a new reference for any field (backupConfig, lexicon, spellcheck, AI configs…).
+    // Session-only changes (segments, currentTime, UI state) must not set globalDirty.
+    const fp = state.globalStateFingerprint;
+    if (fp !== this.lastSeenGlobalFingerprint) {
+      this.lastSeenGlobalFingerprint = fp;
+      // Only mark dirty if the new fingerprint differs from the last backed-up one.
+      if (fp !== this.lastBackedUpGlobalFingerprint) {
+        this.globalDirty = true;
+      }
+    }
   }
 
   private restartHardInterval(intervalMs: number): void {
@@ -331,47 +354,46 @@ export class BackupScheduler {
       if (this.globalDirty && state.backupConfig.includeGlobalState) {
         const globalState = readGlobalState();
         if (globalState) {
-          const globalKey = JSON.stringify(Object.keys(globalState).sort());
-          if (globalKey !== this.lastBackedUpGlobalKey) {
-            const filename = buildSnapshotFilename("global", reason, true);
+          const filename = buildSnapshotFilename("global", reason, true);
 
-            const snapshotData = {
-              schemaVersion: SCHEMA_VERSION,
-              appVersion: APP_VERSION,
-              createdAt: Date.now(),
-              sessionKey: "__global__",
-              reason,
-              checksum: "",
-              session: {
-                audioRef: null,
-                transcriptRef: null,
-                segments: [],
-                speakers: [],
-                tags: [],
-                selectedSegmentId: null,
-                currentTime: 0,
-                isWhisperXFormat: false,
-              },
-              globalState,
-            };
+          const snapshotData = {
+            schemaVersion: SCHEMA_VERSION,
+            appVersion: APP_VERSION,
+            createdAt: Date.now(),
+            sessionKey: "__global__",
+            reason,
+            checksum: "",
+            session: {
+              audioRef: null,
+              transcriptRef: null,
+              segments: [],
+              speakers: [],
+              tags: [],
+              selectedSegmentId: null,
+              currentTime: 0,
+              isWhisperXFormat: false,
+            },
+            globalState,
+          };
 
-            const data = await serializeSnapshot(snapshotData);
-            const globalEntry: SnapshotEntry = {
-              filename,
-              sessionKeyHash: "global",
-              sessionLabel: null,
-              createdAt: snapshotData.createdAt,
-              reason,
-              appVersion: APP_VERSION,
-              schemaVersion: SCHEMA_VERSION,
-              compressedSize: data.length,
-              checksum: snapshotData.checksum,
-            };
+          const data = await serializeSnapshot(snapshotData);
+          const globalEntry: SnapshotEntry = {
+            filename,
+            sessionKeyHash: "global",
+            sessionLabel: null,
+            createdAt: snapshotData.createdAt,
+            reason,
+            appVersion: APP_VERSION,
+            schemaVersion: SCHEMA_VERSION,
+            compressedSize: data.length,
+            checksum: snapshotData.checksum,
+          };
 
-            await this.provider.writeSnapshot(globalEntry, data);
-            manifest.globalSnapshots.push(globalEntry);
-            this.lastBackedUpGlobalKey = globalKey;
-          }
+          await this.provider.writeSnapshot(globalEntry, data);
+          manifest.globalSnapshots.push(globalEntry);
+          // Record the fingerprint that was current when this backup ran so that
+          // the next onStateChange can skip globalDirty if nothing changed.
+          this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
         }
       }
       this.globalDirty = false;
