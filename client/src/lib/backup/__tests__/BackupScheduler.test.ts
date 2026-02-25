@@ -52,6 +52,9 @@ const makeMockProvider = (): BackupProvider => ({
 const makeStore = (config?: Partial<BackupConfig>) => {
   let state = {
     segments: [{ id: "1" }] as unknown[],
+    speakers: [] as unknown[],
+    tags: [] as unknown[],
+    chapters: [] as unknown[],
     sessionKey: "session-key",
     sessionLabel: null as string | null,
     globalStateFingerprint: "fp-initial",
@@ -201,13 +204,13 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
-  it("non-content changes (same segment count) do not mark session dirty", async () => {
+  it("non-content changes (same array references) do not mark session dirty", async () => {
     const provider = makeMockProvider();
     const store = makeStore({ backupIntervalMinutes: 5 });
     const scheduler = new BackupScheduler(provider);
     scheduler.start(store);
 
-    // Notify without changing segment count (pure UI-state changes)
+    // Notify without changing any content references (pure UI-state changes like currentTime)
     store.notify();
     store.notify();
     store.notify();
@@ -369,6 +372,117 @@ describe("BackupScheduler", () => {
       callsAfterFirst,
     );
     scheduler.stop();
+  });
+
+  // ─── Session-dirty isolation tests ────────────────────────────────────────
+
+  describe("session dirty isolation", () => {
+    it("detects dirty when segment content changes but count stays the same", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Replace the segments array with a NEW reference but same element count.
+      // This simulates editing a segment's text, speaker, or timestamps.
+      store.setState({ segments: [{ id: "1", text: "edited" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("detects dirty when speakers change", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Segments unchanged, but speakers reference is new (user renamed a speaker)
+      store.setState({ speakers: [{ id: "A", name: "Alice" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("detects dirty when tags change", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ tags: [{ id: "t1", label: "Important" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("detects dirty when chapters change", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ chapters: [{ id: "c1", title: "Intro" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("resets sessionDirty after a successful backup and does not re-write unchanged session", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // First cycle: edit triggers backup
+      store.setState({ segments: [{ id: "1", text: "v1" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls
+        .length;
+      expect(callsAfterFirst).toBeGreaterThan(0);
+
+      // Second interval: no reference change — session NOT dirty anymore
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect((provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+        callsAfterFirst,
+      );
+
+      scheduler.stop();
+    });
   });
 
   // ─── Global-dirty isolation tests ─────────────────────────────────────────

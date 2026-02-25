@@ -27,6 +27,9 @@ const DIRTY_REMINDER_THRESHOLD_MS = 20 * 60_000;
 
 interface MinimalStoreState {
   segments: unknown[];
+  speakers: unknown[];
+  tags: unknown[];
+  chapters: unknown[];
   sessionKey: string;
   sessionLabel: string | null;
   /**
@@ -87,7 +90,15 @@ export class BackupScheduler {
   private provider: BackupProvider;
   private dirtySessions = new Map<
     string,
-    { isDirty: boolean; dirtyAt: number; lastBackedUpState: string }
+    {
+      isDirty: boolean;
+      dirtyAt: number;
+      /** Reference-snapshot of the session content at the time of the last backup (or at start). */
+      lastBackedUpSegments: unknown[];
+      lastBackedUpSpeakers: unknown[];
+      lastBackedUpTags: unknown[];
+      lastBackedUpChapters: unknown[];
+    }
   >();
   private globalDirty = false;
   /** The globalStateFingerprint value at the time of the last successful global backup. */
@@ -119,11 +130,13 @@ export class BackupScheduler {
     // with unchanged content does not spuriously schedule a backup.
     const seed = store.getState();
     if (seed.sessionKey) {
-      const seedDirtyKey = `${seed.sessionKey}:${seed.segments.length}`;
       this.dirtySessions.set(seed.sessionKey, {
         isDirty: false,
         dirtyAt: Date.now(),
-        lastBackedUpState: seedDirtyKey,
+        lastBackedUpSegments: seed.segments,
+        lastBackedUpSpeakers: seed.speakers,
+        lastBackedUpTags: seed.tags,
+        lastBackedUpChapters: seed.chapters,
       });
     }
     // Seed the global-state fingerprint baseline so that the initial store
@@ -194,11 +207,17 @@ export class BackupScheduler {
     }
 
     const sessionKey = state.sessionKey;
-    // Cheap dirty key: segments length + sessionKey — filters out pure UI state changes
-    const dirtyKey = `${sessionKey}:${state.segments.length}`;
     const existing = this.dirtySessions.get(sessionKey);
 
-    const sessionContentChanged = !existing || existing.lastBackedUpState !== dirtyKey;
+    // Detect real session content changes via reference equality on Zustand's immutable arrays.
+    // Any mutation (segment text edit, speaker rename, tag/chapter change) produces a new
+    // array reference, so this comparison catches all user-facing edits — not just count changes.
+    const sessionContentChanged =
+      !existing ||
+      existing.lastBackedUpSegments !== state.segments ||
+      existing.lastBackedUpSpeakers !== state.speakers ||
+      existing.lastBackedUpTags !== state.tags ||
+      existing.lastBackedUpChapters !== state.chapters;
     if (sessionContentChanged) {
       // Record when the user last made a real content change.
       // The hard interval uses this to decide whether to defer.
@@ -206,7 +225,10 @@ export class BackupScheduler {
       this.dirtySessions.set(sessionKey, {
         isDirty: true,
         dirtyAt: existing?.dirtyAt ?? Date.now(),
-        lastBackedUpState: dirtyKey,
+        lastBackedUpSegments: state.segments,
+        lastBackedUpSpeakers: state.speakers,
+        lastBackedUpTags: state.tags,
+        lastBackedUpChapters: state.chapters,
       });
     }
 
@@ -342,11 +364,13 @@ export class BackupScheduler {
       this.dirtySessions.clear();
       const currentState = this.store.getState();
       if (currentState.sessionKey) {
-        const currentDirtyKey = `${currentState.sessionKey}:${currentState.segments.length}`;
         this.dirtySessions.set(currentState.sessionKey, {
           isDirty: false,
           dirtyAt: Date.now(),
-          lastBackedUpState: currentDirtyKey,
+          lastBackedUpSegments: currentState.segments,
+          lastBackedUpSpeakers: currentState.speakers,
+          lastBackedUpTags: currentState.tags,
+          lastBackedUpChapters: currentState.chapters,
         });
       }
 
