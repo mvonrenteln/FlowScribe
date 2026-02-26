@@ -1,4 +1,5 @@
 import { writeGlobalState, writeSessionsSync } from "@/lib/storage";
+import { suppressPersistence } from "@/lib/store/persistenceGuard";
 import type { PersistedSessionsState } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { deserializeSnapshot } from "./snapshotSerializer";
@@ -120,11 +121,22 @@ export async function restoreSnapshot(
     sessions: { [snapshot.sessionKey]: snapshot.session },
     activeSessionKey: snapshot.sessionKey,
   };
-  writeSessionsSync(newSessionsState);
+  const written = writeSessionsSync(newSessionsState);
+  if (!written) {
+    return {
+      ok: false,
+      error: "Failed to write session data to localStorage (storage may be full)",
+    };
+  }
 
   if (snapshot.globalState) {
     writeGlobalState(snapshot.globalState);
   }
+
+  // Prevent the Zustand persistence subscriber and beforeunload handler from
+  // overwriting the restored data with the stale in-memory sessions cache.
+  // The page will reload after this function returns, reinitialising the store.
+  suppressPersistence();
 
   // Mark restore as checked for this session
   try {

@@ -19,6 +19,7 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { isPersistenceSuppressed } from "./store/persistenceGuard";
 import {
   createAIChapterDetectionSlice,
   initialAIChapterDetectionState,
@@ -323,6 +324,10 @@ if (canUseLocalStorage()) {
   useTranscriptStore.subscribe(
     selectPersistenceState,
     (state) => {
+      // After a backup restore writes directly to localStorage, the in-memory
+      // cache is stale.  Suppress all persistence until the page reloads.
+      if (isPersistenceSuppressed()) return;
+
       __storeSubscriptionCount += 1;
       if (__storeSubscriptionCount % 100 === 0) {
         mark("store-subscription-bulk", { count: __storeSubscriptionCount });
@@ -477,8 +482,9 @@ if (canUseLocalStorage()) {
   // The throttled persist pipeline (with Web Worker) may still be pending when
   // the user refreshes or navigates away, which would cause recent sessions to
   // be lost. This handler ensures all in-memory session data is written.
+  // Skip when persistence is suppressed (backup restore wrote directly to localStorage).
   window.addEventListener("beforeunload", () => {
-    if (storeContext) {
+    if (storeContext && !isPersistenceSuppressed()) {
       writeSessionsSync({
         sessions: storeContext.getSessionsCache(),
         activeSessionKey: storeContext.getActiveSessionKey(),

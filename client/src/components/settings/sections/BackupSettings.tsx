@@ -35,6 +35,8 @@ import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
 import { openRestoreFromFolder } from "@/lib/backup/restore";
+import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
+import { readGlobalState, writeGlobalState } from "@/lib/storage";
 import { useTranscriptStore } from "@/lib/store";
 import { SnapshotBrowser } from "./SnapshotBrowser";
 
@@ -152,21 +154,31 @@ export function BackupSettings() {
   const handleRestoreSuccess = useCallback(() => {
     if (externalHandle) {
       setKeepFolderDialogOpen(true);
+    } else {
+      // Non-ad-hoc restore (e.g. "View snapshots" with configured backup):
+      // reload immediately so the Zustand store picks up the restored data.
+      window.location.reload();
     }
   }, [externalHandle]);
 
   const handleKeepFolder = useCallback(async () => {
     if (!externalHandle) return;
     await saveDirectoryHandle(externalHandle);
-    setBackupConfig({
-      enabled: true,
-      providerType: "filesystem",
-      locationLabel: externalHandle.name,
+    // Write backup config directly to localStorage instead of going through
+    // Zustand — the persistence subscriber is suppressed after a restore to
+    // prevent overwriting restored session data with the stale in-memory cache.
+    const currentGlobal = readGlobalState() ?? {};
+    writeGlobalState({
+      ...currentGlobal,
+      backupConfig: {
+        ...(currentGlobal.backupConfig ?? DEFAULT_BACKUP_CONFIG),
+        enabled: true,
+        providerType: "filesystem" as const,
+        locationLabel: externalHandle.name,
+      },
     });
-    setBackupState({ status: "enabled", lastError: null });
-    window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
     window.location.reload();
-  }, [externalHandle, setBackupConfig, setBackupState]);
+  }, [externalHandle]);
 
   const handleDismissKeepFolder = useCallback(() => {
     window.location.reload();

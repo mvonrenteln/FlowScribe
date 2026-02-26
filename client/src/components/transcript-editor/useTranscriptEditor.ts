@@ -4,6 +4,8 @@ import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
 import { openRestoreFromFolder } from "@/lib/backup/restore";
+import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
+import { readGlobalState, writeGlobalState } from "@/lib/storage";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useSearchAndReplace } from "./useSearchAndReplace";
@@ -551,9 +553,6 @@ export const useTranscriptEditor = () => {
     [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments, t],
   );
 
-  const setBackupConfig = useTranscriptStore((s) => s.setBackupConfig);
-  const setBackupState = useTranscriptStore((s) => s.setBackupState);
-
   // Ad-hoc restore from backup folder (empty state button)
   const [adHocRestoreProvider, setAdHocRestoreProvider] = useState<BackupProvider | null>(null);
   const [adHocRestoreHandle, setAdHocRestoreHandle] = useState<FileSystemDirectoryHandle | null>(
@@ -585,21 +584,29 @@ export const useTranscriptEditor = () => {
   const handleAdHocRestoreSuccess = useCallback(() => {
     if (adHocRestoreHandle) {
       setKeepFolderDialogOpen(true);
+    } else {
+      window.location.reload();
     }
   }, [adHocRestoreHandle]);
 
   const handleKeepAdHocFolder = useCallback(async () => {
     if (!adHocRestoreHandle) return;
     await saveDirectoryHandle(adHocRestoreHandle);
-    setBackupConfig({
-      enabled: true,
-      providerType: "filesystem",
-      locationLabel: adHocRestoreHandle.name,
+    // Write backup config directly to localStorage instead of going through
+    // Zustand — the persistence subscriber is suppressed after a restore to
+    // prevent overwriting restored session data with the stale in-memory cache.
+    const currentGlobal = readGlobalState() ?? {};
+    writeGlobalState({
+      ...currentGlobal,
+      backupConfig: {
+        ...(currentGlobal.backupConfig ?? DEFAULT_BACKUP_CONFIG),
+        enabled: true,
+        providerType: "filesystem" as const,
+        locationLabel: adHocRestoreHandle.name,
+      },
     });
-    setBackupState({ status: "enabled", lastError: null });
-    window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
     window.location.reload();
-  }, [adHocRestoreHandle, setBackupConfig, setBackupState]);
+  }, [adHocRestoreHandle]);
 
   const handleDismissKeepAdHocFolder = useCallback(() => {
     window.location.reload();
