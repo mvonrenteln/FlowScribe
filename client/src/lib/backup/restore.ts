@@ -2,7 +2,11 @@ import { writeGlobalState, writeSessionsSync } from "@/lib/storage";
 import type { PersistedSessionsState } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { deserializeSnapshot } from "./snapshotSerializer";
-import type { SnapshotEntry } from "./types";
+import type { BackupManifest, SnapshotEntry } from "./types";
+
+type ExtendedWindow = Window & {
+  showDirectoryPicker?: (options?: { mode?: string }) => Promise<FileSystemDirectoryHandle>;
+};
 
 export interface RestoreCandidate {
   entry: SnapshotEntry;
@@ -141,4 +145,37 @@ export function dismissRestoreCheck(): void {
   } catch (_e) {
     // ignore
   }
+}
+
+/**
+ * Opens a directory picker and creates a temporary FileSystemProvider from the
+ * chosen folder without persisting the handle in IndexedDB.
+ *
+ * Validates that the folder contains a readable manifest.json.
+ *
+ * @returns `{ provider, manifest, handle }` on success.
+ * @throws `DOMException` with `name === "AbortError"` when the user cancels.
+ * @throws `Error` with a user-facing message when the folder is not a valid backup.
+ */
+export async function openRestoreFromFolder(): Promise<{
+  provider: BackupProvider;
+  manifest: BackupManifest;
+  handle: FileSystemDirectoryHandle;
+}> {
+  const picker = (window as ExtendedWindow).showDirectoryPicker;
+  if (!picker) {
+    throw new Error("File System Access API not supported in this browser");
+  }
+
+  const handle = await picker({ mode: "readwrite" });
+
+  const { FileSystemProvider } = await import("./providers/FileSystemProvider");
+  const provider = FileSystemProvider.fromHandle(handle);
+
+  const manifest = await provider.readManifest();
+  if (!manifest || manifest.snapshots.length === 0) {
+    throw new Error("Not a valid FlowScribe backup folder (no manifest.json found)");
+  }
+
+  return { provider, manifest, handle };
 }

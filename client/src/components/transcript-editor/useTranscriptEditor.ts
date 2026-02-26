@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/hooks/use-toast";
+import type { BackupProvider } from "@/lib/backup/BackupProvider";
+import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
+import { openRestoreFromFolder } from "@/lib/backup/restore";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useSearchAndReplace } from "./useSearchAndReplace";
@@ -9,7 +13,13 @@ import { useTranscriptInitialization } from "./useTranscriptInitialization";
 import { useTranscriptPlayback } from "./useTranscriptPlayback";
 import { useTranscriptUIState } from "./useTranscriptUIState";
 
+type ExtendedWindow = Window & { showDirectoryPicker?: unknown };
+const hasFsAccess = () =>
+  typeof window !== "undefined" &&
+  typeof (window as ExtendedWindow).showDirectoryPicker === "function";
+
 export const useTranscriptEditor = () => {
+  const { t } = useTranslation();
   const transcriptActions = useMemo(() => {
     const state = useTranscriptStore.getState();
     return {
@@ -536,9 +546,68 @@ export const useTranscriptEditor = () => {
         filterSpellcheck,
         filterLowConfidence,
         activeSpeakerName,
+        t,
       }),
-    [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments],
+    [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments, t],
   );
+
+  const setBackupConfig = useTranscriptStore((s) => s.setBackupConfig);
+  const setBackupState = useTranscriptStore((s) => s.setBackupState);
+
+  // Ad-hoc restore from backup folder (empty state button)
+  const [adHocRestoreProvider, setAdHocRestoreProvider] = useState<BackupProvider | null>(null);
+  const [adHocRestoreHandle, setAdHocRestoreHandle] = useState<FileSystemDirectoryHandle | null>(
+    null,
+  );
+  const [showAdHocSnapshotBrowser, setShowAdHocSnapshotBrowser] = useState(false);
+  const [keepFolderDialogOpen, setKeepFolderDialogOpen] = useState(false);
+
+  const handleRestoreFromBackup = useCallback(async () => {
+    try {
+      const result = await openRestoreFromFolder();
+      setAdHocRestoreProvider(result.provider);
+      setAdHocRestoreHandle(result.handle);
+      setShowAdHocSnapshotBrowser(true);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      toast({
+        title: t("backup.settings.invalidFolderErrorTitle"),
+        description: t("backup.settings.invalidFolderErrorDescription"),
+        variant: "destructive",
+      });
+    }
+  }, [t]);
+
+  const handleAdHocSnapshotBrowserClose = useCallback(() => {
+    setShowAdHocSnapshotBrowser(false);
+  }, []);
+
+  const handleAdHocRestoreSuccess = useCallback(() => {
+    if (adHocRestoreHandle) {
+      setKeepFolderDialogOpen(true);
+    }
+  }, [adHocRestoreHandle]);
+
+  const handleKeepAdHocFolder = useCallback(async () => {
+    if (!adHocRestoreHandle) return;
+    await saveDirectoryHandle(adHocRestoreHandle);
+    setBackupConfig({
+      enabled: true,
+      providerType: "filesystem",
+      locationLabel: adHocRestoreHandle.name,
+    });
+    setBackupState({ status: "enabled", lastError: null });
+    window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+    setKeepFolderDialogOpen(false);
+    setAdHocRestoreProvider(null);
+    setAdHocRestoreHandle(null);
+  }, [adHocRestoreHandle, setBackupConfig, setBackupState]);
+
+  const handleDismissKeepAdHocFolder = useCallback(() => {
+    setKeepFolderDialogOpen(false);
+    setAdHocRestoreProvider(null);
+    setAdHocRestoreHandle(null);
+  }, []);
 
   const [pendingChapterFocusId, setPendingChapterFocusId] = useState<string | null>(null);
 
@@ -814,6 +883,7 @@ export const useTranscriptEditor = () => {
       onChapterFocusRequestHandled: handleChapterFocusRequestHandled,
       isTranscriptEditing: isTranscriptEditingActive,
       allMatches,
+      onRestoreFromBackup: hasFsAccess() ? handleRestoreFromBackup : undefined,
     }),
     [
       activeSegmentId,
@@ -831,6 +901,7 @@ export const useTranscriptEditor = () => {
       findMatchIndex,
       handleChapterFocusRequestHandled,
       handleClearEditRequest,
+      handleRestoreFromBackup,
       handleSelectChapter,
       handleStartChapterAtSegment,
       isRegexSearch,
@@ -971,6 +1042,16 @@ export const useTranscriptEditor = () => {
     dialogProps,
     aiCommandPanelProps,
     chaptersOutlinePanelProps,
+    adHocRestoreProps: {
+      showSnapshotBrowser: showAdHocSnapshotBrowser,
+      provider: adHocRestoreProvider,
+      handle: adHocRestoreHandle,
+      onClose: handleAdHocSnapshotBrowserClose,
+      onRestoreSuccess: handleAdHocRestoreSuccess,
+      keepFolderDialogOpen,
+      onKeepFolder: handleKeepAdHocFolder,
+      onDismissKeepFolder: handleDismissKeepAdHocFolder,
+    },
   };
 };
 

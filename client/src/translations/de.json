@@ -238,7 +238,54 @@
       "successDescription": "Deine Sitzung wurde erfolgreich gesichert."
     },
     "settings": {
-      "viewSnapshotsButton": "Snapshots anzeigen"
+      "title": "Automatisches Backup",
+      "description": "Speichere komprimierte Snapshots deiner Sitzungen in einem lokalen Ordner. Schützt vor Datenverlust im Browser.",
+      "disabledDescriptionFs": "Wähle einen Ordner, um Backup-Snapshots zu speichern. Der Ordner wird lokal gespeichert und nie hochgeladen.",
+      "disabledDescriptionDownload": "Dein Browser unterstützt die File System Access API nicht. Backups werden als Dateien heruntergeladen.",
+      "locationLabel": "Backup-Speicherort",
+      "lastBackup": "Letztes Backup:",
+      "lastBackupNever": "Nie",
+      "lastBackupJustNow": "Gerade eben",
+      "lastBackupMinutes": "vor {{count}} Min.",
+      "lastBackupHours": "vor {{count}} Std.",
+      "lastBackupDays": "vor {{count}} Tag(en)",
+      "chooseFolderButton": "Backup-Ordner wählen",
+      "enableDownloadButton": "Download-Backups aktivieren",
+      "restoreFromFolderButton": "Aus Backup-Ordner wiederherstellen",
+      "backupNowButton": "Jetzt sichern",
+      "changeFolderButton": "Ordner wechseln",
+      "disableButton": "Deaktivieren",
+      "viewSnapshotsButton": "Snapshots anzeigen",
+      "includeGlobalLabel": "Globale Einstellungen einschließen",
+      "includeGlobalDescription": "Lexikon, Rechtschreibprüfung und KI-Konfiguration sichern",
+      "disableRemindersLabel": "Erinnerungen deaktivieren",
+      "disableRemindersDescription": "Regelmäßige Toast-Benachrichtigungen über nicht gesicherte Backups stoppen",
+      "intervalLabel": "Backup alle (Minuten)",
+      "maxPerSessionLabel": "Max. Snapshots pro Sitzung",
+      "maxGlobalLabel": "Max. globale Snapshots",
+      "invalidFolderErrorTitle": "Ungültiger Backup-Ordner",
+      "invalidFolderErrorDescription": "Der gewählte Ordner enthält kein gültiges FlowScribe-Backup.",
+      "pausedWarning": "Backup-Ordner nicht erreichbar. Browser neu öffnen und Berechtigung erteilen oder neuen Ordner wählen.",
+      "intervalHelp": "Mindestabstand in Minuten zwischen automatischen Backups (5–60). Laufende Bearbeitungen können ein Backup um bis zu 5 Minuten verzögern.",
+      "locationUnknown": "Unbekannter Speicherort"
+    },
+    "restore": {
+      "keepFolderTitle": "Diesen Ordner für zukünftige Backups verwenden?",
+      "keepFolderDescription": "Der Ordner \"{{name}}\" wurde zur Wiederherstellung der Sitzung verwendet. Soll er als automatischer Backup-Speicherort eingerichtet werden?",
+      "keepFolderConfirm": "Ja, Backup aktivieren",
+      "keepFolderDismiss": "Nein, danke"
+    },
+    "banner": {
+      "title": "Backup gefunden",
+      "description": "Ein Backup von \"{{label}}\" von {{time}} wurde gefunden. Deine lokalen Daten scheinen leer zu sein – wiederherstellen?",
+      "timeJustNow": "gerade eben",
+      "timeMinutes": "vor {{count}} Minuten",
+      "timeHours": "vor {{count}} Stunden",
+      "restoreButton": "Wiederherstellen",
+      "restoringButton": "Wird wiederhergestellt…",
+      "tryPreviousButton": "Vorheriges Backup versuchen",
+      "viewSnapshotsButton": "Snapshots anzeigen",
+      "dismissButton": "Schließen"
     },
     "snapshots": {
       "title": "Snapshots",
@@ -263,6 +310,21 @@
       "reasonEnabled": "Bei Aktivierung",
       "reasonBeforeUnload": "Vor Schließen",
       "unknownSession": "Unbekannte Sitzung"
+    }
+  },
+  "transcript": {
+    "emptyState": {
+      "noTranscriptTitle": "Kein Transkript geladen",
+      "noTranscriptDescription": "Lade eine Audiodatei und das zugehörige Whisper- oder WhisperX-JSON-Transkript hoch, um zu starten.",
+      "noSpellingForSpeakerTitle": "Keine Rechtschreibfehler für diesen Sprecher",
+      "noSpellingTitle": "Keine Rechtschreibfehler",
+      "clearFiltersDescription": "Filter aufheben, um alle Segmente anzuzeigen.",
+      "noLowScoreForSpeakerTitle": "Keine Segmente mit geringem Score für diesen Sprecher",
+      "noLowScoreTitle": "Keine Segmente mit geringem Score",
+      "adjustThresholdDescription": "Schwellenwert anpassen oder Filter aufheben, um mehr Segmente anzuzeigen.",
+      "noSegmentsForSpeakerTitle": "Keine Segmente für diesen Sprecher",
+      "noSegmentsForSpeakerDescription": "Sprecher erneut anklicken, um alle Segmente anzuzeigen.",
+      "restoreFromBackupButton": "Aus Backup wiederherstellen"
     }
   }
 }

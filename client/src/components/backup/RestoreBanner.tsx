@@ -1,5 +1,6 @@
 import { AlertCircle, HardDrive, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import type { RestoreCandidate } from "@/lib/backup/restore";
 import {
@@ -15,6 +16,7 @@ interface RestoreBannerProps {
 }
 
 export function RestoreBanner({ onOpenSettings }: RestoreBannerProps) {
+  const { t } = useTranslation();
   const backupConfig = useTranscriptStore((s) => s.backupConfig);
   const [candidate, setCandidate] = useState<RestoreCandidate | null>(null);
   const [checked, setChecked] = useState(false);
@@ -79,10 +81,10 @@ export function RestoreBanner({ onOpenSettings }: RestoreBannerProps) {
   const label = candidate.sessionLabel ?? "session";
   const timeText =
     candidate.minutesAgo < 1
-      ? "just now"
+      ? t("backup.banner.timeJustNow")
       : candidate.minutesAgo < 60
-        ? `${candidate.minutesAgo} minutes ago`
-        : `${Math.floor(candidate.minutesAgo / 60)} hours ago`;
+        ? t("backup.banner.timeMinutes", { count: candidate.minutesAgo })
+        : t("backup.banner.timeHours", { count: Math.floor(candidate.minutesAgo / 60) });
 
   return (
     <div className="fixed bottom-4 left-1/2 -translate-x-1/2 z-50 w-full max-w-lg px-4">
@@ -90,10 +92,9 @@ export function RestoreBanner({ onOpenSettings }: RestoreBannerProps) {
         <div className="flex items-start gap-3">
           <HardDrive className="h-5 w-5 text-primary mt-0.5 shrink-0" />
           <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium">Backup found</p>
+            <p className="text-sm font-medium">{t("backup.banner.title")}</p>
             <p className="text-xs text-muted-foreground">
-              A backup of &ldquo;{label}&rdquo; from {timeText} was found. Your local data appears
-              to be empty — restore?
+              {t("backup.banner.description", { label, time: timeText })}
             </p>
           </div>
           <Button variant="ghost" size="icon" className="h-7 w-7 shrink-0" onClick={handleDismiss}>
@@ -114,15 +115,19 @@ export function RestoreBanner({ onOpenSettings }: RestoreBannerProps) {
             onClick={() => handleRestore(nextEntry ?? candidate.entry)}
             disabled={restoring}
           >
-            {restoring ? "Restoring…" : nextEntry ? "Try previous backup" : "Restore"}
+            {restoring
+              ? t("backup.banner.restoringButton")
+              : nextEntry
+                ? t("backup.banner.tryPreviousButton")
+                : t("backup.banner.restoreButton")}
           </Button>
           {onOpenSettings && (
             <Button variant="outline" size="sm" onClick={() => onOpenSettings("backup")}>
-              View snapshots
+              {t("backup.banner.viewSnapshotsButton")}
             </Button>
           )}
           <Button variant="ghost" size="sm" onClick={handleDismiss}>
-            Dismiss
+            {t("backup.banner.dismissButton")}
           </Button>
         </div>
       </div>

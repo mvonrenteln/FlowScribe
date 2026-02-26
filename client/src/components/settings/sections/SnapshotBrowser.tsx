@@ -39,6 +39,10 @@ interface SnapshotBrowserProps {
   open: boolean;
   onClose: () => void;
   providerType: BackupProviderType;
+  /** When provided, use this provider directly instead of loading from IndexedDB. */
+  externalProvider?: BackupProvider;
+  /** Called after a snapshot has been successfully restored. */
+  onRestoreSuccess?: () => void;
 }
 
 type LoadState = "idle" | "loading" | "access-denied" | "error" | "loaded";
@@ -47,8 +51,16 @@ type LoadState = "idle" | "loading" | "access-denied" | "error" | "loaded";
  * Dialog that shows all available backup snapshots grouped by session.
  * Allows restoring any snapshot by calling `restoreSnapshot` from restore.ts.
  * Only meaningful for the `filesystem` provider; download provider has no manifest.
+ * When `externalProvider` is passed, that provider is used directly instead of
+ * loading the stored directory handle from IndexedDB.
  */
-export function SnapshotBrowser({ open, onClose, providerType }: SnapshotBrowserProps) {
+export function SnapshotBrowser({
+  open,
+  onClose,
+  providerType,
+  externalProvider,
+  onRestoreSuccess,
+}: SnapshotBrowserProps) {
   const { t } = useTranslation();
 
   const [loadState, setLoadState] = useState<LoadState>("idle");
@@ -61,7 +73,9 @@ export function SnapshotBrowser({ open, onClose, providerType }: SnapshotBrowser
     setLoadState("loading");
     try {
       let prov: BackupProvider;
-      if (providerType === "filesystem") {
+      if (externalProvider) {
+        prov = externalProvider;
+      } else if (providerType === "filesystem") {
         const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
         prov = new FileSystemProvider();
       } else {
@@ -83,7 +97,7 @@ export function SnapshotBrowser({ open, onClose, providerType }: SnapshotBrowser
     } catch (_e) {
       setLoadState("error");
     }
-  }, [providerType]);
+  }, [providerType, externalProvider]);
 
   useEffect(() => {
     if (open) {
@@ -106,6 +120,7 @@ export function SnapshotBrowser({ open, onClose, providerType }: SnapshotBrowser
             title: t("backup.snapshots.restoreSuccessTitle"),
             description: t("backup.snapshots.restoreSuccessDescription"),
           });
+          onRestoreSuccess?.();
           onClose();
         } else {
           toast({
@@ -118,7 +133,7 @@ export function SnapshotBrowser({ open, onClose, providerType }: SnapshotBrowser
         setRestoringFilename(null);
       }
     },
-    [provider, t, onClose],
+    [provider, t, onClose, onRestoreSuccess],
   );
 
   const visibleEntries =

@@ -72,6 +72,16 @@ const deleteFile = async (dir: FileSystemDirectoryHandle, filename: string): Pro
 export class FileSystemProvider implements BackupProvider {
   private directoryHandle: FileSystemDirectoryHandle | null = null;
 
+  /**
+   * Create a provider from an already-obtained handle without persisting it.
+   * Used for ad-hoc restore from an arbitrary folder.
+   */
+  static fromHandle(handle: FileSystemDirectoryHandle): FileSystemProvider {
+    const provider = new FileSystemProvider();
+    provider.directoryHandle = handle;
+    return provider;
+  }
+
   isSupported(): boolean {
     return (
       typeof window !== "undefined" &&

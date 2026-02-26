@@ -291,7 +291,54 @@
       "successDescription": "Your session has been backed up successfully."
     },
     "settings": {
-      "viewSnapshotsButton": "View snapshots"
+      "title": "Automatic Backup",
+      "description": "Save compressed snapshots of your sessions to a local folder. Protects against browser data loss.",
+      "disabledDescriptionFs": "Choose a folder to store backup snapshots. The folder is stored locally and never uploaded.",
+      "disabledDescriptionDownload": "Your browser does not support the File System Access API. Backups will be downloaded as files.",
+      "locationLabel": "Backup location",
+      "lastBackup": "Last backup:",
+      "lastBackupNever": "Never",
+      "lastBackupJustNow": "Just now",
+      "lastBackupMinutes": "{{count}}m ago",
+      "lastBackupHours": "{{count}}h ago",
+      "lastBackupDays": "{{count}}d ago",
+      "chooseFolderButton": "Choose backup folder",
+      "enableDownloadButton": "Enable download backups",
+      "restoreFromFolderButton": "Restore from backup folder",
+      "backupNowButton": "Backup now",
+      "changeFolderButton": "Change folder",
+      "disableButton": "Disable",
+      "viewSnapshotsButton": "View snapshots",
+      "includeGlobalLabel": "Include global settings",
+      "includeGlobalDescription": "Back up lexicon, spellcheck, and AI config",
+      "disableRemindersLabel": "Disable unsaved reminders",
+      "disableRemindersDescription": "Stop periodic toast notifications about unsaved backups",
+      "intervalLabel": "Backup every (minutes)",
+      "maxPerSessionLabel": "Max snapshots per session",
+      "maxGlobalLabel": "Max global snapshots",
+      "invalidFolderErrorTitle": "Invalid backup folder",
+      "invalidFolderErrorDescription": "The selected folder does not contain a valid FlowScribe backup.",
+      "pausedWarning": "Backup folder is not accessible. Re-open your browser and grant permission, or choose a new folder.",
+      "intervalHelp": "Minimum minutes between automatic backups (5–60). Ongoing edits may delay a backup by up to 5 extra minutes.",
+      "locationUnknown": "Unknown location"
+    },
+    "restore": {
+      "keepFolderTitle": "Use this folder for ongoing backups?",
+      "keepFolderDescription": "The folder \"{{name}}\" was used to restore your session. Would you like to enable it as your automatic backup location going forward?",
+      "keepFolderConfirm": "Yes, enable backup",
+      "keepFolderDismiss": "No, thanks"
+    },
+    "banner": {
+      "title": "Backup found",
+      "description": "A backup of \"{{label}}\" from {{time}} was found. Your local data appears to be empty — restore?",
+      "timeJustNow": "just now",
+      "timeMinutes": "{{count}} minutes ago",
+      "timeHours": "{{count}} hours ago",
+      "restoreButton": "Restore",
+      "restoringButton": "Restoring…",
+      "tryPreviousButton": "Try previous backup",
+      "viewSnapshotsButton": "View snapshots",
+      "dismissButton": "Dismiss"
     },
     "snapshots": {
       "title": "Snapshots",
@@ -316,6 +363,21 @@
       "reasonEnabled": "On enable",
       "reasonBeforeUnload": "Before close",
       "unknownSession": "Unknown session"
+    }
+  },
+  "transcript": {
+    "emptyState": {
+      "noTranscriptTitle": "No transcript loaded",
+      "noTranscriptDescription": "Upload an audio file and its Whisper or WhisperX JSON transcript to get started.",
+      "noSpellingForSpeakerTitle": "No spelling issues for this speaker",
+      "noSpellingTitle": "No spelling issues",
+      "clearFiltersDescription": "Clear filters to see all segments.",
+      "noLowScoreForSpeakerTitle": "No low-score segments for this speaker",
+      "noLowScoreTitle": "No low-score segments",
+      "adjustThresholdDescription": "Adjust the threshold or clear filters to see more segments.",
+      "noSegmentsForSpeakerTitle": "No segments for this speaker",
+      "noSegmentsForSpeakerDescription": "Click the speaker again to show all segments.",
+      "restoreFromBackupButton": "Restore from backup"
     }
   }
 }

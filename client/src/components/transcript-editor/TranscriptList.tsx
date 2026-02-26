@@ -1,4 +1,7 @@
+import { FolderOpen } from "lucide-react";
 import { Fragment, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { indexById, mapById } from "@/lib/arrayUtils";
 import { useTranscriptStore } from "@/lib/store";
@@ -54,7 +57,9 @@ function TranscriptListComponent({
   chapterFocusRequest,
   onChapterFocusRequestHandled,
   isTranscriptEditing,
+  onRestoreFromBackup,
 }: TranscriptListProps) {
+  const { t } = useTranslation();
   // Get segments and tags from store
   const segments = useTranscriptStore((s) => s.segments);
   const tags = useTranscriptStore((s) => s.tags);
@@ -310,6 +315,18 @@ function TranscriptListComponent({
           <div className="text-center py-12 text-muted-foreground">
             <p className="text-lg font-medium mb-2">{emptyState.title}</p>
             <p className="text-sm">{emptyState.description}</p>
+            {segments.length === 0 && onRestoreFromBackup && (
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-4"
+                onClick={onRestoreFromBackup}
+                aria-label={t("transcript.emptyState.restoreFromBackupButton")}
+              >
+                <FolderOpen className="mr-2 h-4 w-4" />
+                {t("transcript.emptyState.restoreFromBackupButton")}
+              </Button>
+            )}
           </div>
         ) : (
           segmentsToRender.map((segment, _index) => {
