@@ -598,15 +598,11 @@ export const useTranscriptEditor = () => {
     });
     setBackupState({ status: "enabled", lastError: null });
     window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
-    setKeepFolderDialogOpen(false);
-    setAdHocRestoreProvider(null);
-    setAdHocRestoreHandle(null);
+    window.location.reload();
   }, [adHocRestoreHandle, setBackupConfig, setBackupState]);
 
   const handleDismissKeepAdHocFolder = useCallback(() => {
-    setKeepFolderDialogOpen(false);
-    setAdHocRestoreProvider(null);
-    setAdHocRestoreHandle(null);
+    window.location.reload();
   }, []);
 
   const [pendingChapterFocusId, setPendingChapterFocusId] = useState<string | null>(null);

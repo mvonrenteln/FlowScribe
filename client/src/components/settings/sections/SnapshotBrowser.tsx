@@ -116,12 +116,14 @@ export function SnapshotBrowser({
       try {
         const result = await restoreSnapshot(provider, entry);
         if (result.ok) {
-          toast({
-            title: t("backup.snapshots.restoreSuccessTitle"),
-            description: t("backup.snapshots.restoreSuccessDescription"),
-          });
-          onRestoreSuccess?.();
-          onClose();
+          if (onRestoreSuccess) {
+            // Caller handles reload (e.g. shows keep-folder dialog first)
+            onRestoreSuccess();
+            onClose();
+          } else {
+            // No post-restore dialog — reload immediately to apply restored state
+            window.location.reload();
+          }
         } else {
           toast({
             title: t("backup.snapshots.restoreErrorTitle"),

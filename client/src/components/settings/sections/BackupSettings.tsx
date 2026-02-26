@@ -165,15 +165,11 @@ export function BackupSettings() {
     });
     setBackupState({ status: "enabled", lastError: null });
     window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
-    setKeepFolderDialogOpen(false);
-    setExternalProvider(null);
-    setExternalHandle(null);
+    window.location.reload();
   }, [externalHandle, setBackupConfig, setBackupState]);
 
   const handleDismissKeepFolder = useCallback(() => {
-    setKeepFolderDialogOpen(false);
-    setExternalProvider(null);
-    setExternalHandle(null);
+    window.location.reload();
   }, []);
 
   const renderStatusIcon = () => {
