@@ -296,22 +296,6 @@ export function BackupSettings() {
                 />
               </div>
 
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label htmlFor="disable-reminders">
-                    {t("backup.settings.disableRemindersLabel")}
-                  </Label>
-                  <p className="text-xs text-muted-foreground">
-                    {t("backup.settings.disableRemindersDescription")}
-                  </p>
-                </div>
-                <Switch
-                  id="disable-reminders"
-                  checked={backupConfig.disableDirtyReminders}
-                  onCheckedChange={(v) => setBackupConfig({ disableDirtyReminders: v })}
-                />
-              </div>
-
               <Separator />
 
               <div className="space-y-4">
@@ -366,6 +350,24 @@ export function BackupSettings() {
               </div>
             </div>
           )}
+
+          <Separator />
+
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="disable-reminders">
+                {t("backup.settings.disableRemindersLabel")}
+              </Label>
+              <p className="text-xs text-muted-foreground">
+                {t("backup.settings.disableRemindersDescription")}
+              </p>
+            </div>
+            <Switch
+              id="disable-reminders"
+              checked={backupConfig.disableDirtyReminders}
+              onCheckedChange={(v) => setBackupConfig({ disableDirtyReminders: v })}
+            />
+          </div>
         </CardContent>
       </Card>
 
