@@ -6,6 +6,18 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 FlowScribe is a frontend-only audio transcription editor. Users load audio (MP3/WAV/M4A/FLAC) with Whisper/WhisperX JSON transcripts, edit speaker-tagged segments with word-level timestamps, and export clean transcripts. **Manual-First philosophy**: every feature works without AI; AI is optional enhancement.
 
+## Runtime Environment
+
+- **Node**: `>=24 <25` (version pinned in `.nvmrc`)
+- **npm**: `>=11 <12`
+- nvm is **not** auto-initialized in Claude's shell. Initialize it before every `npm`/`node` Bash call:
+
+  ```bash
+  source ~/.nvm/nvm.sh && nvm use
+  ```
+
+  Example: `source ~/.nvm/nvm.sh && nvm use && npm run check`
+
 ## Commands
 
 ```bash
@@ -20,7 +32,7 @@ npm test             # Vitest (single run)
 ### Verification Loop (MANDATORY for all changes)
 
 ```bash
-npm run check && npm run lint:fix && npm test
+source ~/.nvm/nvm.sh && nvm use && npm run check && npm run lint:fix && npm test
 ```
 
 Empty/filtered test output is not a pass—ensure explicit pass/fail counts.

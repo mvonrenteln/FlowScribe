@@ -28,6 +28,7 @@ export const useTranscriptEditor = () => {
       setAudioFile: state.setAudioFile,
       setAudioUrl: state.setAudioUrl,
       setAudioReference: state.setAudioReference,
+      reconnectAudio: state.reconnectAudio,
       activateSession: state.activateSession,
       loadTranscript: state.loadTranscript,
       createRevision: state.createRevision,
@@ -153,6 +154,7 @@ export const useTranscriptEditor = () => {
     setAudioFile,
     setAudioUrl,
     setAudioReference,
+    reconnectAudio,
     activateSession,
     loadTranscript,
     mergeSegments,
@@ -201,6 +203,7 @@ export const useTranscriptEditor = () => {
       setAudioFile,
       setAudioUrl,
       setAudioReference,
+      reconnectAudio,
       loadTranscript,
     });
 

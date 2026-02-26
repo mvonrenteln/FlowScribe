@@ -301,6 +301,15 @@ export interface SessionSlice {
    */
   setAudioReference: (reference: FileReference | null) => void;
   /**
+   * Wires an audio file to the current session without resetting transcript data.
+   *
+   * Use this when a session with transcript data already exists but has no loaded
+   * audio (e.g. after a backup restore + page reload). Unlike `setAudioReference`,
+   * this action only updates `audioFile` and `audioUrl` — segments, speakers, tags,
+   * chapters, and history are left untouched.
+   */
+  reconnectAudio: (file: File) => void;
+  /**
    * Updates the transcript reference and loads the corresponding session when available.
    */
   setTranscriptReference: (reference: FileReference | null) => void;
