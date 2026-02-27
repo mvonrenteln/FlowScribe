@@ -74,7 +74,7 @@ function buildSnapshotFilename(
   const ts = Date.now();
   const safeReason = reason.replace(/[^a-z0-9]/g, "-");
   if (isGlobal) {
-    return `global/${ts}_${safeReason}.json.gz`;
+    return `sessions/global/${ts}_${safeReason}.json.gz`;
   }
   return `sessions/${sessionKeyHash}/${ts}_${safeReason}.json.gz`;
 }

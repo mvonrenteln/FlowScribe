@@ -21,7 +21,7 @@ const makeEntry = (
 
 const makeGlobalEntry = (createdAt: number): SnapshotEntry =>
   makeEntry("global", createdAt, {
-    filename: `global/${createdAt}_scheduled.json.gz`,
+    filename: `sessions/global/${createdAt}_scheduled.json.gz`,
     sessionKeyHash: "global",
   });
 

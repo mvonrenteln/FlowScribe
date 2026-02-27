@@ -599,10 +599,15 @@ describe("BackupScheduler", () => {
       await Promise.resolve();
 
       const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
-        [{ sessionKeyHash: string }]
+        [{ sessionKeyHash: string; filename: string }]
       >;
       const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
       expect(globalCalls.length).toBeGreaterThan(0);
+
+      // Global entry filename must use the canonical sessions/global/... path
+      const globalFilename = (globalCalls[0][0] as { filename: string }).filename;
+      expect(globalFilename).toMatch(/^sessions\/global\//);
+      expect(globalFilename).not.toMatch(/^global\//);
 
       scheduler.stop();
     });

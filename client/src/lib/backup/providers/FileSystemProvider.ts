@@ -27,6 +27,18 @@ const getSubDirectory = async (
   return parent.getDirectoryHandle(name, { create });
 };
 
+/**
+ * Normalize legacy "global/…" snapshot paths to the canonical
+ * "sessions/global/…" layout so that read/delete find the file
+ * where writeSnapshot actually stored it.
+ */
+const normalizeSnapshotPath = (filename: string): string => {
+  if (filename.startsWith("global/")) {
+    return `sessions/${filename}`;
+  }
+  return filename;
+};
+
 const writeFile = async (
   dir: FileSystemDirectoryHandle,
   filename: string,
@@ -166,13 +178,14 @@ export class FileSystemProvider implements BackupProvider {
   async readSnapshot(filename: string): Promise<Uint8Array | null> {
     try {
       const dir = await this.requireHandle();
-      const parts = filename.split("/");
+      const normalized = normalizeSnapshotPath(filename);
+      const parts = normalized.split("/");
       if (parts.length === 3 && parts[0] === "sessions") {
         const sessionsDir = await getSubDirectory(dir, "sessions", false);
         const sessionDir = await getSubDirectory(sessionsDir, parts[1], false);
         return readFile(sessionDir, parts[2]);
       }
-      return readFile(dir, filename);
+      return readFile(dir, normalized);
     } catch (_e) {
       return null;
     }
@@ -182,8 +195,9 @@ export class FileSystemProvider implements BackupProvider {
     if (filenames.length === 0) return;
     try {
       const dir = await this.requireHandle();
-      for (const filename of filenames) {
-        const parts = filename.split("/");
+      for (const fn of filenames) {
+        const normalized = normalizeSnapshotPath(fn);
+        const parts = normalized.split("/");
         if (parts.length === 3 && parts[0] === "sessions") {
           try {
             const sessionsDir = await getSubDirectory(dir, "sessions", false);
@@ -193,7 +207,7 @@ export class FileSystemProvider implements BackupProvider {
             // ignore if dir doesn't exist
           }
         } else {
-          await deleteFile(dir, filename);
+          await deleteFile(dir, normalized);
         }
       }
     } catch (_e) {
