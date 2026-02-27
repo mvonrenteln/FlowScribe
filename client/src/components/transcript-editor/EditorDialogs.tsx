@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { AISegmentMergeDialog } from "../AISegmentMergeDialog";
+import { DirtyUnloadBanner } from "../backup/DirtyUnloadBanner";
 import { RestoreBanner } from "../backup/RestoreBanner";
 import { ExportDialog } from "../ExportDialog";
 import { KeyboardShortcuts } from "../KeyboardShortcuts";
@@ -76,6 +77,7 @@ const EditorDialogsComponent = ({
       />
       <StorageQuotaDialog />
       <RestoreBanner onOpenSettings={onOpenSettings} />
+      <DirtyUnloadBanner onOpenSettings={onOpenSettings} />
     </>
   );
 };
