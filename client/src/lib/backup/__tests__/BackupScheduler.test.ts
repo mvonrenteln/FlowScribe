@@ -756,4 +756,52 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
   });
+
+  describe("beforeunload flag", () => {
+    beforeEach(() => {
+      localStorage.clear();
+    });
+
+    it("writes dirty-unload flag to localStorage when dirty on beforeunload", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).not.toBeNull();
+      scheduler.stop();
+    });
+
+    it("does NOT write flag when not dirty on beforeunload", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Do not notify or change content — store should not be dirty
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
+    it("does NOT write the old sessionStorage key", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(sessionStorage.getItem("flowscribe:backup-dirty")).toBeNull();
+      scheduler.stop();
+    });
+  });
 });

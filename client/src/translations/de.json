@@ -287,6 +287,21 @@
       "viewSnapshotsButton": "Snapshots anzeigen",
       "dismissButton": "Schließen"
     },
+    "dirtyUnload": {
+      "title": "Nicht gesicherte Änderungen erkannt",
+      "descriptionBackupAvailable": "Deine letzte Sitzung wurde mit nicht gesicherten Änderungen geschlossen.",
+      "descriptionPermissionNeeded": "Deine letzte Sitzung wurde mit nicht gesicherten Änderungen geschlossen. Autorisiere deinen Backup-Ordner erneut, um ein Sicherheits-Backup zu erstellen.",
+      "descriptionNoBackup": "Deine letzte Sitzung wurde mit nicht gesicherten Änderungen geschlossen. Der Browser-Speicher sollte intakt sein. Aktiviere Backups für zusätzliche Sicherheit.",
+      "descriptionFolderMissing": "Deine letzte Sitzung wurde mit nicht gesicherten Änderungen geschlossen. Dein Backup-Ordner ist nicht mehr erreichbar.",
+      "createBackupButton": "Sicherheits-Backup erstellen",
+      "reauthorizeButton": "Erneut autorisieren & sichern",
+      "enableBackupsButton": "Backups aktivieren",
+      "chooseFolderButton": "Neuen Ordner wählen",
+      "dismissButton": "Schließen",
+      "savingMessage": "Backup wird erstellt…",
+      "successMessage": "Sicherheits-Backup gespeichert",
+      "errorMessage": "Backup fehlgeschlagen: {{error}}"
+    },
     "snapshots": {
       "title": "Snapshots",
       "session": "Sitzung",
