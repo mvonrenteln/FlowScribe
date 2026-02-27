@@ -1,5 +1,6 @@
 import { readGlobalState, readSessionsState } from "@/lib/storage";
 import type { BackupProvider } from "./BackupProvider";
+import { setDirtyUnloadFlag } from "./dirtyUnloadFlag";
 import { pruneManifest } from "./retention";
 import { computeChecksum, serializeSnapshot } from "./snapshotSerializer";
 import type {
@@ -116,6 +117,7 @@ export class BackupScheduler {
   /** Tracks the currently active hard-interval duration so we can detect config changes. */
   private currentIntervalMs = 20 * 60_000;
   private criticalEventHandler: ((e: Event) => void) | null = null;
+  private beforeUnloadHandler: (() => void) | null = null;
   private unsubscribeStore: (() => void) | null = null;
   private store: MinimalStore | null = null;
   /** Guards against re-entrant onStateChange calls triggered by setBackupState within the handler. */
@@ -172,16 +174,13 @@ export class BackupScheduler {
     };
     window.addEventListener("flowscribe:backup-critical", this.criticalEventHandler);
 
-    // Before unload: set dirty flag in sessionStorage
-    window.addEventListener("beforeunload", () => {
+    // Before unload: persist dirty flag to localStorage for recovery on next startup
+    this.beforeUnloadHandler = () => {
       if (this.hasDirty()) {
-        try {
-          sessionStorage.setItem("flowscribe:backup-dirty", "1");
-        } catch (_e) {
-          // ignore
-        }
+        setDirtyUnloadFlag();
       }
-    });
+    };
+    window.addEventListener("beforeunload", this.beforeUnloadHandler);
   }
 
   stop(): void {
@@ -191,11 +190,15 @@ export class BackupScheduler {
     if (this.criticalEventHandler) {
       window.removeEventListener("flowscribe:backup-critical", this.criticalEventHandler);
     }
+    if (this.beforeUnloadHandler) {
+      window.removeEventListener("beforeunload", this.beforeUnloadHandler);
+    }
     if (this.unsubscribeStore) this.unsubscribeStore();
     this.deferTimer = null;
     this.hardIntervalTimer = null;
     this.reminderTimer = null;
     this.criticalEventHandler = null;
+    this.beforeUnloadHandler = null;
     this.unsubscribeStore = null;
   }
 
