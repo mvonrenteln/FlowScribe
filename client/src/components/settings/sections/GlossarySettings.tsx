@@ -69,7 +69,7 @@ export function GlossarySettings() {
       .filter(Boolean);
 
   const stripFalsePositiveLabel = (value: string) =>
-    value.replace(/^false positives?:/i, "").trim();
+    value.replace(/^\s*false positives?:\s*/i, "").trim();
 
   // Handlers
   const handleSave = () => {
