@@ -20,24 +20,22 @@ vi.mock("@/lib/backup/dirtyUnloadFlag", () => ({
   clearDirtyUnloadFlag: vi.fn(),
 }));
 
-vi.mock("@/lib/backup/providers/FileSystemProvider", () => ({
-  FileSystemProvider: vi.fn().mockImplementation(() => ({
-    enable: vi.fn(async () => ({ ok: true, locationLabel: "test-dir" })),
-  })),
-}));
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
 
 import { clearDirtyUnloadFlag, readDirtyUnloadFlag } from "@/lib/backup/dirtyUnloadFlag";
-import { FileSystemProvider } from "@/lib/backup/providers/FileSystemProvider";
 
 const mockReadFlag = vi.mocked(readDirtyUnloadFlag);
 const mockClearFlag = vi.mocked(clearDirtyUnloadFlag);
-const MockFileSystemProvider = vi.mocked(FileSystemProvider);
 
 const mockBackupNow = vi.fn(async () => undefined);
+const mockReauthorize = vi.fn(
+  async (): Promise<{ ok: true; locationLabel: string } | { ok: false; error: string }> => ({
+    ok: true,
+    locationLabel: "test-dir",
+  }),
+);
 
 function setFlagPresent() {
   mockReadFlag.mockReturnValue({ present: true, age: 1000 });
@@ -69,8 +67,10 @@ beforeEach(() => {
 
   // Wire __backupScheduler on window
   (
-    window as Window & { __backupScheduler?: { backupNow: typeof mockBackupNow } }
-  ).__backupScheduler = { backupNow: mockBackupNow };
+    window as Window & {
+      __backupScheduler?: { backupNow: typeof mockBackupNow; reauthorize: typeof mockReauthorize };
+    }
+  ).__backupScheduler = { backupNow: mockBackupNow, reauthorize: mockReauthorize };
 });
 
 afterEach(() => {
@@ -297,12 +297,8 @@ describe("DirtyUnloadBanner", () => {
   it("variant B: re-authorize success triggers backup and shows success", async () => {
     setFlagPresent();
     setBackupEnabled("error");
-    MockFileSystemProvider.mockImplementationOnce(
-      () =>
-        ({
-          enable: vi.fn(async () => ({ ok: true as const, locationLabel: "my-folder" })),
-        }) as unknown as InstanceType<typeof FileSystemProvider>,
-    );
+    // reauthorize delegates to the scheduler's own provider — mock returns success
+    mockReauthorize.mockResolvedValueOnce({ ok: true, locationLabel: "my-folder" });
     // backupNow succeeds → lastError stays null
     mockBackupNow.mockImplementationOnce(async () => {
       // do not set lastError — success path
@@ -321,18 +317,14 @@ describe("DirtyUnloadBanner", () => {
     await waitFor(() => {
       expect(screen.getByText("Safety backup saved")).toBeInTheDocument();
     });
+    expect(mockReauthorize).toHaveBeenCalled();
     expect(mockClearFlag).toHaveBeenCalled();
   });
 
   it("variant B: re-authorize failure shows error message", async () => {
     setFlagPresent();
     setBackupEnabled("error");
-    MockFileSystemProvider.mockImplementationOnce(
-      () =>
-        ({
-          enable: vi.fn(async () => ({ ok: false as const, error: "permission denied" })),
-        }) as unknown as InstanceType<typeof FileSystemProvider>,
-    );
+    mockReauthorize.mockResolvedValueOnce({ ok: false, error: "permission denied" });
 
     render(<DirtyUnloadBanner />);
 
@@ -347,6 +339,30 @@ describe("DirtyUnloadBanner", () => {
     await waitFor(() => {
       expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
     });
+    expect(mockReauthorize).toHaveBeenCalled();
+    expect(mockBackupNow).not.toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
+  });
+
+  it("variant B: shows error when scheduler is not available", async () => {
+    setFlagPresent();
+    setBackupEnabled("error");
+    delete (window as Window & { __backupScheduler?: unknown }).__backupScheduler;
+
+    render(<DirtyUnloadBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Re-authorize & backup")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Re-authorize & backup"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
+    });
+    expect(mockReauthorize).not.toHaveBeenCalled();
     expect(mockClearFlag).not.toHaveBeenCalled();
   });
 });

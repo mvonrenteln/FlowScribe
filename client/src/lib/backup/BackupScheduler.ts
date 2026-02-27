@@ -202,6 +202,19 @@ export class BackupScheduler {
     this.unsubscribeStore = null;
   }
 
+  /**
+   * Re-authorizes the backup provider by delegating to the provider's `enable()` method.
+   *
+   * This must be called instead of instantiating a new provider, because
+   * `FileSystemProvider.getHandle()` caches the directory handle on the instance.
+   * Creating a separate instance and calling `enable()` on it saves a new handle to
+   * IndexedDB, but the scheduler's instance still returns its cached (revoked) handle
+   * on subsequent `backupNow()` calls. Using this method updates the handle in place.
+   */
+  async reauthorize(): Promise<{ ok: true; locationLabel: string } | { ok: false; error: string }> {
+    return this.provider.enable();
+  }
+
   private onStateChange(state: MinimalStoreState): void {
     // Guard against re-entrant calls caused by setBackupState within this handler.
     if (this.isHandlingStateChange) return;

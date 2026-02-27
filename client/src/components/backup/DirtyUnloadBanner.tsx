@@ -96,10 +96,20 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     setPhase("saving");
     setErrorMsg(null);
 
+    const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
+      .__backupScheduler;
+    if (!scheduler) {
+      setErrorMsg("Backup scheduler not available");
+      setPhase("error");
+      return;
+    }
+
     try {
-      const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
-      const provider = new FileSystemProvider();
-      const result = await provider.enable();
+      // Re-authorize via the scheduler's own provider so the cached directory handle
+      // is updated in place. Creating a new FileSystemProvider instance would save a
+      // new handle to IndexedDB but leave the scheduler's cached handle unchanged,
+      // causing the subsequent backupNow() call to use the old (revoked) handle.
+      const result = await scheduler.reauthorize();
 
       if (!result.ok) {
         setErrorMsg(result.error);
@@ -107,13 +117,6 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
         return;
       }
 
-      const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
-        .__backupScheduler;
-      if (!scheduler) {
-        setErrorMsg("Backup scheduler not available");
-        setPhase("error");
-        return;
-      }
       await scheduler.backupNow("before-unload");
 
       const err = useTranscriptStore.getState().backupState.lastError;
