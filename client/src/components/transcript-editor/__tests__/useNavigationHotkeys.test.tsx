@@ -133,7 +133,8 @@ describe("useNavigationHotkeys", () => {
       }),
     );
 
-    hotkeyHandlers.get("s")?.(new KeyboardEvent("keydown", { key: "s" }));
+    // 's' uses a capture-phase window listener, so dispatch a native event
+    window.dispatchEvent(new KeyboardEvent("keydown", { key: "s", bubbles: true }));
     expect(handleSplitAtCurrentWord).toHaveBeenCalled();
 
     hotkeyHandlers.get("p")?.(new KeyboardEvent("keydown", { key: "p" }));
