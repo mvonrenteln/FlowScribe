@@ -1,4 +1,5 @@
-import { readGlobalState, readSessionsState } from "@/lib/storage";
+import { readGlobalState } from "@/lib/storage";
+import type { PersistedSession } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { setDirtyUnloadFlag } from "./dirtyUnloadFlag";
 import { pruneManifest } from "./retention";
@@ -49,6 +50,12 @@ interface MinimalStoreState {
 interface MinimalStore {
   getState: () => MinimalStoreState;
   subscribe: (listener: () => void) => () => void;
+  /**
+   * Returns the in-memory sessions cache, which is updated synchronously on
+   * every store mutation — unlike `readSessionsState()` which reads from
+   * localStorage and may lag behind the throttled persistence worker.
+   */
+  getSessionsCache: () => Record<string, PersistedSession>;
 }
 
 /**
@@ -347,12 +354,15 @@ export class BackupScheduler {
         ...EMPTY_MANIFEST,
       };
 
-      const sessionsState = readSessionsState();
+      // Read session data from the in-memory cache rather than localStorage so
+      // that snapshots always capture the latest edits, even when the throttled
+      // persistence worker has not yet flushed changes to disk.
+      const sessionsCache = this.store.getSessionsCache();
 
       // Backup dirty sessions
       for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
         if (!dirtyEntry.isDirty) continue;
-        const session = sessionsState.sessions[sessionKey];
+        const session = sessionsCache[sessionKey];
         if (!session) continue;
 
         const sessionKeyHash = await hashSessionKey(sessionKey);

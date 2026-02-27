@@ -311,7 +311,14 @@ if (typeof window !== "undefined" && !import.meta.env.VITEST) {
 
     const provider = fsProvider.isSupported() ? fsProvider : new DownloadProvider();
     const scheduler = new BackupScheduler(provider);
-    scheduler.start(useTranscriptStore);
+    // Pass a thin adapter that augments the Zustand store with `getSessionsCache`
+    // so the scheduler can read session data from the synchronously-updated
+    // in-memory cache rather than the throttled localStorage copy.
+    scheduler.start({
+      getState: () => useTranscriptStore.getState(),
+      subscribe: (l) => useTranscriptStore.subscribe(l),
+      getSessionsCache: () => storeContext?.getSessionsCache() ?? {},
+    });
 
     // Store scheduler reference for access from UI
     (window as Window & { __backupScheduler?: BackupScheduler }).__backupScheduler = scheduler;

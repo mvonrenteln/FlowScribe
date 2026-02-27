@@ -7,23 +7,9 @@ import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 // Mutable mock so individual tests can override readGlobalState per-call.
 const mockReadGlobalState = vi.fn(() => null as Record<string, unknown> | null);
 
-// Mock storage module
+// Mock storage module — readSessionsState is no longer called by BackupScheduler;
+// the scheduler reads from getSessionsCache() on the MinimalStore instead.
 vi.mock("@/lib/storage", () => ({
-  readSessionsState: () => ({
-    sessions: {
-      "session-key": {
-        audioRef: null,
-        transcriptRef: null,
-        segments: [{ id: "1", text: "hello", speaker: "A", start: 0, end: 1, words: [] }],
-        speakers: [],
-        tags: [],
-        selectedSegmentId: null,
-        currentTime: 0,
-        isWhisperXFormat: false,
-      },
-    },
-    activeSessionKey: "session-key",
-  }),
   readGlobalState: () => mockReadGlobalState(),
 }));
 
@@ -49,6 +35,19 @@ const makeMockProvider = (): BackupProvider => ({
   deleteSnapshots: vi.fn(async () => undefined),
 });
 
+/** Default session content used by makeStore (matches the session-key entry). */
+const DEFAULT_SESSION_ENTRY = {
+  audioRef: null,
+  transcriptRef: null,
+  segments: [{ id: "1", text: "hello", speaker: "A", start: 0, end: 1, words: [] }] as unknown[],
+  speakers: [] as unknown[],
+  tags: [] as unknown[],
+  chapters: [] as unknown[],
+  selectedSegmentId: null,
+  currentTime: 0,
+  isWhisperXFormat: false,
+};
+
 const makeStore = (config?: Partial<BackupConfig>) => {
   let state = {
     segments: [{ id: "1" }] as unknown[],
@@ -67,9 +66,21 @@ const makeStore = (config?: Partial<BackupConfig>) => {
       state.backupState = { ...state.backupState, ...patch };
     }),
   };
+  // Start with a sessions cache that mirrors the initial store state.
+  let sessionsCache: Record<string, typeof DEFAULT_SESSION_ENTRY> = {
+    "session-key": { ...DEFAULT_SESSION_ENTRY },
+  };
   const listeners = new Set<() => void>();
   return {
     getState: () => state,
+    getSessionsCache: () => sessionsCache as Record<string, unknown>,
+    /** Replaces the entry for the active session key in the cache. */
+    setSessionEntry: (entry: Partial<typeof DEFAULT_SESSION_ENTRY>) => {
+      sessionsCache = {
+        ...sessionsCache,
+        [state.sessionKey]: { ...DEFAULT_SESSION_ENTRY, ...entry },
+      };
+    },
     subscribe: (listener: () => void) => {
       listeners.add(listener);
       return () => listeners.delete(listener);
@@ -801,6 +812,51 @@ describe("BackupScheduler", () => {
       window.dispatchEvent(new Event("beforeunload"));
 
       expect(sessionStorage.getItem("flowscribe:backup-dirty")).toBeNull();
+      scheduler.stop();
+    });
+  });
+
+  // ─── In-memory cache regression ───────────────────────────────────────────
+
+  describe("snapshot data source: in-memory cache, not localStorage", () => {
+    it("uses getSessionsCache() data so a critical backup captures edits not yet flushed to localStorage", async () => {
+      // Regression for: backupBatch used readSessionsState() (localStorage) rather
+      // than the in-memory sessions cache, causing snapshots to silently capture
+      // stale data when the throttled persistence worker had not yet flushed.
+
+      const provider = makeMockProvider();
+      const { serializeSnapshot } = await import("../snapshotSerializer");
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Simulate an edit that is in-memory (cache) but NOT yet in localStorage.
+      // We put the latest data only in the sessions cache via setSessionEntry and
+      // mark the session dirty by changing the store's segments reference.
+      const latestSegments = [{ id: "1", text: "updated-only-in-memory" }] as unknown[];
+      store.setSessionEntry({ segments: latestSegments });
+      store.setState({ segments: latestSegments });
+      store.notify();
+
+      // Trigger a critical backup (bypasses the grace period immediately)
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // The snapshot must have been written
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+
+      // Verify that serializeSnapshot was called with the in-memory session data
+      // (segments from getSessionsCache, not the stale localStorage copy).
+      const serializeCalls = (serializeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ session: { segments: unknown[] } }]
+      >;
+      expect(serializeCalls.length).toBeGreaterThan(0);
+      const capturedSession = serializeCalls[serializeCalls.length - 1][0].session;
+      expect((capturedSession.segments[0] as { text: string }).text).toBe("updated-only-in-memory");
+
       scheduler.stop();
     });
   });
