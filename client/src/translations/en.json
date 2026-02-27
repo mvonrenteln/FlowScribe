@@ -340,6 +340,19 @@
       "viewSnapshotsButton": "View snapshots",
       "dismissButton": "Dismiss"
     },
+    "dirtyUnload": {
+      "title": "Unsaved changes detected",
+      "descriptionBackupAvailable": "Your last session was closed with unsaved edits.",
+      "descriptionPermissionNeeded": "Your last session was closed with unsaved edits. Re-authorize your backup folder to create a safety backup.",
+      "descriptionNoBackup": "Your last session was closed with unsaved edits. Browser storage should be intact. Enable backups for extra safety.",
+      "createBackupButton": "Create safety backup",
+      "reauthorizeButton": "Re-authorize & backup",
+      "enableBackupsButton": "Enable backups",
+      "dismissButton": "Dismiss",
+      "savingMessage": "Creating backup…",
+      "successMessage": "Safety backup saved",
+      "errorMessage": "Backup failed: {{error}}"
+    },
     "snapshots": {
       "title": "Snapshots",
       "session": "Session",

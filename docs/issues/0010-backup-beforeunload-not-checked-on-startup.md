@@ -1,285 +1,86 @@
 # Backup: beforeunload flag not checked on startup
 
-**Type:** Bug / UX Enhancement
-**Parent issue:** [#0005 External Backup System](./0005-external-backup-system.md)
+**Type:** Bug / UX improvement
+**Parent ticket:** [#0005 External Backup System](./0005-external-backup-system.md)
+**Status:** Implemented
 
 ---
-
 
 ## Problem
 
-The `BackupScheduler` sets a flag on the `beforeunload` event to mark that the page was closed with unsaved (dirty) backup state. However, this flag is **never checked** on the next app start — no recovery action is taken, no user notification is shown, and the flag is silently ignored.
+The `BackupScheduler` sets a flag in `sessionStorage` on the `beforeunload` event to mark a crash or unexpected page close. However:
+
+1. The flag is **not checked** on the next app start — no backup is triggered and the flag is silently ignored.
+2. `sessionStorage` does not survive browser crashes or full closes — the flag is lost in the exact scenarios it is meant to protect against.
 
 ---
 
+## Solution (Implemented)
 
-## Usability Review (original approach rejected)
+### 1. localStorage flag with 24-hour expiry
 
-The original spec proposed silently calling `backupNow("before-unload")` on startup. A usability review identified three compounding problems with that approach:
+Replaced `sessionStorage` with `localStorage` so the flag survives browser crashes and full closes. The flag stores a `Date.now()` timestamp instead of `"1"`, and is considered expired after 24 hours.
 
-### 1. Silent action — no user feedback
+**Utility module:** `client/src/lib/backup/dirtyUnloadFlag.ts`
 
-A silent `backupNow()` on startup means the user never learns that (a) their last session had unsaved data, (b) a recovery backup was attempted, or (c) whether that backup succeeded or failed. This violates every established crash-recovery UX pattern (VS Code, Google Docs, Figma all surface recovery state visibly).
+- `setDirtyUnloadFlag()` — writes timestamp to `localStorage` under key `flowscribe:dirty-unload`
+- `readDirtyUnloadFlag()` — returns `{ present: true, age: number }` or `{ present: false }` (expired/missing flags return `false`)
+- `clearDirtyUnloadFlag()` — removes the key
+- Key name: `flowscribe:dirty-unload` (consistent everywhere)
 
-### 2. File System Access API permission gap
+### 2. BackupScheduler updated
 
-After a browser restart, the File System Access API resets permission state to `"prompt"`. Calling `backupNow()` on startup (without a user gesture) fails silently because `verifyAccess()` returns `false`. The recovery backup cannot work in the most common scenario it targets.
+- `beforeunload` handler now calls `setDirtyUnloadFlag()` instead of writing to `sessionStorage` directly
+- Handler reference is stored so `stop()` can remove the event listener (fixes a listener leak bug)
 
-### 3. `sessionStorage` does not survive actual crashes
+### 3. Interactive DirtyUnloadBanner component
 
-`sessionStorage` is destroyed when the browser fully closes or crashes — the exact scenarios where recovery matters most. The flag only survives tab-close within a still-running browser, which is the least dangerous case.
+On startup, if the flag is present, a user-facing banner appears at the bottom of the editor (same position and styling as `RestoreBanner`). The banner is **interactive** rather than auto-triggering a backup, because:
 
-| Scenario | `sessionStorage` survives? | Recovery needed? |
-|---|---|---|
-| Tab closed, reopened in same window | Yes | Maybe |
-| Browser closed normally, reopened | **No** | Yes |
-| Browser crash | **No** | **Yes** |
-| OS crash / power loss | **No** | **Yes** |
+- Auto-backup on startup cannot request File System Access permissions (requires user gesture)
+- The user should be informed about what happened and given a choice
+- Different backup states require different actions
 
-### 4. No-backup-configured case silently drops data
+**Three variants based on backup configuration state:**
 
-The original proposal clears the flag unconditionally, even when backup is not configured. The only evidence that the previous session had unsaved data is discarded without any notification.
+| Variant | Condition | Action |
+|---------|-----------|--------|
+| **A — Backup available** | `backupConfig.enabled && backupState.status === "enabled"` | "Create safety backup" → calls `backupNow("before-unload")` |
+| **B — Permission needed** | `backupConfig.enabled && backupState.status !== "enabled"` | "Re-authorize & backup" → calls `scheduler.reauthorize()` then `backupNow` |
+| **C — No backup** | `!backupConfig.enabled` | "Enable backups" → opens Settings to backup section |
 
----
+**State machine:** `hidden → showing → saving → success / error`
 
+- **Success:** clears flag, auto-dismisses after 4 seconds
+- **Error:** shows inline error, keeps dismiss button, does NOT clear flag (so banner reappears on next load)
+- **Dismiss:** clears flag, hides banner immediately
+- **Scheduler not available:** treated as error (prevents false success)
 
-## Expected Behavior
-
-On startup, if the dirty-unload flag is detected:
-
-1. Show a **non-blocking banner** informing the user that their previous session was closed with pending edits.
-2. Offer an explicit **"Create safety backup"** button (user gesture — solves the File System Access API permission problem).
-3. Handle all edge cases with appropriate messaging (no backup configured, permission revoked, folder missing).
-4. Show success/failure feedback inline in the banner.
-5. Clear the flag only after the user has seen the notification (dismiss or backup completion).
-
-This follows the same pattern as the existing [`RestoreBanner`](../../client/src/components/backup/RestoreBanner.tsx), which already handles a related but distinct scenario (empty localStorage + backup folder has snapshots).
-
----
-
-
-## Current State
-
-### Setting the flag (correctly implemented, wrong storage)
-
-In [`BackupScheduler.ts`](../../client/src/lib/backup/BackupScheduler.ts), `start()`:
-
-```typescript
-window.addEventListener("beforeunload", () => {
-  if (this.hasDirty()) {
-    try {
-      sessionStorage.setItem("flowscribe:backup-dirty", "1");
-    } catch (_e) { /* ignore */ }
-  }
-});
-```
-
-**Problems:**
-- Uses `sessionStorage` (lost on browser/OS crash — see usability review above).
-- Stores no timestamp (stale flags are indistinguishable from fresh ones).
-- Key is `"flowscribe:backup-dirty"` but the original spec says `"flowscribe:dirty-unload"` — minor inconsistency.
-
-### Checking on startup (missing)
-
-In [`store.ts`](../../client/src/lib/store.ts), `initBackup()`:
-
-```typescript
-const initBackup = async () => {
-  const fsProvider = new FileSystemProvider();
-  await fsProvider.initialize();
-  const provider = fsProvider.isSupported() ? fsProvider : new DownloadProvider();
-  const scheduler = new BackupScheduler(provider);
-  scheduler.start(useTranscriptStore);
-  // No check for dirty-unload flag
-};
-```
+**Component:** `client/src/components/backup/DirtyUnloadBanner.tsx`
+**Mounted in:** `client/src/components/transcript-editor/EditorDialogs.tsx` (after `RestoreBanner`)
 
 ---
-
-
-## Desired Solution
-
-### Part 1: Move dirty flag from `sessionStorage` to `localStorage` with timestamp
-
-Standardize on the key `"flowscribe:dirty-unload"` and store a timestamp instead of `"1"`.
-
-In `BackupScheduler.ts`:
-
-```typescript
-const DIRTY_UNLOAD_KEY = "flowscribe:dirty-unload";
-const DIRTY_UNLOAD_MAX_AGE_MS = 24 * 60 * 60_000; // 24 hours
-
-// In start():
-window.addEventListener("beforeunload", () => {
-  if (this.hasDirty()) {
-    try {
-      localStorage.setItem(DIRTY_UNLOAD_KEY, String(Date.now()));
-    } catch (_e) { /* ignore */ }
-  }
-});
-```
-
-Remove the old `sessionStorage` key (`"flowscribe:backup-dirty"`) usage.
-
-### Part 2: Read and validate the flag (utility function)
-
-```typescript
-export function readDirtyUnloadFlag(): { present: true; age: number } | { present: false } {
-  try {
-    const raw = localStorage.getItem(DIRTY_UNLOAD_KEY);
-    if (!raw) return { present: false };
-    const ts = Number(raw);
-    if (Number.isNaN(ts)) return { present: false };
-    const age = Date.now() - ts;
-    if (age > DIRTY_UNLOAD_MAX_AGE_MS) {
-      localStorage.removeItem(DIRTY_UNLOAD_KEY);
-      return { present: false };
-    }
-    return { present: true, age };
-  } catch {
-    return { present: false };
-  }
-}
-
-export function clearDirtyUnloadFlag(): void {
-  try { localStorage.removeItem(DIRTY_UNLOAD_KEY); } catch { /* ignore */ }
-}
-```
-
-### Part 3: `DirtyUnloadBanner` component
-
-A new component following the same pattern as `RestoreBanner`. Shown on startup when the dirty flag is present. Three variants based on backup state:
-
-**Variant A — Backup configured and accessible:**
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  ⚠  Your last session was closed with unsaved edits.                │
-│     [ Create safety backup ]  [ Dismiss ]                           │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-On click: calls `backupNow("before-unload")` → shows inline spinner → replaces with success ("Safety backup saved") or error message. Clears flag on success or dismiss.
-
-**Variant B — Backup configured but paused (permission revoked):**
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  ⚠  Your last session was closed with unsaved edits.                │
-│     Re-authorize your backup folder to create a safety backup.      │
-│     [ Re-authorize & backup ]  [ Dismiss ]                          │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-On click: calls `requestPermission()` (valid — this is a user gesture), then `backupNow("before-unload")`. Clears flag on success or dismiss.
-
-**Variant C — Backup not configured:**
-
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│  ⚠  Your last session was closed with unsaved edits.                │
-│     Browser storage should be intact. Enable backups for extra      │
-│     safety.  [ Enable backups ]  [ Dismiss ]                        │
-└──────────────────────────────────────────────────────────────────────┘
-```
-
-"Enable backups" opens Settings > Backup. Clears flag on dismiss.
-
----
-
-
-## UX Flow
-
-### Happy path (backup configured, permission retained)
-
-1. User edits transcript, closes tab without waiting for backup interval
-2. `beforeunload` fires → `localStorage.setItem("flowscribe:dirty-unload", timestamp)`
-3. User reopens app (same browser session or later)
-4. `DirtyUnloadBanner` mounts, reads flag, checks `backupConfig.enabled` and `backupState.status`
-5. Banner appears: "Your last session was closed with unsaved edits." + **[Create safety backup]**
-6. User clicks → `backupNow("before-unload")` runs (user gesture satisfies permission)
-7. Banner shows spinner, then "Safety backup saved" with green checkmark
-8. Banner auto-dismisses after 4 seconds, flag cleared
-
-### Permission revoked path
-
-Steps 1–4 same. At step 4, `backupState.status === "paused"`.
-
-5. Banner appears with "Re-authorize & backup" button
-6. User clicks → browser shows permission prompt → user grants
-7. `backupNow("before-unload")` runs → success feedback → flag cleared
-8. If user denies permission: banner shows error inline, dismiss button remains
-
-### No backup configured path
-
-Steps 1–4 same. At step 4, `backupConfig.enabled === false`.
-
-5. Banner appears: "Browser storage should be intact. Enable backups for extra safety."
-6. User clicks "Enable backups" → Settings opens to Backup tab
-7. User clicks "Dismiss" → flag cleared, banner disappears
-
-### Stale flag path
-
-1. Flag exists in `localStorage` but is older than 24 hours
-2. `readDirtyUnloadFlag()` returns `{ present: false }`, deletes stale flag
-3. No banner shown
-
-### Backup folder missing/deleted
-
-1. Flag detected, backup configured, but `verifyAccess()` fails
-2. Banner shows: "Your backup folder is no longer accessible." + **[Choose new folder]** + **[Dismiss]**
-
----
-
-
-## Edge Cases
-
-| Edge case | Behavior |
-|---|---|
-| Flag exists, backup `enabled`, folder accessible | Show banner with "Create safety backup" — do NOT auto-backup |
-| Flag exists, backup `paused` (permission revoked) | Show banner with "Re-authorize & backup" |
-| Flag exists, backup not configured | Show informational banner with "Enable backups" CTA |
-| Flag older than 24 hours | Silently discard, no banner |
-| Flag exists but `localStorage` has no segments (fresh state) | Still show banner — the flag indicates something happened |
-| `DirtyUnloadBanner` and `RestoreBanner` both active | `RestoreBanner` takes priority (handles worse scenario — data loss). `DirtyUnloadBanner` yields if `RestoreBanner` is active |
-| Multiple tabs: tab A sets flag, tab B reads it on load | Acceptable — the flag means "some tab had dirty data," which is still useful |
-| `backupNow()` fails during banner flow | Show error inline in banner; keep dismiss button; do NOT clear the flag |
-| Download provider (Firefox fallback) | Variant B behavior: offer a manual download action instead of filesystem backup |
-
----
-
-
-## i18n Keys
-
-Add to `en.json` and `de.json` under `backup.dirtyUnload`:
-
-```
-backup.dirtyUnload.title
-backup.dirtyUnload.descriptionBackupAvailable
-backup.dirtyUnload.descriptionPermissionNeeded
-backup.dirtyUnload.descriptionNoBackup
-backup.dirtyUnload.descriptionFolderMissing
-backup.dirtyUnload.createBackupButton
-backup.dirtyUnload.reauthorizeButton
-backup.dirtyUnload.enableBackupsButton
-backup.dirtyUnload.chooseFolderButton
-backup.dirtyUnload.dismissButton
-backup.dirtyUnload.savingMessage
-backup.dirtyUnload.successMessage
-backup.dirtyUnload.errorMessage
-```
-
----
-
 
 ## Affected Files
 
-| File | Change |
-|---|---|
-| `client/src/lib/backup/BackupScheduler.ts` | Move flag from `sessionStorage` to `localStorage` with timestamp; export `DIRTY_UNLOAD_KEY` constant; export `readDirtyUnloadFlag()` and `clearDirtyUnloadFlag()` utilities |
-| `client/src/components/backup/DirtyUnloadBanner.tsx` | **New file** — banner component with three variants |
-| `client/src/components/transcript-editor/EditorDialogs.tsx` | Mount `DirtyUnloadBanner` (alongside existing `RestoreBanner`) |
-| `client/src/translations/en.json` | Add `backup.dirtyUnload.*` keys |
-| `client/src/translations/de.json` | Add `backup.dirtyUnload.*` keys |
-| `client/src/lib/backup/__tests__/BackupScheduler.test.ts` | Test `readDirtyUnloadFlag`, `clearDirtyUnloadFlag`, timestamp expiry |
-| `client/src/components/backup/__tests__/DirtyUnloadBanner.test.tsx` | Test all three banner variants, success/error flows, interaction with RestoreBanner |
+### New files
+- `client/src/lib/backup/dirtyUnloadFlag.ts` — flag utility (set/read/clear with 24h expiry)
+- `client/src/lib/backup/__tests__/dirtyUnloadFlag.test.ts` — 7 tests
+- `client/src/components/backup/DirtyUnloadBanner.tsx` — banner component
+- `client/src/components/backup/__tests__/DirtyUnloadBanner.test.tsx` — 14 tests
+
+### Modified files
+- `client/src/lib/backup/BackupScheduler.ts` — uses `setDirtyUnloadFlag()`, stores handler ref, cleans up in `stop()`, adds `reauthorize()` method
+- `client/src/lib/backup/__tests__/BackupScheduler.test.ts` — 3 new beforeunload tests
+- `client/src/components/transcript-editor/EditorDialogs.tsx` — mounts `DirtyUnloadBanner`
+- `client/src/translations/en.json` — 11 keys under `backup.dirtyUnload.*`
+- `client/src/translations/de.json` — 11 keys under `backup.dirtyUnload.*`
+
+---
+
+## Design Decisions
+
+1. **Interactive banner over silent auto-backup:** Auto-backup cannot request FS permissions (requires user gesture), and users deserve to see what happened. The banner pattern is consistent with `RestoreBanner`.
+2. **localStorage over sessionStorage:** `sessionStorage` is cleared on browser close/crash, defeating the purpose. `localStorage` with a timestamp and 24h TTL avoids stale flags accumulating.
+3. **`scheduler.reauthorize()` over new provider instance:** `FileSystemProvider.getHandle()` caches the directory handle on the instance. Creating a new provider instance and calling `enable()` saves a new handle to IndexedDB but leaves the scheduler's cached handle unchanged — subsequent `backupNow()` calls would use the old revoked handle. `reauthorize()` calls `enable()` on the scheduler's own provider, updating the cached handle in place.
+4. **No coordination with RestoreBanner:** Both banners render independently. The scenario where both appear simultaneously is extremely unlikely (requires dirty unload + restorable snapshot from a different session).
