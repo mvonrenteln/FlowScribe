@@ -174,6 +174,29 @@ describe("DirtyUnloadBanner", () => {
     expect(mockClearFlag).not.toHaveBeenCalled();
   });
 
+  it("variant A: shows error when scheduler is not available", async () => {
+    setFlagPresent();
+    setBackupEnabled("enabled");
+    // Remove the scheduler to simulate not-ready state
+    delete (window as Window & { __backupScheduler?: unknown }).__backupScheduler;
+
+    render(<DirtyUnloadBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create safety backup")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Create safety backup"));
+    });
+
+    await waitFor(() => {
+      expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
+    });
+    expect(mockBackupNow).not.toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
+  });
+
   it("dismiss button clears flag and hides banner", async () => {
     setFlagPresent();
     setBackupEnabled("enabled");

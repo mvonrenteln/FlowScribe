@@ -74,7 +74,12 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
 
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
-    await scheduler?.backupNow("before-unload");
+    if (!scheduler) {
+      setErrorMsg("Backup scheduler not available");
+      setPhase("error");
+      return;
+    }
+    await scheduler.backupNow("before-unload");
 
     const err = useTranscriptStore.getState().backupState.lastError;
     if (err === null) {
@@ -104,7 +109,12 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
 
       const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
         .__backupScheduler;
-      await scheduler?.backupNow("before-unload");
+      if (!scheduler) {
+        setErrorMsg("Backup scheduler not available");
+        setPhase("error");
+        return;
+      }
+      await scheduler.backupNow("before-unload");
 
       const err = useTranscriptStore.getState().backupState.lastError;
       if (err === null) {
