@@ -651,7 +651,11 @@ describe("useSpellcheck", () => {
       () => {
         const segMatches = result.current.spellcheckMatchesBySegment.get("segment-1");
         // Index 0: first word of variant → carries suggestion for the full variant
-        expect(segMatches?.get(0)).toEqual({ suggestions: ["Zielbegriff"], isVariant: true });
+        expect(segMatches?.get(0)).toEqual({
+          suggestions: ["Zielbegriff"],
+          isVariant: true,
+          spanLength: 2,
+        });
         // Index 1: second word of variant → suppressed (no independent match)
         expect(segMatches?.has(1)).toBe(false);
         // Index 2: normal word → spellchecker match

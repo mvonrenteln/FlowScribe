@@ -16,6 +16,8 @@ export interface SpellcheckMatchMeta {
   /** When true, this match originated from an explicit lexicon variant lookup
    *  and must not be filtered by the ignored-words / false-positive set. */
   isVariant?: boolean;
+  /** Number of consecutive words this match spans (for multi-word variants). */
+  spanLength?: number;
 }
 
 export interface UseSpellcheckOptions {
@@ -110,7 +112,7 @@ const findMultiWordVariantMatches = (
 
       if (allMatch) {
         // Mark the first word as the match carrier
-        result.set(wordIndex, { suggestions: [term], isVariant: true });
+        result.set(wordIndex, { suggestions: [term], isVariant: true, spanLength: tokens.length });
         // Mark remaining words as ignored so they are skipped in the main loop
         for (let offset = 1; offset < tokens.length; offset += 1) {
           ignoredIndexes.add(wordIndex + offset);

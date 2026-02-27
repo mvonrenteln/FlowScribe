@@ -18,7 +18,10 @@ interface WordListProps {
   readonly showLexiconMatches?: boolean;
   readonly lexiconHighlightUnderline?: boolean;
   readonly lexiconHighlightBackground?: boolean;
-  readonly spellcheckMatches?: Map<number, { suggestions: string[]; partIndex?: number }>;
+  readonly spellcheckMatches?: Map<
+    number,
+    { suggestions: string[]; partIndex?: number; spanLength?: number }
+  >;
   readonly showSpellcheckMatches?: boolean;
   readonly searchQuery?: string;
   readonly isRegexSearch?: boolean;
@@ -105,8 +108,14 @@ export function WordList({
   );
 
   const handleApplyReplacement = useCallback(
-    (index: number, replacement: string, partIndex?: number) => {
-      const updatedText = buildReplacementText(segment.words, index, replacement, partIndex);
+    (index: number, replacement: string, partIndex?: number, spanLength?: number) => {
+      const updatedText = buildReplacementText(
+        segment.words,
+        index,
+        replacement,
+        partIndex,
+        spanLength,
+      );
       onTextChange(updatedText);
     },
     [onTextChange, segment.words],
