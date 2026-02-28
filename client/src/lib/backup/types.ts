@@ -63,6 +63,7 @@ export interface SnapshotEntry {
   schemaVersion: number;
   compressedSize: number;
   checksum: string;
+  contentHash?: string;
 }
 
 export interface BackupManifest {

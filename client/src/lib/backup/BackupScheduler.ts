@@ -4,7 +4,7 @@ import type { PersistedSession } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { setDirtyUnloadFlag } from "./dirtyUnloadFlag";
 import { pruneManifest } from "./retention";
-import { computeChecksum, serializeSnapshot } from "./snapshotSerializer";
+import { computeChecksum, computeContentHash, serializeSnapshot } from "./snapshotSerializer";
 import type {
   BackupConfig,
   BackupManifest,
@@ -385,6 +385,8 @@ export class BackupScheduler {
       // Read current manifest
       const manifest: BackupManifest = (await this.provider.readManifest()) ?? {
         ...EMPTY_MANIFEST,
+        snapshots: [],
+        globalSnapshots: [],
       };
 
       // Read session data from the in-memory cache rather than localStorage so
@@ -392,9 +394,14 @@ export class BackupScheduler {
       // persistence worker has not yet flushed changes to disk.
       const sessionsCache = this.store.getSessionsCache();
 
-      // Backup dirty sessions
-      for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
-        if (!dirtyEntry.isDirty && !this.pendingInitialSnapshot) continue;
+      const includeAllSessions = reason === "manual";
+      const sessionKeysToBackup = includeAllSessions
+        ? Object.keys(sessionsCache)
+        : Array.from(this.dirtySessions.entries())
+            .filter(([, dirtyEntry]) => dirtyEntry.isDirty || this.pendingInitialSnapshot)
+            .map(([sessionKey]) => sessionKey);
+
+      for (const sessionKey of sessionKeysToBackup) {
         const session = sessionsCache[sessionKey];
         if (!session) continue;
 
@@ -411,6 +418,17 @@ export class BackupScheduler {
           session,
         };
 
+        // Hash-based deduplication: skip if any previous snapshot for this session
+        // has the same content hash. Checking all entries (not just the latest)
+        // supports revert detection — if the user reverts content to a state that
+        // was previously backed up, we avoid writing a redundant snapshot.
+        const contentHash = await computeContentHash(session);
+        const hasIdenticalPreviousSnapshot = manifest.snapshots.some(
+          (e) => e.sessionKeyHash === sessionKeyHash && e.contentHash === contentHash,
+        );
+        if (hasIdenticalPreviousSnapshot) {
+          continue;
+        }
         const data = await serializeSnapshot(snapshotData);
 
         const entry: SnapshotEntry = {
@@ -423,6 +441,7 @@ export class BackupScheduler {
           schemaVersion: SCHEMA_VERSION,
           compressedSize: data.length,
           checksum: snapshotData.checksum,
+          contentHash,
         };
 
         await this.provider.writeSnapshot(entry, data);
@@ -444,51 +463,57 @@ export class BackupScheduler {
       }
 
       // Backup global state if needed
-      if (
-        (this.globalDirty || this.pendingInitialSnapshot) &&
-        state.backupConfig.includeGlobalState
-      ) {
+      const shouldBackupGlobal =
+        state.backupConfig.includeGlobalState &&
+        (this.globalDirty || this.pendingInitialSnapshot || reason === "manual");
+
+      if (shouldBackupGlobal) {
         const globalState = readGlobalState();
         if (globalState) {
-          const filename = buildSnapshotFilename("global", reason, true);
+          const contentHash = await computeContentHash(globalState);
+          const previousGlobalEntry = manifest.globalSnapshots.at(-1);
+          if (previousGlobalEntry?.contentHash !== contentHash) {
+            const filename = buildSnapshotFilename("global", reason, true);
 
-          const snapshotData = {
-            schemaVersion: SCHEMA_VERSION,
-            appVersion: APP_VERSION,
-            createdAt: Date.now(),
-            sessionKey: "__global__",
-            reason,
-            checksum: "",
-            session: {
-              audioRef: null,
-              transcriptRef: null,
-              segments: [],
-              speakers: [],
-              tags: [],
-              selectedSegmentId: null,
-              currentTime: 0,
-              isWhisperXFormat: false,
-            },
-            globalState,
-          };
+            const snapshotData = {
+              schemaVersion: SCHEMA_VERSION,
+              appVersion: APP_VERSION,
+              createdAt: Date.now(),
+              sessionKey: "__global__",
+              reason,
+              checksum: "",
+              session: {
+                audioRef: null,
+                transcriptRef: null,
+                segments: [],
+                speakers: [],
+                tags: [],
+                selectedSegmentId: null,
+                currentTime: 0,
+                isWhisperXFormat: false,
+              },
+              globalState,
+            };
 
-          const data = await serializeSnapshot(snapshotData);
-          const globalEntry: SnapshotEntry = {
-            filename,
-            sessionKeyHash: "global",
-            sessionLabel: null,
-            createdAt: snapshotData.createdAt,
-            reason,
-            appVersion: APP_VERSION,
-            schemaVersion: SCHEMA_VERSION,
-            compressedSize: data.length,
-            checksum: snapshotData.checksum,
-          };
+            const data = await serializeSnapshot(snapshotData);
+            const globalEntry: SnapshotEntry = {
+              filename,
+              sessionKeyHash: "global",
+              sessionLabel: null,
+              createdAt: snapshotData.createdAt,
+              reason,
+              appVersion: APP_VERSION,
+              schemaVersion: SCHEMA_VERSION,
+              compressedSize: data.length,
+              checksum: snapshotData.checksum,
+              contentHash,
+            };
 
-          await this.provider.writeSnapshot(globalEntry, data);
-          manifest.globalSnapshots.push(globalEntry);
-          // Record the fingerprint that was current when this backup ran so that
-          // the next onStateChange can skip globalDirty if nothing changed.
+            await this.provider.writeSnapshot(globalEntry, data);
+            manifest.globalSnapshots.push(globalEntry);
+          }
+          // Always reset dirty state, even when dedup skips the write.
+          // The state is considered clean relative to what is currently stored.
           this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
           this.globalDirty = false;
         }

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BackupProvider } from "../BackupProvider";
 import { BackupScheduler } from "../BackupScheduler";
+import { computeContentHash } from "../snapshotSerializer";
 import type { BackupConfig, BackupState } from "../types";
 import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 
@@ -20,8 +21,15 @@ vi.mock("@/lib/store/persistenceGuard", () => ({
 
 // Mock snapshotSerializer to avoid slow crypto/compression in unit tests
 vi.mock("../snapshotSerializer", () => ({
-  computeChecksum: vi.fn(
-    async () => "aabbccdd001122334455aabbccdd001122334455aabbccdd001122334455aa00",
+  computeChecksum: vi.fn(async (json: string) => {
+    let h = 5381;
+    for (let i = 0; i < json.length; i++) {
+      h = (((h << 5) + h) ^ json.charCodeAt(i)) >>> 0;
+    }
+    return h.toString(16).padStart(8, "0").repeat(8);
+  }),
+  computeContentHash: vi.fn(
+    async () => "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
   ),
   serializeSnapshot: vi.fn(async () => new Uint8Array([1, 2, 3])),
   deserializeSnapshot: vi.fn(async () => ({})),
@@ -79,6 +87,9 @@ const makeStore = (config?: Partial<BackupConfig>) => {
   return {
     getState: () => state,
     getSessionsCache: () => sessionsCache as Record<string, unknown>,
+    setSessionsCache: (next: Record<string, typeof DEFAULT_SESSION_ENTRY>) => {
+      sessionsCache = next;
+    },
     /** Replaces the entry for the active session key in the cache. */
     setSessionEntry: (entry: Partial<typeof DEFAULT_SESSION_ENTRY>) => {
       sessionsCache = {
@@ -261,6 +272,37 @@ describe("BackupScheduler", () => {
     await Promise.resolve();
 
     expect(provider.writeSnapshot).toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("manual backup writes all sessions from cache and global state", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+    store.setSessionsCache({
+      "session-a": {
+        ...DEFAULT_SESSION_ENTRY,
+        segments: [{ id: "a", text: "A" }] as unknown[],
+      },
+      "session-b": {
+        ...DEFAULT_SESSION_ENTRY,
+        segments: [{ id: "b", text: "B" }] as unknown[],
+      },
+    });
+
+    await scheduler.backupNow("manual");
+
+    const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+      [{ sessionKeyHash: string }]
+    >;
+    const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+    const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+
+    expect(sessionCalls.length).toBe(2);
+    expect(globalCalls.length).toBe(1);
     scheduler.stop();
   });
 
@@ -1175,6 +1217,374 @@ describe("BackupScheduler", () => {
       // Session snapshot should still be written
       const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
       expect(sessionCalls.length).toBeGreaterThan(0);
+      scheduler.stop();
+    });
+  });
+
+  // ─── Hash-based deduplication tests ──────────────────────────────────────
+
+  describe("Hash-based deduplication", () => {
+    const INTERVAL_MS_DEDUP = 5 * 60_000;
+
+    /** Compute the djb2 hash of a session key — mirrors hashSessionKey() which takes the first 12 chars of computeChecksum(). */
+    const djb2Hash = (s: string): string => {
+      let h = 5381;
+      for (let i = 0; i < s.length; i++) {
+        h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
+      }
+      return h.toString(16).padStart(8, "0").repeat(8).slice(0, 12);
+    };
+
+    const EMPTY_MANIFEST = {
+      version: 1 as const,
+      snapshots: [] as Array<{
+        filename: string;
+        sessionKeyHash: string;
+        sessionLabel: string | null;
+        createdAt: number;
+        reason: string;
+        appVersion: string;
+        schemaVersion: number;
+        compressedSize: number;
+        checksum: string;
+        contentHash?: string;
+      }>,
+      globalSnapshots: [] as Array<{
+        filename: string;
+        sessionKeyHash: string;
+        sessionLabel: string | null;
+        createdAt: number;
+        reason: string;
+        appVersion: string;
+        schemaVersion: number;
+        compressedSize: number;
+        checksum: string;
+        contentHash?: string;
+      }>,
+    };
+
+    it("skips session write when content hash matches previous snapshot", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      const sessionKeyHash = djb2Hash("session-key");
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        snapshots: [
+          {
+            filename: "existing.bin",
+            sessionKeyHash,
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
+          },
+        ],
+      });
+
+      scheduler.start(store);
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).not.toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("writes session when content hash differs from previous snapshot", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      const sessionKeyHash = djb2Hash("session-key");
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        snapshots: [
+          {
+            filename: "existing.bin",
+            sessionKeyHash,
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            contentHash: "old-hash-different",
+          },
+        ],
+      });
+
+      vi.mocked(computeContentHash).mockResolvedValueOnce(
+        "new-hash-different-value-aabbccdd001122334455aabbccdd001122334455",
+      );
+
+      scheduler.start(store);
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("always writes session on first backup (empty manifest)", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      scheduler.start(store);
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("always writes session when previous entry has no contentHash (old manifest)", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      const sessionKeyHash = djb2Hash("session-key");
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        snapshots: [
+          {
+            filename: "old.bin",
+            sessionKeyHash,
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+          },
+        ],
+      });
+
+      scheduler.start(store);
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("stores contentHash on written snapshot entry", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      scheduler.start(store);
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string; contentHash: string }]
+      >;
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+      expect(sessionCalls.length).toBeGreaterThan(0);
+      expect(sessionCalls[0][0].contentHash).toBe(
+        "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
+      );
+      scheduler.stop();
+    });
+
+    it("skips global write when content hash matches previous global snapshot", async () => {
+      mockReadGlobalState.mockReturnValue({ someKey: "value" });
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        globalSnapshots: [
+          {
+            filename: "sessions/global/existing.bin",
+            sessionKeyHash: "global",
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
+          },
+        ],
+      });
+
+      scheduler.start(store);
+      // Change fingerprint to mark globalDirty
+      store.setState({ globalStateFingerprint: "fp-changed" });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(0);
+
+      mockReadGlobalState.mockReturnValue(null);
+      scheduler.stop();
+    });
+
+    it("writes global when content hash differs", async () => {
+      mockReadGlobalState.mockReturnValue({ someKey: "value" });
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        globalSnapshots: [
+          {
+            filename: "sessions/global/existing.bin",
+            sessionKeyHash: "global",
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            contentHash: "old-global-hash",
+          },
+        ],
+      });
+
+      // First call: session hash; second call: new global hash that differs from stored
+      vi.mocked(computeContentHash)
+        .mockResolvedValueOnce("session-hash")
+        .mockResolvedValueOnce("new-global-hash-different");
+
+      scheduler.start(store);
+      store.setState({ globalStateFingerprint: "fp-changed" });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls.length).toBeGreaterThan(0);
+
+      mockReadGlobalState.mockReturnValue(null);
+      scheduler.stop();
+    });
+
+    it("resets globalDirty even when global write is skipped by dedup", async () => {
+      mockReadGlobalState.mockReturnValue({ someKey: "value" });
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+
+      // Pre-populate manifest so dedup skips global write in the first cycle
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        globalSnapshots: [
+          {
+            filename: "sessions/global/existing.bin",
+            sessionKeyHash: "global",
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
+          },
+        ],
+      });
+
+      scheduler.start(store);
+      // First cycle: change fingerprint → globalDirty=true, but dedup skips write
+      store.setState({
+        globalStateFingerprint: "fp-cycle1",
+        segments: [{ id: "1" }, { id: "2" }] as unknown[],
+      });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[{ sessionKeyHash: string }]>;
+      const globalCallsFirst = callsAfterFirst.filter(
+        ([entry]) => entry.sessionKeyHash === "global",
+      );
+      // Dedup skipped the global write in cycle 1
+      expect(globalCallsFirst).toHaveLength(0);
+
+      // Second cycle: fingerprint unchanged — globalDirty must be false (reset by dedup skip)
+      store.setState({ segments: [{ id: "1" }, { id: "2" }, { id: "3" }] as unknown[] });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterSecond = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[{ sessionKeyHash: string }]>;
+      const globalCallsSecond = callsAfterSecond.filter(
+        ([entry]) => entry.sessionKeyHash === "global",
+      );
+      // Global should still NOT have been written in cycle 2 (dirty was reset)
+      expect(globalCallsSecond).toHaveLength(0);
+
+      mockReadGlobalState.mockReturnValue(null);
       scheduler.stop();
     });
   });
