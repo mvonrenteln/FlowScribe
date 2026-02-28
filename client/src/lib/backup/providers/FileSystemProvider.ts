@@ -39,6 +39,22 @@ const normalizeSnapshotPath = (filename: string): string => {
   return filename;
 };
 
+/**
+ * Validate that a snapshot path is safe (no directory traversal).
+ * Accepts paths like "sessions/{hash}/{timestamp}_{reason}.json.gz"
+ * and legacy "global/{timestamp}_{reason}.json.gz".
+ */
+export const isValidSnapshotPath = (filename: string): boolean => {
+  if (!filename) return false;
+  if (filename.includes("..")) return false;
+  if (filename.startsWith("/") || filename.startsWith("\\")) return false;
+  if (filename.includes("\\")) return false;
+
+  const parts = filename.split("/");
+  const safeSegmentPattern = /^[a-zA-Z0-9_.-]+$/;
+  return parts.every((part) => safeSegmentPattern.test(part));
+};
+
 const writeFile = async (
   dir: FileSystemDirectoryHandle,
   filename: string,
@@ -179,6 +195,7 @@ export class FileSystemProvider implements BackupProvider {
     try {
       const dir = await this.requireHandle();
       const normalized = normalizeSnapshotPath(filename);
+      if (!isValidSnapshotPath(normalized)) return null;
       const parts = normalized.split("/");
       if (parts.length === 3 && parts[0] === "sessions") {
         const sessionsDir = await getSubDirectory(dir, "sessions", false);
@@ -197,6 +214,7 @@ export class FileSystemProvider implements BackupProvider {
       const dir = await this.requireHandle();
       for (const fn of filenames) {
         const normalized = normalizeSnapshotPath(fn);
+        if (!isValidSnapshotPath(normalized)) continue;
         const parts = normalized.split("/");
         if (parts.length === 3 && parts[0] === "sessions") {
           try {
