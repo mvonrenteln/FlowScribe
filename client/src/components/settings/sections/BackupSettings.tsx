@@ -33,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
+import type { BackupScheduler } from "@/lib/backup/BackupScheduler";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
 import { clearDirtyUnloadFlag } from "@/lib/backup/dirtyUnloadFlag";
 import { openRestoreFromFolder } from "@/lib/backup/restore";
@@ -79,6 +80,31 @@ export function BackupSettings() {
   const handleEnable = useCallback(async () => {
     setEnabling(true);
     try {
+      const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
+        .__backupScheduler;
+
+      if (scheduler) {
+        const result = await scheduler.reauthorize();
+        if (result.ok) {
+          if (!isMountedRef.current) return;
+          setBackupConfig({
+            enabled: true,
+            providerType: hasFsAccess() ? "filesystem" : "download",
+            locationLabel: result.locationLabel,
+          });
+          if (!isMountedRef.current) return;
+          setBackupState({ status: "enabled", lastError: null });
+          clearDirtyUnloadFlag();
+          if (hasFsAccess()) {
+            window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+          }
+        } else if (result.error !== "Cancelled") {
+          if (!isMountedRef.current) return;
+          setBackupState({ lastError: result.error });
+        }
+        return;
+      }
+
       const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
       const { DownloadProvider } = await import("@/lib/backup/providers/DownloadProvider");
 
@@ -139,8 +165,14 @@ export function BackupSettings() {
     return () => window.removeEventListener("flowscribe:backup-complete", handler);
   }, [t]);
 
-  const handleBackupNow = useCallback(() => {
-    window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+  const handleBackupNow = useCallback(async () => {
+    const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
+      .__backupScheduler;
+    if (!scheduler) {
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+      return;
+    }
+    await scheduler.backupNow("manual");
   }, []);
 
   const handleRestoreFromFolder = useCallback(async () => {
@@ -280,7 +312,7 @@ export function BackupSettings() {
               )}
 
               <div className="flex flex-wrap items-center gap-2">
-                <Button variant="outline" size="sm" onClick={handleBackupNow}>
+                <Button variant="outline" size="sm" onClick={() => void handleBackupNow()}>
                   {t("backup.settings.backupNowButton")}
                 </Button>
                 {backupConfig.providerType === "filesystem" && (
