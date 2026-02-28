@@ -79,7 +79,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg("Backup scheduler not available");
+      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
       setPhase("error");
       return;
     }
@@ -94,7 +94,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setErrorMsg(err);
       setPhase("error");
     }
-  }, [scheduleAutoDismiss]);
+  }, [scheduleAutoDismiss, t]);
 
   const handlePermissionNeeded = useCallback(async () => {
     setPhase("saving");
@@ -103,7 +103,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg("Backup scheduler not available");
+      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
       setPhase("error");
       return;
     }
@@ -136,7 +136,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setErrorMsg(e instanceof Error ? e.message : String(e));
       setPhase("error");
     }
-  }, [scheduleAutoDismiss]);
+  }, [scheduleAutoDismiss, t]);
 
   const handleNoBackup = useCallback(() => {
     onOpenSettings?.("backup");

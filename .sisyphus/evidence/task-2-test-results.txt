@@ -1,0 +1,20 @@
+(node:49671) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49679) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+(node:49672) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/lib/transcript/__tests__/normalizeTranscript.test.ts (1 test) 1ms
+ ✓ src/lib/__tests__/fuzzy.test.ts (3 tests) 2ms
+ ✓ src/lib/store/utils/__tests__/aiSpeakerConfig.test.ts (1 test) 1ms
+(node:49684) Warning: `--localstorage-file` was provided without a valid path
+(Use `node --trace-warnings ...` to show where the warning was created)
+ ✓ src/components/AICommandPanel/__tests__/truncateText.test.ts (2 tests) 1ms
+ ✓ src/components/__tests__/RewrittenParagraph.test.tsx (1 test) 75ms
+ ✓ src/components/ui/__tests__/chart.test.tsx (2 tests) 18ms
+
+ Test Files  156 passed (156)
+      Tests  1366 passed (1366)
+   Start at  12:40:23
+   Duration  34.82s (transform 6.00s, setup 37.85s, collect 71.88s, tests 28.90s, environment 146.92s, prepare 15.79s)
+
