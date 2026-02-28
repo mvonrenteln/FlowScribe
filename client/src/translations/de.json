@@ -298,7 +298,8 @@
       "dismissButton": "Schließen",
       "savingMessage": "Backup wird erstellt…",
       "successMessage": "Sicherheits-Backup gespeichert",
-      "errorMessage": "Backup fehlgeschlagen: {{error}}"
+      "errorMessage": "Backup fehlgeschlagen: {{error}}",
+      "schedulerNotAvailable": "Backup-Planer nicht verfügbar"
     },
     "snapshots": {
       "title": "Snapshots",

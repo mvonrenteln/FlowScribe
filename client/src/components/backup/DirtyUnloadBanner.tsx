@@ -31,10 +31,14 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
   const [variant, setVariant] = useState<BannerVariant>("no-backup");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasCheckedRef = useRef(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: status read once for variant determination, must not re-trigger on changes
   useEffect(() => {
+    if (hasCheckedRef.current) return;
     const flag = readDirtyUnloadFlag();
     if (!flag.present) return;
+    hasCheckedRef.current = true;
 
     let v: BannerVariant;
     if (backupConfig.enabled && backupState.status === "enabled") {
@@ -46,7 +50,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     }
     setVariant(v);
     setPhase("showing");
-  }, [backupConfig.enabled, backupState.status]);
+  }, [backupConfig.enabled]);
 
   // Cleanup auto-dismiss timer on unmount
   useEffect(() => {
@@ -75,7 +79,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg("Backup scheduler not available");
+      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
       setPhase("error");
       return;
     }
@@ -90,7 +94,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setErrorMsg(err);
       setPhase("error");
     }
-  }, [scheduleAutoDismiss]);
+  }, [scheduleAutoDismiss, t]);
 
   const handlePermissionNeeded = useCallback(async () => {
     setPhase("saving");
@@ -99,7 +103,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg("Backup scheduler not available");
+      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
       setPhase("error");
       return;
     }
@@ -132,7 +136,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setErrorMsg(e instanceof Error ? e.message : String(e));
       setPhase("error");
     }
-  }, [scheduleAutoDismiss]);
+  }, [scheduleAutoDismiss, t]);
 
   const handleNoBackup = useCallback(() => {
     onOpenSettings?.("backup");
