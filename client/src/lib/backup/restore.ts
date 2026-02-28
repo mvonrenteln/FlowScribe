@@ -2,6 +2,7 @@ import { writeGlobalState, writeSessionsSync } from "@/lib/storage";
 import { suppressPersistence } from "@/lib/store/persistenceGuard";
 import type { PersistedSessionsState } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
+import { clearDirtyUnloadFlag } from "./dirtyUnloadFlag";
 import { deserializeSnapshot } from "./snapshotSerializer";
 import type { BackupManifest, SnapshotEntry } from "./types";
 
@@ -163,6 +164,8 @@ export async function restoreSnapshot(
   if (snapshot.globalState) {
     writeGlobalState(snapshot.globalState);
   }
+
+  clearDirtyUnloadFlag();
 
   // Mark restore as checked for this session
   try {

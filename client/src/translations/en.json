@@ -352,7 +352,8 @@
       "dismissButton": "Dismiss",
       "savingMessage": "Creating backup…",
       "successMessage": "Safety backup saved",
-      "errorMessage": "Backup failed: {{error}}"
+      "errorMessage": "Backup failed: {{error}}",
+      "schedulerNotAvailable": "Backup scheduler not available"
     },
     "snapshots": {
       "title": "Snapshots",

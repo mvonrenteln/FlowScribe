@@ -6,11 +6,16 @@ import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 
 // Mutable mock so individual tests can override readGlobalState per-call.
 const mockReadGlobalState = vi.fn(() => null as Record<string, unknown> | null);
+const mockIsPersistenceSuppressed = vi.fn(() => false);
 
 // Mock storage module — readSessionsState is no longer called by BackupScheduler;
 // the scheduler reads from getSessionsCache() on the MinimalStore instead.
 vi.mock("@/lib/storage", () => ({
   readGlobalState: () => mockReadGlobalState(),
+}));
+
+vi.mock("@/lib/store/persistenceGuard", () => ({
+  isPersistenceSuppressed: () => mockIsPersistenceSuppressed(),
 }));
 
 // Mock snapshotSerializer to avoid slow crypto/compression in unit tests
@@ -863,7 +868,11 @@ describe("BackupScheduler", () => {
       const scheduler = new BackupScheduler(provider);
       scheduler.start(store);
 
-      // Do not notify or change content — store should not be dirty
+      // Clear any dirty flag that may have been set during initialization
+      store.setState({
+        backupState: { ...store.getState().backupState, isDirty: false },
+      });
+
       window.dispatchEvent(new Event("beforeunload"));
 
       expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
@@ -926,6 +935,246 @@ describe("BackupScheduler", () => {
       const capturedSession = serializeCalls[serializeCalls.length - 1][0].session;
       expect((capturedSession.segments[0] as { text: string }).text).toBe("updated-only-in-memory");
 
+      scheduler.stop();
+    });
+  });
+
+  describe("Bug fixes: false dirty detection", () => {
+    beforeEach(() => {
+      localStorage.clear();
+      mockIsPersistenceSuppressed.mockReturnValue(false);
+    });
+
+    afterEach(() => {
+      mockIsPersistenceSuppressed.mockReturnValue(false);
+    });
+
+    it("keeps globalDirty false on first tick after startup", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.notify();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const dirtyCalls = setStateCalls.filter(([patch]) => patch.isDirty === true);
+      expect(dirtyCalls).toHaveLength(0);
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect(provider.writeSnapshot).not.toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("does not mark dirty on disabled to enabled transition", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "new" }] as unknown[] });
+      store.notify();
+
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true },
+      });
+      store.notify();
+      store.notify();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const dirtyCalls = setStateCalls.filter(([patch]) => patch.isDirty === true);
+      expect(dirtyCalls).toHaveLength(0);
+      scheduler.stop();
+    });
+
+    it("does not write dirty-unload flag on beforeunload when backup is disabled", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
+    it("does not write dirty-unload flag during persistence suppression", () => {
+      mockIsPersistenceSuppressed.mockReturnValue(true);
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
+    it("writes dirty-unload flag when enabled, dirty, and not suppressed", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).not.toBeNull();
+      scheduler.stop();
+    });
+  });
+
+  describe("Initial snapshot on enable transition", () => {
+    beforeEach(() => {
+      mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+    });
+
+    afterEach(() => {
+      mockReadGlobalState.mockReturnValue(null);
+    });
+
+    it("writes an initial session snapshot on the first critical backup after enabling", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true },
+      });
+      store.notify();
+
+      // Simulate the critical event that BackupSettings.handleEnable dispatches
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Session snapshot must have been written even though nothing was marked dirty
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("writes an initial global snapshot on enable when includeGlobalState is true", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({
+        enabled: false,
+        backupIntervalMinutes: 5,
+        includeGlobalState: true,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true, includeGlobalState: true },
+      });
+      store.notify();
+
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls.length).toBeGreaterThan(0);
+      scheduler.stop();
+    });
+
+    it("resets pendingInitialSnapshot after the first backup so subsequent backups skip clean sessions", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true },
+      });
+      store.notify();
+
+      // First critical backup writes the initial snapshot
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls
+        .length;
+      expect(callsAfterFirst).toBeGreaterThan(0);
+
+      // Second critical backup without any content change should NOT write again
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect((provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+        callsAfterFirst,
+      );
+      scheduler.stop();
+    });
+
+    it("does not write global snapshot on enable when includeGlobalState is false", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({
+        enabled: false,
+        backupIntervalMinutes: 5,
+        includeGlobalState: false,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({
+        backupConfig: {
+          ...store.getState().backupConfig,
+          enabled: true,
+          includeGlobalState: false,
+        },
+      });
+      store.notify();
+
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(0);
+
+      // Session snapshot should still be written
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+      expect(sessionCalls.length).toBeGreaterThan(0);
       scheduler.stop();
     });
   });

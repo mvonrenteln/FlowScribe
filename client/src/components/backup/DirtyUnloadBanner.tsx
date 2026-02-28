@@ -31,10 +31,14 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
   const [variant, setVariant] = useState<BannerVariant>("no-backup");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const dismissTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const hasCheckedRef = useRef(false);
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: status read once for variant determination, must not re-trigger on changes
   useEffect(() => {
+    if (hasCheckedRef.current) return;
     const flag = readDirtyUnloadFlag();
     if (!flag.present) return;
+    hasCheckedRef.current = true;
 
     let v: BannerVariant;
     if (backupConfig.enabled && backupState.status === "enabled") {
@@ -46,7 +50,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     }
     setVariant(v);
     setPhase("showing");
-  }, [backupConfig.enabled, backupState.status]);
+  }, [backupConfig.enabled]);
 
   // Cleanup auto-dismiss timer on unmount
   useEffect(() => {

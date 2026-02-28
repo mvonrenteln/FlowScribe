@@ -1,4 +1,5 @@
 import { readGlobalState } from "@/lib/storage";
+import { isPersistenceSuppressed } from "@/lib/store/persistenceGuard";
 import type { PersistedSession } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { setDirtyUnloadFlag } from "./dirtyUnloadFlag";
@@ -127,9 +128,12 @@ export class BackupScheduler {
   private beforeUnloadHandler: (() => void) | null = null;
   private unsubscribeStore: (() => void) | null = null;
   private store: MinimalStore | null = null;
-  private isBackingUp = false;
   /** Guards against re-entrant onStateChange calls triggered by setBackupState within the handler. */
   private isHandlingStateChange = false;
+  private wasEnabled = false;
+  /** When true, the next backupBatch call writes an initial snapshot regardless of dirty state. */
+  private pendingInitialSnapshot = false;
+  private isBackingUp = false;
 
   constructor(provider: BackupProvider) {
     this.provider = provider;
@@ -154,6 +158,8 @@ export class BackupScheduler {
     // Seed the global-state fingerprint baseline so that the initial store
     // notification (with an unchanged global state) does not spuriously set globalDirty.
     this.lastSeenGlobalFingerprint = seed.globalStateFingerprint;
+    this.lastBackedUpGlobalFingerprint = seed.globalStateFingerprint;
+    this.wasEnabled = seed.backupConfig.enabled;
 
     // Subscribe to store changes
     this.unsubscribeStore = store.subscribe(() => {
@@ -184,7 +190,8 @@ export class BackupScheduler {
 
     // Before unload: persist dirty flag to localStorage for recovery on next startup
     this.beforeUnloadHandler = () => {
-      if (this.hasDirty()) {
+      const state = this.store?.getState();
+      if (state?.backupConfig.enabled && !isPersistenceSuppressed() && this.hasDirty()) {
         setDirtyUnloadFlag();
       }
     };
@@ -226,7 +233,27 @@ export class BackupScheduler {
   private onStateChange(state: MinimalStoreState): void {
     // Guard against re-entrant calls caused by setBackupState within this handler.
     if (this.isHandlingStateChange) return;
-    if (!state.backupConfig.enabled) return;
+    if (!state.backupConfig.enabled) {
+      this.wasEnabled = false;
+      return;
+    }
+    if (!this.wasEnabled) {
+      this.wasEnabled = true;
+      this.dirtySessions.clear();
+      this.dirtySessions.set(state.sessionKey, {
+        isDirty: false,
+        dirtyAt: Date.now(),
+        lastBackedUpSegments: state.segments,
+        lastBackedUpSpeakers: state.speakers,
+        lastBackedUpTags: state.tags,
+        lastBackedUpChapters: state.chapters,
+      });
+      this.globalDirty = false;
+      this.lastBackedUpGlobalFingerprint = state.globalStateFingerprint;
+      this.lastSeenGlobalFingerprint = state.globalStateFingerprint;
+      this.pendingInitialSnapshot = true;
+      return;
+    }
 
     // Restart hard interval when the user changes backupIntervalMinutes
     const configuredIntervalMs = state.backupConfig.backupIntervalMinutes * 60_000;
@@ -337,57 +364,119 @@ export class BackupScheduler {
   }
 
   private async backupBatch(reason: BackupReason = "scheduled"): Promise<void> {
+    if (!this.store) return;
     if (this.isBackingUp) return;
     this.isBackingUp = true;
+    const state = this.store.getState();
+    if (!state.backupConfig.enabled) {
+      this.isBackingUp = false;
+      return;
+    }
+
+    state.setBackupState({ isSaving: true });
+
     try {
-      if (!this.store) return;
-      const state = this.store.getState();
-      if (!state.backupConfig.enabled) return;
+      const accessible = await this.provider.verifyAccess();
+      if (!accessible) {
+        state.setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
+        return;
+      }
 
-      state.setBackupState({ isSaving: true });
+      // Read current manifest
+      const manifest: BackupManifest = (await this.provider.readManifest()) ?? {
+        ...EMPTY_MANIFEST,
+      };
 
-      try {
-        const accessible = await this.provider.verifyAccess();
-        if (!accessible) {
-          state.setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
-          return;
-        }
+      // Read session data from the in-memory cache rather than localStorage so
+      // that snapshots always capture the latest edits, even when the throttled
+      // persistence worker has not yet flushed changes to disk.
+      const sessionsCache = this.store.getSessionsCache();
 
-        // Read current manifest
-        const manifest: BackupManifest = (await this.provider.readManifest()) ?? {
-          ...EMPTY_MANIFEST,
+      // Backup dirty sessions
+      for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
+        if (!dirtyEntry.isDirty && !this.pendingInitialSnapshot) continue;
+        const session = sessionsCache[sessionKey];
+        if (!session) continue;
+
+        const sessionKeyHash = await hashSessionKey(sessionKey);
+        const filename = buildSnapshotFilename(sessionKeyHash, reason);
+
+        const snapshotData = {
+          schemaVersion: SCHEMA_VERSION,
+          appVersion: APP_VERSION,
+          createdAt: Date.now(),
+          sessionKey,
+          reason,
+          checksum: "",
+          session,
         };
 
-        // Read session data from the in-memory cache rather than localStorage so
-        // that snapshots always capture the latest edits, even when the throttled
-        // persistence worker has not yet flushed changes to disk.
-        const sessionsCache = this.store.getSessionsCache();
+        const data = await serializeSnapshot(snapshotData);
 
-        // Backup dirty sessions
-        for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
-          if (!dirtyEntry.isDirty) continue;
-          const session = sessionsCache[sessionKey];
-          if (!session) continue;
+        const entry: SnapshotEntry = {
+          filename,
+          sessionKeyHash,
+          sessionLabel: session.label ?? null,
+          createdAt: snapshotData.createdAt,
+          reason,
+          appVersion: APP_VERSION,
+          schemaVersion: SCHEMA_VERSION,
+          compressedSize: data.length,
+          checksum: snapshotData.checksum,
+        };
 
-          const sessionKeyHash = await hashSessionKey(sessionKey);
-          const filename = buildSnapshotFilename(sessionKeyHash, reason);
+        await this.provider.writeSnapshot(entry, data);
+        manifest.snapshots.push(entry);
+      }
+      // After backup, reset dirty tracking to the current state so the next
+      // identical notification is not treated as a content change.
+      this.dirtySessions.clear();
+      const currentState = this.store.getState();
+      if (currentState.sessionKey) {
+        this.dirtySessions.set(currentState.sessionKey, {
+          isDirty: false,
+          dirtyAt: Date.now(),
+          lastBackedUpSegments: currentState.segments,
+          lastBackedUpSpeakers: currentState.speakers,
+          lastBackedUpTags: currentState.tags,
+          lastBackedUpChapters: currentState.chapters,
+        });
+      }
+
+      // Backup global state if needed
+      if (
+        (this.globalDirty || this.pendingInitialSnapshot) &&
+        state.backupConfig.includeGlobalState
+      ) {
+        const globalState = readGlobalState();
+        if (globalState) {
+          const filename = buildSnapshotFilename("global", reason, true);
 
           const snapshotData = {
             schemaVersion: SCHEMA_VERSION,
             appVersion: APP_VERSION,
             createdAt: Date.now(),
-            sessionKey,
+            sessionKey: "__global__",
             reason,
             checksum: "",
-            session,
+            session: {
+              audioRef: null,
+              transcriptRef: null,
+              segments: [],
+              speakers: [],
+              tags: [],
+              selectedSegmentId: null,
+              currentTime: 0,
+              isWhisperXFormat: false,
+            },
+            globalState,
           };
 
           const data = await serializeSnapshot(snapshotData);
-
-          const entry: SnapshotEntry = {
+          const globalEntry: SnapshotEntry = {
             filename,
-            sessionKeyHash,
-            sessionLabel: session.label ?? null,
+            sessionKeyHash: "global",
+            sessionLabel: null,
             createdAt: snapshotData.createdAt,
             reason,
             appVersion: APP_VERSION,
@@ -396,98 +485,41 @@ export class BackupScheduler {
             checksum: snapshotData.checksum,
           };
 
-          await this.provider.writeSnapshot(entry, data);
-          manifest.snapshots.push(entry);
+          await this.provider.writeSnapshot(globalEntry, data);
+          manifest.globalSnapshots.push(globalEntry);
+          // Record the fingerprint that was current when this backup ran so that
+          // the next onStateChange can skip globalDirty if nothing changed.
+          this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
+          this.globalDirty = false;
         }
-        // After backup, reset dirty tracking to the current state so the next
-        // identical notification is not treated as a content change.
-        this.dirtySessions.clear();
-        const currentState = this.store.getState();
-        if (currentState.sessionKey) {
-          this.dirtySessions.set(currentState.sessionKey, {
-            isDirty: false,
-            dirtyAt: Date.now(),
-            lastBackedUpSegments: currentState.segments,
-            lastBackedUpSpeakers: currentState.speakers,
-            lastBackedUpTags: currentState.tags,
-            lastBackedUpChapters: currentState.chapters,
-          });
-        }
-
-        // Backup global state if needed
-        if (this.globalDirty && state.backupConfig.includeGlobalState) {
-          const globalState = readGlobalState();
-          if (globalState) {
-            const filename = buildSnapshotFilename("global", reason, true);
-
-            const snapshotData = {
-              schemaVersion: SCHEMA_VERSION,
-              appVersion: APP_VERSION,
-              createdAt: Date.now(),
-              sessionKey: "__global__",
-              reason,
-              checksum: "",
-              session: {
-                audioRef: null,
-                transcriptRef: null,
-                segments: [],
-                speakers: [],
-                tags: [],
-                selectedSegmentId: null,
-                currentTime: 0,
-                isWhisperXFormat: false,
-              },
-              globalState,
-            };
-
-            const data = await serializeSnapshot(snapshotData);
-            const globalEntry: SnapshotEntry = {
-              filename,
-              sessionKeyHash: "global",
-              sessionLabel: null,
-              createdAt: snapshotData.createdAt,
-              reason,
-              appVersion: APP_VERSION,
-              schemaVersion: SCHEMA_VERSION,
-              compressedSize: data.length,
-              checksum: snapshotData.checksum,
-            };
-
-            await this.provider.writeSnapshot(globalEntry, data);
-            manifest.globalSnapshots.push(globalEntry);
-            // Record the fingerprint that was current when this backup ran so that
-            // the next onStateChange can skip globalDirty if nothing changed.
-            this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
-            this.globalDirty = false;
-          }
-        }
-
-        // Prune and write manifest
-        const { manifest: pruned, toDelete } = pruneManifest(
-          manifest,
-          state.backupConfig.maxSnapshotsPerSession,
-          state.backupConfig.maxGlobalSnapshots,
-        );
-        if (toDelete.length > 0) {
-          await this.provider.deleteSnapshots(toDelete);
-        }
-        await this.provider.writeManifest(pruned);
-
-        state.setBackupState({
-          lastBackupAt: Date.now(),
-          lastError: null,
-          status: "enabled",
-          isSaving: false,
-          isDirty: false,
-        });
-
-        if (reason === "critical") {
-          window.dispatchEvent(new CustomEvent("flowscribe:backup-complete"));
-        }
-      } catch (e) {
-        const errorMsg = e instanceof Error ? e.message : String(e);
-        state.setBackupState({ status: "error", lastError: errorMsg, isSaving: false });
       }
+      this.pendingInitialSnapshot = false;
+
+      // Prune and write manifest
+      const { manifest: pruned, toDelete } = pruneManifest(
+        manifest,
+        state.backupConfig.maxSnapshotsPerSession,
+        state.backupConfig.maxGlobalSnapshots,
+      );
+      if (toDelete.length > 0) {
+        await this.provider.deleteSnapshots(toDelete);
+      }
+      await this.provider.writeManifest(pruned);
+
+      state.setBackupState({
+        lastBackupAt: Date.now(),
+        lastError: null,
+        status: "enabled",
+        isSaving: false,
+        isDirty: false,
+      });
+
+      if (reason === "critical") {
+        window.dispatchEvent(new CustomEvent("flowscribe:backup-complete"));
+      }
+    } catch (e) {
+      const errorMsg = e instanceof Error ? e.message : String(e);
+      state.setBackupState({ status: "error", lastError: errorMsg, isSaving: false });
     } finally {
       this.isBackingUp = false;
     }
@@ -509,9 +541,8 @@ export class BackupScheduler {
 
     if (!hasLongDirty) return;
 
-    const isDownloadFallback = !this.provider.isSupported();
-    const isPaused = state.backupState.status === "paused";
-    if (isDownloadFallback || isPaused) {
+    // Only remind for download provider or paused status
+    if (!this.provider.isSupported() || state.backupState.status === "paused") {
       try {
         window.dispatchEvent(
           new CustomEvent("flowscribe:backup-reminder", {
