@@ -17,6 +17,32 @@ export interface RestoreCandidate {
 
 const RESTORE_CHECKED_KEY = "flowscribe:restore-checked";
 
+function isValidSnapshotEntry(entry: unknown): entry is SnapshotEntry {
+  if (typeof entry !== "object" || entry === null) return false;
+
+  const candidate = entry as Record<string, unknown>;
+  return (
+    typeof candidate.filename === "string" &&
+    typeof candidate.createdAt === "number" &&
+    Number.isFinite(candidate.createdAt) &&
+    typeof candidate.sessionKeyHash === "string"
+  );
+}
+
+/**
+ * Validates that an unknown value matches the expected backup manifest schema.
+ */
+export function validateManifest(manifest: unknown): manifest is BackupManifest {
+  if (typeof manifest !== "object" || manifest === null) return false;
+
+  const candidate = manifest as Record<string, unknown>;
+  if (candidate.manifestVersion !== 1) return false;
+  if (!Array.isArray(candidate.snapshots)) return false;
+  if (!Array.isArray(candidate.globalSnapshots)) return false;
+
+  return candidate.snapshots.every((entry) => isValidSnapshotEntry(entry));
+}
+
 /**
  * Check if there is a recent backup snapshot to offer for restore.
  *
@@ -58,7 +84,7 @@ export async function checkForRestoreCandidate(
   } catch (_e) {
     return null;
   }
-  if (!manifest || manifest.snapshots.length === 0) return null;
+  if (!validateManifest(manifest) || manifest.snapshots.length === 0) return null;
 
   // Get latest session snapshot
   const sorted = manifest.snapshots.slice().sort((a, b) => b.createdAt - a.createdAt);
@@ -116,6 +142,11 @@ export async function restoreSnapshot(
     };
   }
 
+  // Prevent the Zustand persistence subscriber and beforeunload handler from
+  // overwriting the restored data with the stale in-memory sessions cache.
+  // The page will reload after this function returns, reinitialising the store.
+  suppressPersistence();
+
   // Write session data to localStorage
   const newSessionsState: PersistedSessionsState = {
     sessions: { [snapshot.sessionKey]: snapshot.session },
@@ -132,11 +163,6 @@ export async function restoreSnapshot(
   if (snapshot.globalState) {
     writeGlobalState(snapshot.globalState);
   }
-
-  // Prevent the Zustand persistence subscriber and beforeunload handler from
-  // overwriting the restored data with the stale in-memory sessions cache.
-  // The page will reload after this function returns, reinitialising the store.
-  suppressPersistence();
 
   // Mark restore as checked for this session
   try {
@@ -185,7 +211,7 @@ export async function openRestoreFromFolder(): Promise<{
   const provider = FileSystemProvider.fromHandle(handle);
 
   const manifest = await provider.readManifest();
-  if (!manifest || manifest.snapshots.length === 0) {
+  if (!validateManifest(manifest) || manifest.snapshots.length === 0) {
     throw new Error("Not a valid FlowScribe backup folder (no manifest.json found)");
   }
 

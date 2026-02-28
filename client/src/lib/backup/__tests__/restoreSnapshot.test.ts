@@ -1,29 +1,30 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+const { mockWriteSessionsSync, mockWriteGlobalState, mockSuppressPersistence } = vi.hoisted(() => ({
+  mockWriteSessionsSync: vi.fn().mockReturnValue(true),
+  mockWriteGlobalState: vi.fn().mockReturnValue(true),
+  mockSuppressPersistence: vi.fn(),
+}));
+
 // Must mock before importing the module under test
 vi.mock("@/lib/storage", () => ({
-  writeSessionsSync: vi.fn().mockReturnValue(true),
-  writeGlobalState: vi.fn().mockReturnValue(true),
+  writeSessionsSync: mockWriteSessionsSync,
+  writeGlobalState: mockWriteGlobalState,
 }));
 
 vi.mock("@/lib/store/persistenceGuard", () => ({
-  suppressPersistence: vi.fn(),
+  suppressPersistence: mockSuppressPersistence,
 }));
 
 vi.mock("../snapshotSerializer", () => ({
   deserializeSnapshot: vi.fn(),
 }));
 
-import { writeGlobalState, writeSessionsSync } from "@/lib/storage";
-import { suppressPersistence } from "@/lib/store/persistenceGuard";
 import type { BackupProvider } from "../BackupProvider";
 import { restoreSnapshot } from "../restore";
 import { deserializeSnapshot } from "../snapshotSerializer";
 import type { SnapshotEntry } from "../types";
 
-const mockWriteSessionsSync = vi.mocked(writeSessionsSync);
-const mockWriteGlobalState = vi.mocked(writeGlobalState);
-const mockSuppressPersistence = vi.mocked(suppressPersistence);
 const mockDeserializeSnapshot = vi.mocked(deserializeSnapshot);
 
 const fakeEntry: SnapshotEntry = {
@@ -58,6 +59,8 @@ const fakeSnapshot = {
 };
 
 const fakeProvider: BackupProvider = {
+  isSupported: vi.fn().mockReturnValue(true),
+  enable: vi.fn().mockResolvedValue({ ok: true, locationLabel: "test-location" }),
   verifyAccess: vi.fn().mockResolvedValue(true),
   writeSnapshot: vi.fn(),
   writeManifest: vi.fn(),
@@ -93,15 +96,14 @@ describe("restoreSnapshot", () => {
     });
   });
 
-  it("suppresses persistence after writing to prevent store from overwriting restored data", async () => {
+  it("suppresses persistence before writing to prevent store from overwriting restored data", async () => {
     const result = await restoreSnapshot(fakeProvider, fakeEntry);
 
     expect(result.ok).toBe(true);
     expect(mockSuppressPersistence).toHaveBeenCalledOnce();
-    // suppressPersistence must be called AFTER writeSessionsSync
     const writeOrder = mockWriteSessionsSync.mock.invocationCallOrder[0];
     const suppressOrder = mockSuppressPersistence.mock.invocationCallOrder[0];
-    expect(suppressOrder).toBeGreaterThan(writeOrder);
+    expect(suppressOrder).toBeLessThan(writeOrder);
   });
 
   it("returns error when writeSessionsSync fails", async () => {
@@ -113,8 +115,7 @@ describe("restoreSnapshot", () => {
     if (!result.ok) {
       expect(result.error).toContain("localStorage");
     }
-    // Should NOT suppress persistence on failure
-    expect(mockSuppressPersistence).not.toHaveBeenCalled();
+    expect(mockSuppressPersistence).toHaveBeenCalledOnce();
   });
 
   it("returns error when snapshot file is not found", async () => {
