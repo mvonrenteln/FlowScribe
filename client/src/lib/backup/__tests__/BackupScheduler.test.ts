@@ -79,6 +79,9 @@ const makeStore = (config?: Partial<BackupConfig>) => {
   return {
     getState: () => state,
     getSessionsCache: () => sessionsCache as Record<string, unknown>,
+    setSessionsCache: (next: Record<string, typeof DEFAULT_SESSION_ENTRY>) => {
+      sessionsCache = next;
+    },
     /** Replaces the entry for the active session key in the cache. */
     setSessionEntry: (entry: Partial<typeof DEFAULT_SESSION_ENTRY>) => {
       sessionsCache = {
@@ -261,6 +264,37 @@ describe("BackupScheduler", () => {
     await Promise.resolve();
 
     expect(provider.writeSnapshot).toHaveBeenCalled();
+    scheduler.stop();
+  });
+
+  it("manual backup writes all sessions from cache and global state", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+    store.setSessionsCache({
+      "session-a": {
+        ...DEFAULT_SESSION_ENTRY,
+        segments: [{ id: "a", text: "A" }] as unknown[],
+      },
+      "session-b": {
+        ...DEFAULT_SESSION_ENTRY,
+        segments: [{ id: "b", text: "B" }] as unknown[],
+      },
+    });
+
+    await scheduler.backupNow("manual");
+
+    const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+      [{ sessionKeyHash: string }]
+    >;
+    const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+    const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+
+    expect(sessionCalls.length).toBe(2);
+    expect(globalCalls.length).toBe(1);
     scheduler.stop();
   });
 

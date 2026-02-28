@@ -377,7 +377,8 @@
       "reasonManual": "Manual",
       "reasonEnabled": "On enable",
       "reasonBeforeUnload": "Before close",
-      "unknownSession": "Unknown session"
+      "unknownSession": "Unknown session",
+      "globalSession": "Global settings"
     }
   },
   "transcriptEditor": {
