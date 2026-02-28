@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { SettingsSection } from "@/components/settings/SettingsNav";
 import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
@@ -707,7 +708,10 @@ export const useTranscriptEditor = () => {
     canRedo: canRedoChecked,
     onShowShortcuts: () => setShowShortcuts(true),
     onShowExport: () => setShowExport(true),
-    onOpenSettings: () => setShowSettings(true),
+    onOpenSettings: (section?: string) => {
+      setSettingsInitialSection(section as SettingsSection | undefined);
+      setShowSettings(true);
+    },
     aiCommandPanelOpen: showAICommandPanel,
     onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
     chaptersOutlineOpen: showChaptersOutline,
@@ -983,7 +987,10 @@ export const useTranscriptEditor = () => {
       onAISegmentMergeChange: setShowAISegmentMerge,
       showSettings,
       onSettingsChange: setShowSettings,
-      onOpenSettings: () => setShowSettings(true),
+      onOpenSettings: (section?: string) => {
+        setSettingsInitialSection(section as SettingsSection | undefined);
+        setShowSettings(true);
+      },
       settingsInitialSection,
       setSettingsInitialSection,
     }),
@@ -1020,9 +1027,18 @@ export const useTranscriptEditor = () => {
       open: showAICommandPanel,
       onOpenChange: setShowAICommandPanel,
       filteredSegmentIds: filteredSegments.map((segment) => segment.id),
-      onOpenSettings: () => setShowSettings(true),
+      onOpenSettings: (section?: string) => {
+        setSettingsInitialSection(section as SettingsSection | undefined);
+        setShowSettings(true);
+      },
     }),
-    [filteredSegments, setShowAICommandPanel, setShowSettings, showAICommandPanel],
+    [
+      filteredSegments,
+      setShowAICommandPanel,
+      setShowSettings,
+      setSettingsInitialSection,
+      showAICommandPanel,
+    ],
   );
 
   const chaptersOutlinePanelProps = useMemo(
