@@ -79,13 +79,25 @@ export async function computeChecksum(json: string): Promise<string> {
 }
 
 /**
+ * Serialize JSON with stable key ordering for deterministic checksums.
+ */
+export function stableStringify(obj: unknown): string {
+  return JSON.stringify(obj, (_key, value) => {
+    if (value !== null && typeof value === "object" && !Array.isArray(value)) {
+      return Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)));
+    }
+    return value;
+  });
+}
+
+/**
  * Serialize and compress a SessionSnapshot.
  * Embeds checksum for integrity verification on restore.
  */
 export async function serializeSnapshot(snapshot: SessionSnapshot): Promise<Uint8Array> {
   // First pass: JSON without checksum to compute it
   const snapshotWithoutChecksum = { ...snapshot, checksum: "" };
-  const jsonForChecksum = JSON.stringify(snapshotWithoutChecksum);
+  const jsonForChecksum = stableStringify(snapshotWithoutChecksum);
   const checksum = await computeChecksum(jsonForChecksum);
 
   // Second pass: JSON with checksum embedded
@@ -109,7 +121,7 @@ export async function deserializeSnapshot(data: Uint8Array): Promise<SessionSnap
   // Verify checksum
   const storedChecksum = snapshot.checksum;
   const snapshotWithoutChecksum = { ...snapshot, checksum: "" };
-  const jsonForChecksum = JSON.stringify(snapshotWithoutChecksum);
+  const jsonForChecksum = stableStringify(snapshotWithoutChecksum);
   const computedChecksum = await computeChecksum(jsonForChecksum);
 
   if (storedChecksum !== computedChecksum) {

@@ -7,7 +7,7 @@ import {
   Loader2,
   PauseCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 type ExtendedWindow = Window & { showDirectoryPicker?: unknown };
@@ -66,6 +66,14 @@ export function BackupSettings() {
   const [externalProvider, setExternalProvider] = useState<BackupProvider | null>(null);
   const [externalHandle, setExternalHandle] = useState<FileSystemDirectoryHandle | null>(null);
   const [keepFolderDialogOpen, setKeepFolderDialogOpen] = useState(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(
+    () => () => {
+      isMountedRef.current = false;
+    },
+    [],
+  );
 
   const handleEnable = useCallback(async () => {
     setEnabling(true);
@@ -77,31 +85,38 @@ export function BackupSettings() {
       if (provider.isSupported()) {
         const result = await provider.enable();
         if (result.ok) {
+          if (!isMountedRef.current) return;
           setBackupConfig({
             enabled: true,
             providerType: "filesystem",
             locationLabel: result.locationLabel,
           });
+          if (!isMountedRef.current) return;
           setBackupState({ status: "enabled", lastError: null });
           // Trigger initial backup
           window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
         } else if (result.error !== "Cancelled") {
+          if (!isMountedRef.current) return;
           setBackupState({ lastError: result.error });
         }
       } else {
         const dlProvider = new DownloadProvider();
         const result = await dlProvider.enable();
         if (result.ok) {
+          if (!isMountedRef.current) return;
           setBackupConfig({
             enabled: true,
             providerType: "download",
             locationLabel: result.locationLabel,
           });
+          if (!isMountedRef.current) return;
           setBackupState({ status: "enabled", lastError: null });
         }
       }
     } finally {
-      setEnabling(false);
+      if (isMountedRef.current) {
+        setEnabling(false);
+      }
     }
   }, [setBackupConfig, setBackupState]);
 
@@ -375,7 +390,7 @@ export function BackupSettings() {
         <SnapshotBrowser
           open={showSnapshotBrowser}
           onClose={handleSnapshotBrowserClose}
-          providerType="filesystem"
+          providerType={backupConfig.providerType}
           externalProvider={externalProvider ?? undefined}
           onRestoreSuccess={handleRestoreSuccess}
         />

@@ -43,7 +43,10 @@ export function SettingsSheet({
   showTrigger = true,
 }: SettingsSheetProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  const [activeSection, setActiveSectionState] = useState<SettingsSection>(initialSection);
+  const setActiveSection = useCallback((section: SettingsSection) => {
+    setActiveSectionState(section);
+  }, []);
 
   // Support both controlled and uncontrolled modes
   const isOpen = controlledOpen ?? internalOpen;
@@ -56,11 +59,14 @@ export function SettingsSheet({
       setActiveSection(initialSection);
     }
     prevOpenRef.current = isOpen;
-  }, [isOpen, initialSection]);
+  }, [isOpen, initialSection, setActiveSection]);
 
-  const handleSectionChange = useCallback((section: SettingsSection) => {
-    setActiveSection(section);
-  }, []);
+  const handleSectionChange = useCallback(
+    (section: SettingsSection) => {
+      setActiveSection(section);
+    },
+    [setActiveSection],
+  );
 
   const renderContent = () => {
     switch (activeSection) {
