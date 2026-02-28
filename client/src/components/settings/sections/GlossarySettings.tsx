@@ -68,8 +68,13 @@ export function GlossarySettings() {
       .map((v) => v.trim())
       .filter(Boolean);
 
-  const stripFalsePositiveLabel = (value: string) =>
-    value.replace(/^\s*false positives?:\s*/i, "").trim();
+  const stripFalsePositiveLabel = (value: string) => {
+    let stripped = value.trim();
+    while (/^false positives?:\s*/i.test(stripped)) {
+      stripped = stripped.replace(/^false positives?:\s*/i, "").trim();
+    }
+    return stripped;
+  };
 
   // Handlers
   const handleSave = () => {
@@ -118,12 +123,21 @@ export function GlossarySettings() {
         .map((line) => line.trim())
         .filter(Boolean)
         .map((line) => {
-          const [termPart, variantsPart, falsePositivesPart] = line.split("|");
-          const term = termPart?.trim() ?? "";
-          const variants = variantsPart ? parseList(variantsPart) : [];
-          const falsePositives = falsePositivesPart
-            ? parseList(stripFalsePositiveLabel(falsePositivesPart))
-            : [];
+          const parts = line.split("|").map((p) => p.trim());
+          const term = parts[0] ?? "";
+          const variants: string[] = [];
+          const falsePositives: string[] = [];
+
+          for (let i = 1; i < parts.length; i += 1) {
+            const part = parts[i];
+            if (!part) continue;
+            if (/^false positives?:/i.test(part)) {
+              falsePositives.push(...parseList(stripFalsePositiveLabel(part)));
+            } else {
+              variants.push(...parseList(part));
+            }
+          }
+
           return { term, variants, falsePositives };
         });
       setLexiconEntries(entries);
