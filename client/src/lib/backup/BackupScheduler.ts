@@ -131,6 +131,8 @@ export class BackupScheduler {
   /** Guards against re-entrant onStateChange calls triggered by setBackupState within the handler. */
   private isHandlingStateChange = false;
   private wasEnabled = false;
+  /** When true, the next backupBatch call writes an initial snapshot regardless of dirty state. */
+  private pendingInitialSnapshot = false;
 
   constructor(provider: BackupProvider) {
     this.provider = provider;
@@ -248,6 +250,7 @@ export class BackupScheduler {
       this.globalDirty = false;
       this.lastBackedUpGlobalFingerprint = state.globalStateFingerprint;
       this.lastSeenGlobalFingerprint = state.globalStateFingerprint;
+      this.pendingInitialSnapshot = true;
       return;
     }
 
@@ -385,7 +388,7 @@ export class BackupScheduler {
 
       // Backup dirty sessions
       for (const [sessionKey, dirtyEntry] of this.dirtySessions) {
-        if (!dirtyEntry.isDirty) continue;
+        if (!dirtyEntry.isDirty && !this.pendingInitialSnapshot) continue;
         const session = sessionsCache[sessionKey];
         if (!session) continue;
 
@@ -435,7 +438,10 @@ export class BackupScheduler {
       }
 
       // Backup global state if needed
-      if (this.globalDirty && state.backupConfig.includeGlobalState) {
+      if (
+        (this.globalDirty || this.pendingInitialSnapshot) &&
+        state.backupConfig.includeGlobalState
+      ) {
         const globalState = readGlobalState();
         if (globalState) {
           const filename = buildSnapshotFilename("global", reason, true);
@@ -480,6 +486,7 @@ export class BackupScheduler {
           this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
         }
       }
+      this.pendingInitialSnapshot = false;
       this.globalDirty = false;
 
       // Prune and write manifest

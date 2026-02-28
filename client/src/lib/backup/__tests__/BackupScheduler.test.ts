@@ -972,4 +972,146 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
   });
+
+  describe("Initial snapshot on enable transition", () => {
+    beforeEach(() => {
+      mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+    });
+
+    afterEach(() => {
+      mockReadGlobalState.mockReturnValue(null);
+    });
+
+    it("writes an initial session snapshot on the first critical backup after enabling", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true },
+      });
+      store.notify();
+
+      // Simulate the critical event that BackupSettings.handleEnable dispatches
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      // Session snapshot must have been written even though nothing was marked dirty
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("writes an initial global snapshot on enable when includeGlobalState is true", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({
+        enabled: false,
+        backupIntervalMinutes: 5,
+        includeGlobalState: true,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true, includeGlobalState: true },
+      });
+      store.notify();
+
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls.length).toBeGreaterThan(0);
+      scheduler.stop();
+    });
+
+    it("resets pendingInitialSnapshot after the first backup so subsequent backups skip clean sessions", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Transition: disabled → enabled
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, enabled: true },
+      });
+      store.notify();
+
+      // First critical backup writes the initial snapshot
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls
+        .length;
+      expect(callsAfterFirst).toBeGreaterThan(0);
+
+      // Second critical backup without any content change should NOT write again
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      expect((provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls.length).toBe(
+        callsAfterFirst,
+      );
+      scheduler.stop();
+    });
+
+    it("does not write global snapshot on enable when includeGlobalState is false", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({
+        enabled: false,
+        backupIntervalMinutes: 5,
+        includeGlobalState: false,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({
+        backupConfig: {
+          ...store.getState().backupConfig,
+          enabled: true,
+          includeGlobalState: false,
+        },
+      });
+      store.notify();
+
+      window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
+
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(0);
+
+      // Session snapshot should still be written
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+      expect(sessionCalls.length).toBeGreaterThan(0);
+      scheduler.stop();
+    });
+  });
 });
