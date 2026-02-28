@@ -143,11 +143,6 @@ export async function restoreSnapshot(
     };
   }
 
-  // Prevent the Zustand persistence subscriber and beforeunload handler from
-  // overwriting the restored data with the stale in-memory sessions cache.
-  // The page will reload after this function returns, reinitialising the store.
-  suppressPersistence();
-
   // Write session data to localStorage
   const newSessionsState: PersistedSessionsState = {
     sessions: { [snapshot.sessionKey]: snapshot.session },
@@ -160,6 +155,11 @@ export async function restoreSnapshot(
       error: "Failed to write session data to localStorage (storage may be full)",
     };
   }
+
+  // Prevent the Zustand persistence subscriber and beforeunload handler from
+  // overwriting the restored data with the stale in-memory sessions cache.
+  // The page will reload after this function returns, reinitialising the store.
+  suppressPersistence();
 
   if (snapshot.globalState) {
     writeGlobalState(snapshot.globalState);

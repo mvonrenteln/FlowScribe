@@ -96,14 +96,14 @@ describe("restoreSnapshot", () => {
     });
   });
 
-  it("suppresses persistence before writing to prevent store from overwriting restored data", async () => {
+  it("suppresses persistence after a successful write to prevent stale overwrite", async () => {
     const result = await restoreSnapshot(fakeProvider, fakeEntry);
 
     expect(result.ok).toBe(true);
     expect(mockSuppressPersistence).toHaveBeenCalledOnce();
     const writeOrder = mockWriteSessionsSync.mock.invocationCallOrder[0];
     const suppressOrder = mockSuppressPersistence.mock.invocationCallOrder[0];
-    expect(suppressOrder).toBeLessThan(writeOrder);
+    expect(suppressOrder).toBeGreaterThan(writeOrder);
   });
 
   it("returns error when writeSessionsSync fails", async () => {
@@ -115,7 +115,7 @@ describe("restoreSnapshot", () => {
     if (!result.ok) {
       expect(result.error).toContain("localStorage");
     }
-    expect(mockSuppressPersistence).toHaveBeenCalledOnce();
+    expect(mockSuppressPersistence).not.toHaveBeenCalled();
   });
 
   it("returns error when snapshot file is not found", async () => {
