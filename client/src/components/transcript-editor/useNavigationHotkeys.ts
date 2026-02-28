@@ -380,41 +380,18 @@ export function useNavigationHotkeys({
     return () => window.removeEventListener("keydown", handler, { capture: true });
   }, [tags, selectedSegmentId, toggleTagOnSegment, isTranscriptEditing]);
 
-  // Split at current word: capture-phase listener so the shortcut works even
-  // when the search input has DOM focus (as long as a segment is selected).
-  useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
+  useHotkeys(
+    "s",
+    () => {
       if (isTranscriptEditing()) return;
-      if (e.key !== "s" || e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
-
-      const target = e.target;
-      if (target instanceof HTMLElement) {
-        const isFormElement =
-          target.tagName === "INPUT" ||
-          target.tagName === "TEXTAREA" ||
-          target.tagName === "SELECT";
-        if (isFormElement) {
-          // Allow split from the search input when a segment is already selected
-          if (
-            target.getAttribute("data-testid") === "input-search-transcript" &&
-            selectedSegmentId
-          ) {
-            e.preventDefault();
-            e.stopPropagation();
-            handleSplitAtCurrentWord();
-          }
-          return;
-        }
-        if (target.isContentEditable) return;
-      }
-
-      e.preventDefault();
       handleSplitAtCurrentWord();
-    };
-
-    window.addEventListener("keydown", handler, { capture: true });
-    return () => window.removeEventListener("keydown", handler, { capture: true });
-  }, [isTranscriptEditing, selectedSegmentId, handleSplitAtCurrentWord]);
+    },
+    {
+      enableOnFormTags: false,
+      enableOnContentEditable: false,
+      preventDefault: true,
+    },
+  );
 
   useEffect(() => {
     const handleGlobalArrowNav = (event: KeyboardEvent) => {
