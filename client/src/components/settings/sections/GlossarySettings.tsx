@@ -17,6 +17,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
 import { Slider } from "@/components/ui/slider";
 import { Switch } from "@/components/ui/switch";
+import { parseGlossaryFile, parseList, serializeGlossaryFile } from "@/lib/glossaryIO";
 import { useTranscriptStore } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
@@ -61,21 +62,6 @@ export function GlossarySettings() {
       })
     : sortedEntries;
 
-  // Helpers
-  const parseList = (value: string) =>
-    value
-      .split(",")
-      .map((v) => v.trim())
-      .filter(Boolean);
-
-  const stripFalsePositiveLabel = (value: string) => {
-    let stripped = value.trim();
-    while (/^false positives?:\s*/i.test(stripped)) {
-      stripped = stripped.replace(/^false positives?:\s*/i, "").trim();
-    }
-    return stripped;
-  };
-
   // Handlers
   const handleSave = () => {
     if (!newTerm.trim()) return;
@@ -118,44 +104,13 @@ export function GlossarySettings() {
     const reader = new FileReader();
     reader.onload = () => {
       const content = String(reader.result ?? "");
-      const entries = content
-        .split(/\r?\n/)
-        .map((line) => line.trim())
-        .filter(Boolean)
-        .map((line) => {
-          const parts = line.split("|").map((p) => p.trim());
-          const term = parts[0] ?? "";
-          const variants: string[] = [];
-          const falsePositives: string[] = [];
-
-          for (let i = 1; i < parts.length; i += 1) {
-            const part = parts[i];
-            if (!part) continue;
-            if (/^false positives?:/i.test(part)) {
-              falsePositives.push(...parseList(stripFalsePositiveLabel(part)));
-            } else {
-              variants.push(...parseList(part));
-            }
-          }
-
-          return { term, variants, falsePositives };
-        });
-      setLexiconEntries(entries);
+      setLexiconEntries(parseGlossaryFile(content));
     };
     reader.readAsText(file);
   };
 
   const handleExport = () => {
-    const content = lexiconEntries
-      .map((entry) => {
-        const variantsPart = entry.variants.length > 0 ? ` | ${entry.variants.join(", ")}` : "";
-        const fpPart =
-          entry.falsePositives.length > 0
-            ? ` | false positives: ${entry.falsePositives.join(", ")}`
-            : "";
-        return `${entry.term}${variantsPart}${fpPart}`;
-      })
-      .join("\n");
+    const content = serializeGlossaryFile(lexiconEntries);
     const blob = new Blob([content], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement("a");
