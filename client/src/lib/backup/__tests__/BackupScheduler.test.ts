@@ -259,6 +259,21 @@ describe("BackupScheduler", () => {
     scheduler.stop();
   });
 
+  it("prevents concurrent backupNow calls from writing duplicate snapshots", async () => {
+    const provider = makeMockProvider();
+    const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: false });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+
+    await Promise.all([scheduler.backupNow("manual"), scheduler.backupNow("manual")]);
+
+    expect(provider.writeSnapshot).toHaveBeenCalledTimes(1);
+    scheduler.stop();
+  });
+
   it("dispatches flowscribe:backup-complete after a successful critical backup", async () => {
     const dispatchSpy = vi.spyOn(window, "dispatchEvent");
     const provider = makeMockProvider();
@@ -677,6 +692,55 @@ describe("BackupScheduler", () => {
 
       scheduler.stop();
     });
+
+    it("preserves globalDirty when includeGlobalState is disabled and writes after re-enabling", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({
+        backupIntervalMinutes: 5,
+        includeGlobalState: false,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ globalStateFingerprint: "fp-global-dirty-persisted" });
+      store.notify();
+
+      await scheduler.backupNow("manual");
+
+      store.setState({
+        backupConfig: { ...store.getState().backupConfig, includeGlobalState: true },
+      });
+      await scheduler.backupNow("manual");
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(1);
+
+      scheduler.stop();
+    });
+  });
+
+  it("dispatches reminder when provider is unsupported and a session stays dirty past threshold", async () => {
+    const dispatchSpy = vi.spyOn(window, "dispatchEvent");
+    const provider = makeMockProvider();
+    (provider.isSupported as ReturnType<typeof vi.fn>).mockReturnValue(false);
+    const store = makeStore({ backupIntervalMinutes: 60, disableDirtyReminders: false });
+    const scheduler = new BackupScheduler(provider);
+    scheduler.start(store);
+
+    store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+    store.notify();
+
+    await vi.advanceTimersByTimeAsync(41 * 60_000);
+
+    const reminderEvents = dispatchSpy.mock.calls.filter(
+      ([event]) => event instanceof CustomEvent && event.type === "flowscribe:backup-reminder",
+    );
+    expect(reminderEvents).toHaveLength(1);
+
+    scheduler.stop();
   });
 
   // ─── isSaving / isDirty state tracking ────────────────────────────────────
