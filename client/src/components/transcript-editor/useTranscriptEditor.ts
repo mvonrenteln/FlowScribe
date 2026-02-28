@@ -402,33 +402,8 @@ export const useTranscriptEditor = () => {
     allMatches,
   } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
 
-  // Track previous match identity to avoid unnecessary seek/selection when the
-  // currentMatch object reference changes but the actual match stays the same
-  // (e.g. when segments mutate due to tag toggle while search is active).
-  const prevMatchRef = useRef<{ segmentId: string; startIndex: number } | null>(null);
-
   useEffect(() => {
-    if (!currentMatch) {
-      prevMatchRef.current = null;
-      return;
-    }
-
-    const prev = prevMatchRef.current;
-    if (
-      prev &&
-      prev.segmentId === currentMatch.segmentId &&
-      prev.startIndex === currentMatch.startIndex
-    ) {
-      prevMatchRef.current = {
-        segmentId: currentMatch.segmentId,
-        startIndex: currentMatch.startIndex,
-      };
-      return;
-    }
-    prevMatchRef.current = {
-      segmentId: currentMatch.segmentId,
-      startIndex: currentMatch.startIndex,
-    };
+    if (!currentMatch) return;
 
     setSelectedSegmentId(currentMatch.segmentId);
     const matchedSegment = segments.find((segment) => segment.id === currentMatch.segmentId);
