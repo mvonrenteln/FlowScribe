@@ -34,6 +34,7 @@ import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
+import { clearDirtyUnloadFlag } from "@/lib/backup/dirtyUnloadFlag";
 import { openRestoreFromFolder } from "@/lib/backup/restore";
 import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
 import { readGlobalState, writeGlobalState } from "@/lib/storage";
@@ -83,6 +84,7 @@ export function BackupSettings() {
             locationLabel: result.locationLabel,
           });
           setBackupState({ status: "enabled", lastError: null });
+          clearDirtyUnloadFlag();
           // Trigger initial backup
           window.dispatchEvent(new CustomEvent("flowscribe:backup-critical"));
         } else if (result.error !== "Cancelled") {
@@ -98,6 +100,7 @@ export function BackupSettings() {
             locationLabel: result.locationLabel,
           });
           setBackupState({ status: "enabled", lastError: null });
+          clearDirtyUnloadFlag();
         }
       }
     } finally {

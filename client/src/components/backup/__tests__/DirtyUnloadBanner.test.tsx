@@ -365,4 +365,73 @@ describe("DirtyUnloadBanner", () => {
     expect(mockReauthorize).not.toHaveBeenCalled();
     expect(mockClearFlag).not.toHaveBeenCalled();
   });
+
+  it("Bug B: banner does NOT re-appear after dismiss when backupState.status changes", async () => {
+    setFlagPresent();
+    setBackupEnabled("enabled");
+
+    render(<DirtyUnloadBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unsaved changes detected")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Dismiss"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Unsaved changes detected")).not.toBeInTheDocument();
+    });
+
+    // Simulate status change (e.g. a scheduled backup completing triggers "error")
+    act(() => {
+      useTranscriptStore.setState({
+        backupState: {
+          ...useTranscriptStore.getState().backupState,
+          status: "error",
+          lastError: "disk full",
+        },
+      });
+    });
+
+    // Banner must remain hidden — re-trigger is prevented by hasCheckedRef
+    expect(screen.queryByText("Unsaved changes detected")).not.toBeInTheDocument();
+  });
+
+  it("Bug B: hasCheckedRef prevents re-showing banner after backupConfig.enabled toggles", async () => {
+    setFlagPresent();
+    setBackupEnabled("enabled");
+
+    render(<DirtyUnloadBanner />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Unsaved changes detected")).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Dismiss"));
+
+    await waitFor(() => {
+      expect(screen.queryByText("Unsaved changes detected")).not.toBeInTheDocument();
+    });
+
+    // Toggle enabled off then back on — effect re-runs but hasCheckedRef guards it
+    act(() => {
+      useTranscriptStore.setState({
+        backupConfig: {
+          ...useTranscriptStore.getState().backupConfig,
+          enabled: false,
+        },
+      });
+    });
+    act(() => {
+      useTranscriptStore.setState({
+        backupConfig: {
+          ...useTranscriptStore.getState().backupConfig,
+          enabled: true,
+        },
+      });
+    });
+
+    // Banner must remain hidden
+    expect(screen.queryByText("Unsaved changes detected")).not.toBeInTheDocument();
+  });
 });
