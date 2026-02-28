@@ -149,6 +149,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);
@@ -272,6 +273,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);
@@ -385,6 +387,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);
@@ -477,6 +480,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);
@@ -570,6 +574,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);
@@ -669,6 +674,7 @@ describe("TranscriptList rewrite dialog", () => {
       chapterFocusRequest: null,
       onChapterFocusRequestHandled: vi.fn(),
       isTranscriptEditing: false,
+      onRestoreFromBackup: undefined,
     };
 
     render(<TranscriptList {...props} />);

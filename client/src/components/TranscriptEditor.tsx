@@ -1,4 +1,5 @@
 import { AICommandPanel } from "./AICommandPanel/AICommandPanel";
+import { AdHocRestoreDialogs } from "./backup/AdHocRestoreDialogs";
 import { ChaptersOutlinePanel } from "./ChaptersOutlinePanel";
 import { EditorDialogs } from "./transcript-editor/EditorDialogs";
 import { FilterPanel } from "./transcript-editor/FilterPanel";
@@ -17,6 +18,7 @@ export function TranscriptEditor() {
     dialogProps,
     aiCommandPanelProps,
     chaptersOutlinePanelProps,
+    adHocRestoreProps,
   } = useTranscriptEditor();
 
   return (
@@ -34,6 +36,7 @@ export function TranscriptEditor() {
         <AICommandPanel {...aiCommandPanelProps} />
       </div>
       <EditorDialogs {...dialogProps} />
+      <AdHocRestoreDialogs {...adHocRestoreProps} />
     </div>
   );
 }

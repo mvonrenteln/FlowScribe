@@ -5,7 +5,7 @@
  * Provides a vertical menu to switch between settings sections.
  */
 
-import { Book, Bot, FileText, Gauge, Palette, SpellCheck } from "lucide-react";
+import { Book, Bot, FileText, Gauge, HardDrive, Palette, SpellCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 
@@ -15,7 +15,8 @@ export type SettingsSection =
   | "appearance"
   | "spellcheck"
   | "glossary"
-  | "confidence";
+  | "confidence"
+  | "backup";
 
 export interface SettingsSectionItem {
   id: SettingsSection;
@@ -60,6 +61,12 @@ export const SETTINGS_SECTIONS: SettingsSectionItem[] = [
     label: "Appearance",
     description: "Theme and display",
     icon: Palette,
+  },
+  {
+    id: "backup",
+    label: "Backup",
+    description: "Automatic snapshots",
+    icon: HardDrive,
   },
 ];
 

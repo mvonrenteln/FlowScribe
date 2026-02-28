@@ -62,6 +62,7 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   onShowGlossary: vi.fn(),
   aiCommandPanelOpen: false,
   onToggleAICommandPanel: vi.fn(),
+  onOpenSettings: vi.fn(),
 };
 
 describe("Toolbar", () => {

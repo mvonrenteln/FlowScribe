@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { toast } from "@/hooks/use-toast";
+import type { BackupProvider } from "@/lib/backup/BackupProvider";
+import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
+import { openRestoreFromFolder } from "@/lib/backup/restore";
+import { DEFAULT_BACKUP_CONFIG } from "@/lib/backup/types";
+import { readGlobalState, writeGlobalState } from "@/lib/storage";
 import { type SpellcheckLanguage, useTranscriptStore } from "@/lib/store";
 import { getEmptyStateMessage, useFiltersAndLexicon } from "./useFiltersAndLexicon";
 import { useSearchAndReplace } from "./useSearchAndReplace";
@@ -9,13 +15,20 @@ import { useTranscriptInitialization } from "./useTranscriptInitialization";
 import { useTranscriptPlayback } from "./useTranscriptPlayback";
 import { useTranscriptUIState } from "./useTranscriptUIState";
 
+type ExtendedWindow = Window & { showDirectoryPicker?: unknown };
+const hasFsAccess = () =>
+  typeof window !== "undefined" &&
+  typeof (window as ExtendedWindow).showDirectoryPicker === "function";
+
 export const useTranscriptEditor = () => {
+  const { t } = useTranslation();
   const transcriptActions = useMemo(() => {
     const state = useTranscriptStore.getState();
     return {
       setAudioFile: state.setAudioFile,
       setAudioUrl: state.setAudioUrl,
       setAudioReference: state.setAudioReference,
+      reconnectAudio: state.reconnectAudio,
       activateSession: state.activateSession,
       loadTranscript: state.loadTranscript,
       createRevision: state.createRevision,
@@ -141,6 +154,7 @@ export const useTranscriptEditor = () => {
     setAudioFile,
     setAudioUrl,
     setAudioReference,
+    reconnectAudio,
     activateSession,
     loadTranscript,
     mergeSegments,
@@ -189,6 +203,7 @@ export const useTranscriptEditor = () => {
       setAudioFile,
       setAudioUrl,
       setAudioReference,
+      reconnectAudio,
       loadTranscript,
     });
 
@@ -536,9 +551,69 @@ export const useTranscriptEditor = () => {
         filterSpellcheck,
         filterLowConfidence,
         activeSpeakerName,
+        t,
       }),
-    [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments],
+    [activeSpeakerName, filterLowConfidence, filterSpellcheck, segments, t],
   );
+
+  // Ad-hoc restore from backup folder (empty state button)
+  const [adHocRestoreProvider, setAdHocRestoreProvider] = useState<BackupProvider | null>(null);
+  const [adHocRestoreHandle, setAdHocRestoreHandle] = useState<FileSystemDirectoryHandle | null>(
+    null,
+  );
+  const [showAdHocSnapshotBrowser, setShowAdHocSnapshotBrowser] = useState(false);
+  const [keepFolderDialogOpen, setKeepFolderDialogOpen] = useState(false);
+
+  const handleRestoreFromBackup = useCallback(async () => {
+    try {
+      const result = await openRestoreFromFolder();
+      setAdHocRestoreProvider(result.provider);
+      setAdHocRestoreHandle(result.handle);
+      setShowAdHocSnapshotBrowser(true);
+    } catch (e) {
+      if (e instanceof DOMException && e.name === "AbortError") return;
+      toast({
+        title: t("backup.settings.invalidFolderErrorTitle"),
+        description: t("backup.settings.invalidFolderErrorDescription"),
+        variant: "destructive",
+      });
+    }
+  }, [t]);
+
+  const handleAdHocSnapshotBrowserClose = useCallback(() => {
+    setShowAdHocSnapshotBrowser(false);
+  }, []);
+
+  const handleAdHocRestoreSuccess = useCallback(() => {
+    if (adHocRestoreHandle) {
+      setKeepFolderDialogOpen(true);
+    } else {
+      window.location.reload();
+    }
+  }, [adHocRestoreHandle]);
+
+  const handleKeepAdHocFolder = useCallback(async () => {
+    if (!adHocRestoreHandle) return;
+    await saveDirectoryHandle(adHocRestoreHandle);
+    // Write backup config directly to localStorage instead of going through
+    // Zustand — the persistence subscriber is suppressed after a restore to
+    // prevent overwriting restored session data with the stale in-memory cache.
+    const currentGlobal = readGlobalState() ?? {};
+    writeGlobalState({
+      ...currentGlobal,
+      backupConfig: {
+        ...(currentGlobal.backupConfig ?? DEFAULT_BACKUP_CONFIG),
+        enabled: true,
+        providerType: "filesystem" as const,
+        locationLabel: adHocRestoreHandle.name,
+      },
+    });
+    window.location.reload();
+  }, [adHocRestoreHandle]);
+
+  const handleDismissKeepAdHocFolder = useCallback(() => {
+    window.location.reload();
+  }, []);
 
   const [pendingChapterFocusId, setPendingChapterFocusId] = useState<string | null>(null);
 
@@ -632,6 +707,7 @@ export const useTranscriptEditor = () => {
     canRedo: canRedoChecked,
     onShowShortcuts: () => setShowShortcuts(true),
     onShowExport: () => setShowExport(true),
+    onOpenSettings: () => setShowSettings(true),
     aiCommandPanelOpen: showAICommandPanel,
     onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
     chaptersOutlineOpen: showChaptersOutline,
@@ -813,6 +889,7 @@ export const useTranscriptEditor = () => {
       onChapterFocusRequestHandled: handleChapterFocusRequestHandled,
       isTranscriptEditing: isTranscriptEditingActive,
       allMatches,
+      onRestoreFromBackup: hasFsAccess() ? handleRestoreFromBackup : undefined,
     }),
     [
       activeSegmentId,
@@ -830,6 +907,7 @@ export const useTranscriptEditor = () => {
       findMatchIndex,
       handleChapterFocusRequestHandled,
       handleClearEditRequest,
+      handleRestoreFromBackup,
       handleSelectChapter,
       handleStartChapterAtSegment,
       isRegexSearch,
@@ -970,6 +1048,16 @@ export const useTranscriptEditor = () => {
     dialogProps,
     aiCommandPanelProps,
     chaptersOutlinePanelProps,
+    adHocRestoreProps: {
+      showSnapshotBrowser: showAdHocSnapshotBrowser,
+      provider: adHocRestoreProvider,
+      handle: adHocRestoreHandle,
+      onClose: handleAdHocSnapshotBrowserClose,
+      onRestoreSuccess: handleAdHocRestoreSuccess,
+      keepFolderDialogOpen,
+      onKeepFolder: handleKeepAdHocFolder,
+      onDismissKeepFolder: handleDismissKeepAdHocFolder,
+    },
   };
 };
 

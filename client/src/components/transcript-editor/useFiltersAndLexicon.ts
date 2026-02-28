@@ -362,50 +362,51 @@ export function getEmptyStateMessage({
   filterSpellcheck,
   filterLowConfidence,
   activeSpeakerName,
+  t,
 }: {
   segments: Segment[];
   filterSpellcheck: boolean;
   filterLowConfidence: boolean;
   activeSpeakerName?: string;
+  t: (key: string) => string;
 }) {
   if (segments.length === 0) {
     return {
-      title: "No transcript loaded",
-      description:
-        "Upload an audio file and its Whisper or WhisperX JSON transcript to get started.",
+      title: t("transcript.emptyState.noTranscriptTitle"),
+      description: t("transcript.emptyState.noTranscriptDescription"),
     };
   }
 
   if (filterSpellcheck && activeSpeakerName) {
     return {
-      title: "No spelling issues for this speaker",
-      description: "Clear filters to see all segments.",
+      title: t("transcript.emptyState.noSpellingForSpeakerTitle"),
+      description: t("transcript.emptyState.clearFiltersDescription"),
     };
   }
 
   if (filterSpellcheck) {
     return {
-      title: "No spelling issues",
-      description: "Clear filters to see all segments.",
+      title: t("transcript.emptyState.noSpellingTitle"),
+      description: t("transcript.emptyState.clearFiltersDescription"),
     };
   }
 
   if (filterLowConfidence && activeSpeakerName) {
     return {
-      title: "No low-score segments for this speaker",
-      description: "Adjust the threshold or clear filters to see more segments.",
+      title: t("transcript.emptyState.noLowScoreForSpeakerTitle"),
+      description: t("transcript.emptyState.adjustThresholdDescription"),
     };
   }
 
   if (filterLowConfidence) {
     return {
-      title: "No low-score segments",
-      description: "Adjust the threshold or clear filters to see more segments.",
+      title: t("transcript.emptyState.noLowScoreTitle"),
+      description: t("transcript.emptyState.adjustThresholdDescription"),
     };
   }
 
   return {
-    title: "No segments for this speaker",
-    description: "Click the speaker again to show all segments.",
+    title: t("transcript.emptyState.noSegmentsForSpeakerTitle"),
+    description: t("transcript.emptyState.noSegmentsForSpeakerDescription"),
   };
 }

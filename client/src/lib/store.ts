@@ -1,5 +1,7 @@
 import { create } from "zustand";
 import { subscribeWithSelector } from "zustand/middleware";
+import { BackupScheduler } from "@/lib/backup/BackupScheduler";
+import { type BackupStatus, DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "@/lib/backup/types";
 import { buildSessionKey, type FileReference, isSameFileReference } from "@/lib/fileReference";
 import { mark } from "@/lib/logging";
 import {
@@ -17,6 +19,7 @@ import {
   PLAYING_TIME_PERSIST_STEP,
 } from "./store/constants";
 import { createStoreContext, type StoreContext } from "./store/context";
+import { isPersistenceSuppressed } from "./store/persistenceGuard";
 import {
   createAIChapterDetectionSlice,
   initialAIChapterDetectionState,
@@ -228,6 +231,16 @@ const initialState: InitialStoreState = {
   ),
   // Rewrite state
   ...initialRewriteState,
+  // Backup config (persisted in global state — config only, no runtime state)
+  backupConfig: { ...DEFAULT_BACKUP_CONFIG, ...(globalState?.backupConfig ?? {}) },
+  // Backup runtime state — transient, never persisted, reset on every load
+  backupState: {
+    ...DEFAULT_BACKUP_STATE,
+    status: (globalState?.backupConfig?.enabled ? "enabled" : "disabled") as BackupStatus,
+  },
+  // Fingerprint of the persisted global state. Initialized to "0" so the first
+  // real change always produces a new value. Updated by the persistence subscriber.
+  globalStateFingerprint: "0",
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: null,
   chapterMetadataTitleLoading: false,
@@ -278,15 +291,50 @@ export const useTranscriptStore = create<TranscriptStore>()(
       ...createRewriteSlice(set, get),
       quotaErrorShown: false,
       setQuotaErrorShown: (shown: boolean) => set({ quotaErrorShown: shown }),
+      setBackupConfig: (patch) =>
+        set((state) => ({ backupConfig: { ...state.backupConfig, ...patch } })),
+      setBackupState: (patch) =>
+        set((state) => ({ backupState: { ...state.backupState, ...patch } })),
+      setGlobalStateFingerprint: (fp: string) => set({ globalStateFingerprint: fp }),
     };
   }),
 );
+
+// Initialize backup scheduler (browser only, not in test environment)
+if (typeof window !== "undefined" && !import.meta.env.VITEST) {
+  const initBackup = async () => {
+    const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
+    const { DownloadProvider } = await import("@/lib/backup/providers/DownloadProvider");
+
+    const fsProvider = new FileSystemProvider();
+    await fsProvider.initialize();
+
+    const provider = fsProvider.isSupported() ? fsProvider : new DownloadProvider();
+    const scheduler = new BackupScheduler(provider);
+    // Pass a thin adapter that augments the Zustand store with `getSessionsCache`
+    // so the scheduler can read session data from the synchronously-updated
+    // in-memory cache rather than the throttled localStorage copy.
+    scheduler.start({
+      getState: () => useTranscriptStore.getState(),
+      subscribe: (l) => useTranscriptStore.subscribe(l),
+      getSessionsCache: () => storeContext?.getSessionsCache() ?? {},
+    });
+
+    // Store scheduler reference for access from UI
+    (window as Window & { __backupScheduler?: BackupScheduler }).__backupScheduler = scheduler;
+  };
+  void initBackup();
+}
 
 if (canUseLocalStorage()) {
   let __storeSubscriptionCount = 0;
   useTranscriptStore.subscribe(
     selectPersistenceState,
     (state) => {
+      // After a backup restore writes directly to localStorage, the in-memory
+      // cache is stale.  Suppress all persistence until the page reloads.
+      if (isPersistenceSuppressed()) return;
+
       __storeSubscriptionCount += 1;
       if (__storeSubscriptionCount % 100 === 0) {
         mark("store-subscription-bulk", { count: __storeSubscriptionCount });
@@ -397,6 +445,7 @@ if (canUseLocalStorage()) {
       const nextGlobalPayload = buildGlobalStatePayload(useTranscriptStore.getState());
       const globalChanged =
         !lastGlobalPayload ||
+        lastGlobalPayload.backupConfig !== nextGlobalPayload.backupConfig ||
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||
         lastGlobalPayload.lexiconHighlightUnderline !==
@@ -426,6 +475,11 @@ if (canUseLocalStorage()) {
 
       if (globalChanged) {
         lastGlobalPayload = nextGlobalPayload;
+        // Increment the fingerprint so the BackupScheduler can detect global-state
+        // changes without re-examining the full payload on every store tick.
+        const prev = useTranscriptStore.getState().globalStateFingerprint;
+        const next = String(Number(prev) + 1);
+        useTranscriptStore.getState().setGlobalStateFingerprint(next);
       }
     },
     { equalityFn: arePersistenceSelectionsEqual },
@@ -435,8 +489,9 @@ if (canUseLocalStorage()) {
   // The throttled persist pipeline (with Web Worker) may still be pending when
   // the user refreshes or navigates away, which would cause recent sessions to
   // be lost. This handler ensures all in-memory session data is written.
+  // Skip when persistence is suppressed (backup restore wrote directly to localStorage).
   window.addEventListener("beforeunload", () => {
-    if (storeContext) {
+    if (storeContext && !isPersistenceSuppressed()) {
       writeSessionsSync({
         sessions: storeContext.getSessionsCache(),
         activeSessionKey: storeContext.getActiveSessionKey(),

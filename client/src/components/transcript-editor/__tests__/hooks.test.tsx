@@ -231,8 +231,9 @@ describe("useFiltersAndLexicon", () => {
       filterSpellcheck: true,
       filterLowConfidence: false,
       activeSpeakerName: "Speaker One",
+      t: (key: string) => key,
     });
-    expect(emptyState.title).toMatch(/No spelling issues/i);
+    expect(emptyState.title).toBe("transcript.emptyState.noSpellingForSpeakerTitle");
   });
 
   it("filters segments by low confidence scores", () => {

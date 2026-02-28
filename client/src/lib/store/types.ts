@@ -1,4 +1,5 @@
 import type { MergeBatchLogEntry } from "@/lib/ai/features/segmentMerge/types";
+import type { BackupConfig, BackupState } from "@/lib/backup/types";
 import type { FileReference } from "@/lib/fileReference";
 import type { Chapter, ChapterUpdate } from "@/types/chapter";
 
@@ -97,6 +98,7 @@ export interface PersistedSessionsState {
 }
 
 export interface PersistedGlobalState {
+  backupConfig?: BackupConfig;
   lexiconEntries?: LexiconEntry[];
   lexiconTerms?: string[];
   lexiconThreshold?: number;
@@ -237,6 +239,18 @@ export interface InitialStoreState {
   paragraphRewriteParagraphIndex: number | null;
   paragraphRewriteError: string | null;
   paragraphRewriteAbortController: AbortController | null;
+  // Backup
+  backupConfig: BackupConfig;
+  backupState: BackupState;
+  /**
+   * A stable fingerprint derived from all persisted global-state fields (lexicon,
+   * spellcheck, AI configs, backupConfig, etc.). Updated by the persistence
+   * subscriber whenever `buildGlobalStatePayload` returns a new reference for any
+   * field. Session-only changes (segments, currentTime, UI state) must NOT affect
+   * this value. The BackupScheduler uses it to decide whether a global snapshot
+   * is needed without examining the full global state on every tick.
+   */
+  globalStateFingerprint: string;
   // Chapter Metadata state
   chapterMetadataTitleSuggestions: string[] | null;
   chapterMetadataTitleLoading: boolean;
@@ -267,6 +281,9 @@ export type TranscriptStore = InitialStoreState &
   import("./slices/rewriteSlice").RewriteSlice & {
     quotaErrorShown: boolean;
     setQuotaErrorShown: (shown: boolean) => void;
+    setBackupConfig: (patch: Partial<BackupConfig>) => void;
+    setBackupState: (patch: Partial<BackupState>) => void;
+    setGlobalStateFingerprint: (fp: string) => void;
   };
 
 export interface ConfidenceSlice {
@@ -283,6 +300,15 @@ export interface SessionSlice {
    * the transcript-related state is reset until a transcript is loaded again.
    */
   setAudioReference: (reference: FileReference | null) => void;
+  /**
+   * Wires an audio file to the current session without resetting transcript data.
+   *
+   * Use this when a session with transcript data already exists but has no loaded
+   * audio (e.g. after a backup restore + page reload). Unlike `setAudioReference`,
+   * this action only updates `audioFile` and `audioUrl` — segments, speakers, tags,
+   * chapters, and history are left untouched.
+   */
+  reconnectAudio: (file: File) => void;
   /**
    * Updates the transcript reference and loads the corresponding session when available.
    */

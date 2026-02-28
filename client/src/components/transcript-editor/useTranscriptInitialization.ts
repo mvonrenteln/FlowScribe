@@ -24,6 +24,7 @@ interface UseTranscriptInitializationParams {
   setAudioFile: TranscriptStore["setAudioFile"];
   setAudioUrl: TranscriptStore["setAudioUrl"];
   setAudioReference: TranscriptStore["setAudioReference"];
+  reconnectAudio: TranscriptStore["reconnectAudio"];
   loadTranscript: (params: {
     segments: Segment[];
     isWhisperXFormat: boolean;
@@ -41,6 +42,7 @@ export const useTranscriptInitialization = ({
   setAudioFile,
   setAudioUrl,
   setAudioReference,
+  reconnectAudio,
   loadTranscript,
 }: UseTranscriptInitializationParams) => {
   const { t } = useTranslation();
@@ -52,12 +54,21 @@ export const useTranscriptInitialization = ({
 
   const handleAudioUpload = useCallback(
     (file: File) => {
-      setAudioFile(file);
-      const url = URL.createObjectURL(file);
-      setAudioUrl(url);
-      setAudioReference(buildFileReference(file));
+      // If a session with transcript data already exists but no audio is loaded
+      // (e.g. after a backup restore + page reload), reconnect without resetting
+      // transcript state. In all other cases use the normal path which resets the
+      // transcript when a new audio file is introduced.
+      const isReconnect = audioUrl === null && audioRef !== null;
+      if (isReconnect) {
+        reconnectAudio(file);
+      } else {
+        setAudioFile(file);
+        const url = URL.createObjectURL(file);
+        setAudioUrl(url);
+        setAudioReference(buildFileReference(file));
+      }
     },
-    [setAudioFile, setAudioReference, setAudioUrl],
+    [audioRef, audioUrl, reconnectAudio, setAudioFile, setAudioReference, setAudioUrl],
   );
 
   const handleTranscriptUpload = useCallback(

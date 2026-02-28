@@ -61,6 +61,10 @@ export const createSessionSlice = (
 ): SessionSlice => ({
   setAudioFile: (file) => set({ audioFile: file }),
   setAudioUrl: (url) => set({ audioUrl: url }),
+  reconnectAudio: (file) => {
+    const url = URL.createObjectURL(file);
+    set({ audioFile: file, audioUrl: url });
+  },
   setAudioReference: (reference) => {
     const state = get();
     const audioChanged = !isSameFileReference(state.audioRef, reference);

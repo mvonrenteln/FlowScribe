@@ -32,6 +32,7 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { BackupStatusIndicator } from "../backup/BackupStatusIndicator";
 import { FileUpload } from "../FileUpload";
 import { SettingsButton } from "../settings";
 import { ThemeToggle } from "../ThemeToggle";
@@ -74,6 +75,7 @@ export function Toolbar({
   spellcheckHighlightActive,
   glossaryHighlightActive,
   onShowGlossary,
+  onOpenSettings,
 }: ToolbarProps) {
   const revisionName = sessionKind === "revision" ? (sessionLabel ?? "Revision") : null;
 
@@ -487,6 +489,7 @@ export function Toolbar({
             </TooltipTrigger>
             <TooltipContent>Toggle theme</TooltipContent>
           </Tooltip>
+          <BackupStatusIndicator onOpenSettings={onOpenSettings} />
           <Tooltip>
             <TooltipTrigger asChild>
               <span>

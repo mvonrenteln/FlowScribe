@@ -9,3 +9,4 @@ vite.config.ts.*
 .idea
 .tsbuildinfo
 .vscode/settings.json
+.sisyphus
