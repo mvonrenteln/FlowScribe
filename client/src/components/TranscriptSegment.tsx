@@ -268,6 +268,18 @@ function TranscriptSegmentComponent({
           onChapterDrop(chapterId, segment.id);
         }
       }}
+      onClickCapture={() => {
+        // Explicitly move DOM focus to this segment on any click inside it.
+        // The mouseDown preventDefault in WordList blocks the browser's default
+        // focus transfer, so without this, DOM focus stays on the previously
+        // focused element (e.g. the search input) and keyboard shortcuts
+        // (s/m/p/b/c etc.) never fire via useHotkeys (enableOnFormTags: false).
+        // Capture phase ensures this runs before word-level stopPropagation.
+        // Skip during editing so the textarea retains focus.
+        if (!isEditing) {
+          segmentRef.current?.focus();
+        }
+      }}
       onClick={(event) => {
         // Only trigger the single-click selection path for primary single clicks.
         if (event.button === 0 && event.detail === 1) {

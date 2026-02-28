@@ -17,7 +17,7 @@ interface TranscriptWordProps {
   readonly isActive: boolean;
   readonly isSelected: boolean;
   readonly lexiconMatch?: { term: string; score: number; partIndex?: number };
-  readonly spellcheckMatch?: { suggestions: string[]; partIndex?: number };
+  readonly spellcheckMatch?: { suggestions: string[]; partIndex?: number; spanLength?: number };
   readonly lexiconHighlightUnderline: boolean;
   readonly lexiconHighlightBackground: boolean;
   readonly highlightLowConfidence: boolean;
@@ -26,7 +26,12 @@ interface TranscriptWordProps {
   readonly onToggleExpand: () => void;
   readonly onClick: (e: React.MouseEvent) => void;
   readonly onKeyDown: (e: React.KeyboardEvent) => void;
-  readonly onApplyReplacement: (index: number, replacement: string, partIndex?: number) => void;
+  readonly onApplyReplacement: (
+    index: number,
+    replacement: string,
+    partIndex?: number,
+    spanLength?: number,
+  ) => void;
   readonly onIgnoreLexiconMatch?: (term: string, value: string) => void;
   readonly onIgnoreSpellcheckMatch?: (value: string) => void;
   readonly onAddSpellcheckToGlossary?: (value: string) => void;
@@ -464,7 +469,12 @@ export const TranscriptWord = memo(
                         data-suggestion={suggestion}
                         onClick={(event) => {
                           event.stopPropagation();
-                          onApplyReplacement(index, suggestion, spellcheckMatch?.partIndex);
+                          onApplyReplacement(
+                            index,
+                            suggestion,
+                            spellcheckMatch?.partIndex,
+                            spellcheckMatch?.spanLength,
+                          );
                         }}
                       >
                         {suggestion}

@@ -69,45 +69,56 @@ export function SnapshotBrowser({
   const [restoringFilename, setRestoringFilename] = useState<string | null>(null);
   const [provider, setProvider] = useState<BackupProvider | null>(null);
 
-  const loadSnapshots = useCallback(async () => {
-    setLoadState("loading");
-    try {
-      let prov: BackupProvider;
-      if (externalProvider) {
-        prov = externalProvider;
-      } else if (providerType === "filesystem") {
-        const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
-        prov = new FileSystemProvider();
-      } else {
-        const { DownloadProvider } = await import("@/lib/backup/providers/DownloadProvider");
-        prov = new DownloadProvider();
-      }
-
-      const accessible = await prov.verifyAccess();
-      if (!accessible) {
-        setLoadState("access-denied");
-        return;
-      }
-
-      setProvider(prov);
-      const manifest = await prov.readManifest();
-      const allSnapshots = manifest?.snapshots ?? [];
-      setSessions(groupSnapshotsBySession(allSnapshots));
-      setLoadState("loaded");
-    } catch (_e) {
-      setLoadState("error");
-    }
-  }, [providerType, externalProvider]);
-
   useEffect(() => {
-    if (open) {
-      setSessions([]);
-      setSelectedSessionHash("__all__");
-      setRestoringFilename(null);
-      setProvider(null);
-      void loadSnapshots();
+    if (!open) {
+      return;
     }
-  }, [open, loadSnapshots]);
+
+    let cancelled = false;
+    setSessions([]);
+    setSelectedSessionHash("__all__");
+    setRestoringFilename(null);
+    setProvider(null);
+
+    const run = async () => {
+      setLoadState("loading");
+      try {
+        let prov: BackupProvider;
+        if (externalProvider) {
+          prov = externalProvider;
+        } else if (providerType === "filesystem") {
+          const { FileSystemProvider } = await import("@/lib/backup/providers/FileSystemProvider");
+          prov = new FileSystemProvider();
+        } else {
+          const { DownloadProvider } = await import("@/lib/backup/providers/DownloadProvider");
+          prov = new DownloadProvider();
+        }
+
+        const accessible = await prov.verifyAccess();
+        if (cancelled) return;
+        if (!accessible) {
+          setLoadState("access-denied");
+          return;
+        }
+
+        setProvider(prov);
+        const manifest = await prov.readManifest();
+        if (cancelled) return;
+        const allSnapshots = manifest?.snapshots ?? [];
+        setSessions(groupSnapshotsBySession(allSnapshots));
+        setLoadState("loaded");
+      } catch (_e) {
+        if (cancelled) return;
+        setLoadState("error");
+      }
+    };
+
+    void run();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [open, providerType, externalProvider]);
 
   const handleRestore = useCallback(
     async (entry: SnapshotEntry) => {

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
+import type { SettingsSection } from "@/components/settings/SettingsNav";
 import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
 import { saveDirectoryHandle } from "@/lib/backup/backupHandleStorage";
@@ -466,14 +467,14 @@ export const useTranscriptEditor = () => {
     const defaultPromptId = aiRevisionConfig.defaultPromptId;
     if (!defaultPromptId) {
       toast({
-        title: "No default prompt",
-        description: "Please set a default AI revision prompt in Settings.",
+        title: t("transcriptEditor.noDefaultPrompt.title"),
+        description: t("transcriptEditor.noDefaultPrompt.description"),
         variant: "destructive",
       });
       return;
     }
     startSingleRevision(selectedSegmentId, defaultPromptId);
-  }, [aiRevisionConfig.defaultPromptId, selectedSegmentId, startSingleRevision]);
+  }, [aiRevisionConfig.defaultPromptId, selectedSegmentId, startSingleRevision, t]);
 
   const handleOpenAIRevisionMenu = useCallback(() => {
     if (!selectedSegmentId) return;
@@ -531,18 +532,20 @@ export const useTranscriptEditor = () => {
       const createdKey = createRevision(name, overwrite);
       if (createdKey) {
         toast({
-          title: "Revision saved",
-          description: `“${name.trim()}” is now listed in Recent sessions.`,
+          title: t("transcriptEditor.revisionSaved.title"),
+          description: t("transcriptEditor.revisionSaved.description", {
+            name: name.trim(),
+          }),
         });
         setShowRevisionDialog(false);
       }
       return createdKey;
     },
-    [createRevision, setShowRevisionDialog],
+    [createRevision, setShowRevisionDialog, t],
   );
 
   const activeSessionDisplayName =
-    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? "Current session";
+    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? t("transcriptEditor.currentSession");
 
   const emptyState = useMemo(
     () =>
@@ -707,7 +710,10 @@ export const useTranscriptEditor = () => {
     canRedo: canRedoChecked,
     onShowShortcuts: () => setShowShortcuts(true),
     onShowExport: () => setShowExport(true),
-    onOpenSettings: () => setShowSettings(true),
+    onOpenSettings: (section?: string) => {
+      setSettingsInitialSection(section as SettingsSection | undefined);
+      setShowSettings(true);
+    },
     aiCommandPanelOpen: showAICommandPanel,
     onToggleAICommandPanel: () => setShowAICommandPanel((current) => !current),
     chaptersOutlineOpen: showChaptersOutline,
@@ -983,7 +989,10 @@ export const useTranscriptEditor = () => {
       onAISegmentMergeChange: setShowAISegmentMerge,
       showSettings,
       onSettingsChange: setShowSettings,
-      onOpenSettings: () => setShowSettings(true),
+      onOpenSettings: (section?: string) => {
+        setSettingsInitialSection(section as SettingsSection | undefined);
+        setShowSettings(true);
+      },
       settingsInitialSection,
       setSettingsInitialSection,
     }),
@@ -1020,9 +1029,18 @@ export const useTranscriptEditor = () => {
       open: showAICommandPanel,
       onOpenChange: setShowAICommandPanel,
       filteredSegmentIds: filteredSegments.map((segment) => segment.id),
-      onOpenSettings: () => setShowSettings(true),
+      onOpenSettings: (section?: string) => {
+        setSettingsInitialSection(section as SettingsSection | undefined);
+        setShowSettings(true);
+      },
     }),
-    [filteredSegments, setShowAICommandPanel, setShowSettings, showAICommandPanel],
+    [
+      filteredSegments,
+      setShowAICommandPanel,
+      setShowSettings,
+      setSettingsInitialSection,
+      showAICommandPanel,
+    ],
   );
 
   const chaptersOutlinePanelProps = useMemo(

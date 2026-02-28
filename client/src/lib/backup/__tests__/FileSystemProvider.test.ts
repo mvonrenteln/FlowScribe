@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { FileSystemProvider } from "../providers/FileSystemProvider";
+import { FileSystemProvider, isValidSnapshotPath } from "../providers/FileSystemProvider";
 import type { SnapshotEntry } from "../types";
 
 // ─── In-memory mock of the File System Access API ────────────────────────────
@@ -122,6 +122,27 @@ describe("FileSystemProvider", () => {
   beforeEach(() => {
     root = new MockDirectoryHandle("backup-root");
     provider = FileSystemProvider.fromHandle(root as unknown as FileSystemDirectoryHandle);
+  });
+
+  describe("isValidSnapshotPath", () => {
+    it("accepts valid snapshot paths", () => {
+      expect(isValidSnapshotPath("sessions/abc123/1234567890_scheduled.json.gz")).toBe(true);
+      expect(isValidSnapshotPath("sessions/global/1234567890_manual.json.gz")).toBe(true);
+      expect(isValidSnapshotPath("global/1234567890_manual.json.gz")).toBe(true);
+    });
+
+    it("rejects traversal attack paths", () => {
+      expect(isValidSnapshotPath("../../../etc/passwd")).toBe(false);
+      expect(isValidSnapshotPath("sessions/../../../etc/passwd")).toBe(false);
+      expect(isValidSnapshotPath("sessions/abc123/../../etc/passwd")).toBe(false);
+    });
+
+    it("rejects other unsafe paths", () => {
+      expect(isValidSnapshotPath("/absolute/path")).toBe(false);
+      expect(isValidSnapshotPath("sessions/abc 123/file.json.gz")).toBe(false);
+      expect(isValidSnapshotPath("")).toBe(false);
+      expect(isValidSnapshotPath("sessions/abc123\\file.json.gz")).toBe(false);
+    });
   });
 
   // ── Session snapshots (baseline sanity) ──────────────────────────────────
@@ -265,6 +286,24 @@ describe("FileSystemProvider", () => {
 
     it("deleteSnapshots is a no-op for empty array", async () => {
       await provider.deleteSnapshots([]);
+    });
+
+    it("readSnapshot returns null for traversal path", async () => {
+      const result = await provider.readSnapshot("sessions/abc123/../../etc/passwd");
+      expect(result).toBeNull();
+    });
+
+    it("deleteSnapshots skips traversal path silently", async () => {
+      const entry = makeEntry({
+        filename: "sessions/abc123/1234_scheduled.json.gz",
+        sessionKeyHash: "abc123",
+      });
+      await provider.writeSnapshot(entry, TEST_DATA);
+
+      await provider.deleteSnapshots(["sessions/abc123/../../etc/passwd"]);
+
+      const result = await provider.readSnapshot("sessions/abc123/1234_scheduled.json.gz");
+      expectPayload(result, "snapshot-payload");
     });
   });
 });

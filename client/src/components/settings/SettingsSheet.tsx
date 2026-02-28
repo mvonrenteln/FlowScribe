@@ -6,7 +6,7 @@
  */
 
 import { Settings } from "lucide-react";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -43,15 +43,30 @@ export function SettingsSheet({
   showTrigger = true,
 }: SettingsSheetProps) {
   const [internalOpen, setInternalOpen] = useState(false);
-  const [activeSection, setActiveSection] = useState<SettingsSection>(initialSection);
+  const [activeSection, setActiveSectionState] = useState<SettingsSection>(initialSection);
+  const setActiveSection = useCallback((section: SettingsSection) => {
+    setActiveSectionState(section);
+  }, []);
 
   // Support both controlled and uncontrolled modes
   const isOpen = controlledOpen ?? internalOpen;
   const setIsOpen = controlledOnOpenChange ?? setInternalOpen;
 
-  const handleSectionChange = useCallback((section: SettingsSection) => {
-    setActiveSection(section);
-  }, []);
+  // Sync activeSection when the sheet opens with a specific initialSection
+  const prevOpenRef = useRef(false);
+  useEffect(() => {
+    if (isOpen && !prevOpenRef.current) {
+      setActiveSection(initialSection);
+    }
+    prevOpenRef.current = isOpen;
+  }, [isOpen, initialSection, setActiveSection]);
+
+  const handleSectionChange = useCallback(
+    (section: SettingsSection) => {
+      setActiveSection(section);
+    },
+    [setActiveSection],
+  );
 
   const renderContent = () => {
     switch (activeSection) {

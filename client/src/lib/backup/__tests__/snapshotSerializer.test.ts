@@ -5,6 +5,7 @@ import {
   decompress,
   deserializeSnapshot,
   serializeSnapshot,
+  stableStringify,
 } from "../snapshotSerializer";
 import type { SessionSnapshot } from "../types";
 import { SCHEMA_VERSION } from "../types";
@@ -69,6 +70,31 @@ describe("computeChecksum", () => {
     const cs1 = await computeChecksum('{"a":1}');
     const cs2 = await computeChecksum('{"a":2}');
     expect(cs1).not.toBe(cs2);
+  });
+
+  it("same content with different key insertion order yields same checksum", async () => {
+    const objectA = {
+      reason: "manual",
+      session: {
+        speakers: [],
+        segments: [],
+      },
+      createdAt: 100,
+      checksum: "",
+    };
+    const objectB = {
+      checksum: "",
+      createdAt: 100,
+      session: {
+        segments: [],
+        speakers: [],
+      },
+      reason: "manual",
+    };
+
+    const cs1 = await computeChecksum(stableStringify(objectA));
+    const cs2 = await computeChecksum(stableStringify(objectB));
+    expect(cs1).toBe(cs2);
   });
 });
 

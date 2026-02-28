@@ -1302,4 +1302,100 @@ describe("TranscriptSegment", () => {
     expect(underlined.length).toBe(1);
     expect(underlined[0]?.textContent).toBe("Probe");
   });
+
+  it("moves DOM focus to the segment when clicked while another element has focus", async () => {
+    render(
+      <div>
+        <input data-testid="search-input" />
+        <TranscriptSegment
+          tags={[]}
+          segment={segment}
+          speakers={speakers}
+          isSelected={false}
+          isActive={false}
+          onSelect={vi.fn()}
+          onTextChange={vi.fn()}
+          onSpeakerChange={vi.fn()}
+          onSplit={vi.fn()}
+          onConfirm={vi.fn()}
+          onToggleBookmark={vi.fn()}
+          onDelete={vi.fn()}
+          onSeek={vi.fn()}
+        />
+      </div>,
+    );
+
+    const searchInput = screen.getByTestId("search-input");
+    searchInput.focus();
+    expect(searchInput).toHaveFocus();
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    await userEvent.click(segmentCard);
+
+    expect(segmentCard).toHaveFocus();
+  });
+
+  it("moves DOM focus to the segment when a word is clicked while search input has focus", async () => {
+    render(
+      <div>
+        <input data-testid="search-input" />
+        <TranscriptSegment
+          tags={[]}
+          segment={segment}
+          speakers={speakers}
+          isSelected={false}
+          isActive={false}
+          onSelect={vi.fn()}
+          onTextChange={vi.fn()}
+          onSpeakerChange={vi.fn()}
+          onSplit={vi.fn()}
+          onConfirm={vi.fn()}
+          onToggleBookmark={vi.fn()}
+          onDelete={vi.fn()}
+          onSeek={vi.fn()}
+        />
+      </div>,
+    );
+
+    const searchInput = screen.getByTestId("search-input");
+    searchInput.focus();
+    expect(searchInput).toHaveFocus();
+
+    const word = screen.getByTestId("word-seg-1-0");
+    await userEvent.click(word);
+
+    const segmentCard = screen.getByTestId("segment-seg-1");
+    expect(segmentCard).toHaveFocus();
+  });
+
+  it("does not move focus to the segment during editing (textarea keeps focus)", async () => {
+    render(
+      <TranscriptSegment
+        tags={[]}
+        segment={segment}
+        speakers={speakers}
+        isSelected={false}
+        isActive={false}
+        onSelect={vi.fn()}
+        onTextChange={vi.fn()}
+        onSpeakerChange={vi.fn()}
+        onSplit={vi.fn()}
+        onConfirm={vi.fn()}
+        onToggleBookmark={vi.fn()}
+        onDelete={vi.fn()}
+        onSeek={vi.fn()}
+      />,
+    );
+
+    const textBlock = screen.getByTestId("text-segment-seg-1");
+    fireEvent.doubleClick(textBlock);
+
+    const textarea = screen.getByTestId("textarea-segment-seg-1");
+    await waitFor(() => {
+      expect(textarea).toHaveFocus();
+    });
+
+    fireEvent.click(textarea);
+    expect(textarea).toHaveFocus();
+  });
 });

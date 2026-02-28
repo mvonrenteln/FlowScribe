@@ -133,6 +133,7 @@ export class BackupScheduler {
   private wasEnabled = false;
   /** When true, the next backupBatch call writes an initial snapshot regardless of dirty state. */
   private pendingInitialSnapshot = false;
+  private isBackingUp = false;
 
   constructor(provider: BackupProvider) {
     this.provider = provider;
@@ -364,8 +365,13 @@ export class BackupScheduler {
 
   private async backupBatch(reason: BackupReason = "scheduled"): Promise<void> {
     if (!this.store) return;
+    if (this.isBackingUp) return;
+    this.isBackingUp = true;
     const state = this.store.getState();
-    if (!state.backupConfig.enabled) return;
+    if (!state.backupConfig.enabled) {
+      this.isBackingUp = false;
+      return;
+    }
 
     state.setBackupState({ isSaving: true });
 
@@ -484,10 +490,10 @@ export class BackupScheduler {
           // Record the fingerprint that was current when this backup ran so that
           // the next onStateChange can skip globalDirty if nothing changed.
           this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
+          this.globalDirty = false;
         }
       }
       this.pendingInitialSnapshot = false;
-      this.globalDirty = false;
 
       // Prune and write manifest
       const { manifest: pruned, toDelete } = pruneManifest(
@@ -514,6 +520,8 @@ export class BackupScheduler {
     } catch (e) {
       const errorMsg = e instanceof Error ? e.message : String(e);
       state.setBackupState({ status: "error", lastError: errorMsg, isSaving: false });
+    } finally {
+      this.isBackingUp = false;
     }
   }
 

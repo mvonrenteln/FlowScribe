@@ -345,6 +345,7 @@
       "descriptionBackupAvailable": "Your last session was closed with unsaved edits.",
       "descriptionPermissionNeeded": "Your last session was closed with unsaved edits. Re-authorize your backup folder to create a safety backup.",
       "descriptionNoBackup": "Your last session was closed with unsaved edits. Browser storage should be intact. Enable backups for extra safety.",
+      "schedulerUnavailable": "Backup scheduler not available",
       "createBackupButton": "Create safety backup",
       "reauthorizeButton": "Re-authorize & backup",
       "enableBackupsButton": "Enable backups",
@@ -378,6 +379,17 @@
       "reasonBeforeUnload": "Before close",
       "unknownSession": "Unknown session"
     }
+  },
+  "transcriptEditor": {
+    "noDefaultPrompt": {
+      "title": "No default prompt",
+      "description": "Please set a default AI revision prompt in Settings."
+    },
+    "revisionSaved": {
+      "title": "Revision saved",
+      "description": "\"{{name}}\" is now listed in Recent sessions."
+    },
+    "currentSession": "Current session"
   },
   "transcript": {
     "emptyState": {

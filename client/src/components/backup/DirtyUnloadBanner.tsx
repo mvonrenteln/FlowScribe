@@ -79,7 +79,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
+      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
       setPhase("error");
       return;
     }
@@ -103,7 +103,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg(t("backup.dirtyUnload.schedulerNotAvailable"));
+      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
       setPhase("error");
       return;
     }
