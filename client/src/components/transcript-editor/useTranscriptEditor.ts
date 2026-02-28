@@ -467,14 +467,14 @@ export const useTranscriptEditor = () => {
     const defaultPromptId = aiRevisionConfig.defaultPromptId;
     if (!defaultPromptId) {
       toast({
-        title: "No default prompt",
-        description: "Please set a default AI revision prompt in Settings.",
+        title: t("transcriptEditor.noDefaultPrompt.title"),
+        description: t("transcriptEditor.noDefaultPrompt.description"),
         variant: "destructive",
       });
       return;
     }
     startSingleRevision(selectedSegmentId, defaultPromptId);
-  }, [aiRevisionConfig.defaultPromptId, selectedSegmentId, startSingleRevision]);
+  }, [aiRevisionConfig.defaultPromptId, selectedSegmentId, startSingleRevision, t]);
 
   const handleOpenAIRevisionMenu = useCallback(() => {
     if (!selectedSegmentId) return;
@@ -532,18 +532,20 @@ export const useTranscriptEditor = () => {
       const createdKey = createRevision(name, overwrite);
       if (createdKey) {
         toast({
-          title: "Revision saved",
-          description: `“${name.trim()}” is now listed in Recent sessions.`,
+          title: t("transcriptEditor.revisionSaved.title"),
+          description: t("transcriptEditor.revisionSaved.description", {
+            name: name.trim(),
+          }),
         });
         setShowRevisionDialog(false);
       }
       return createdKey;
     },
-    [createRevision, setShowRevisionDialog],
+    [createRevision, setShowRevisionDialog, t],
   );
 
   const activeSessionDisplayName =
-    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? "Current session";
+    sessionLabel ?? transcriptRef?.name ?? audioFile?.name ?? t("transcriptEditor.currentSession");
 
   const emptyState = useMemo(
     () =>
