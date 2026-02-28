@@ -1,4 +1,5 @@
 import { readGlobalState } from "@/lib/storage";
+import { isPersistenceSuppressed } from "@/lib/store/persistenceGuard";
 import type { PersistedSession } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
 import { setDirtyUnloadFlag } from "./dirtyUnloadFlag";
@@ -129,6 +130,7 @@ export class BackupScheduler {
   private store: MinimalStore | null = null;
   /** Guards against re-entrant onStateChange calls triggered by setBackupState within the handler. */
   private isHandlingStateChange = false;
+  private wasEnabled = false;
 
   constructor(provider: BackupProvider) {
     this.provider = provider;
@@ -153,6 +155,8 @@ export class BackupScheduler {
     // Seed the global-state fingerprint baseline so that the initial store
     // notification (with an unchanged global state) does not spuriously set globalDirty.
     this.lastSeenGlobalFingerprint = seed.globalStateFingerprint;
+    this.lastBackedUpGlobalFingerprint = seed.globalStateFingerprint;
+    this.wasEnabled = seed.backupConfig.enabled;
 
     // Subscribe to store changes
     this.unsubscribeStore = store.subscribe(() => {
@@ -183,7 +187,8 @@ export class BackupScheduler {
 
     // Before unload: persist dirty flag to localStorage for recovery on next startup
     this.beforeUnloadHandler = () => {
-      if (this.hasDirty()) {
+      const state = this.store?.getState();
+      if (state?.backupConfig.enabled && !isPersistenceSuppressed() && this.hasDirty()) {
         setDirtyUnloadFlag();
       }
     };
@@ -225,7 +230,26 @@ export class BackupScheduler {
   private onStateChange(state: MinimalStoreState): void {
     // Guard against re-entrant calls caused by setBackupState within this handler.
     if (this.isHandlingStateChange) return;
-    if (!state.backupConfig.enabled) return;
+    if (!state.backupConfig.enabled) {
+      this.wasEnabled = false;
+      return;
+    }
+    if (!this.wasEnabled) {
+      this.wasEnabled = true;
+      this.dirtySessions.clear();
+      this.dirtySessions.set(state.sessionKey, {
+        isDirty: false,
+        dirtyAt: Date.now(),
+        lastBackedUpSegments: state.segments,
+        lastBackedUpSpeakers: state.speakers,
+        lastBackedUpTags: state.tags,
+        lastBackedUpChapters: state.chapters,
+      });
+      this.globalDirty = false;
+      this.lastBackedUpGlobalFingerprint = state.globalStateFingerprint;
+      this.lastSeenGlobalFingerprint = state.globalStateFingerprint;
+      return;
+    }
 
     // Restart hard interval when the user changes backupIntervalMinutes
     const configuredIntervalMs = state.backupConfig.backupIntervalMinutes * 60_000;
