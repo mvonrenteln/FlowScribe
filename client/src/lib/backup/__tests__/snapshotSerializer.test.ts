@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   compress,
   computeChecksum,
+  computeContentHash,
   decompress,
   deserializeSnapshot,
   serializeSnapshot,
@@ -163,5 +164,119 @@ describe("serializeSnapshot / deserializeSnapshot", () => {
         writable: true,
       });
     }
+  });
+});
+
+describe("computeContentHash", () => {
+  it("returns a 64-char hex string", async () => {
+    const hash = await computeContentHash({ text: "hello" });
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it("is deterministic: same content produces same hash", async () => {
+    const content = { segments: [{ text: "hello", speaker: "Alice" }], speakers: ["Alice"] };
+    const hash1 = await computeContentHash(content);
+    const hash2 = await computeContentHash(content);
+    expect(hash1).toBe(hash2);
+  });
+
+  it("is property-order independent: {a:1,b:2} === {b:2,a:1}", async () => {
+    const contentA = { a: 1, b: 2 };
+    const contentB = { b: 2, a: 1 };
+    const hashA = await computeContentHash(contentA);
+    const hashB = await computeContentHash(contentB);
+    expect(hashA).toBe(hashB);
+  });
+
+  it("is case-sensitive: 'hello' !== 'hellO'", async () => {
+    const hash1 = await computeContentHash({ text: "hello" });
+    const hash2 = await computeContentHash({ text: "hellO" });
+    expect(hash1).not.toBe(hash2);
+  });
+
+  it("handles empty content and returns valid hash", async () => {
+    const hash = await computeContentHash({ segments: [], speakers: [], tags: [] });
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it("detects reverts: hash(original) === hash(revertsToOriginal)", async () => {
+    const original = { text: "original", count: 1 };
+    const modified = { text: "modified", count: 2 };
+    const reverted = { text: "original", count: 1 };
+
+    const hashOriginal = await computeContentHash(original);
+    const hashModified = await computeContentHash(modified);
+    const hashReverted = await computeContentHash(reverted);
+
+    expect(hashOriginal).toBe(hashReverted);
+    expect(hashOriginal).not.toBe(hashModified);
+  });
+
+  it("handles nested objects with reordered keys", async () => {
+    const contentA = {
+      session: { segments: [], speakers: [] },
+      metadata: { createdAt: 100, reason: "manual" },
+    };
+    const contentB = {
+      metadata: { reason: "manual", createdAt: 100 },
+      session: { speakers: [], segments: [] },
+    };
+    const hashA = await computeContentHash(contentA);
+    const hashB = await computeContentHash(contentB);
+    expect(hashA).toBe(hashB);
+  });
+
+  it("handles null values without throwing", async () => {
+    const content = { field1: null, field2: "value", field3: null };
+    const hash = await computeContentHash(content);
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it("works with realistic PersistedSession fixture", async () => {
+    const session = {
+      audioRef: null,
+      transcriptRef: null,
+      segments: [
+        { id: "seg1", text: "Hello world", speaker: "Alice", startTime: 0, endTime: 1.5, confidence: 0.95 },
+        { id: "seg2", text: "How are you?", speaker: "Bob", startTime: 1.5, endTime: 3.0, confidence: 0.88 },
+      ],
+      speakers: ["Alice", "Bob"],
+      tags: [{ id: "tag1", name: "important", color: "red" }],
+      selectedSegmentId: "seg1",
+      currentTime: 0.5,
+      isWhisperXFormat: true,
+    };
+    const hash = await computeContentHash(session);
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it("works with realistic PersistedGlobalState fixture", async () => {
+    const globalState = {
+      lexiconEntries: [
+        { id: "lex1", term: "FlowScribe", replacement: "Flow Scribe" },
+        { id: "lex2", term: "AI", replacement: "Artificial Intelligence" },
+      ],
+      spellcheckEnabled: true,
+      spellcheckLanguage: "en-US",
+      aiProvider: "openai",
+      aiModel: "gpt-4",
+      theme: "dark",
+    };
+    const hash = await computeContentHash(globalState);
+    expect(hash).toHaveLength(64);
+    expect(hash).toMatch(/^[0-9a-f]+$/);
+  });
+
+  it("different content produces different hashes", async () => {
+    const hash1 = await computeContentHash({ value: 1 });
+    const hash2 = await computeContentHash({ value: 2 });
+    const hash3 = await computeContentHash({ value: 1, extra: "field" });
+    expect(hash1).not.toBe(hash2);
+    expect(hash1).not.toBe(hash3);
+    expect(hash2).not.toBe(hash3);
   });
 });

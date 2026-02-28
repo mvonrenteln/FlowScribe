@@ -91,6 +91,17 @@ export function stableStringify(obj: unknown): string {
 }
 
 /**
+ * Compute a SHA-256 hex hash of any JSON-serializable content.
+ * Uses stable key ordering to ensure deterministic hashing.
+ * @param content - Any JSON-serializable value (object, array, primitive)
+ * @returns Promise<string> - 64-character hex SHA-256 hash
+ */
+export async function computeContentHash(content: unknown): Promise<string> {
+  const json = stableStringify(content);
+  return computeChecksum(json);
+}
+
+/**
  * Serialize and compress a SessionSnapshot.
  * Embeds checksum for integrity verification on restore.
  */
