@@ -33,7 +33,8 @@ Produce a clean, reviewable PR from the current local work with minimal risk.
 3. Sync with base:
    - `git fetch origin main`
    - If local edits exist, stash them first (`git stash push -u -m "pre-rebase"`) or use `git rebase --autostash`.
-   - Rebase current branch onto `origin/main`.
+   - If the branch was never pushed, rebase onto `origin/main`.
+   - If the branch was already pushed and force-push was not explicitly requested, merge `origin/main` into the branch instead of rebasing.
    - Resolve conflicts carefully and preserve user changes.
    - If you stashed manually, restore with `git stash pop` and resolve any post-pop conflicts.
 4. Commit pending work:
@@ -43,6 +44,7 @@ Produce a clean, reviewable PR from the current local work with minimal risk.
 5. Push branch:
    - `git push -u origin <branch>` when first push.
    - Otherwise `git push`.
+   - Use `git push --force-with-lease` only when history was intentionally rewritten and the user explicitly requested force push.
 6. Create PR with `gh`:
    - Base: `main`
    - Head: current branch
