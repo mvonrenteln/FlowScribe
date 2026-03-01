@@ -363,6 +363,7 @@
       "error": "Could not load snapshots.",
       "accessDenied": "Backup folder is not accessible. Please re-grant permissions via \"Change folder\".",
       "noSnapshots": "No snapshots found.",
+      "colSession": "Session",
       "colDateTime": "Date / Time",
       "colReason": "Reason",
       "colSize": "Size",

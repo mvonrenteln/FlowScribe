@@ -61,5 +61,10 @@ describe("SnapshotBrowser", () => {
     });
 
     expect(screen.getByText("2 backup.snapshots.sessions")).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "backup.snapshots.colSession" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Interview A")).toBeInTheDocument();
+    expect(screen.getByText("backup.snapshots.globalSession")).toBeInTheDocument();
   });
 });

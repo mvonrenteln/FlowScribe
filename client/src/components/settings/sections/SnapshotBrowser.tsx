@@ -238,6 +238,7 @@ export function SnapshotBrowser({
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead>{t("backup.snapshots.colSession")}</TableHead>
                       <TableHead>{t("backup.snapshots.colDateTime")}</TableHead>
                       <TableHead>{t("backup.snapshots.colReason")}</TableHead>
                       <TableHead className="text-right">{t("backup.snapshots.colSize")}</TableHead>
@@ -276,9 +277,14 @@ function SnapshotRow({ entry, isRestoring, onRestore }: SnapshotRowProps) {
   const { t } = useTranslation();
   const date = new Date(entry.createdAt);
   const dateStr = date.toLocaleString();
+  const sessionLabel =
+    entry.sessionKeyHash === "global"
+      ? t("backup.snapshots.globalSession")
+      : (entry.sessionLabel ?? t("backup.snapshots.unknownSession"));
 
   return (
     <TableRow>
+      <TableCell className="text-sm">{sessionLabel}</TableCell>
       <TableCell className="text-sm">{dateStr}</TableCell>
       <TableCell className="text-sm">{t(reasonTranslationKey(entry.reason))}</TableCell>
       <TableCell className="text-right text-sm text-muted-foreground">
