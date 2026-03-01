@@ -1,7 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { BackupProvider } from "../BackupProvider";
 import { BackupScheduler } from "../BackupScheduler";
-import { computeContentHash } from "../snapshotSerializer";
 import type { BackupConfig, BackupState } from "../types";
 import { DEFAULT_BACKUP_CONFIG, DEFAULT_BACKUP_STATE } from "../types";
 
