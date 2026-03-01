@@ -6,17 +6,32 @@ interface ManifestReconcileResult {
   changed: boolean;
 }
 
+const MAX_CONCURRENT_EXISTENCE_CHECKS = 8;
+
+const snapshotExists = async (provider: BackupProvider, filename: string): Promise<boolean> => {
+  if (typeof provider.hasSnapshot === "function") {
+    return provider.hasSnapshot(filename);
+  }
+  const data = await provider.readSnapshot(filename);
+  return data !== null;
+};
+
 const keepExistingSnapshots = async (
   provider: BackupProvider,
   entries: SnapshotEntry[],
 ): Promise<SnapshotEntry[]> => {
-  const existing = await Promise.all(
-    entries.map(async (entry) => {
-      const data = await provider.readSnapshot(entry.filename);
-      return data ? entry : null;
-    }),
-  );
-  return existing.filter((entry): entry is SnapshotEntry => entry !== null);
+  const existing: SnapshotEntry[] = [];
+  for (let index = 0; index < entries.length; index += MAX_CONCURRENT_EXISTENCE_CHECKS) {
+    const chunk = entries.slice(index, index + MAX_CONCURRENT_EXISTENCE_CHECKS);
+    const chunkMatches = await Promise.all(
+      chunk.map(async (entry) => {
+        const exists = await snapshotExists(provider, entry.filename);
+        return exists ? entry : null;
+      }),
+    );
+    existing.push(...chunkMatches.filter((entry): entry is SnapshotEntry => entry !== null));
+  }
+  return existing;
 };
 
 export async function reconcileManifestWithDisk(

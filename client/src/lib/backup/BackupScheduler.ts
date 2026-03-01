@@ -394,12 +394,15 @@ export class BackupScheduler {
       // persistence worker has not yet flushed changes to disk.
       const sessionsCache = this.store.getSessionsCache();
 
-      const includeAllSessions = reason === "manual";
+      const isManualDownloadBackup = reason === "manual" && isDownloadProvider(this.provider);
+      const includeAllSessions = reason === "manual" && !isManualDownloadBackup;
       const sessionKeysToBackup = includeAllSessions
         ? Object.keys(sessionsCache)
-        : Array.from(this.dirtySessions.entries())
-            .filter(([, dirtyEntry]) => dirtyEntry.isDirty || this.pendingInitialSnapshot)
-            .map(([sessionKey]) => sessionKey);
+        : isManualDownloadBackup
+          ? [state.sessionKey]
+          : Array.from(this.dirtySessions.entries())
+              .filter(([, dirtyEntry]) => dirtyEntry.isDirty || this.pendingInitialSnapshot)
+              .map(([sessionKey]) => sessionKey);
 
       for (const sessionKey of sessionKeysToBackup) {
         const session = sessionsCache[sessionKey];
@@ -475,6 +478,7 @@ export class BackupScheduler {
       // Backup global state if needed
       const shouldBackupGlobal =
         state.backupConfig.includeGlobalState &&
+        !isManualDownloadBackup &&
         (this.globalDirty || this.pendingInitialSnapshot || reason === "manual");
 
       if (shouldBackupGlobal) {
