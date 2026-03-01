@@ -48,6 +48,11 @@ interface SnapshotBrowserProps {
 
 type LoadState = "idle" | "loading" | "access-denied" | "error" | "loaded";
 
+interface VisibleSnapshotRow {
+  entry: SnapshotEntry;
+  sessionLabel: string | null;
+}
+
 /**
  * Dialog that shows all available backup snapshots grouped by session.
  * Allows restoring any snapshot by calling `restoreSnapshot` from restore.ts.
@@ -169,10 +174,27 @@ export function SnapshotBrowser({
     [provider, t, onClose, onRestoreSuccess],
   );
 
-  const visibleEntries =
+  const visibleRows: VisibleSnapshotRow[] =
     selectedSessionHash === "__all__"
-      ? sessions.flatMap((s) => s.entries).sort((a, b) => b.createdAt - a.createdAt)
-      : (sessions.find((s) => s.hash === selectedSessionHash)?.entries ?? []);
+      ? sessions
+          .flatMap((session) =>
+            session.entries.map((entry) => ({
+              entry,
+              sessionLabel: session.label,
+            })),
+          )
+          .sort((a, b) => b.entry.createdAt - a.entry.createdAt)
+      : (() => {
+          const session = sessions.find((s) => s.hash === selectedSessionHash);
+          if (!session) {
+            return [];
+          }
+
+          return session.entries.map((entry) => ({
+            entry,
+            sessionLabel: session.label,
+          }));
+        })();
 
   return (
     <Dialog
@@ -248,10 +270,11 @@ export function SnapshotBrowser({
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {visibleEntries.map((entry) => (
+                    {visibleRows.map(({ entry, sessionLabel }) => (
                       <SnapshotRow
                         key={entry.filename}
                         entry={entry}
+                        sessionLabel={sessionLabel}
                         isRestoring={restoringFilename === entry.filename}
                         onRestore={handleRestore}
                       />
@@ -269,22 +292,23 @@ export function SnapshotBrowser({
 
 interface SnapshotRowProps {
   entry: SnapshotEntry;
+  sessionLabel: string | null;
   isRestoring: boolean;
   onRestore: (entry: SnapshotEntry) => void;
 }
 
-function SnapshotRow({ entry, isRestoring, onRestore }: SnapshotRowProps) {
+function SnapshotRow({ entry, sessionLabel, isRestoring, onRestore }: SnapshotRowProps) {
   const { t } = useTranslation();
   const date = new Date(entry.createdAt);
   const dateStr = date.toLocaleString();
-  const sessionLabel =
+  const sessionDisplayLabel =
     entry.sessionKeyHash === "global"
       ? t("backup.snapshots.globalSession")
-      : (entry.sessionLabel ?? t("backup.snapshots.unknownSession"));
+      : (sessionLabel ?? t("backup.snapshots.unknownSession"));
 
   return (
     <TableRow>
-      <TableCell className="text-sm">{sessionLabel}</TableCell>
+      <TableCell className="text-sm">{sessionDisplayLabel}</TableCell>
       <TableCell className="text-sm">{dateStr}</TableCell>
       <TableCell className="text-sm">{t(reasonTranslationKey(entry.reason))}</TableCell>
       <TableCell className="text-right text-sm text-muted-foreground">
