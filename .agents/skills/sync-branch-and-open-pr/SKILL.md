@@ -32,8 +32,10 @@ Produce a clean, reviewable PR from the current local work with minimal risk.
    - If already on a feature branch, keep it unless the user explicitly wants a rename.
 3. Sync with base:
    - `git fetch origin main`
+   - If local edits exist, stash them first (`git stash push -u -m "pre-rebase"`) or use `git rebase --autostash`.
    - Rebase current branch onto `origin/main`.
    - Resolve conflicts carefully and preserve user changes.
+   - If you stashed manually, restore with `git stash pop` and resolve any post-pop conflicts.
 4. Commit pending work:
    - Stage relevant files.
    - Create a semantic commit message that explains why.
