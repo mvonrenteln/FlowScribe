@@ -422,7 +422,17 @@ export class BackupScheduler {
         // has the same content hash. Checking all entries (not just the latest)
         // supports revert detection — if the user reverts content to a state that
         // was previously backed up, we avoid writing a redundant snapshot.
-        const contentHash = await computeContentHash(session);
+        //
+        // Volatile UI-state and metadata fields are stripped before hashing so that
+        // navigation (selectedSegmentId, currentTime) or persistence-layer timestamps
+        // (updatedAt) do not prevent dedup when transcript content is unchanged.
+        const {
+          updatedAt: _updatedAt,
+          selectedSegmentId: _sel,
+          currentTime: _ct,
+          ...sessionContent
+        } = session;
+        const contentHash = await computeContentHash(sessionContent);
         const hasIdenticalPreviousSnapshot = manifest.snapshots.some(
           (e) => e.sessionKeyHash === sessionKeyHash && e.contentHash === contentHash,
         );

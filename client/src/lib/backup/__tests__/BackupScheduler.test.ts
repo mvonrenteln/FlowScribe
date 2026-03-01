@@ -1425,6 +1425,42 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
 
+    it("excludes volatile session fields (updatedAt, selectedSegmentId, currentTime) from content hash", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+
+      vi.mocked(computeContentHash).mockClear();
+
+      scheduler.start(store);
+      store.setState({
+        segments: [{ id: "1" }, { id: "2" }] as unknown[],
+      });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const hashCalls = vi.mocked(computeContentHash).mock.calls;
+      const sessionHashCall = hashCalls.find((call) => {
+        const arg = call[0] as Record<string, unknown>;
+        return "segments" in arg;
+      });
+      expect(sessionHashCall).toBeDefined();
+      const hashInput = sessionHashCall?.[0] as Record<string, unknown>;
+      expect(hashInput).not.toHaveProperty("updatedAt");
+      expect(hashInput).not.toHaveProperty("selectedSegmentId");
+      expect(hashInput).not.toHaveProperty("currentTime");
+      // Content fields must still be present
+      expect(hashInput).toHaveProperty("segments");
+      expect(hashInput).toHaveProperty("speakers");
+
+      scheduler.stop();
+    });
+
     it("skips global write when content hash matches previous global snapshot", async () => {
       mockReadGlobalState.mockReturnValue({ someKey: "value" });
       const provider = makeMockProvider();
