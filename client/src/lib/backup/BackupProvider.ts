@@ -11,6 +11,7 @@ export interface BackupProvider {
   writeSnapshot(entry: SnapshotEntry, data: Uint8Array): Promise<void>;
   writeManifest(manifest: BackupManifest): Promise<void>;
   readManifest(): Promise<BackupManifest | null>;
+  hasSnapshot?(filename: string): Promise<boolean>;
   readSnapshot(filename: string): Promise<Uint8Array | null>;
   deleteSnapshots(filenames: string[]): Promise<void>;
 }

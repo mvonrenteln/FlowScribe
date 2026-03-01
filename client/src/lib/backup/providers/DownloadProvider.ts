@@ -32,6 +32,10 @@ export class DownloadProvider implements BackupProvider {
     return null;
   }
 
+  async hasSnapshot(_filename: string): Promise<boolean> {
+    return false;
+  }
+
   async readSnapshot(_filename: string): Promise<Uint8Array | null> {
     return null;
   }

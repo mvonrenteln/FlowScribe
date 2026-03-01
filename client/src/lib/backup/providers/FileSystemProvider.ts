@@ -208,6 +208,25 @@ export class FileSystemProvider implements BackupProvider {
     }
   }
 
+  async hasSnapshot(filename: string): Promise<boolean> {
+    try {
+      const dir = await this.requireHandle();
+      const normalized = normalizeSnapshotPath(filename);
+      if (!isValidSnapshotPath(normalized)) return false;
+      const parts = normalized.split("/");
+      if (parts.length === 3 && parts[0] === "sessions") {
+        const sessionsDir = await getSubDirectory(dir, "sessions", false);
+        const sessionDir = await getSubDirectory(sessionsDir, parts[1], false);
+        await sessionDir.getFileHandle(parts[2]);
+        return true;
+      }
+      await dir.getFileHandle(normalized);
+      return true;
+    } catch (_e) {
+      return false;
+    }
+  }
+
   async deleteSnapshots(filenames: string[]): Promise<void> {
     if (filenames.length === 0) return;
     try {

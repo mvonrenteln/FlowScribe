@@ -17,13 +17,17 @@ const entry = (filename: string, sessionKeyHash: string): SnapshotEntry => ({
 
 const makeProvider = (
   existing: Set<string>,
-): BackupProvider & { readSnapshot: ReturnType<typeof vi.fn> } => ({
+): BackupProvider & {
+  hasSnapshot: ReturnType<typeof vi.fn>;
+  readSnapshot: ReturnType<typeof vi.fn>;
+} => ({
   isSupported: vi.fn(() => true),
   enable: vi.fn(async () => ({ ok: true, locationLabel: "test" }) as const),
   verifyAccess: vi.fn(async () => true),
   writeSnapshot: vi.fn(async () => undefined),
   writeManifest: vi.fn(async () => undefined),
   readManifest: vi.fn(async () => null),
+  hasSnapshot: vi.fn(async (filename: string) => existing.has(filename)),
   readSnapshot: vi.fn(async (filename: string) =>
     existing.has(filename) ? new Uint8Array([1, 2, 3]) : null,
   ),
@@ -43,6 +47,8 @@ describe("reconcileManifestWithDisk", () => {
 
     expect(result.changed).toBe(false);
     expect(result.manifest).toEqual(manifest);
+    expect(provider.hasSnapshot).toHaveBeenCalledTimes(2);
+    expect(provider.readSnapshot).not.toHaveBeenCalled();
   });
 
   it("removes snapshot entries whose files are missing", async () => {
@@ -58,5 +64,7 @@ describe("reconcileManifestWithDisk", () => {
     expect(result.changed).toBe(true);
     expect(result.manifest.snapshots).toEqual([entry("sessions/a/1.json.gz", "a")]);
     expect(result.manifest.globalSnapshots).toEqual([]);
+    expect(provider.hasSnapshot).toHaveBeenCalledTimes(3);
+    expect(provider.readSnapshot).not.toHaveBeenCalled();
   });
 });

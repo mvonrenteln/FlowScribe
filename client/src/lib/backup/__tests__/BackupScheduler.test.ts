@@ -1221,186 +1221,7 @@ describe("BackupScheduler", () => {
     });
   });
 
-  // ─── Hash-based deduplication tests ──────────────────────────────────────
-
-  describe("Hash-based deduplication", () => {
-    const INTERVAL_MS_DEDUP = 5 * 60_000;
-
-    /** Compute the djb2 hash of a session key — mirrors hashSessionKey() which takes the first 12 chars of computeChecksum(). */
-    const djb2Hash = (s: string): string => {
-      let h = 5381;
-      for (let i = 0; i < s.length; i++) {
-        h = (((h << 5) + h) ^ s.charCodeAt(i)) >>> 0;
-      }
-      return h.toString(16).padStart(8, "0").repeat(8).slice(0, 12);
-    };
-
-    const EMPTY_MANIFEST = {
-      version: 1 as const,
-      snapshots: [] as Array<{
-        filename: string;
-        sessionKeyHash: string;
-        sessionLabel: string | null;
-        createdAt: number;
-        reason: string;
-        appVersion: string;
-        schemaVersion: number;
-        compressedSize: number;
-        checksum: string;
-        contentHash?: string;
-      }>,
-      globalSnapshots: [] as Array<{
-        filename: string;
-        sessionKeyHash: string;
-        sessionLabel: string | null;
-        createdAt: number;
-        reason: string;
-        appVersion: string;
-        schemaVersion: number;
-        compressedSize: number;
-        checksum: string;
-        contentHash?: string;
-      }>,
-    };
-
-    it("skips session write when content hash matches previous snapshot", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
-
-      const sessionKeyHash = djb2Hash("session-key");
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        snapshots: [
-          {
-            filename: "existing.bin",
-            sessionKeyHash,
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
-          },
-        ],
-      });
-
-      scheduler.start(store);
-      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(provider.writeSnapshot).not.toHaveBeenCalled();
-      scheduler.stop();
-    });
-
-    it("writes session when content hash differs from previous snapshot", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
-
-      const sessionKeyHash = djb2Hash("session-key");
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        snapshots: [
-          {
-            filename: "existing.bin",
-            sessionKeyHash,
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            contentHash: "old-hash-different",
-          },
-        ],
-      });
-
-      vi.mocked(computeContentHash).mockResolvedValueOnce(
-        "new-hash-different-value-aabbccdd001122334455aabbccdd001122334455",
-      );
-
-      scheduler.start(store);
-      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(provider.writeSnapshot).toHaveBeenCalled();
-      scheduler.stop();
-    });
-
-    it("always writes session on first backup (empty manifest)", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
-
-      scheduler.start(store);
-      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(provider.writeSnapshot).toHaveBeenCalled();
-      scheduler.stop();
-    });
-
-    it("always writes session when previous entry has no contentHash (old manifest)", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
-
-      const sessionKeyHash = djb2Hash("session-key");
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        snapshots: [
-          {
-            filename: "old.bin",
-            sessionKeyHash,
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-          },
-        ],
-      });
-
-      scheduler.start(store);
-      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      expect(provider.writeSnapshot).toHaveBeenCalled();
-      scheduler.stop();
-    });
-  });
-
-  describe("DownloadProvider integration — multi-snapshot manual backup", () => {
+  describe("DownloadProvider integration — manual backup fan-out", () => {
     // Creates a duck-typed mock that passes the isDownloadProvider check in BackupScheduler.
     // Does NOT use the real DownloadProvider to avoid DOM dependencies (Blob, URL.createObjectURL).
     const makeDownloadMockProvider = (): BackupProvider & {
@@ -1431,7 +1252,7 @@ describe("BackupScheduler", () => {
       };
     };
 
-    it("multi-session manual backup — no snapshots lost", async () => {
+    it("manual backup writes only the active session for download provider", async () => {
       const provider = makeDownloadMockProvider();
       const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
       const scheduler = new BackupScheduler(provider);
@@ -1439,6 +1260,10 @@ describe("BackupScheduler", () => {
 
       mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
       store.setSessionsCache({
+        "session-key": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "active", text: "Active" }] as unknown[],
+        },
         "session-a": {
           ...DEFAULT_SESSION_ENTRY,
           segments: [{ id: "a", text: "A" }] as unknown[],
@@ -1455,8 +1280,14 @@ describe("BackupScheduler", () => {
 
       await scheduler.backupNow("manual");
 
-      // 3 sessions + 1 global = 4 snapshots queued; the queue fix ensures none are overwritten
-      expect(provider.writeSnapshot).toHaveBeenCalledTimes(4);
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
+
+      expect(sessionCalls).toHaveLength(1);
+      expect(globalCalls).toHaveLength(0);
       scheduler.stop();
     });
 
@@ -1468,6 +1299,10 @@ describe("BackupScheduler", () => {
 
       mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
       store.setSessionsCache({
+        "session-key": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "active", text: "Active" }] as unknown[],
+        },
         "session-a": {
           ...DEFAULT_SESSION_ENTRY,
           segments: [{ id: "a", text: "A" }] as unknown[],
@@ -1480,7 +1315,6 @@ describe("BackupScheduler", () => {
 
       await scheduler.backupNow("manual");
 
-      // Queue has entries before draining
       expect(scheduler.hasPendingDownload()).toBe(true);
 
       scheduler.triggerDownload();
