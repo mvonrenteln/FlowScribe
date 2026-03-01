@@ -1,4 +1,4 @@
-import { writeGlobalState, writeSessionsSync } from "@/lib/storage";
+import { readSessionsState, writeGlobalState, writeSessionsSync } from "@/lib/storage";
 import { suppressPersistence } from "@/lib/store/persistenceGuard";
 import type { PersistedSessionsState } from "@/lib/store/types";
 import type { BackupProvider } from "./BackupProvider";
@@ -143,26 +143,36 @@ export async function restoreSnapshot(
     };
   }
 
-  // Write session data to localStorage
-  const newSessionsState: PersistedSessionsState = {
-    sessions: { [snapshot.sessionKey]: snapshot.session },
-    activeSessionKey: snapshot.sessionKey,
-  };
-  const written = writeSessionsSync(newSessionsState);
-  if (!written) {
-    return {
-      ok: false,
-      error: "Failed to write session data to localStorage (storage may be full)",
+  if (entry.sessionKeyHash === "global") {
+    if (snapshot.globalState) {
+      writeGlobalState(snapshot.globalState);
+    }
+  } else {
+    const currentSessions = readSessionsState();
+    const mergedSessions: PersistedSessionsState = {
+      sessions: {
+        ...currentSessions.sessions,
+        [snapshot.sessionKey]: snapshot.session,
+      },
+      activeSessionKey: snapshot.sessionKey,
     };
-  }
 
-  // Prevent the Zustand persistence subscriber and beforeunload handler from
-  // overwriting the restored data with the stale in-memory sessions cache.
-  // The page will reload after this function returns, reinitialising the store.
-  suppressPersistence();
+    const written = writeSessionsSync(mergedSessions);
+    if (!written) {
+      return {
+        ok: false,
+        error: "Failed to write session data to localStorage (storage may be full)",
+      };
+    }
 
-  if (snapshot.globalState) {
-    writeGlobalState(snapshot.globalState);
+    // Prevent the Zustand persistence subscriber and beforeunload handler from
+    // overwriting the restored data with the stale in-memory sessions cache.
+    // The page will reload after this function returns, reinitialising the store.
+    suppressPersistence();
+
+    if (snapshot.globalState) {
+      writeGlobalState(snapshot.globalState);
+    }
   }
 
   clearDirtyUnloadFlag();

@@ -27,6 +27,7 @@ import {
 } from "@/components/ui/table";
 import { toast } from "@/hooks/use-toast";
 import type { BackupProvider } from "@/lib/backup/BackupProvider";
+import { reconcileManifestWithDisk } from "@/lib/backup/manifestSync";
 import { restoreSnapshot } from "@/lib/backup/restore";
 import {
   formatSnapshotSize,
@@ -104,8 +105,27 @@ export function SnapshotBrowser({
         setProvider(prov);
         const manifest = await prov.readManifest();
         if (cancelled) return;
-        const allSnapshots = manifest?.snapshots ?? [];
-        setSessions(groupSnapshotsBySession(allSnapshots));
+
+        if (!manifest) {
+          setSessions([]);
+          setLoadState("loaded");
+          return;
+        }
+
+        const reconciled = await reconcileManifestWithDisk(prov, manifest);
+        if (cancelled) return;
+
+        if (reconciled.changed) {
+          await prov.writeManifest(reconciled.manifest);
+          if (cancelled) return;
+        }
+
+        setSessions(
+          groupSnapshotsBySession([
+            ...reconciled.manifest.snapshots,
+            ...reconciled.manifest.globalSnapshots,
+          ]),
+        );
         setLoadState("loaded");
       } catch (_e) {
         if (cancelled) return;
@@ -204,7 +224,9 @@ export function SnapshotBrowser({
                       <SelectItem value="__all__">{t("backup.snapshots.allSessions")}</SelectItem>
                       {sessions.map((s) => (
                         <SelectItem key={s.hash} value={s.hash}>
-                          {s.label ?? t("backup.snapshots.unknownSession")}
+                          {s.hash === "global"
+                            ? t("backup.snapshots.globalSession")
+                            : (s.label ?? t("backup.snapshots.unknownSession"))}
                         </SelectItem>
                       ))}
                     </SelectContent>

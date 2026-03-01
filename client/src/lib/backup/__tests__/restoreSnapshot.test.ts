@@ -1,6 +1,26 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { mockWriteSessionsSync, mockWriteGlobalState, mockSuppressPersistence } = vi.hoisted(() => ({
+const {
+  mockReadSessionsState,
+  mockWriteSessionsSync,
+  mockWriteGlobalState,
+  mockSuppressPersistence,
+} = vi.hoisted(() => ({
+  mockReadSessionsState: vi.fn().mockReturnValue({
+    sessions: {
+      "existing-session": {
+        audioRef: null,
+        transcriptRef: null,
+        segments: [{ id: "existing", text: "Keep me", start: 0, end: 1 }],
+        speakers: [],
+        tags: [],
+        selectedSegmentId: null,
+        currentTime: 0,
+        isWhisperXFormat: false,
+      },
+    },
+    activeSessionKey: "existing-session",
+  }),
   mockWriteSessionsSync: vi.fn().mockReturnValue(true),
   mockWriteGlobalState: vi.fn().mockReturnValue(true),
   mockSuppressPersistence: vi.fn(),
@@ -8,6 +28,7 @@ const { mockWriteSessionsSync, mockWriteGlobalState, mockSuppressPersistence } =
 
 // Must mock before importing the module under test
 vi.mock("@/lib/storage", () => ({
+  readSessionsState: mockReadSessionsState,
   writeSessionsSync: mockWriteSessionsSync,
   writeGlobalState: mockWriteGlobalState,
 }));
@@ -37,6 +58,12 @@ const fakeEntry: SnapshotEntry = {
   schemaVersion: 1,
   compressedSize: 1024,
   checksum: "deadbeef",
+};
+
+const fakeGlobalEntry: SnapshotEntry = {
+  ...fakeEntry,
+  filename: "sessions/global/snap-global.bin",
+  sessionKeyHash: "global",
 };
 
 const fakeSnapshot = {
@@ -74,6 +101,21 @@ const fakeProvider: BackupProvider = {
 describe("restoreSnapshot", () => {
   beforeEach(() => {
     vi.resetAllMocks();
+    mockReadSessionsState.mockReturnValue({
+      sessions: {
+        "existing-session": {
+          audioRef: null,
+          transcriptRef: null,
+          segments: [{ id: "existing", text: "Keep me", start: 0, end: 1 }],
+          speakers: [],
+          tags: [],
+          selectedSegmentId: null,
+          currentTime: 0,
+          isWhisperXFormat: false,
+        },
+      },
+      activeSessionKey: "existing-session",
+    });
     mockWriteSessionsSync.mockReturnValue(true);
     mockWriteGlobalState.mockReturnValue(true);
     mockDeserializeSnapshot.mockResolvedValue(fakeSnapshot as never);
@@ -91,7 +133,19 @@ describe("restoreSnapshot", () => {
 
     expect(result).toEqual({ ok: true });
     expect(mockWriteSessionsSync).toHaveBeenCalledWith({
-      sessions: { "session-key-1": fakeSnapshot.session },
+      sessions: {
+        "existing-session": {
+          audioRef: null,
+          transcriptRef: null,
+          segments: [{ id: "existing", text: "Keep me", start: 0, end: 1 }],
+          speakers: [],
+          tags: [],
+          selectedSegmentId: null,
+          currentTime: 0,
+          isWhisperXFormat: false,
+        },
+        "session-key-1": fakeSnapshot.session,
+      },
       activeSessionKey: "session-key-1",
     });
   });
@@ -140,6 +194,21 @@ describe("restoreSnapshot", () => {
 
     expect(result.ok).toBe(true);
     expect(mockWriteGlobalState).toHaveBeenCalledWith(globalState);
+  });
+
+  it("global restore updates only global state and keeps sessions untouched", async () => {
+    const globalState = { backupConfig: { enabled: true } };
+    mockDeserializeSnapshot.mockResolvedValue({
+      ...fakeSnapshot,
+      globalState,
+    } as never);
+
+    const result = await restoreSnapshot(fakeProvider, fakeGlobalEntry);
+
+    expect(result.ok).toBe(true);
+    expect(mockWriteGlobalState).toHaveBeenCalledWith(globalState);
+    expect(mockWriteSessionsSync).not.toHaveBeenCalled();
+    expect(mockSuppressPersistence).not.toHaveBeenCalled();
   });
 
   it("does not write globalState when snapshot does not include it", async () => {
