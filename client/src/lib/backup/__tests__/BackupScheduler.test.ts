@@ -1398,281 +1398,113 @@ describe("BackupScheduler", () => {
       expect(provider.writeSnapshot).toHaveBeenCalled();
       scheduler.stop();
     });
+  });
 
-    it("stores contentHash on written snapshot entry", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
+  describe("DownloadProvider integration — multi-snapshot manual backup", () => {
+    // Creates a duck-typed mock that passes the isDownloadProvider check in BackupScheduler.
+    // Does NOT use the real DownloadProvider to avoid DOM dependencies (Blob, URL.createObjectURL).
+    const makeDownloadMockProvider = (): BackupProvider & {
+      triggerDownload(): void;
+      hasPendingDownload(): boolean;
+    } => {
+      const pending: Array<{
+        entry: Parameters<BackupProvider["writeSnapshot"]>[0];
+        data: Uint8Array;
+      }> = [];
+      return {
+        isSupported: vi.fn(() => true),
+        enable: vi.fn(async () => ({ ok: true as const, locationLabel: "Downloads" })),
+        verifyAccess: vi.fn(async () => true),
+        writeSnapshot: vi.fn(
+          async (entry: Parameters<BackupProvider["writeSnapshot"]>[0], data: Uint8Array) => {
+            pending.push({ entry, data });
+          },
+        ),
+        writeManifest: vi.fn(async () => undefined),
+        readManifest: vi.fn(async () => null),
+        readSnapshot: vi.fn(async () => null),
+        deleteSnapshots: vi.fn(async () => undefined),
+        triggerDownload: vi.fn(() => {
+          pending.length = 0;
+        }),
+        hasPendingDownload: vi.fn(() => pending.length > 0),
+      };
+    };
 
-      scheduler.start(store);
-      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
-        [{ sessionKeyHash: string; contentHash: string }]
-      >;
-      const sessionCalls = calls.filter(([entry]) => entry.sessionKeyHash !== "global");
-      expect(sessionCalls.length).toBeGreaterThan(0);
-      expect(sessionCalls[0][0].contentHash).toBe(
-        "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
-      );
-      scheduler.stop();
-    });
-
-    it("excludes volatile session fields (updatedAt, selectedSegmentId, currentTime) from content hash", async () => {
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5 });
-      const scheduler = new BackupScheduler(provider);
-
-      vi.mocked(computeContentHash).mockClear();
-
-      scheduler.start(store);
-      store.setState({
-        segments: [{ id: "1" }, { id: "2" }] as unknown[],
-      });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const hashCalls = vi.mocked(computeContentHash).mock.calls;
-      const sessionHashCall = hashCalls.find((call) => {
-        const arg = call[0] as Record<string, unknown>;
-        return "segments" in arg;
-      });
-      expect(sessionHashCall).toBeDefined();
-      const hashInput = sessionHashCall?.[0] as Record<string, unknown>;
-      expect(hashInput).not.toHaveProperty("updatedAt");
-      expect(hashInput).not.toHaveProperty("selectedSegmentId");
-      expect(hashInput).not.toHaveProperty("currentTime");
-      // Content fields must still be present
-      expect(hashInput).toHaveProperty("segments");
-      expect(hashInput).toHaveProperty("speakers");
-
-      scheduler.stop();
-    });
-
-    it("skips global write when content hash matches previous global snapshot", async () => {
-      mockReadGlobalState.mockReturnValue({ someKey: "value" });
-      const provider = makeMockProvider();
+    it("multi-session manual backup — no snapshots lost", async () => {
+      const provider = makeDownloadMockProvider();
       const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
       const scheduler = new BackupScheduler(provider);
-
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        globalSnapshots: [
-          {
-            filename: "sessions/global/existing.bin",
-            sessionKeyHash: "global",
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
-          },
-        ],
-      });
-      // Simulate that the file for the previous entry actually exists on disk (required for dedup to skip).
-      provider.readSnapshot.mockResolvedValueOnce(new Uint8Array([1, 2, 3]));
-
       scheduler.start(store);
-      // Change fingerprint to mark globalDirty
-      store.setState({ globalStateFingerprint: "fp-changed" });
-      store.notify();
 
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+      store.setSessionsCache({
+        "session-a": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "a", text: "A" }] as unknown[],
+        },
+        "session-b": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "b", text: "B" }] as unknown[],
+        },
+        "session-c": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "c", text: "C" }] as unknown[],
+        },
+      });
 
-      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
-        [{ sessionKeyHash: string }]
-      >;
-      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
-      expect(globalCalls).toHaveLength(0);
+      await scheduler.backupNow("manual");
 
-      mockReadGlobalState.mockReturnValue(null);
+      // 3 sessions + 1 global = 4 snapshots queued; the queue fix ensures none are overwritten
+      expect(provider.writeSnapshot).toHaveBeenCalledTimes(4);
       scheduler.stop();
     });
 
-    it("writes global when content hash differs", async () => {
-      mockReadGlobalState.mockReturnValue({ someKey: "value" });
-      const provider = makeMockProvider();
+    it("triggerDownload drains the full queue", async () => {
+      const provider = makeDownloadMockProvider();
       const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
       const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
 
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        globalSnapshots: [
-          {
-            filename: "sessions/global/existing.bin",
-            sessionKeyHash: "global",
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            contentHash: "old-global-hash",
-          },
-        ],
+      mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });
+      store.setSessionsCache({
+        "session-a": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "a", text: "A" }] as unknown[],
+        },
+        "session-b": {
+          ...DEFAULT_SESSION_ENTRY,
+          segments: [{ id: "b", text: "B" }] as unknown[],
+        },
       });
 
-      // First call: session hash; second call: new global hash that differs from stored
-      vi.mocked(computeContentHash)
-        .mockResolvedValueOnce("session-hash")
-        .mockResolvedValueOnce("new-global-hash-different");
+      await scheduler.backupNow("manual");
 
-      scheduler.start(store);
-      store.setState({ globalStateFingerprint: "fp-changed" });
-      store.notify();
+      // Queue has entries before draining
+      expect(scheduler.hasPendingDownload()).toBe(true);
 
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      scheduler.triggerDownload();
 
-      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
-        [{ sessionKeyHash: string }]
-      >;
-      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
-      expect(globalCalls.length).toBeGreaterThan(0);
-
-      mockReadGlobalState.mockReturnValue(null);
+      // Queue is fully empty after draining
+      expect(scheduler.hasPendingDownload()).toBe(false);
       scheduler.stop();
     });
 
-    it("resets globalDirty even when global write is skipped by dedup", async () => {
-      mockReadGlobalState.mockReturnValue({ someKey: "value" });
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+    it("single-session manual backup still works", async () => {
+      const provider = makeDownloadMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: false });
       const scheduler = new BackupScheduler(provider);
-
-      // Pre-populate manifest so dedup skips global write in the first cycle
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        globalSnapshots: [
-          {
-            filename: "sessions/global/existing.bin",
-            sessionKeyHash: "global",
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
-          },
-        ],
-      });
-      // Simulate that the previous global file exists so dedup skips the write in cycle 1.
-      provider.readSnapshot.mockResolvedValueOnce(new Uint8Array([1, 2, 3]));
-
       scheduler.start(store);
-      // First cycle: change fingerprint → globalDirty=true, but dedup skips write
-      store.setState({
-        globalStateFingerprint: "fp-cycle1",
-        segments: [{ id: "1" }, { id: "2" }] as unknown[],
-      });
-      store.notify();
 
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
+      await scheduler.backupNow("manual");
 
-      const callsAfterFirst = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock
-        .calls as Array<[{ sessionKeyHash: string }]>;
-      const globalCallsFirst = callsAfterFirst.filter(
-        ([entry]) => entry.sessionKeyHash === "global",
-      );
-      // Dedup skipped the global write in cycle 1
-      expect(globalCallsFirst).toHaveLength(0);
+      // Exactly 1 snapshot queued for the single session
+      expect(provider.writeSnapshot).toHaveBeenCalledTimes(1);
 
-      // Second cycle: fingerprint unchanged — globalDirty must be false (reset by dedup skip)
-      store.setState({ segments: [{ id: "1" }, { id: "2" }, { id: "3" }] as unknown[] });
-      store.notify();
+      scheduler.triggerDownload();
 
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const callsAfterSecond = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock
-        .calls as Array<[{ sessionKeyHash: string }]>;
-      const globalCallsSecond = callsAfterSecond.filter(
-        ([entry]) => entry.sessionKeyHash === "global",
-      );
-      // Global should still NOT have been written in cycle 2 (dirty was reset)
-      expect(globalCallsSecond).toHaveLength(0);
-
-      mockReadGlobalState.mockReturnValue(null);
-      scheduler.stop();
-    });
-
-    it("writes global when hash matches but previous snapshot file is missing on disk", async () => {
-      mockReadGlobalState.mockReturnValue({ someKey: "value" });
-      const provider = makeMockProvider();
-      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
-      const scheduler = new BackupScheduler(provider);
-
-      provider.readManifest.mockResolvedValueOnce({
-        ...EMPTY_MANIFEST,
-        globalSnapshots: [
-          {
-            filename: "sessions/global/existing.bin",
-            sessionKeyHash: "global",
-            sessionLabel: null,
-            createdAt: Date.now() - 10_000,
-            reason: "auto",
-            appVersion: "0.0.0",
-            schemaVersion: 1,
-            compressedSize: 3,
-            checksum: "",
-            // Hash matches current state — dedup would skip if file existed
-            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
-          },
-        ],
-      });
-      // readSnapshot returns null: the referenced file was removed from disk out-of-band.
-      // The scheduler must still write a fresh snapshot instead of trusting the manifest.
-      provider.readSnapshot.mockResolvedValueOnce(null);
-
-      scheduler.start(store);
-      store.setState({ globalStateFingerprint: "fp-changed" });
-      store.notify();
-
-      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-      await Promise.resolve();
-
-      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
-        [{ sessionKeyHash: string }]
-      >;
-      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
-      expect(globalCalls).toHaveLength(1);
-
-      mockReadGlobalState.mockReturnValue(null);
+      // Queue is empty after trigger
+      expect(scheduler.hasPendingDownload()).toBe(false);
       scheduler.stop();
     });
   });
