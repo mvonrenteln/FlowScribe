@@ -472,7 +472,13 @@ export class BackupScheduler {
         if (globalState) {
           const contentHash = await computeContentHash(globalState);
           const previousGlobalEntry = manifest.globalSnapshots.at(-1);
-          if (previousGlobalEntry?.contentHash !== contentHash) {
+          // Only skip the write if hashes match AND the file still exists on disk.
+          // If the file was removed out-of-band the manifest entry cannot be trusted.
+          const previousFileExists =
+            previousGlobalEntry?.contentHash === contentHash
+              ? (await this.provider.readSnapshot(previousGlobalEntry.filename)) !== null
+              : false;
+          if (!previousFileExists) {
             const filename = buildSnapshotFilename("global", reason, true);
 
             const snapshotData = {

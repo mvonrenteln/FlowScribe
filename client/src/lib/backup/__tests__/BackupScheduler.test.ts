@@ -1448,6 +1448,8 @@ describe("BackupScheduler", () => {
           },
         ],
       });
+      // Simulate that the file for the previous entry actually exists on disk (required for dedup to skip).
+      provider.readSnapshot.mockResolvedValueOnce(new Uint8Array([1, 2, 3]));
 
       scheduler.start(store);
       // Change fingerprint to mark globalDirty
@@ -1543,6 +1545,8 @@ describe("BackupScheduler", () => {
           },
         ],
       });
+      // Simulate that the previous global file exists so dedup skips the write in cycle 1.
+      provider.readSnapshot.mockResolvedValueOnce(new Uint8Array([1, 2, 3]));
 
       scheduler.start(store);
       // First cycle: change fingerprint → globalDirty=true, but dedup skips write
@@ -1583,6 +1587,54 @@ describe("BackupScheduler", () => {
       );
       // Global should still NOT have been written in cycle 2 (dirty was reset)
       expect(globalCallsSecond).toHaveLength(0);
+
+      mockReadGlobalState.mockReturnValue(null);
+      scheduler.stop();
+    });
+
+    it("writes global when hash matches but previous snapshot file is missing on disk", async () => {
+      mockReadGlobalState.mockReturnValue({ someKey: "value" });
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5, includeGlobalState: true });
+      const scheduler = new BackupScheduler(provider);
+
+      provider.readManifest.mockResolvedValueOnce({
+        ...EMPTY_MANIFEST,
+        globalSnapshots: [
+          {
+            filename: "sessions/global/existing.bin",
+            sessionKeyHash: "global",
+            sessionLabel: null,
+            createdAt: Date.now() - 10_000,
+            reason: "auto",
+            appVersion: "0.0.0",
+            schemaVersion: 1,
+            compressedSize: 3,
+            checksum: "",
+            // Hash matches current state — dedup would skip if file existed
+            contentHash: "content-hash-aabbccdd001122334455aabbccdd001122334455aabbccdd00",
+          },
+        ],
+      });
+      // readSnapshot returns null: the referenced file was removed from disk out-of-band.
+      // The scheduler must still write a fresh snapshot instead of trusting the manifest.
+      provider.readSnapshot.mockResolvedValueOnce(null);
+
+      scheduler.start(store);
+      store.setState({ globalStateFingerprint: "fp-changed" });
+      store.notify();
+
+      await vi.advanceTimersByTimeAsync(INTERVAL_MS_DEDUP + 1_000);
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const calls = (provider.writeSnapshot as ReturnType<typeof vi.fn>).mock.calls as Array<
+        [{ sessionKeyHash: string }]
+      >;
+      const globalCalls = calls.filter(([entry]) => entry.sessionKeyHash === "global");
+      expect(globalCalls).toHaveLength(1);
 
       mockReadGlobalState.mockReturnValue(null);
       scheduler.stop();
