@@ -8,6 +8,17 @@ const manifest: BackupManifest = {
   manifestVersion: 1,
   snapshots: [
     {
+      filename: "sessions/abc/2_scheduled.json.gz",
+      sessionKeyHash: "abc",
+      sessionLabel: null,
+      createdAt: 3,
+      reason: "scheduled",
+      appVersion: "1.0.0",
+      schemaVersion: 1,
+      compressedSize: 100,
+      checksum: "z",
+    },
+    {
       filename: "sessions/abc/1_manual.json.gz",
       sessionKeyHash: "abc",
       sessionLabel: "Interview A",
@@ -61,5 +72,11 @@ describe("SnapshotBrowser", () => {
     });
 
     expect(screen.getByText("2 backup.snapshots.sessions")).toBeInTheDocument();
+    expect(
+      screen.getByRole("columnheader", { name: "backup.snapshots.colSession" }),
+    ).toBeInTheDocument();
+    expect(screen.getAllByText("Interview A")).toHaveLength(2);
+    expect(screen.queryByText("backup.snapshots.unknownSession")).not.toBeInTheDocument();
+    expect(screen.getByText("backup.snapshots.globalSession")).toBeInTheDocument();
   });
 });

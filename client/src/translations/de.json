@@ -310,6 +310,7 @@
       "error": "Snapshots konnten nicht geladen werden.",
       "accessDenied": "Backup-Ordner nicht erreichbar. Bitte Berechtigungen über \"Ordner wechseln\" erneut erteilen.",
       "noSnapshots": "Keine Snapshots gefunden.",
+      "colSession": "Sitzung",
       "colDateTime": "Datum / Uhrzeit",
       "colReason": "Grund",
       "colSize": "Größe",
