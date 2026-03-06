@@ -253,18 +253,30 @@ export function FileUpload({
     }
 
     try {
-      const [handle] = await picker({
-        multiple: false,
-        types: [
-          {
-            description: t("fileUpload.transcriptFilesDescription"),
-            accept: {
-              "application/json": [".json"],
-              "text/vtt": [".vtt"],
-            },
-          },
-        ],
-      });
+      const isMacPlatform = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
+      const pickerOptions: {
+        multiple: boolean;
+        types?: Array<{
+          description?: string;
+          accept: Record<string, string[]>;
+        }>;
+      } = isMacPlatform
+        ? { multiple: false }
+        : {
+            multiple: false,
+            types: [
+              {
+                description: t("fileUpload.transcriptFilesDescription"),
+                accept: {
+                  "application/json": [".json"],
+                  "text/vtt": [".vtt"],
+                  "text/plain": [".vtt"],
+                },
+              },
+            ],
+          };
+
+      const [handle] = await picker(pickerOptions);
       if (!handle) return;
       const file = await handle.getFile();
       processTranscriptFile(file);

@@ -191,6 +191,7 @@ describe("FileUpload", () => {
             expect.objectContaining({
               accept: {
                 "application/json": [".json"],
+                "text/plain": [".vtt"],
                 "text/vtt": [".vtt"],
               },
             }),
@@ -206,6 +207,34 @@ describe("FileUpload", () => {
       );
     });
 
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
+  });
+
+  it("uses unfiltered transcript picker options on macOS", async () => {
+    const userAgentSpy = vi
+      .spyOn(window.navigator, "userAgent", "get")
+      .mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)");
+    const file = new File(["WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\nHello"], "notes.vtt", {
+      type: "text/vtt",
+    });
+    const handle = {
+      getFile: vi.fn().mockResolvedValue(file),
+    } as unknown as FileSystemFileHandle;
+    const showOpenFilePicker = vi.fn().mockResolvedValue([handle]);
+    Object.defineProperty(window, "showOpenFilePicker", {
+      value: showOpenFilePicker,
+      writable: true,
+    });
+
+    render(<FileUpload onAudioUpload={vi.fn()} onTranscriptUpload={vi.fn()} />);
+
+    await userEvent.click(screen.getByTestId("button-upload-transcript"));
+
+    await waitFor(() => {
+      expect(showOpenFilePicker).toHaveBeenCalledWith({ multiple: false });
+    });
+
+    userAgentSpy.mockRestore();
     (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
   });
 
