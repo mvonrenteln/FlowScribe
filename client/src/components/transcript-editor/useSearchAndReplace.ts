@@ -97,7 +97,7 @@ export function useSearchAndReplace(
     return new RegExp(regex.source, flags);
   }, [isRegexSearch, regex, searchQuery]);
 
-  const prevSearchableRef = useRef<Array<{ id: string; text: string; lowerText: string }>>([]);
+  const searchableSegmentsRef = useRef<Array<{ id: string; text: string; lowerText: string }>>([]);
 
   const searchableSegments = useMemo(() => {
     const next = segments.map((segment) => ({
@@ -105,18 +105,23 @@ export function useSearchAndReplace(
       text: segment.text,
       lowerText: segment.text.toLowerCase(),
     }));
-    const prev = prevSearchableRef.current;
+    const prev = searchableSegmentsRef.current;
 
     if (
       prev.length === next.length &&
-      prev.every((p, i) => p.id === next[i].id && p.text === next[i].text)
+      prev.every((p, i) => {
+        const n = next[i];
+        return n !== undefined && p.id === n.id && p.text === n.text;
+      })
     ) {
       return prev;
     }
-
-    prevSearchableRef.current = next;
     return next;
   }, [segments]);
+
+  useEffect(() => {
+    searchableSegmentsRef.current = searchableSegments;
+  }, [searchableSegments]);
 
   const allMatches = useMemo(() => {
     if (!searchQuery) return [];
