@@ -79,6 +79,7 @@ export function useSearchAndReplace(
 ) {
   const [replaceQuery, setReplaceQuery] = useState("");
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+  const [searchNavVersion, setSearchNavVersion] = useState(0);
 
   const regex = useMemo(
     () => createSearchRegex(searchQuery, isRegexSearch),
@@ -189,13 +190,29 @@ export function useSearchAndReplace(
     }
   }, [allMatches.length, currentMatchIndex]);
 
+  const prevSearchQueryRef = useRef(searchQuery);
+  const prevIsRegexSearchRef = useRef(isRegexSearch);
+
+  useEffect(() => {
+    if (
+      searchQuery !== prevSearchQueryRef.current ||
+      isRegexSearch !== prevIsRegexSearchRef.current
+    ) {
+      prevSearchQueryRef.current = searchQuery;
+      prevIsRegexSearchRef.current = isRegexSearch;
+      setSearchNavVersion((v) => v + 1);
+    }
+  }, [searchQuery, isRegexSearch]);
+
   const goToNextMatch = useCallback(() => {
     if (allMatches.length === 0) return;
+    setSearchNavVersion((v) => v + 1);
     setCurrentMatchIndex((prev) => (prev + 1) % allMatches.length);
   }, [allMatches.length]);
 
   const goToPrevMatch = useCallback(() => {
     if (allMatches.length === 0) return;
+    setSearchNavVersion((v) => v + 1);
     setCurrentMatchIndex((prev) => (prev - 1 + allMatches.length) % allMatches.length);
   }, [allMatches.length]);
 
@@ -219,6 +236,7 @@ export function useSearchAndReplace(
 
   const replaceCurrent = useCallback(() => {
     if (currentMatchIndex === -1 || !allMatches[currentMatchIndex]) return;
+    setSearchNavVersion((v) => v + 1);
 
     const match = allMatches[currentMatchIndex];
     const segment = segments.find((s) => s.id === match.segmentId);
@@ -283,6 +301,7 @@ export function useSearchAndReplace(
     replaceQuery,
     setReplaceQuery,
     currentMatchIndex,
+    searchNavVersion,
     totalMatches: allMatches.length,
     currentMatch: allMatches[currentMatchIndex] ?? null,
     goToNextMatch,
@@ -291,6 +310,7 @@ export function useSearchAndReplace(
     replaceCurrent,
     onMatchClick: (index: number) => {
       if (index >= 0 && index < allMatches.length) {
+        setSearchNavVersion((v) => v + 1);
         setCurrentMatchIndex(index);
       }
     },

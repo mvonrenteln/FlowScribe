@@ -429,4 +429,104 @@ describe("useSearchAndReplace", () => {
       expect(result.current.allMatches).not.toBe(originalAllMatches);
     });
   });
+
+  describe("searchNavVersion", () => {
+    it("starts at 0", () => {
+      const { result } = renderHook(() =>
+        useSearchAndReplace(segments, mockUpdateSegmentsTexts, "hello", false),
+      );
+
+      expect(result.current.searchNavVersion).toBe(0);
+    });
+
+    it("increments on goToNextMatch", () => {
+      const { result } = renderHook(() =>
+        useSearchAndReplace(segments, mockUpdateSegmentsTexts, "hello", false),
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      act(() => {
+        result.current.goToNextMatch();
+      });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion + 1);
+    });
+
+    it("increments on goToPrevMatch", () => {
+      const { result } = renderHook(() =>
+        useSearchAndReplace(segments, mockUpdateSegmentsTexts, "hello", false),
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      act(() => {
+        result.current.goToPrevMatch();
+      });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion + 1);
+    });
+
+    it("increments on onMatchClick", () => {
+      const { result } = renderHook(() =>
+        useSearchAndReplace(segments, mockUpdateSegmentsTexts, "hello", false),
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      act(() => {
+        result.current.onMatchClick(1);
+      });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion + 1);
+    });
+
+    it("does NOT increment on content mutation (rerender with changed segment text)", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: segments, query: "hello" } },
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      const updatedSegments: Segment[] = [{ ...segments[0], tags: ["tag-1"] }, segments[1]];
+
+      rerender({ hookSegments: updatedSegments, query: "hello" });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion);
+    });
+
+    it("increments when searchQuery changes (rerender with new query)", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: segments, query: "hello" } },
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      rerender({ hookSegments: segments, query: "world" });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion + 1);
+    });
+
+    it("increments on replaceCurrent", () => {
+      const { result } = renderHook(() =>
+        useSearchAndReplace(segments, mockUpdateSegmentsTexts, "hello", false),
+      );
+
+      const initialVersion = result.current.searchNavVersion;
+
+      act(() => {
+        result.current.setReplaceQuery("hi");
+      });
+
+      act(() => {
+        result.current.replaceCurrent();
+      });
+
+      expect(result.current.searchNavVersion).toBe(initialVersion + 1);
+    });
+  });
 });
