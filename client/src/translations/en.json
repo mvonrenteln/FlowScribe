@@ -115,10 +115,55 @@
   },
   "import": {
     "transcriptFormatError": "Invalid transcript format",
-    "transcriptFormatErrorDescription": "The file could not be read. Expected Whisper or WhisperX JSON format.",
+    "transcriptFormatErrorDescription": "The file could not be read. Expected Whisper JSON, WhisperX JSON, or WebVTT format.",
     "transcriptDurationWarning": "Transcript duration mismatch",
     "transcriptTooShort": "The transcript ({{transcriptDuration}}s) is shorter than the audio ({{audioDuration}}s).",
     "transcriptTooLong": "The transcript ({{transcriptDuration}}s) is longer than the audio ({{audioDuration}}s)."
+  },
+  "export": {
+    "dialog": {
+      "title": "Export Transcript",
+      "description": "Choose a format to export your edited transcript.",
+      "formats": {
+        "json": {
+          "title": "JSON",
+          "description": "WhisperX-compatible format with word-level timestamps"
+        },
+        "srt": {
+          "title": "SRT Subtitles",
+          "description": "Standard subtitle format for video players"
+        },
+        "txt": {
+          "title": "Plain Text",
+          "description": "Simple text with speaker labels and timestamps"
+        },
+        "vtt": {
+          "title": "WebVTT",
+          "description": "Web Video Text Tracks with speaker voice tags"
+        }
+      },
+      "applyFilters": "Apply active filters",
+      "exportFiltered": "Export {{count}} of {{total}} segments",
+      "exportAll": "Export all {{count}} segments",
+      "useRewrittenText": "Use rewritten text (where available)",
+      "useRewrittenTextDescription": "Export chapter rewrite text instead of segment text where available",
+      "includeChapterHeadings": "Include chapter headings",
+      "includeChapterHeadingsDescription": "Add chapter titles to plain text exports",
+      "includeChapterSummaries": "Include chapter summaries",
+      "includeChapterSummariesDescription": "Add chapter summaries to plain text exports",
+      "cancel": "Cancel",
+      "export": "Export"
+    }
+  },
+  "fileUpload": {
+    "loadAudio": "Load Audio",
+    "loadAudioTooltip": "Load audio file",
+    "reopenAudio": "Reopen Audio",
+    "reopenAudioTooltip": "Reopen last audio file",
+    "transcriptLoaded": "Transcript Loaded",
+    "loadTranscript": "Load Transcript",
+    "loadTranscriptTooltip": "Load transcript file (JSON or VTT)",
+    "dropFilesHint": "Drop files or click to upload"
   },
   "aiBatch": {
     "actions": {

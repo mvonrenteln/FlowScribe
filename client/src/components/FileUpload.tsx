@@ -1,5 +1,6 @@
 import { FileAudio, FileText, RotateCcw, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -38,6 +39,7 @@ export function FileUpload({
   variant = "card",
   revisionName,
 }: FileUploadProps) {
+  const { t } = useTranslation();
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
   const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
@@ -198,11 +200,18 @@ export function FileUpload({
         const reader = new FileReader();
         reader.onload = (event) => {
           try {
-            const data = JSON.parse(event.target?.result as string);
-            onTranscriptUpload(data, buildFileReference(file));
+            const rawText = event.target?.result as string;
+            if (file.name.endsWith(".vtt")) {
+              // Pass raw string for VTT files — parseTranscriptData handles VTT detection
+              onTranscriptUpload(rawText, buildFileReference(file));
+            } else {
+              // Existing JSON path
+              const data = JSON.parse(rawText);
+              onTranscriptUpload(data, buildFileReference(file));
+            }
             setLocalTranscriptFileName(file.name);
           } catch (err) {
-            logger.error("Failed to parse transcript JSON.", { error: err });
+            logger.error("Failed to parse transcript file.", { error: err });
           }
         };
         reader.readAsText(file);
@@ -212,7 +221,8 @@ export function FileUpload({
   );
 
   const transcriptLabel =
-    localTranscriptFileName || (transcriptLoaded ? "Transcript Loaded" : "Load Transcript");
+    localTranscriptFileName ||
+    (transcriptLoaded ? t("fileUpload.transcriptLoaded") : t("fileUpload.loadTranscript"));
   const transcriptDisplay = revisionName ? `${transcriptLabel} (${revisionName})` : transcriptLabel;
 
   const content = (
@@ -229,7 +239,7 @@ export function FileUpload({
         <input
           ref={transcriptInputRef}
           type="file"
-          accept=".json"
+          accept=".json,.vtt"
           onChange={handleTranscriptChange}
           className="hidden"
           data-testid="input-transcript-file"
@@ -243,10 +253,10 @@ export function FileUpload({
               data-testid="button-upload-audio"
             >
               <FileAudio className="h-4 w-4 mr-2" />
-              {audioFileName || "Load Audio"}
+              {audioFileName || t("fileUpload.loadAudio")}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Load audio file</TooltipContent>
+          <TooltipContent>{t("fileUpload.loadAudioTooltip")}</TooltipContent>
         </Tooltip>
 
         {!audioFileName && audioHandle && (
@@ -258,10 +268,10 @@ export function FileUpload({
                 data-testid="button-restore-audio"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Reopen Audio
+                {t("fileUpload.reopenAudio")}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Reopen last audio file</TooltipContent>
+            <TooltipContent>{t("fileUpload.reopenAudioTooltip")}</TooltipContent>
           </Tooltip>
         )}
 
@@ -276,13 +286,13 @@ export function FileUpload({
               {transcriptDisplay}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Load transcript JSON</TooltipContent>
+          <TooltipContent>{t("fileUpload.loadTranscriptTooltip")}</TooltipContent>
         </Tooltip>
 
         {variant === "card" && !audioFileName && !transcriptLoaded && (
           <span className="text-sm text-muted-foreground">
             <Upload className="h-4 w-4 inline mr-1" />
-            Drop files or click to upload
+            {t("fileUpload.dropFilesHint")}
           </span>
         )}
       </div>

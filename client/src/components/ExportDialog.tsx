@@ -1,5 +1,6 @@
 import { Download, FileJson, FileText } from "lucide-react";
 import { memo, useCallback, useMemo, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -12,7 +13,7 @@ import {
 } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { buildJSONExport, buildTXTExport } from "@/lib/exportUtils";
+import { buildJSONExport, buildTXTExport, buildVTTExport } from "@/lib/exportUtils";
 import type { Segment, Tag } from "@/lib/store";
 import { useTranscriptStore } from "@/lib/store";
 
@@ -25,7 +26,7 @@ interface ExportDialogProps {
   fileName?: string;
 }
 
-type ExportFormat = "json" | "srt" | "txt";
+type ExportFormat = "json" | "srt" | "txt" | "vtt";
 
 function formatSRT(segments: Segment[]): string {
   return segments
@@ -54,6 +55,7 @@ const ExportDialogComponent = ({
   tags,
   fileName = "transcript",
 }: ExportDialogProps) => {
+  const { t } = useTranslation();
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
   const [useRewritten, setUseRewritten] = useState(false);
@@ -90,14 +92,7 @@ const ExportDialogComponent = ({
     includeChapterSummaries,
   ]);
 
-  // Memoize the export description text
-  const exportDescription = useMemo(
-    () =>
-      useFilters
-        ? `Export ${filteredSegments.length} of ${segments.length} segments`
-        : `Export all ${segments.length} segments`,
-    [useFilters, filteredSegments.length, segments.length],
-  );
+  const exportedVTT = useMemo(() => buildVTTExport(segmentsToExport), [segmentsToExport]);
 
   const handleExport = useCallback(() => {
     let content: string;
@@ -120,6 +115,11 @@ const ExportDialogComponent = ({
         mimeType = "text/plain";
         extension = "txt";
         break;
+      case "vtt":
+        content = exportedVTT;
+        mimeType = "text/vtt";
+        extension = "vtt";
+        break;
     }
 
     const blob = new Blob([content], { type: mimeType });
@@ -133,14 +133,14 @@ const ExportDialogComponent = ({
     URL.revokeObjectURL(url);
 
     onOpenChange(false);
-  }, [format, exportedJSON, exportedSRT, exportedTXT, fileName, onOpenChange]);
+  }, [format, exportedJSON, exportedSRT, exportedTXT, exportedVTT, fileName, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>Export Transcript</DialogTitle>
-          <DialogDescription>Choose a format to export your edited transcript.</DialogDescription>
+          <DialogTitle>{t("export.dialog.title")}</DialogTitle>
+          <DialogDescription>{t("export.dialog.description")}</DialogDescription>
         </DialogHeader>
 
         <div className="py-4">
@@ -150,10 +150,10 @@ const ExportDialogComponent = ({
               <Label htmlFor="json" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2">
                   <FileJson className="h-4 w-4 text-primary" />
-                  <span className="font-medium">JSON</span>
+                  <span className="font-medium">{t("export.dialog.formats.json.title")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  WhisperX-compatible format with word-level timestamps
+                  {t("export.dialog.formats.json.description")}
                 </p>
               </Label>
             </div>
@@ -163,10 +163,10 @@ const ExportDialogComponent = ({
               <Label htmlFor="srt" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-primary" />
-                  <span className="font-medium">SRT Subtitles</span>
+                  <span className="font-medium">{t("export.dialog.formats.srt.title")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Standard subtitle format for video players
+                  {t("export.dialog.formats.srt.description")}
                 </p>
               </Label>
             </div>
@@ -176,10 +176,23 @@ const ExportDialogComponent = ({
               <Label htmlFor="txt" className="flex-1 cursor-pointer">
                 <div className="flex items-center gap-2">
                   <FileText className="h-4 w-4 text-muted-foreground" />
-                  <span className="font-medium">Plain Text</span>
+                  <span className="font-medium">{t("export.dialog.formats.txt.title")}</span>
                 </div>
                 <p className="text-sm text-muted-foreground mt-1">
-                  Simple text with speaker labels and timestamps
+                  {t("export.dialog.formats.txt.description")}
+                </p>
+              </Label>
+            </div>
+
+            <div className="flex items-start gap-3 p-3 rounded-md border hover-elevate cursor-pointer mt-2">
+              <RadioGroupItem value="vtt" id="vtt" className="mt-1" />
+              <Label htmlFor="vtt" className="flex-1 cursor-pointer">
+                <div className="flex items-center gap-2">
+                  <FileText className="h-4 w-4 text-primary" />
+                  <span className="font-medium">{t("export.dialog.formats.vtt.title")}</span>
+                </div>
+                <p className="text-sm text-muted-foreground mt-1">
+                  {t("export.dialog.formats.vtt.description")}
                 </p>
               </Label>
             </div>
@@ -193,8 +206,15 @@ const ExportDialogComponent = ({
                 onCheckedChange={(checked) => setUseFilters(checked === true)}
               />
               <Label htmlFor="use-filters" className="cursor-pointer">
-                <span className="font-medium">Apply active filters</span>
-                <p className="text-sm text-muted-foreground">{exportDescription}</p>
+                <span className="font-medium">{t("export.dialog.applyFilters")}</span>
+                <p className="text-sm text-muted-foreground">
+                  {useFilters
+                    ? t("export.dialog.exportFiltered", {
+                        count: filteredSegments.length,
+                        total: segments.length,
+                      })
+                    : t("export.dialog.exportAll", { count: segments.length })}
+                </p>
               </Label>
             </div>
 
@@ -207,9 +227,9 @@ const ExportDialogComponent = ({
                     onCheckedChange={(checked) => setUseRewritten(checked === true)}
                   />
                   <Label htmlFor="use-rewritten" className="cursor-pointer">
-                    <span className="font-medium">Use rewritten text (where available)</span>
+                    <span className="font-medium">{t("export.dialog.useRewrittenText")}</span>
                     <p className="text-sm text-muted-foreground">
-                      Export chapter rewrite text instead of segment text where available
+                      {t("export.dialog.useRewrittenTextDescription")}
                     </p>
                   </Label>
                 </div>
@@ -221,9 +241,9 @@ const ExportDialogComponent = ({
                     onCheckedChange={(checked) => setIncludeChapterHeadings(checked === true)}
                   />
                   <Label htmlFor="include-chapter-headings" className="cursor-pointer">
-                    <span className="font-medium">Include chapter headings</span>
+                    <span className="font-medium">{t("export.dialog.includeChapterHeadings")}</span>
                     <p className="text-sm text-muted-foreground">
-                      Add chapter titles to plain text exports
+                      {t("export.dialog.includeChapterHeadingsDescription")}
                     </p>
                   </Label>
                 </div>
@@ -235,9 +255,11 @@ const ExportDialogComponent = ({
                     onCheckedChange={(checked) => setIncludeChapterSummaries(checked === true)}
                   />
                   <Label htmlFor="include-chapter-summaries" className="cursor-pointer">
-                    <span className="font-medium">Include chapter summaries</span>
+                    <span className="font-medium">
+                      {t("export.dialog.includeChapterSummaries")}
+                    </span>
                     <p className="text-sm text-muted-foreground">
-                      Add chapter summaries to plain text exports
+                      {t("export.dialog.includeChapterSummariesDescription")}
                     </p>
                   </Label>
                 </div>
@@ -248,11 +270,11 @@ const ExportDialogComponent = ({
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)}>
-            Cancel
+            {t("export.dialog.cancel")}
           </Button>
           <Button onClick={handleExport} data-testid="button-export-confirm">
             <Download className="h-4 w-4 mr-2" />
-            Export
+            {t("export.dialog.export")}
           </Button>
         </DialogFooter>
       </DialogContent>

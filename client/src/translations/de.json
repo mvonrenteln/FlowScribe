@@ -62,10 +62,55 @@
   },
   "import": {
     "transcriptFormatError": "Ungültiges Transkript-Format",
-    "transcriptFormatErrorDescription": "Die Datei konnte nicht gelesen werden. Erwartet wird Whisper- oder WhisperX-JSON-Format.",
+    "transcriptFormatErrorDescription": "Die Datei konnte nicht gelesen werden. Erwartet: Whisper JSON, WhisperX JSON oder WebVTT-Format.",
     "transcriptDurationWarning": "Transkript-Dauer passt nicht",
     "transcriptTooShort": "Das Transkript ({{transcriptDuration}}s) ist kürzer als die Audiodatei ({{audioDuration}}s).",
     "transcriptTooLong": "Das Transkript ({{transcriptDuration}}s) ist länger als die Audiodatei ({{audioDuration}}s)."
+  },
+  "export": {
+    "dialog": {
+      "title": "Transkript exportieren",
+      "description": "Wählen Sie ein Format, um Ihr bearbeitetes Transkript zu exportieren.",
+      "formats": {
+        "json": {
+          "title": "JSON",
+          "description": "WhisperX-kompatibles Format mit Zeitstempeln auf Wortebene"
+        },
+        "srt": {
+          "title": "SRT-Untertitel",
+          "description": "Standard-Untertitelformat für Videoplayer"
+        },
+        "txt": {
+          "title": "Klartext",
+          "description": "Einfacher Text mit Sprecherbezeichnungen und Zeitstempeln"
+        },
+        "vtt": {
+          "title": "WebVTT",
+          "description": "Web Video Text Tracks mit Sprecher-Voice-Tags"
+        }
+      },
+      "applyFilters": "Aktive Filter anwenden",
+      "exportFiltered": "{{count}} von {{total}} Segmenten exportieren",
+      "exportAll": "Alle {{count}} Segmente exportieren",
+      "useRewrittenText": "Umgeschriebenen Text verwenden (wo verfügbar)",
+      "useRewrittenTextDescription": "Kapitel-Rewrite-Text statt Segmenttext exportieren, wo verfügbar",
+      "includeChapterHeadings": "Kapitelüberschriften einbeziehen",
+      "includeChapterHeadingsDescription": "Kapiteltitel zu Klartext-Exporten hinzufügen",
+      "includeChapterSummaries": "Kapitelzusammenfassungen einbeziehen",
+      "includeChapterSummariesDescription": "Kapitelzusammenfassungen zu Klartext-Exporten hinzufügen",
+      "cancel": "Abbrechen",
+      "export": "Exportieren"
+    }
+  },
+  "fileUpload": {
+    "loadAudio": "Audio laden",
+    "loadAudioTooltip": "Audiodatei laden",
+    "reopenAudio": "Audio erneut öffnen",
+    "reopenAudioTooltip": "Letzte Audiodatei erneut öffnen",
+    "transcriptLoaded": "Transkript geladen",
+    "loadTranscript": "Transkript laden",
+    "loadTranscriptTooltip": "Transkriptdatei laden (JSON oder VTT)",
+    "dropFilesHint": "Dateien ablegen oder zum Hochladen klicken"
   },
   "aiBatch": {
     "actions": {
