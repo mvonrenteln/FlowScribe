@@ -179,4 +179,38 @@ export function buildTXTExport(
   return segmentsToExport.map((segment) => formatSegmentTXT(segment, tagsById)).join("\n\n");
 }
 
+function formatVTTTime(seconds: number): string {
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  const s = Math.floor(seconds % 60);
+  const ms = Math.round((seconds % 1) * 1000);
+  return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}.${String(ms).padStart(3, "0")}`;
+}
+
+/**
+ * Build a WebVTT export string from transcript segments.
+ *
+ * Format:
+ * - Header line: `WEBVTT` followed by a blank line
+ * - Each cue: sequential numeric ID, timestamp line, voice-tagged text, trailing blank line
+ * - Timestamp format: `HH:MM:SS.mmm --> HH:MM:SS.mmm` (dot separator, always includes hours)
+ * - Voice tag format: `<v SpeakerName>text</v>`
+ *
+ * @param segments - Ordered transcript segments to export.
+ * @returns A valid WebVTT string.
+ */
+export function buildVTTExport(segments: Segment[]): string {
+  if (segments.length === 0) {
+    return "WEBVTT\n";
+  }
+
+  const cues = segments.map((seg, i) => {
+    const start = formatVTTTime(seg.start);
+    const end = formatVTTTime(seg.end);
+    return `${i + 1}\n${start} --> ${end}\n<v ${seg.speaker}>${seg.text}</v>`;
+  });
+
+  return `WEBVTT\n\n${cues.join("\n\n")}\n`;
+}
+
 export default buildJSONExport;
