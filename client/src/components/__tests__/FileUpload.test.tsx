@@ -296,15 +296,14 @@ describe("FileUpload", () => {
     fireEvent.change(transcriptInput, { target: { files: [invalidVtt] } });
 
     await waitFor(() => {
-      expect(onTranscriptUpload).not.toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: "destructive",
+        }),
+      );
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        variant: "destructive",
-      }),
-    );
-
+    expect(onTranscriptUpload).not.toHaveBeenCalled();
     expect(screen.queryByText("broken.vtt")).not.toBeInTheDocument();
   });
 
@@ -325,15 +324,14 @@ describe("FileUpload", () => {
     fireEvent.change(transcriptInput, { target: { files: [invalidJson] } });
 
     await waitFor(() => {
-      expect(onTranscriptUpload).not.toHaveBeenCalled();
+      expect(mockToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          variant: "destructive",
+        }),
+      );
     });
 
-    expect(mockToast).toHaveBeenCalledWith(
-      expect.objectContaining({
-        variant: "destructive",
-      }),
-    );
-
+    expect(onTranscriptUpload).not.toHaveBeenCalled();
     expect(screen.queryByText("broken.json")).not.toBeInTheDocument();
   });
 });
