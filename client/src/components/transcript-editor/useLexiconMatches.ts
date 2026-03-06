@@ -7,6 +7,10 @@ export interface LexiconMatchMeta {
   term: string;
   score: number;
   partIndex?: number;
+  /** Number of consecutive words that form a single phrase match. */
+  spanLength?: number;
+  /** Offset of this word within the matched phrase (0 = first word). */
+  phraseStartOffset?: number;
 }
 
 interface NormalizedLexiconEntry {
@@ -123,7 +127,12 @@ const computeSegmentMatches = (
           const phraseIndex = wordIndex + offset;
           const existing = wordMatches.get(phraseIndex);
           if (!existing || existing.score < 0.99) {
-            wordMatches.set(phraseIndex, { term: entry.term, score: 0.99 });
+            wordMatches.set(phraseIndex, {
+              term: entry.term,
+              score: 0.99,
+              spanLength: phraseTokens.length,
+              phraseStartOffset: offset,
+            });
           }
         }
       }
@@ -142,6 +151,7 @@ const computeSegmentMatches = (
     let bestScore = wordMatches.get(index)?.score ?? 0;
     let bestTerm = wordMatches.get(index)?.term ?? "";
     let bestPartIndex: number | undefined;
+    let improved = false;
 
     parts.forEach((part, partIndex) => {
       const normalizedPart = normalizeToken(part);
@@ -202,11 +212,12 @@ const computeSegmentMatches = (
           bestScore = candidateScore;
           bestTerm = entry.term;
           bestPartIndex = parts.length > 1 ? partIndex : undefined;
+          improved = true;
         }
       });
     });
 
-    if (bestScore >= lexiconThreshold) {
+    if (improved && bestScore >= lexiconThreshold) {
       wordMatches.set(index, { term: bestTerm, score: bestScore, partIndex: bestPartIndex });
     }
   });

@@ -248,6 +248,77 @@ describe("computeLexiconMatches", () => {
     expect(matches?.get(4)?.score).toBeLessThan(1);
     expect(matches?.get(5)?.score).toBeLessThan(1);
   });
+
+  it("includes spanLength and phraseStartOffset on multi-word phrase matches", () => {
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-phrase-span",
+        text: "The Shere Khan appeared.",
+        words: [
+          { word: "The", start: 0, end: 1 },
+          { word: "Shere", start: 1, end: 2 },
+          { word: "Khan", start: 2, end: 3 },
+          { word: "appeared.", start: 3, end: 4 },
+        ],
+      },
+    ];
+
+    const result = computeLexiconMatches({
+      segments,
+      lexiconEntries: [
+        {
+          term: "Sherkan",
+          variants: ["Shere Khan"],
+          falsePositives: [],
+        },
+      ],
+      lexiconThreshold: 0.82,
+    });
+
+    const matches = result.lexiconMatchesBySegment.get("segment-phrase-span");
+    const firstWord = matches?.get(1);
+    const secondWord = matches?.get(2);
+
+    expect(firstWord?.term).toBe("Sherkan");
+    expect(firstWord?.spanLength).toBe(2);
+    expect(firstWord?.phraseStartOffset).toBe(0);
+
+    expect(secondWord?.term).toBe("Sherkan");
+    expect(secondWord?.spanLength).toBe(2);
+    expect(secondWord?.phraseStartOffset).toBe(1);
+
+    expect(matches?.has(0)).toBe(false);
+    expect(matches?.has(3)).toBe(false);
+  });
+
+  it("sets no spanLength on single-word matches", () => {
+    const segments: Segment[] = [
+      {
+        ...baseSegment,
+        id: "segment-single-word",
+        words: [{ word: "Shere", start: 0, end: 1 }],
+      },
+    ];
+
+    const result = computeLexiconMatches({
+      segments,
+      lexiconEntries: [
+        {
+          term: "Sherkan",
+          variants: ["Shere"],
+          falsePositives: [],
+        },
+      ],
+      lexiconThreshold: 0.82,
+    });
+
+    const match = result.lexiconMatchesBySegment.get("segment-single-word")?.get(0);
+    expect(match?.term).toBe("Sherkan");
+    expect(match?.spanLength).toBeUndefined();
+    expect(match?.phraseStartOffset).toBeUndefined();
+  });
+
   it("returns zero matches when all segments are confirmed", () => {
     const segments: Segment[] = [
       {
