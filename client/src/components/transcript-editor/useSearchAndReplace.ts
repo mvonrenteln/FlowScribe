@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSearchRegex } from "@/lib/searchUtils";
 import type { Segment } from "@/lib/store";
 
@@ -79,6 +79,7 @@ export function useSearchAndReplace(
 ) {
   const [replaceQuery, setReplaceQuery] = useState("");
   const [currentMatchIndex, setCurrentMatchIndex] = useState(-1);
+  const [searchNavVersion, setSearchNavVersion] = useState(0);
 
   const regex = useMemo(
     () => createSearchRegex(searchQuery, isRegexSearch),
@@ -97,15 +98,31 @@ export function useSearchAndReplace(
     return new RegExp(regex.source, flags);
   }, [isRegexSearch, regex, searchQuery]);
 
-  const searchableSegments = useMemo(
-    () =>
-      segments.map((segment) => ({
-        id: segment.id,
-        text: segment.text,
-        lowerText: segment.text.toLowerCase(),
-      })),
-    [segments],
-  );
+  const searchableSegmentsRef = useRef<Array<{ id: string; text: string; lowerText: string }>>([]);
+
+  const searchableSegments = useMemo(() => {
+    const next = segments.map((segment) => ({
+      id: segment.id,
+      text: segment.text,
+      lowerText: segment.text.toLowerCase(),
+    }));
+    const prev = searchableSegmentsRef.current;
+
+    if (
+      prev.length === next.length &&
+      prev.every((p, i) => {
+        const n = next[i];
+        return n !== undefined && p.id === n.id && p.text === n.text;
+      })
+    ) {
+      return prev;
+    }
+    return next;
+  }, [segments]);
+
+  useEffect(() => {
+    searchableSegmentsRef.current = searchableSegments;
+  }, [searchableSegments]);
 
   const allMatches = useMemo(() => {
     if (!searchQuery) return [];
@@ -173,13 +190,29 @@ export function useSearchAndReplace(
     }
   }, [allMatches.length, currentMatchIndex]);
 
+  const prevSearchQueryRef = useRef(searchQuery);
+  const prevIsRegexSearchRef = useRef(isRegexSearch);
+
+  useEffect(() => {
+    if (
+      searchQuery !== prevSearchQueryRef.current ||
+      isRegexSearch !== prevIsRegexSearchRef.current
+    ) {
+      prevSearchQueryRef.current = searchQuery;
+      prevIsRegexSearchRef.current = isRegexSearch;
+      setSearchNavVersion((v) => v + 1);
+    }
+  }, [searchQuery, isRegexSearch]);
+
   const goToNextMatch = useCallback(() => {
     if (allMatches.length === 0) return;
+    setSearchNavVersion((v) => v + 1);
     setCurrentMatchIndex((prev) => (prev + 1) % allMatches.length);
   }, [allMatches.length]);
 
   const goToPrevMatch = useCallback(() => {
     if (allMatches.length === 0) return;
+    setSearchNavVersion((v) => v + 1);
     setCurrentMatchIndex((prev) => (prev - 1 + allMatches.length) % allMatches.length);
   }, [allMatches.length]);
 
@@ -203,6 +236,7 @@ export function useSearchAndReplace(
 
   const replaceCurrent = useCallback(() => {
     if (currentMatchIndex === -1 || !allMatches[currentMatchIndex]) return;
+    setSearchNavVersion((v) => v + 1);
 
     const match = allMatches[currentMatchIndex];
     const segment = segments.find((s) => s.id === match.segmentId);
@@ -267,6 +301,7 @@ export function useSearchAndReplace(
     replaceQuery,
     setReplaceQuery,
     currentMatchIndex,
+    searchNavVersion,
     totalMatches: allMatches.length,
     currentMatch: allMatches[currentMatchIndex] ?? null,
     goToNextMatch,
@@ -275,6 +310,7 @@ export function useSearchAndReplace(
     replaceCurrent,
     onMatchClick: (index: number) => {
       if (index >= 0 && index < allMatches.length) {
+        setSearchNavVersion((v) => v + 1);
         setCurrentMatchIndex(index);
       }
     },

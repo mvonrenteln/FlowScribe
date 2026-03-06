@@ -189,6 +189,274 @@ describe("useTranscriptEditor", () => {
     });
   });
 
+  describe("search sync effect ref guard", () => {
+    it("does not re-seek when currentMatch reference is stable after non-text mutation", async () => {
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+          currentTime: 0,
+          selectedSegmentId: null,
+        });
+      });
+
+      const { result } = renderHook(() => useTranscriptEditor());
+      await waitFor(() => {
+        expect(result.current.filterPanelProps).toBeTruthy();
+      });
+
+      act(() => {
+        result.current.filterPanelProps.onSearchQueryChange("Servus");
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+      });
+
+      act(() => {
+        useTranscriptStore.setState({ seekRequestTime: null });
+      });
+
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: ["tag-1"],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+        });
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+      });
+    });
+
+    it("navigates when search query changes to a different match", async () => {
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+          currentTime: 0,
+          selectedSegmentId: null,
+        });
+      });
+
+      const { result } = renderHook(() => useTranscriptEditor());
+      await waitFor(() => {
+        expect(result.current.filterPanelProps).toBeTruthy();
+      });
+
+      act(() => {
+        result.current.filterPanelProps.onSearchQueryChange("Hallo");
+      });
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-1");
+      });
+
+      act(() => {
+        useTranscriptStore.setState({ seekRequestTime: null });
+      });
+
+      act(() => {
+        result.current.filterPanelProps.onSearchQueryChange("Servus");
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().selectedSegmentId).toBe("segment-2");
+        expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+      });
+    });
+
+    it("clears ref when search is closed so re-opening navigates again", async () => {
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+          currentTime: 0,
+          selectedSegmentId: null,
+        });
+      });
+
+      const { result } = renderHook(() => useTranscriptEditor());
+      await waitFor(() => {
+        expect(result.current.filterPanelProps).toBeTruthy();
+      });
+
+      act(() => {
+        result.current.filterPanelProps.onSearchQueryChange("Servus");
+      });
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+      });
+
+      act(() => {
+        useTranscriptStore.setState({
+          currentTime: 0,
+          selectedSegmentId: null,
+          seekRequestTime: null,
+        });
+        result.current.filterPanelProps.onSearchQueryChange("");
+      });
+
+      await waitFor(() => {
+        expect(result.current.filterPanelProps.searchQuery).toBe("");
+      });
+
+      await act(async () => {
+        result.current.filterPanelProps.onSearchQueryChange("Servus");
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+      });
+    });
+
+    it("does not navigate when text mutation changes matches but searchNavVersion unchanged", async () => {
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+          currentTime: 0,
+          selectedSegmentId: null,
+        });
+      });
+
+      const { result } = renderHook(() => useTranscriptEditor());
+      await waitFor(() => {
+        expect(result.current.filterPanelProps).toBeTruthy();
+      });
+
+      act(() => {
+        result.current.filterPanelProps.onSearchQueryChange("Servus");
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBe(5);
+      });
+
+      act(() => {
+        useTranscriptStore.setState({ seekRequestTime: null });
+      });
+
+      act(() => {
+        useTranscriptStore.setState({
+          segments: [
+            {
+              id: "segment-1",
+              speaker: "SPEAKER_00",
+              tags: [],
+              start: 0,
+              end: 1,
+              text: "Hallo Welt",
+              words: [{ word: "Hallo", start: 0, end: 0.5 }],
+            },
+            {
+              id: "segment-2",
+              speaker: "SPEAKER_00",
+              tags: ["tag-1"],
+              start: 5,
+              end: 6,
+              text: "Servus",
+              words: [{ word: "Servus", start: 5, end: 6 }],
+            },
+          ],
+        });
+      });
+
+      await waitFor(() => {
+        expect(useTranscriptStore.getState().seekRequestTime).toBeNull();
+      });
+    });
+  });
+
   it("clears active filters when switching sessions", async () => {
     act(() => {
       useTranscriptStore.setState({

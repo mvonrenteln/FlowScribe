@@ -392,6 +392,7 @@ export const useTranscriptEditor = () => {
     replaceQuery,
     setReplaceQuery,
     currentMatchIndex,
+    searchNavVersion,
     totalMatches,
     currentMatch,
     goToNextMatch,
@@ -403,8 +404,18 @@ export const useTranscriptEditor = () => {
     allMatches,
   } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
 
+  const prevSearchMatchRef = useRef<typeof currentMatch | null>(null);
+  const prevSearchNavVersionRef = useRef(searchNavVersion);
+
   useEffect(() => {
-    if (!currentMatch) return;
+    if (!currentMatch) {
+      prevSearchMatchRef.current = null;
+      return;
+    }
+    if (searchNavVersion === prevSearchNavVersionRef.current) return;
+    prevSearchNavVersionRef.current = searchNavVersion;
+    if (currentMatch === prevSearchMatchRef.current) return;
+    prevSearchMatchRef.current = currentMatch;
 
     setSelectedSegmentId(currentMatch.segmentId);
     const matchedSegment = segments.find((segment) => segment.id === currentMatch.segmentId);
@@ -413,7 +424,7 @@ export const useTranscriptEditor = () => {
     // Keep currentTime/active segment aligned with match navigation so transcript
     // scrolling and selection sync continue to work while typing in search input.
     seekToTime(matchedSegment.start, { source: "transcript", action: "controls" });
-  }, [currentMatch, seekToTime, segments, setSelectedSegmentId]);
+  }, [currentMatch, searchNavVersion, seekToTime, segments, setSelectedSegmentId]);
 
   const handleRenameSpeaker = useCallback(
     (oldName: string, newName: string) => {
