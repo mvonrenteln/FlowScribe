@@ -99,7 +99,8 @@
       "includeChapterSummaries": "Kapitelzusammenfassungen einbeziehen",
       "includeChapterSummariesDescription": "Kapitelzusammenfassungen zu Klartext-Exporten hinzufügen",
       "cancel": "Abbrechen",
-      "export": "Exportieren"
+      "export": "Exportieren",
+      "defaultFileName": "transcript"
     }
   },
   "fileUpload": {
@@ -110,7 +111,8 @@
     "transcriptLoaded": "Transkript geladen",
     "loadTranscript": "Transkript laden",
     "loadTranscriptTooltip": "Transkriptdatei laden (JSON oder VTT)",
-    "dropFilesHint": "Dateien ablegen oder zum Hochladen klicken"
+    "dropFilesHint": "Dateien ablegen oder zum Hochladen klicken",
+    "audioFilesDescription": "Audiodateien"
   },
   "aiBatch": {
     "actions": {

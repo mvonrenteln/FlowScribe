@@ -143,7 +143,7 @@ export function FileUpload({
         multiple: false,
         types: [
           {
-            description: "Audio files",
+            description: t("fileUpload.audioFilesDescription"),
             accept: {
               "audio/*": [".mp3", ".wav", ".m4a", ".ogg", ".flac"],
             },
@@ -168,7 +168,7 @@ export function FileUpload({
       if (err instanceof DOMException && err.name === "AbortError") return;
       logger.error("Failed to pick audio file.", { error: err });
     }
-  }, [onAudioUpload]);
+  }, [onAudioUpload, t]);
 
   const handleRestoreAudio = useCallback(async () => {
     if (!audioHandle || !audioRefKey) return;

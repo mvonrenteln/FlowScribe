@@ -152,7 +152,8 @@
       "includeChapterSummaries": "Include chapter summaries",
       "includeChapterSummariesDescription": "Add chapter summaries to plain text exports",
       "cancel": "Cancel",
-      "export": "Export"
+      "export": "Export",
+      "defaultFileName": "transcript"
     }
   },
   "fileUpload": {
@@ -163,7 +164,8 @@
     "transcriptLoaded": "Transcript Loaded",
     "loadTranscript": "Load Transcript",
     "loadTranscriptTooltip": "Load transcript file (JSON or VTT)",
-    "dropFilesHint": "Drop files or click to upload"
+    "dropFilesHint": "Drop files or click to upload",
+    "audioFilesDescription": "Audio files"
   },
   "aiBatch": {
     "actions": {

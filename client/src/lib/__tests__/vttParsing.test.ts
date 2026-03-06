@@ -292,6 +292,38 @@ STYLE
     expect(result[0]?.text).toBe("Valid text");
     expect(result[0]?.id).toBe("seg-0");
   });
+
+  it("preserves <b> bold tags inside voice tags", () => {
+    const vtt = `WEBVTT
+
+1
+00:00:01.000 --> 00:00:03.000
+<v Speaker><b>bold text</b></v>`;
+
+    const result = parseVTT(vtt);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    const segment = result[0] as Segment;
+    expect(segment.speaker).toBe("Speaker");
+    expect(segment.text).toBe("<b>bold text</b>");
+  });
+
+  it("preserves <i> italic tags inside voice tags", () => {
+    const vtt = `WEBVTT
+
+1
+00:00:01.000 --> 00:00:03.000
+<v Speaker><i>italic</i> normal</v>`;
+
+    const result = parseVTT(vtt);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]).toBeDefined();
+    const segment = result[0] as Segment;
+    expect(segment.speaker).toBe("Speaker");
+    expect(segment.text).toBe("<i>italic</i> normal");
+  });
 });
 
 describe("isVTTFormat", () => {

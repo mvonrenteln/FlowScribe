@@ -113,10 +113,16 @@ function extractSpeakerAndText(rawText: string): { speaker: string; text: string
   const voiceMatch = /<v ([^>]+)>([\s\S]*?)(?:<\/v>|$)/.exec(rawText);
   if (voiceMatch) {
     const speaker = (voiceMatch[1] ?? "").trim() || "SPEAKER_00";
-    const text = (voiceMatch[2] ?? "").replace(/<[^>]*>/g, "").trim();
+    const text = (voiceMatch[2] ?? "")
+      .replace(/<v [^>]*>/g, "")
+      .replace(/<\/v>/g, "")
+      .trim();
     return { speaker, text };
   }
-  const text = rawText.replace(/<[^>]*>/g, "").trim();
+  const text = rawText
+    .replace(/<v [^>]*>/g, "")
+    .replace(/<\/v>/g, "")
+    .trim();
   return { speaker: "SPEAKER_00", text };
 }
 

@@ -53,9 +53,10 @@ const ExportDialogComponent = ({
   segments,
   filteredSegments,
   tags,
-  fileName = "transcript",
+  fileName,
 }: ExportDialogProps) => {
   const { t } = useTranslation();
+  const resolvedFileName = fileName ?? t("export.dialog.defaultFileName");
   const [format, setFormat] = useState<ExportFormat>("json");
   const [useFilters, setUseFilters] = useState(true);
   const [useRewritten, setUseRewritten] = useState(false);
@@ -126,14 +127,14 @@ const ExportDialogComponent = ({
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${fileName}.${extension}`;
+    a.download = `${resolvedFileName}.${extension}`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
 
     onOpenChange(false);
-  }, [format, exportedJSON, exportedSRT, exportedTXT, exportedVTT, fileName, onOpenChange]);
+  }, [format, exportedJSON, exportedSRT, exportedTXT, exportedVTT, resolvedFileName, onOpenChange]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
