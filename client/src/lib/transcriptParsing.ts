@@ -86,26 +86,35 @@ export const buildSegmentsFromWhisperX = (data: { segments: WhisperXSegment[] })
   }));
 };
 
-/** Matches both HH:MM:SS.mmm and MM:SS.mmm VTT timestamp ranges, capturing start/end. */
 const VTT_TIMESTAMP_RE =
-  /(\d{1,2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3})\s+-->\s+(\d{1,2}:\d{2}:\d{2}\.\d{3}|\d{2}:\d{2}\.\d{3})/;
+  /(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?|\d{2}:\d{2}(?:[.,]\d{1,3})?)\s+-->\s+(\d{1,2}:\d{2}:\d{2}(?:[.,]\d{1,3})?|\d{2}:\d{2}(?:[.,]\d{1,3})?)/;
+
+function parseSecondsWithOptionalMillis(part: string): { seconds: number; millis: number } {
+  const normalized = part.replace(",", ".");
+  const dotIdx = normalized.indexOf(".");
+  if (dotIdx === -1) {
+    return { seconds: parseInt(normalized, 10), millis: 0 };
+  }
+  const seconds = parseInt(normalized.slice(0, dotIdx), 10);
+  const rawMs = normalized.slice(dotIdx + 1);
+  const paddedMs = `${rawMs}000`.slice(0, 3);
+  return { seconds, millis: parseInt(paddedMs, 10) };
+}
 
 function parseVTTTimestamp(ts: string): number {
   const parts = ts.split(":");
   if (parts.length === 3) {
     const hours = parseInt(parts[0] ?? "0", 10);
     const minutes = parseInt(parts[1] ?? "0", 10);
-    const secPart = parts[2] ?? "0.000";
-    const dotIdx = secPart.indexOf(".");
-    const seconds = parseInt(secPart.slice(0, dotIdx), 10);
-    const ms = parseInt(secPart.slice(dotIdx + 1), 10);
+    const secPart = parts[2] ?? "0";
+    const { seconds, millis } = parseSecondsWithOptionalMillis(secPart);
+    const ms = millis;
     return hours * 3600 + minutes * 60 + seconds + ms / 1000;
   }
   const minutes = parseInt(parts[0] ?? "0", 10);
-  const secPart = parts[1] ?? "0.000";
-  const dotIdx = secPart.indexOf(".");
-  const seconds = parseInt(secPart.slice(0, dotIdx), 10);
-  const ms = parseInt(secPart.slice(dotIdx + 1), 10);
+  const secPart = parts[1] ?? "0";
+  const { seconds, millis } = parseSecondsWithOptionalMillis(secPart);
+  const ms = millis;
   return minutes * 60 + seconds + ms / 1000;
 }
 
@@ -132,10 +141,8 @@ function extractSpeakerAndText(rawText: string): { speaker: string; text: string
  */
 export function isVTTFormat(data: unknown): boolean {
   if (typeof data !== "string") return false;
-  return data
-    .replace(/^\uFEFF/, "")
-    .trimStart()
-    .startsWith("WEBVTT");
+  const normalized = data.replace(/^\uFEFF/, "").trimStart();
+  return normalized.toUpperCase().startsWith("WEBVTT") || VTT_TIMESTAMP_RE.test(normalized);
 }
 
 /**
@@ -148,8 +155,11 @@ export function isVTTFormat(data: unknown): boolean {
  */
 export function parseVTT(text: string): Segment[] {
   const normalized = text.replace(/^\uFEFF/, "").replace(/\r\n/g, "\n");
+  const trimmedStart = normalized.trimStart();
+  const hasVTTHeader = trimmedStart.toUpperCase().startsWith("WEBVTT");
+  const hasTimestamp = VTT_TIMESTAMP_RE.test(normalized);
 
-  if (!normalized.trimStart().startsWith("WEBVTT")) {
+  if (!hasVTTHeader && !hasTimestamp) {
     return [];
   }
 
@@ -177,7 +187,7 @@ export function parseVTT(text: string): Segment[] {
     if (block.length === 0) continue;
     const firstLine = block[0] ?? "";
 
-    if (firstLine.startsWith("WEBVTT")) continue;
+    if (firstLine.toUpperCase().startsWith("WEBVTT")) continue;
     if (firstLine.startsWith("NOTE")) continue;
     if (firstLine.startsWith("STYLE")) continue;
     if (firstLine.startsWith("REGION")) continue;

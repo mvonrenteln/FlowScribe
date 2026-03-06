@@ -36,6 +36,34 @@ describe("parseVTT", () => {
     expect(segment.end).toBe(10.25);
   });
 
+  it("parses timestamps without milliseconds", () => {
+    const vtt = `WEBVTT
+
+1
+00:01:02 --> 00:01:05
+<v Speaker>No millis</v>`;
+
+    const result = parseVTT(vtt);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.start).toBe(62);
+    expect(result[0]?.end).toBe(65);
+  });
+
+  it("parses timestamps using comma decimal separators", () => {
+    const vtt = `WEBVTT
+
+1
+00:00:01,250 --> 00:00:02,500
+<v Speaker>Comma millis</v>`;
+
+    const result = parseVTT(vtt);
+
+    expect(result).toHaveLength(1);
+    expect(result[0]?.start).toBe(1.25);
+    expect(result[0]?.end).toBe(2.5);
+  });
+
   it("extracts speaker from <v Speaker Name>text</v> voice tags", () => {
     const vtt = `WEBVTT
 
@@ -330,12 +358,13 @@ describe("isVTTFormat", () => {
   it("returns true for valid WEBVTT header", () => {
     expect(isVTTFormat("WEBVTT")).toBe(true);
     expect(isVTTFormat("WEBVTT\n\n1\n00:00:01.000 --> 00:00:03.000\nText")).toBe(true);
+    expect(isVTTFormat("webvtt\n\n1\n00:00:01.000 --> 00:00:03.000\nText")).toBe(true);
   });
 
   it("returns false for strings without WEBVTT header", () => {
     expect(isVTTFormat("INVALID")).toBe(false);
     expect(isVTTFormat("")).toBe(false);
-    expect(isVTTFormat("webvtt")).toBe(false);
+    expect(isVTTFormat('{"segments":[]}')).toBe(false);
   });
 
   it("returns false for non-string types", () => {
