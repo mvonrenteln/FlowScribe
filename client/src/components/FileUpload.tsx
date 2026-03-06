@@ -239,7 +239,7 @@ export function FileUpload({
         <input
           ref={transcriptInputRef}
           type="file"
-          accept=".json,.vtt"
+          accept=".json,.vtt,text/vtt"
           onChange={handleTranscriptChange}
           className="hidden"
           data-testid="input-transcript-file"
