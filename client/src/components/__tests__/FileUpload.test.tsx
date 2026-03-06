@@ -13,6 +13,8 @@ const audioHandleStorageMock = vi.hoisted(() => ({
 
 const mockConfirmIfLargeAudio = vi.hoisted(() => vi.fn());
 
+const mockToast = vi.hoisted(() => vi.fn());
+
 vi.mock("@/lib/audioHandleStorage", () => ({
   buildAudioRefKey: (audioRef: { name: string; size: number; lastModified: number }) =>
     JSON.stringify({
@@ -29,6 +31,10 @@ vi.mock("@/lib/audioHandleStorage", () => ({
 vi.mock("@/lib/confirmLargeFile", () => ({
   default: mockConfirmIfLargeAudio,
   confirmIfLargeAudio: mockConfirmIfLargeAudio,
+}));
+
+vi.mock("@/hooks/use-toast", () => ({
+  useToast: () => ({ toast: mockToast }),
 }));
 
 const { mockLoadAudioHandle, mockSaveAudioHandle, mockClearAudioHandle, mockRequestPermission } =
@@ -210,7 +216,7 @@ describe("FileUpload", () => {
     (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
   });
 
-  it("uses unfiltered transcript picker options on macOS", async () => {
+  it("always passes types filter to transcript picker regardless of platform", async () => {
     const userAgentSpy = vi
       .spyOn(window.navigator, "userAgent", "get")
       .mockReturnValue("Mozilla/5.0 (Macintosh; Intel Mac OS X 14_0)");
@@ -231,7 +237,20 @@ describe("FileUpload", () => {
     await userEvent.click(screen.getByTestId("button-upload-transcript"));
 
     await waitFor(() => {
-      expect(showOpenFilePicker).toHaveBeenCalledWith({ multiple: false });
+      expect(showOpenFilePicker).toHaveBeenCalledWith(
+        expect.objectContaining({
+          multiple: false,
+          types: [
+            expect.objectContaining({
+              accept: {
+                "application/json": [".json"],
+                "text/plain": [".vtt"],
+                "text/vtt": [".vtt"],
+              },
+            }),
+          ],
+        }),
+      );
     });
 
     userAgentSpy.mockRestore();
@@ -258,5 +277,63 @@ describe("FileUpload", () => {
         expect.objectContaining({ name: "TRANSCRIPT.VTT" }),
       );
     });
+  });
+
+  it("shows error toast and does not update filename when VTT file has invalid content", async () => {
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
+
+    const onTranscriptUpload = vi.fn();
+    render(
+      <FileUpload
+        onAudioUpload={vi.fn()}
+        onTranscriptUpload={onTranscriptUpload}
+        transcriptFileName="old.vtt"
+      />,
+    );
+
+    const invalidVtt = new File(["not valid vtt content"], "broken.vtt", { type: "text/vtt" });
+    const transcriptInput = screen.getByTestId("input-transcript-file");
+    fireEvent.change(transcriptInput, { target: { files: [invalidVtt] } });
+
+    await waitFor(() => {
+      expect(onTranscriptUpload).not.toHaveBeenCalled();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+      }),
+    );
+
+    expect(screen.queryByText("broken.vtt")).not.toBeInTheDocument();
+  });
+
+  it("shows error toast and does not update filename when JSON file has invalid content", async () => {
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
+
+    const onTranscriptUpload = vi.fn();
+    render(
+      <FileUpload
+        onAudioUpload={vi.fn()}
+        onTranscriptUpload={onTranscriptUpload}
+        transcriptFileName="old.json"
+      />,
+    );
+
+    const invalidJson = new File(["{ bad json"], "broken.json", { type: "application/json" });
+    const transcriptInput = screen.getByTestId("input-transcript-file");
+    fireEvent.change(transcriptInput, { target: { files: [invalidJson] } });
+
+    await waitFor(() => {
+      expect(onTranscriptUpload).not.toHaveBeenCalled();
+    });
+
+    expect(mockToast).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+      }),
+    );
+
+    expect(screen.queryByText("broken.json")).not.toBeInTheDocument();
   });
 });

@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import {
   buildAudioRefKey,
   clearAudioHandleForAudioRef,
@@ -15,6 +16,7 @@ import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { createLogger } from "@/lib/logging";
 import { useTranscriptStore } from "@/lib/store";
+import { isVTTFormat } from "@/lib/transcriptParsing";
 
 const logger = createLogger({ feature: "FileUpload", namespace: "UI" });
 
@@ -40,6 +42,7 @@ export function FileUpload({
   revisionName,
 }: FileUploadProps) {
   const { t } = useTranslation();
+  const { toast } = useToast();
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
   const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
@@ -112,19 +115,30 @@ export function FileUpload({
             normalizedName.endsWith(".vtt") || file.type === "text/vtt" || startsWithWebVTT;
 
           if (isVTTFile) {
+            // Pre-validate so we don't update the filename label if content is not VTT
+            if (!isVTTFormat(rawText)) {
+              throw new Error("File does not contain valid WebVTT content.");
+            }
             onTranscriptUpload(rawText, buildFileReference(file));
           } else {
             const data = JSON.parse(rawText);
             onTranscriptUpload(data, buildFileReference(file));
           }
+          // Only update the label when parsing succeeded (Bug B fix)
           setLocalTranscriptFileName(file.name);
         } catch (err) {
           logger.error("Failed to parse transcript file.", { error: err });
+          // Show user-visible error (Bug C fix)
+          toast({
+            title: t("import.transcriptFormatError"),
+            description: t("import.transcriptFormatErrorDescription"),
+            variant: "destructive",
+          });
         }
       };
       reader.readAsText(file);
     },
-    [onTranscriptUpload],
+    [onTranscriptUpload, toast, t],
   );
 
   const handleAudioChange = useCallback(
@@ -253,30 +267,19 @@ export function FileUpload({
     }
 
     try {
-      const isMacPlatform = /Mac|iPhone|iPad|iPod/i.test(navigator.userAgent);
-      const pickerOptions: {
-        multiple: boolean;
-        types?: Array<{
-          description?: string;
-          accept: Record<string, string[]>;
-        }>;
-      } = isMacPlatform
-        ? { multiple: false }
-        : {
-            multiple: false,
-            types: [
-              {
-                description: t("fileUpload.transcriptFilesDescription"),
-                accept: {
-                  "application/json": [".json"],
-                  "text/vtt": [".vtt"],
-                  "text/plain": [".vtt"],
-                },
-              },
-            ],
-          };
-
-      const [handle] = await picker(pickerOptions);
+      const [handle] = await picker({
+        multiple: false,
+        types: [
+          {
+            description: t("fileUpload.transcriptFilesDescription"),
+            accept: {
+              "application/json": [".json"],
+              "text/vtt": [".vtt"],
+              "text/plain": [".vtt"],
+            },
+          },
+        ],
+      });
       if (!handle) return;
       const file = await handle.getFile();
       processTranscriptFile(file);
