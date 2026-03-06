@@ -1083,7 +1083,16 @@ describe("TranscriptSegment", () => {
   });
 
   it("highlights only the matched lexicon part in a hyphenated word", () => {
-    const lexiconMatch = new Map<number, { term: string; score: number; partIndex?: number }>();
+    const lexiconMatch = new Map<
+      number,
+      {
+        term: string;
+        score: number;
+        partIndex?: number;
+        spanLength?: number;
+        phraseStartOffset?: number;
+      }
+    >();
     lexiconMatch.set(0, { term: "Geweihte", score: 0.9, partIndex: 1 });
     const segmentWithHyphen: Segment = {
       ...segment,

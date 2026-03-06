@@ -24,7 +24,16 @@ interface TranscriptSegmentProps {
   readonly splitWordIndex?: number;
   readonly highlightLowConfidence?: boolean;
   readonly lowConfidenceThreshold?: number | null;
-  readonly lexiconMatches?: Map<number, { term: string; score: number; partIndex?: number }>;
+  readonly lexiconMatches?: Map<
+    number,
+    {
+      term: string;
+      score: number;
+      partIndex?: number;
+      spanLength?: number;
+      phraseStartOffset?: number;
+    }
+  >;
   readonly showLexiconMatches?: boolean;
   readonly lexiconHighlightUnderline?: boolean;
   readonly lexiconHighlightBackground?: boolean;

@@ -16,7 +16,13 @@ interface TranscriptWordProps {
   readonly segmentId: string;
   readonly isActive: boolean;
   readonly isSelected: boolean;
-  readonly lexiconMatch?: { term: string; score: number; partIndex?: number };
+  readonly lexiconMatch?: {
+    term: string;
+    score: number;
+    partIndex?: number;
+    spanLength?: number;
+    phraseStartOffset?: number;
+  };
   readonly spellcheckMatch?: { suggestions: string[]; partIndex?: number; spanLength?: number };
   readonly lexiconHighlightUnderline: boolean;
   readonly lexiconHighlightBackground: boolean;
@@ -434,7 +440,13 @@ export const TranscriptWord = memo(
                       data-testid={`button-apply-glossary-${segmentId}-${index}`}
                       onClick={(event) => {
                         event.stopPropagation();
-                        onApplyReplacement(index, lexiconMatch.term, lexiconMatch.partIndex);
+                        const effectiveIndex = index - (lexiconMatch.phraseStartOffset ?? 0);
+                        onApplyReplacement(
+                          effectiveIndex,
+                          lexiconMatch.term,
+                          lexiconMatch.partIndex,
+                          lexiconMatch.spanLength,
+                        );
                       }}
                     >
                       Apply
