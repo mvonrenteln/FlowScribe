@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createSearchRegex } from "@/lib/searchUtils";
 import type { Segment } from "@/lib/store";
 
@@ -97,15 +97,26 @@ export function useSearchAndReplace(
     return new RegExp(regex.source, flags);
   }, [isRegexSearch, regex, searchQuery]);
 
-  const searchableSegments = useMemo(
-    () =>
-      segments.map((segment) => ({
-        id: segment.id,
-        text: segment.text,
-        lowerText: segment.text.toLowerCase(),
-      })),
-    [segments],
-  );
+  const prevSearchableRef = useRef<Array<{ id: string; text: string; lowerText: string }>>([]);
+
+  const searchableSegments = useMemo(() => {
+    const next = segments.map((segment) => ({
+      id: segment.id,
+      text: segment.text,
+      lowerText: segment.text.toLowerCase(),
+    }));
+    const prev = prevSearchableRef.current;
+
+    if (
+      prev.length === next.length &&
+      prev.every((p, i) => p.id === next[i].id && p.text === next[i].text)
+    ) {
+      return prev;
+    }
+
+    prevSearchableRef.current = next;
+    return next;
+  }, [segments]);
 
   const allMatches = useMemo(() => {
     if (!searchQuery) return [];

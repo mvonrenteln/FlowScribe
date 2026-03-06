@@ -292,4 +292,141 @@ describe("useSearchAndReplace", () => {
       { id: "seg-1", text: "Fährtenlese-REPL" },
     ]);
   });
+
+  describe("searchableSegments stability", () => {
+    const baseSegments: Segment[] = [
+      {
+        id: "seg-1",
+        speaker: "A",
+        tags: [],
+        start: 0,
+        end: 1,
+        text: "hello world",
+        words: [
+          { word: "hello", start: 0, end: 0.5 },
+          { word: "world", start: 0.5, end: 1 },
+        ],
+      },
+      {
+        id: "seg-2",
+        speaker: "B",
+        tags: [],
+        start: 2,
+        end: 3,
+        text: "hello again",
+        words: [
+          { word: "hello", start: 2, end: 2.5 },
+          { word: "again", start: 2.5, end: 3 },
+        ],
+      },
+    ];
+
+    it("returns stable allMatches reference when only segment tags change", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      const originalAllMatches = result.current.allMatches;
+      const updatedSegments: Segment[] = [
+        { ...baseSegments[0], tags: ["tag-1"] },
+        { ...baseSegments[1], tags: ["tag-2"] },
+      ];
+
+      rerender({ hookSegments: updatedSegments, query: "hello" });
+
+      expect(result.current.allMatches).toBe(originalAllMatches);
+    });
+
+    it("returns stable currentMatch reference when only segment tags change", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      const originalCurrentMatch = result.current.currentMatch;
+      const updatedSegments: Segment[] = [
+        { ...baseSegments[0], tags: ["tag-1"] },
+        { ...baseSegments[1], tags: ["tag-2"] },
+      ];
+
+      rerender({ hookSegments: updatedSegments, query: "hello" });
+
+      expect(result.current.currentMatch).toBe(originalCurrentMatch);
+    });
+
+    it("updates allMatches when segment text changes", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      const originalAllMatches = result.current.allMatches;
+      const updatedSegments: Segment[] = [
+        { ...baseSegments[0], text: "goodbye world" },
+        baseSegments[1],
+      ];
+
+      rerender({ hookSegments: updatedSegments, query: "hello" });
+
+      expect(result.current.allMatches).not.toBe(originalAllMatches);
+      expect(result.current.totalMatches).toBe(1);
+    });
+
+    it("updates allMatches when segments are added", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      const addedSegment: Segment = {
+        id: "seg-3",
+        speaker: "C",
+        tags: [],
+        start: 4,
+        end: 5,
+        text: "hello there",
+        words: [
+          { word: "hello", start: 4, end: 4.5 },
+          { word: "there", start: 4.5, end: 5 },
+        ],
+      };
+
+      rerender({ hookSegments: [...baseSegments, addedSegment], query: "hello" });
+
+      expect(result.current.totalMatches).toBe(3);
+    });
+
+    it("updates allMatches when segments are removed", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      expect(result.current.totalMatches).toBe(2);
+
+      rerender({ hookSegments: [baseSegments[0]], query: "hello" });
+
+      expect(result.current.totalMatches).toBe(1);
+    });
+
+    it("updates allMatches when segment order changes", () => {
+      const { result, rerender } = renderHook(
+        ({ query, hookSegments }) =>
+          useSearchAndReplace(hookSegments, mockUpdateSegmentsTexts, query, false),
+        { initialProps: { hookSegments: baseSegments, query: "hello" } },
+      );
+
+      const originalAllMatches = result.current.allMatches;
+
+      rerender({ hookSegments: [baseSegments[1], baseSegments[0]], query: "hello" });
+
+      expect(result.current.allMatches).not.toBe(originalAllMatches);
+    });
+  });
 });
