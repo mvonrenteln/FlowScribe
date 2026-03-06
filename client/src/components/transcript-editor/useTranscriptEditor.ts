@@ -403,8 +403,15 @@ export const useTranscriptEditor = () => {
     allMatches,
   } = useSearchAndReplace(segments, updateSegmentsTexts, searchQuery, isRegexSearch);
 
+  const prevSearchMatchRef = useRef<typeof currentMatch | null>(null);
+
   useEffect(() => {
-    if (!currentMatch) return;
+    if (!currentMatch) {
+      prevSearchMatchRef.current = null;
+      return;
+    }
+    if (currentMatch === prevSearchMatchRef.current) return;
+    prevSearchMatchRef.current = currentMatch;
 
     setSelectedSegmentId(currentMatch.segmentId);
     const matchedSegment = segments.find((segment) => segment.id === currentMatch.segmentId);
