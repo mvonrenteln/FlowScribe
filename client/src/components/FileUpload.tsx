@@ -97,6 +97,36 @@ export function FileUpload({
     setLocalTranscriptFileName(transcriptFileName);
   }, [transcriptFileName]);
 
+  const processTranscriptFile = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const rawText = event.target?.result as string;
+          const normalizedName = file.name.toLowerCase();
+          const startsWithWebVTT = rawText
+            .replace(/^\uFEFF/, "")
+            .trimStart()
+            .startsWith("WEBVTT");
+          const isVTTFile =
+            normalizedName.endsWith(".vtt") || file.type === "text/vtt" || startsWithWebVTT;
+
+          if (isVTTFile) {
+            onTranscriptUpload(rawText, buildFileReference(file));
+          } else {
+            const data = JSON.parse(rawText);
+            onTranscriptUpload(data, buildFileReference(file));
+          }
+          setLocalTranscriptFileName(file.name);
+        } catch (err) {
+          logger.error("Failed to parse transcript file.", { error: err });
+        }
+      };
+      reader.readAsText(file);
+    },
+    [onTranscriptUpload],
+  );
+
   const handleAudioChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -197,28 +227,52 @@ export function FileUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const rawText = event.target?.result as string;
-            if (file.name.endsWith(".vtt")) {
-              // Pass raw string for VTT files — parseTranscriptData handles VTT detection
-              onTranscriptUpload(rawText, buildFileReference(file));
-            } else {
-              // Existing JSON path
-              const data = JSON.parse(rawText);
-              onTranscriptUpload(data, buildFileReference(file));
-            }
-            setLocalTranscriptFileName(file.name);
-          } catch (err) {
-            logger.error("Failed to parse transcript file.", { error: err });
-          }
-        };
-        reader.readAsText(file);
+        processTranscriptFile(file);
       }
     },
-    [onTranscriptUpload],
+    [processTranscriptFile],
   );
+
+  const handleTranscriptPick = useCallback(async () => {
+    const picker = (
+      window as Window & {
+        showOpenFilePicker?: (options?: {
+          types?: Array<{
+            description?: string;
+            accept: Record<string, string[]>;
+          }>;
+          multiple?: boolean;
+          excludeAcceptAllOption?: boolean;
+        }) => Promise<FileSystemFileHandle[]>;
+      }
+    ).showOpenFilePicker;
+
+    if (!picker) {
+      transcriptInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const [handle] = await picker({
+        multiple: false,
+        types: [
+          {
+            description: t("fileUpload.transcriptFilesDescription"),
+            accept: {
+              "application/json": [".json"],
+              "text/vtt": [".vtt"],
+            },
+          },
+        ],
+      });
+      if (!handle) return;
+      const file = await handle.getFile();
+      processTranscriptFile(file);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      logger.error("Failed to pick transcript file.", { error: err });
+    }
+  }, [processTranscriptFile, t]);
 
   const transcriptLabel =
     localTranscriptFileName ||
@@ -239,7 +293,7 @@ export function FileUpload({
         <input
           ref={transcriptInputRef}
           type="file"
-          accept=".json,.vtt,text/vtt"
+          accept=".json,.vtt,.VTT,application/json,text/vtt,text/plain"
           onChange={handleTranscriptChange}
           className="hidden"
           data-testid="input-transcript-file"
@@ -279,7 +333,7 @@ export function FileUpload({
           <TooltipTrigger asChild>
             <Button
               variant={transcriptLoaded ? "secondary" : "outline"}
-              onClick={() => transcriptInputRef.current?.click()}
+              onClick={handleTranscriptPick}
               data-testid="button-upload-transcript"
             >
               <FileText className="h-4 w-4 mr-2" />

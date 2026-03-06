@@ -165,4 +165,69 @@ describe("FileUpload", () => {
     expect(mockClearAudioHandle).toHaveBeenCalled();
     expect(onAudioUpload).toHaveBeenCalledWith(newFile);
   });
+
+  it("uses transcript file picker and passes VTT content through", async () => {
+    const vttContent = "WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\n<v SPEAKER_00>Hello</v>";
+    const file = new File([vttContent], "notes.vtt", { type: "text/vtt" });
+    const handle = {
+      getFile: vi.fn().mockResolvedValue(file),
+    } as unknown as FileSystemFileHandle;
+    const showOpenFilePicker = vi.fn().mockResolvedValue([handle]);
+    Object.defineProperty(window, "showOpenFilePicker", {
+      value: showOpenFilePicker,
+      writable: true,
+    });
+
+    const onTranscriptUpload = vi.fn();
+    render(<FileUpload onAudioUpload={vi.fn()} onTranscriptUpload={onTranscriptUpload} />);
+
+    await userEvent.click(screen.getByTestId("button-upload-transcript"));
+
+    await waitFor(() => {
+      expect(showOpenFilePicker).toHaveBeenCalledWith(
+        expect.objectContaining({
+          multiple: false,
+          types: [
+            expect.objectContaining({
+              accept: {
+                "application/json": [".json"],
+                "text/vtt": [".vtt"],
+              },
+            }),
+          ],
+        }),
+      );
+    });
+
+    await waitFor(() => {
+      expect(onTranscriptUpload).toHaveBeenCalledWith(
+        vttContent,
+        expect.objectContaining({ name: "notes.vtt" }),
+      );
+    });
+
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
+  });
+
+  it("treats uppercase .VTT files as VTT in fallback input flow", async () => {
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
+    const onTranscriptUpload = vi.fn();
+    render(<FileUpload onAudioUpload={vi.fn()} onTranscriptUpload={onTranscriptUpload} />);
+
+    const uppercaseVtt = new File(
+      ["WEBVTT\n\n1\n00:00:01.000 --> 00:00:02.000\n<v SPEAKER_00>Uppercase extension</v>"],
+      "TRANSCRIPT.VTT",
+      { type: "text/plain" },
+    );
+
+    const transcriptInput = screen.getByTestId("input-transcript-file");
+    fireEvent.change(transcriptInput, { target: { files: [uppercaseVtt] } });
+
+    await waitFor(() => {
+      expect(onTranscriptUpload).toHaveBeenCalledWith(
+        expect.stringContaining("WEBVTT"),
+        expect.objectContaining({ name: "TRANSCRIPT.VTT" }),
+      );
+    });
+  });
 });

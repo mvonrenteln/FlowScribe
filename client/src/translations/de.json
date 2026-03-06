@@ -106,6 +106,7 @@
   "fileUpload": {
     "loadAudio": "Audio laden",
     "loadAudioTooltip": "Audiodatei laden",
+    "transcriptFilesDescription": "Transkriptdateien",
     "reopenAudio": "Audio erneut öffnen",
     "reopenAudioTooltip": "Letzte Audiodatei erneut öffnen",
     "transcriptLoaded": "Transkript geladen",

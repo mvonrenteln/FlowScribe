@@ -159,6 +159,7 @@
   "fileUpload": {
     "loadAudio": "Load Audio",
     "loadAudioTooltip": "Load audio file",
+    "transcriptFilesDescription": "Transcript files",
     "reopenAudio": "Reopen Audio",
     "reopenAudioTooltip": "Reopen last audio file",
     "transcriptLoaded": "Transcript Loaded",
