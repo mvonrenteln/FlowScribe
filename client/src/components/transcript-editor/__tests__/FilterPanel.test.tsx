@@ -232,6 +232,45 @@ describe("FilterPanel", () => {
     expect(screen.getAllByText("GAST").length).toBeGreaterThanOrEqual(1);
   });
 
+  it("deletes empty speakers via sidebar actions", async () => {
+    mockTranscriptData = {
+      segments: [
+        {
+          speaker: "SPEAKER_00",
+          start: 0,
+          end: 1,
+          text: "Hallo",
+          words: [{ word: "Hallo", start: 0, end: 1 }],
+        },
+      ],
+    };
+
+    await act(async () => {
+      render(<TranscriptEditor />);
+    });
+
+    await userEvent.click(screen.getByTestId("mock-upload"));
+
+    await userEvent.click(screen.getByTestId("button-add-speaker"));
+    await userEvent.type(screen.getByTestId("input-new-speaker"), "TEMP{enter}");
+
+    const tempSpeaker = useTranscriptStore
+      .getState()
+      .speakers.find((speaker) => speaker.name === "TEMP");
+    if (!tempSpeaker) {
+      throw new Error("Expected TEMP speaker to exist after adding it.");
+    }
+
+    await userEvent.click(screen.getByTestId(`button-speaker-options-${tempSpeaker.id}`));
+    await userEvent.click(screen.getByTestId(`menu-delete-speaker-${tempSpeaker.id}`));
+
+    await waitFor(() => {
+      expect(
+        useTranscriptStore.getState().speakers.some((speaker) => speaker.name === "TEMP"),
+      ).toBe(false);
+    });
+  });
+
   it("updates selection within the active speaker filter as time changes", async () => {
     act(() => {
       useTranscriptStore.setState({

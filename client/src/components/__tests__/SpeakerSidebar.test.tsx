@@ -81,6 +81,31 @@ describe("SpeakerSidebar", () => {
     expect(onMergeSpeakers).toHaveBeenCalledWith("SPEAKER_00", "SPEAKER_01");
   });
 
+  it("deletes only empty speakers", async () => {
+    const onDeleteSpeaker = vi.fn();
+
+    render(
+      <SpeakerSidebar
+        speakers={speakers}
+        segments={[segments[0]]}
+        tags={[]}
+        onRenameSpeaker={vi.fn()}
+        onAddSpeaker={vi.fn()}
+        onDeleteSpeaker={onDeleteSpeaker}
+      />,
+    );
+
+    await userEvent.click(screen.getByTestId("button-speaker-options-s2"));
+    await userEvent.click(screen.getByTestId("menu-delete-speaker-s2"));
+
+    expect(onDeleteSpeaker).toHaveBeenCalledWith("SPEAKER_01");
+
+    await userEvent.click(screen.getByTestId("button-speaker-options-s1"));
+    expect(screen.getByTestId("menu-delete-speaker-s1")).toHaveAttribute("data-disabled");
+
+    expect(onDeleteSpeaker).toHaveBeenCalledTimes(1);
+  });
+
   it("filters and clears speaker selection", async () => {
     const onSpeakerSelect = vi.fn();
     const onClearFilter = vi.fn();
