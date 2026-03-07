@@ -41,6 +41,13 @@ export type RewriteConfig = {
   selectedModel?: string;
 };
 
+export interface RewriteDraft {
+  text: string;
+  promptId: string;
+  providerId?: string;
+  model?: string;
+}
+
 export interface RewriteSlice {
   // Processing state
   rewriteInProgress: boolean;
@@ -52,6 +59,7 @@ export interface RewriteSlice {
   paragraphRewriteParagraphIndex: number | null;
   paragraphRewriteError: string | null;
   paragraphRewriteAbortController: AbortController | null;
+  rewriteDraftByChapterId: Record<string, RewriteDraft | undefined>;
 
   // Actions - Configuration
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
@@ -75,6 +83,8 @@ export interface RewriteSlice {
     customInstructions?: string,
   ) => Promise<void>;
   cancelParagraphRewrite: () => void;
+  setRewriteDraft: (chapterId: string, draft: RewriteDraft) => void;
+  clearRewriteDraft: (chapterId: string) => void;
 }
 
 // ==================== Initial State ====================
@@ -89,6 +99,7 @@ export const initialRewriteState = {
   paragraphRewriteParagraphIndex: null,
   paragraphRewriteError: null,
   paragraphRewriteAbortController: null,
+  rewriteDraftByChapterId: {},
 };
 
 // ==================== Slice Creator ====================
@@ -214,10 +225,8 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         rewriteAbortController: null,
       });
 
-      // Update chapter with rewritten text using the chapter slice action
-      // This ensures proper history management
-      // Use get() to get fresh state after async operation
-      get().setChapterRewrite(chapterId, result.rewrittenText, {
+      get().setRewriteDraft(chapterId, {
+        text: result.rewrittenText,
         promptId,
         providerId: state.aiChapterDetectionConfig.selectedProviderId,
         model: state.aiChapterDetectionConfig.selectedModel,
@@ -245,12 +254,37 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
     });
   },
 
+  setRewriteDraft: (chapterId, draft) => {
+    set((state) => ({
+      rewriteDraftByChapterId: {
+        ...state.rewriteDraftByChapterId,
+        [chapterId]: draft,
+      },
+    }));
+  },
+
+  clearRewriteDraft: (chapterId) => {
+    set((state) => {
+      if (!(chapterId in state.rewriteDraftByChapterId)) {
+        return state;
+      }
+
+      const { [chapterId]: _removed, ...rest } = state.rewriteDraftByChapterId;
+      return {
+        rewriteDraftByChapterId: rest,
+      };
+    });
+  },
+
   startParagraphRewrite: async (chapterId, paragraphIndex, promptId, customInstructions) => {
     const state = get();
 
     const chapter = state.chapters.find((c) => c.id === chapterId);
-    if (!chapter || !chapter.rewrittenText) {
-      logger.error("Chapter or rewritten text not found.", { chapterId });
+    const draft = state.rewriteDraftByChapterId[chapterId];
+    const sourceText = draft?.text ?? chapter?.rewrittenText;
+
+    if (!chapter || !sourceText) {
+      logger.error("Chapter or rewrite source text not found.", { chapterId });
       return;
     }
 
@@ -268,7 +302,7 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       return;
     }
 
-    const paragraphs = splitRewrittenParagraphs(chapter.rewrittenText);
+    const paragraphs = splitRewrittenParagraphs(sourceText);
     const paragraph = paragraphs[paragraphIndex];
     if (!paragraph) {
       logger.error("Paragraph index out of bounds.", { paragraphIndex });
@@ -312,12 +346,15 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         paragraphRewriteAbortController: null,
       });
 
-      const updatedText = replaceParagraphAtIndex(
-        chapter.rewrittenText,
-        paragraphIndex,
-        result.rewrittenText,
-      );
-      get().updateChapterRewrite(chapterId, updatedText);
+      const updatedText = replaceParagraphAtIndex(sourceText, paragraphIndex, result.rewrittenText);
+      if (draft) {
+        get().setRewriteDraft(chapterId, {
+          ...draft,
+          text: updatedText,
+        });
+      } else {
+        get().updateChapterRewrite(chapterId, updatedText);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Unknown error";
       logger.error("Paragraph rewrite failed.", { error });

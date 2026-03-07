@@ -239,6 +239,7 @@ export interface InitialStoreState {
   paragraphRewriteParagraphIndex: number | null;
   paragraphRewriteError: string | null;
   paragraphRewriteAbortController: AbortController | null;
+  rewriteDraftByChapterId: Record<string, import("./slices/rewriteSlice").RewriteDraft | undefined>;
   // Backup
   backupConfig: BackupConfig;
   backupState: BackupState;

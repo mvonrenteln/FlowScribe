@@ -39,7 +39,10 @@ export function ChapterRewriteView({
   const rewriteInProgress = useTranscriptStore((s) => s.rewriteInProgress);
   const rewriteChapterId = useTranscriptStore((s) => s.rewriteChapterId);
   const rewriteError = useTranscriptStore((s) => s.rewriteError);
+  const rewriteDraft = useTranscriptStore((s) => s.rewriteDraftByChapterId[chapterId]);
   const setChapterRewrite = useTranscriptStore((s) => s.setChapterRewrite);
+  const setRewriteDraft = useTranscriptStore((s) => s.setRewriteDraft);
+  const clearRewriteDraft = useTranscriptStore((s) => s.clearRewriteDraft);
   const setChapterDisplayMode = useTranscriptStore((s) => s.setChapterDisplayMode);
   const cancelRewrite = useTranscriptStore((s) => s.cancelRewrite);
   const startRewrite = useTranscriptStore((s) => s.startRewrite);
@@ -49,8 +52,6 @@ export function ChapterRewriteView({
     (s) => s.paragraphRewriteParagraphIndex,
   );
 
-  const [rewrittenText, setRewrittenText] = useState<string>("");
-  const [promptId, setPromptId] = useState<string>("");
   const [isMounted, setIsMounted] = useState(false);
   const [paragraphDialogOpen, setParagraphDialogOpen] = useState(false);
   const [paragraphDialogIndex, setParagraphDialogIndex] = useState<number | null>(null);
@@ -62,13 +63,8 @@ export function ChapterRewriteView({
   // Check if rewrite is in progress for this chapter
   const isProcessing = rewriteInProgress && rewriteChapterId === chapterId;
 
-  // Update rewritten text when chapter updates
-  useEffect(() => {
-    if (chapter?.rewrittenText) {
-      setRewrittenText(chapter.rewrittenText);
-      setPromptId(chapter.rewritePromptId || "");
-    }
-  }, [chapter?.rewrittenText, chapter?.rewritePromptId]);
+  const rewrittenText = rewriteDraft?.text ?? chapter?.rewrittenText ?? "";
+  const promptId = rewriteDraft?.promptId ?? chapter?.rewritePromptId ?? "";
 
   useEffect(() => {
     setIsMounted(true);
@@ -152,32 +148,35 @@ export function ChapterRewriteView({
   }, [isMounted]);
 
   const handleAccept = useCallback(() => {
-    if (!chapter || !rewrittenText) return;
+    if (!rewrittenText) return;
 
     setChapterRewrite(chapterId, rewrittenText, {
       promptId,
-      providerId: chapter.rewriteContext?.providerId,
-      model: chapter.rewriteContext?.model,
+      providerId: rewriteDraft?.providerId,
+      model: rewriteDraft?.model,
     });
+    clearRewriteDraft(chapterId);
 
     // Automatically switch to rewritten view after accepting
     setChapterDisplayMode(chapterId, "rewritten");
 
     onClose();
   }, [
-    chapter,
     chapterId,
     rewrittenText,
     promptId,
+    rewriteDraft,
     setChapterRewrite,
+    clearRewriteDraft,
     setChapterDisplayMode,
     onClose,
   ]);
 
   const handleReject = useCallback(() => {
+    clearRewriteDraft(chapterId);
     cancelRewrite();
     onClose();
-  }, [cancelRewrite, onClose]);
+  }, [chapterId, clearRewriteDraft, cancelRewrite, onClose]);
 
   // Escape key handler (must be after handleReject definition)
   useEffect(() => {
@@ -294,6 +293,16 @@ export function ChapterRewriteView({
               <RewrittenTextDisplay
                 chapterId={chapterId}
                 text={rewrittenText}
+                onTextChange={
+                  rewriteDraft
+                    ? (nextText) => {
+                        setRewriteDraft(chapterId, {
+                          ...rewriteDraft,
+                          text: nextText,
+                        });
+                      }
+                    : undefined
+                }
                 onRefineParagraph={handleRefineParagraph}
                 refiningParagraphIndex={
                   paragraphRewriteChapterId === chapterId ? paragraphRewriteParagraphIndex : null
