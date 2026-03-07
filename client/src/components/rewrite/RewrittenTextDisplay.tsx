@@ -26,6 +26,7 @@ interface RewrittenTextDisplayProps {
   refiningParagraphIndex?: number | null;
   /** Disable refine actions */
   refineDisabled?: boolean;
+  onTextChange?: (updatedText: string) => void;
 }
 
 export function RewrittenTextDisplay({
@@ -36,6 +37,7 @@ export function RewrittenTextDisplay({
   onRefineParagraph,
   refiningParagraphIndex = null,
   refineDisabled = false,
+  onTextChange,
 }: RewrittenTextDisplayProps) {
   const [selectedParagraphIndex, setSelectedParagraphIndex] = useState<number | null>(null);
   const updateChapterRewrite = useTranscriptStore((s) => s.updateChapterRewrite);
@@ -63,9 +65,14 @@ export function RewrittenTextDisplay({
       updatedParagraphs[index] = newText;
       const updatedText = updatedParagraphs.join("\n\n");
 
+      if (onTextChange) {
+        onTextChange(updatedText);
+        return;
+      }
+
       updateChapterRewrite(chapterId, updatedText);
     },
-    [chapterId, paragraphs, updateChapterRewrite],
+    [chapterId, onTextChange, paragraphs, updateChapterRewrite],
   );
 
   if (paragraphs.length === 0) {

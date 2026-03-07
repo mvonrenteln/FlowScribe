@@ -1,6 +1,6 @@
 # AI Chapter Rewrite
 
-*Last Updated: February 3, 2026*
+*Last Updated: March 7, 2026*
 
 ## Overview
 
@@ -45,8 +45,8 @@ The rewrite view opens automatically when processing completes:
 
 ### 3. Accepting or Discarding
 
-- **Accept**: Saves rewritten text to the chapter; toggle display mode in transcript view
-- **Discard**: Closes view without saving; original transcript remains
+- **Accept**: Persists rewritten text to the chapter and enables rewritten display mode
+- **Discard**: Removes the in-progress rewrite draft and restores the last accepted chapter state
 - **Re-rewrite**: Run again with the same prompt; this replaces the previous rewrite
 
 ---
@@ -268,4 +268,4 @@ Create your own rewrite styles in **Settings → AI Prompts → Chapters**:
 
 ---
 
-*Last Updated: February 3, 2026*
+*Last Updated: March 7, 2026*
