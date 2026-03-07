@@ -105,4 +105,41 @@ describe("ChapterPanel", () => {
       expect.objectContaining({ segmentIds: ["seg-2"] }),
     );
   });
+
+  it("shows visible validation when max length exceeds batch size", async () => {
+    const user = userEvent.setup();
+    const startChapterDetection = vi.fn();
+
+    setStoreState({
+      segments: baseSegments,
+      startChapterDetection,
+    });
+
+    renderWithI18n(<ChapterPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
+
+    const batchSizeInput = screen.getByLabelText(/batch size/i);
+    await act(async () => {
+      await user.clear(batchSizeInput);
+      await user.type(batchSizeInput, "20");
+    });
+
+    const maxLengthInput = screen.getByLabelText(/max length/i);
+    await act(async () => {
+      await user.clear(maxLengthInput);
+      await user.type(maxLengthInput, "30");
+    });
+
+    expect(
+      screen.getByText("Max length (30) cannot be greater than batch size (20)."),
+    ).toBeInTheDocument();
+
+    const startButton = screen.getByRole("button", { name: /start batch/i });
+    expect(startButton).toBeDisabled();
+
+    await act(async () => {
+      await user.click(startButton);
+    });
+
+    expect(startChapterDetection).not.toHaveBeenCalled();
+  });
 });

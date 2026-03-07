@@ -276,7 +276,10 @@
       "batchSizeHelp": "Number of segments to process in each batch (10-200)",
       "settingsTitle": "Chapter Settings",
       "minLengthLabel": "Min Length (segments)",
-      "maxLengthLabel": "Max Length (segments)"
+      "maxLengthLabel": "Max Length (segments)",
+      "validation": {
+        "maxLengthExceedsBatchSize": "Max length ({{maxLength}}) cannot be greater than batch size ({{batchSize}})."
+      }
     },
     "merge": {
       "settingsTitle": "Merge Settings",

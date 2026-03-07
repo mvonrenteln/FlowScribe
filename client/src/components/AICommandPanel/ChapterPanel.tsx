@@ -1,4 +1,4 @@
-import { Check, Sparkles, StopCircle, Trash2 } from "lucide-react";
+import { AlertCircle, Check, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -53,6 +53,17 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
   const [minLen, setMinLen] = useState(config.minChapterLength.toString());
   const [maxLen, setMaxLen] = useState(config.maxChapterLength.toString());
   const [isLogOpen, setIsLogOpen] = useState(false);
+
+  const parsedBatch = Number.parseInt(batchSize, 10);
+  const parsedMax = Number.parseInt(maxLen, 10);
+  const hasMaxExceedsBatchValidationError =
+    !Number.isNaN(parsedBatch) && !Number.isNaN(parsedMax) && parsedMax > parsedBatch;
+  const chapterValidationError = hasMaxExceedsBatchValidationError
+    ? t("aiBatch.chapter.validation.maxLengthExceedsBatchSize", {
+        maxLength: parsedMax,
+        batchSize: parsedBatch,
+      })
+    : null;
 
   const pending = suggestions.filter((s) => s.status === "pending");
   const detectionPrompts = config.prompts.filter(
@@ -199,6 +210,12 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
             />
           </div>
         </div>
+        {chapterValidationError ? (
+          <div className="flex items-center gap-2 p-2 rounded-md bg-destructive/10 text-destructive text-sm">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{chapterValidationError}</span>
+          </div>
+        ) : null}
       </section>
 
       <AIBatchControlSection
@@ -212,7 +229,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
           label: t("aiBatch.actions.startBatch"),
           icon: <Sparkles className="h-4 w-4 mr-2" />,
           onClick: handleStart,
-          disabled: scopedSegmentIds.length === 0,
+          disabled: scopedSegmentIds.length === 0 || chapterValidationError !== null,
         }}
         stopAction={{
           label: t("aiBatch.actions.stop"),

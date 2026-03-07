@@ -223,7 +223,10 @@
       "batchSizeHelp": "Anzahl der Segmente pro Batch (10-200)",
       "settingsTitle": "Kapitel-Einstellungen",
       "minLengthLabel": "Min. Länge (Segmente)",
-      "maxLengthLabel": "Max. Länge (Segmente)"
+      "maxLengthLabel": "Max. Länge (Segmente)",
+      "validation": {
+        "maxLengthExceedsBatchSize": "Die maximale Länge ({{maxLength}}) darf nicht größer als die Batch-Größe ({{batchSize}}) sein."
+      }
     },
     "merge": {
       "settingsTitle": "Merge-Einstellungen",
