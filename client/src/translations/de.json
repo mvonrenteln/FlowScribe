@@ -252,7 +252,13 @@
         "low": "Niedrig: {{count}}"
       },
       "acceptAllHigh": "Alle hohen übernehmen",
-      "gapLabel": "Lücke {{gap}}"
+      "gapLabel": "Lücke {{gap}}",
+      "overSmoothed": {
+        "badgeLabel": "KI hat zu stark geglättet",
+        "warningTitle": "Text stark verändert",
+        "warningBody": "Die KI hat den Text beim Glätten stärker verändert als erwartet. Du kannst den Originaltext annehmen, die KI-Version annehmen oder den Vorschlag ablehnen.",
+        "ariaLabel": "Warnung: KI hat diesen Vorschlag zu stark geglättet"
+      }
     }
   },
   "aiErrors": {

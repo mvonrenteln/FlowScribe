@@ -15,8 +15,13 @@ export type MergeConfidenceLevel = "high" | "medium" | "low";
 
 /**
  * Status of a merge suggestion.
+ *
+ * - `"pending"`: Suggestion awaiting user decision
+ * - `"accepted"`: User accepted the merge
+ * - `"rejected"`: User rejected the merge
+ * - `"over-smoothed"`: AI returned text with <50% word overlap; suggestion kept but flagged for user decision
  */
-export type MergeSuggestionStatus = "pending" | "accepted" | "rejected";
+export type MergeSuggestionStatus = "pending" | "accepted" | "rejected" | "over-smoothed";
 
 // ==================== Core Types ====================
 
@@ -78,6 +83,9 @@ export interface MergeSuggestion {
 
   /** Current status */
   status: MergeSuggestionStatus;
+
+  /** Machine-readable reason code for the status (e.g. "low_word_overlap") */
+  reasonCode?: string;
 
   /** Merged text (without smoothing) */
   mergedText: string;

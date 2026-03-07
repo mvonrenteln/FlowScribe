@@ -1,4 +1,5 @@
-import { Check, CheckCheck, GitMerge, Sparkles, X } from "lucide-react";
+import { AlertTriangle, Check, CheckCheck, GitMerge, Sparkles, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
@@ -23,6 +24,7 @@ export function MergeSuggestionInline({
   onAcceptWithoutSmoothing,
   onReject,
 }: MergeSuggestionInlineProps) {
+  const { t } = useTranslation();
   const mergedText = suggestion.smoothedText ?? suggestion.mergedText;
   const hasSmoothing =
     Boolean(suggestion.smoothedText) && suggestion.smoothedText !== suggestion.mergedText;
@@ -111,6 +113,21 @@ export function MergeSuggestionInline({
           </TooltipProvider>
         </div>
       </div>
+
+      {suggestion.status === "over-smoothed" && (
+        <div
+          role="alert"
+          aria-label={t("aiBatch.merge.overSmoothed.ariaLabel")}
+          className="mt-1 flex items-center gap-1.5 rounded border border-orange-200 bg-orange-50/70 px-2 py-1.5 text-xs text-orange-800 dark:border-orange-900/40 dark:bg-orange-900/20 dark:text-orange-300"
+        >
+          <AlertTriangle className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+          <span>
+            <strong>{t("aiBatch.merge.overSmoothed.warningTitle")}</strong>
+            {" — "}
+            {t("aiBatch.merge.overSmoothed.warningBody")}
+          </span>
+        </div>
+      )}
 
       <div className="mt-2 text-xs text-muted-foreground">
         {firstSegment.speaker} → {secondSegment.speaker} •{" "}

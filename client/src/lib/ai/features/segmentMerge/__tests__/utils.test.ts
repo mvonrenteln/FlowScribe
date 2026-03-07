@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { validateMergeCandidate } from "@/lib/ai/features/segmentMerge/utils";
-import type { MergeAnalysisSegment } from "../types";
+import type { MergeAnalysisSegment, RawMergeSuggestion } from "../types";
 
 function makeSegment(id: string, speaker = "A"): MergeAnalysisSegment {
   return { id, speaker } as MergeAnalysisSegment;
@@ -207,7 +207,7 @@ describe("segmentMerge utils", () => {
     expect(sug).not.toBeNull();
   });
 
-  it("drops suggestion when returned text is too different", () => {
+  it("returns over-smoothed suggestion instead of null when returned text differs too much", () => {
     const raw = {
       segmentIds: ["seg-1", "seg-2"],
       confidence: 0.9,
@@ -223,7 +223,88 @@ describe("segmentMerge utils", () => {
       map as Map<string, MergeAnalysisSegment>,
     );
 
-    expect(sug).toBeNull();
+    expect(sug).not.toBeNull();
+    expect(sug?.status).toBe("over-smoothed");
+  });
+
+  describe("processSuggestion – over-smoothed status", () => {
+    const makeTestSegment = (id: string, text: string): MergeAnalysisSegment => ({
+      id,
+      speaker: "A",
+      start: 0,
+      end: 1,
+      text,
+    });
+
+    const makeSegmentMap = (
+      seg1: MergeAnalysisSegment,
+      seg2: MergeAnalysisSegment,
+    ): Map<string, MergeAnalysisSegment> =>
+      new Map<string, MergeAnalysisSegment>([
+        [seg1.id, seg1],
+        [seg2.id, seg2],
+      ]);
+
+    it("returns suggestion with status 'over-smoothed' instead of null when AI diverges from original", () => {
+      const seg1 = makeTestSegment("seg-1", "uh we we should check the config");
+      const seg2 = makeTestSegment("seg-2", "yeah before we start");
+      const raw: RawMergeSuggestion = {
+        segmentIds: ["seg-1", "seg-2"],
+        confidence: 0.9,
+        smoothedText: "Let's check the settings.",
+      };
+
+      const sug = processSuggestion(raw, makeSegmentMap(seg1, seg2));
+
+      expect(sug).not.toBeNull();
+      expect(sug?.status).toBe("over-smoothed");
+    });
+
+    it("over-smoothed suggestion carries both mergedText (original) and smoothedText from AI", () => {
+      const seg1 = makeTestSegment("seg-1", "um basically the results");
+      const seg2 = makeTestSegment("seg-2", "I mean they look good");
+      const raw: RawMergeSuggestion = {
+        segmentIds: ["seg-1", "seg-2"],
+        confidence: 0.9,
+        smoothedText: "The results look good.",
+      };
+
+      const sug = processSuggestion(raw, makeSegmentMap(seg1, seg2));
+
+      expect(sug?.status).toBe("over-smoothed");
+      expect(sug?.mergedText).toBe("um basically the results I mean they look good");
+      expect(sug?.smoothing?.smoothedText).toBe("The results look good.");
+    });
+
+    it("over-smoothed suggestion has reasonCode 'low_word_overlap'", () => {
+      const seg1 = makeTestSegment("seg-1", "uh um ah er");
+      const seg2 = makeTestSegment("seg-2", "yeah so basically");
+      const raw: RawMergeSuggestion = {
+        segmentIds: ["seg-1", "seg-2"],
+        confidence: 0.9,
+        smoothedText: "Basically.",
+      };
+
+      const sug = processSuggestion(raw, makeSegmentMap(seg1, seg2));
+
+      expect(sug?.status).toBe("over-smoothed");
+      expect(sug?.reasonCode).toBe("low_word_overlap");
+    });
+
+    it("compatible suggestions (≥50% overlap) still return status 'pending'", () => {
+      const seg1 = makeTestSegment("seg-1", "the results look really good");
+      const seg2 = makeTestSegment("seg-2", "and we should proceed");
+      const raw: RawMergeSuggestion = {
+        segmentIds: ["seg-1", "seg-2"],
+        confidence: 0.9,
+        smoothedText: "The results look really good and we should proceed.",
+      };
+
+      const sug = processSuggestion(raw, makeSegmentMap(seg1, seg2));
+
+      expect(sug).not.toBeNull();
+      expect(sug?.status).toBe("pending");
+    });
   });
 
   it("normalizeRawSuggestion wrapper handles RawAIItem shapes", () => {

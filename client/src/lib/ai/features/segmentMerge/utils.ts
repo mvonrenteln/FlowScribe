@@ -447,13 +447,14 @@ export function processSuggestion(
   const returnedText =
     raw.smoothedText ?? (raw as RawMergeSuggestion & { mergedText?: string }).mergedText;
 
-  if (returnedText && !isReturnedTextCompatible(mergedText, returnedText)) {
-    logger.warn("Discarding merge suggestion due to mismatched returned text", {
+  const isOverSmoothed =
+    returnedText !== undefined && !isReturnedTextCompatible(mergedText, returnedText);
+  if (isOverSmoothed && returnedText !== undefined) {
+    logger.warn("AI over-smoothed: returned text diverges significantly from original", {
       segmentIds: raw.segmentIds,
       expectedPreview: buildPreview(mergedText),
       returnedPreview: buildPreview(returnedText),
     });
-    return null;
   }
 
   // Create smoothing info if provided
@@ -465,7 +466,8 @@ export function processSuggestion(
     confidence: scoreToConfidenceLevel(raw.confidence ?? 0.5),
     confidenceScore: raw.confidence ?? 0.5,
     reason: raw.reason || "Segments appear to belong together",
-    status: "pending",
+    status: isOverSmoothed ? "over-smoothed" : "pending",
+    ...(isOverSmoothed && { reasonCode: "low_word_overlap" }),
     mergedText,
     smoothing,
     timeRange,
