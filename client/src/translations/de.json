@@ -130,7 +130,9 @@
       "totalElapsed": "Gesamtzeit:",
       "fatal": "FATAL",
       "emptyIssue": "—",
-      "see": "Batch-Log ansehen"
+      "see": "Batch-Log ansehen",
+      "export": "Exportieren",
+      "exportAriaLabel": "Batch-Log als JSON exportieren"
     },
     "control": {
       "processing": "Wird verarbeitet...",

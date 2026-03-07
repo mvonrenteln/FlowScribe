@@ -183,7 +183,9 @@
       "totalElapsed": "Total elapsed:",
       "fatal": "FATAL",
       "emptyIssue": "—",
-      "see": "See batch log"
+      "see": "See batch log",
+      "export": "Export",
+      "exportAriaLabel": "Export batch log as JSON"
     },
     "control": {
       "processing": "Processing...",

@@ -402,6 +402,7 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
             <span>{t("aiBatch.merge.batchLogEntries", { count: batchLog.length })}</span>
             <BatchLogDrawer
               rows={batchLogRows}
+              featureType="segment-merge"
               open={isLogOpen}
               onOpenChange={setIsLogOpen}
               total={totalToProcess}

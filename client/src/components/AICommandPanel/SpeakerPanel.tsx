@@ -227,6 +227,7 @@ export function SpeakerPanel({ filteredSegmentIds, onOpenSettings }: SpeakerPane
                     responsePayload: entry.responsePayload,
                   };
                 })}
+                featureType="speaker-classification"
                 open={isLogOpen}
                 onOpenChange={setIsLogOpen}
                 total={totalToProcess}
