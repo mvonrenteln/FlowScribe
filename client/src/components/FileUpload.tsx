@@ -1,8 +1,10 @@
 import { FileAudio, FileText, RotateCcw, Upload } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { useToast } from "@/hooks/use-toast";
 import {
   buildAudioRefKey,
   clearAudioHandleForAudioRef,
@@ -14,6 +16,7 @@ import confirmIfLargeAudio from "@/lib/confirmLargeFile";
 import { buildFileReference, type FileReference } from "@/lib/fileReference";
 import { createLogger } from "@/lib/logging";
 import { useTranscriptStore } from "@/lib/store";
+import { isVTTFormat } from "@/lib/transcriptParsing";
 
 const logger = createLogger({ feature: "FileUpload", namespace: "UI" });
 
@@ -38,6 +41,8 @@ export function FileUpload({
   variant = "card",
   revisionName,
 }: FileUploadProps) {
+  const { t } = useTranslation();
+  const { toast } = useToast();
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
   const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
@@ -95,6 +100,47 @@ export function FileUpload({
     setLocalTranscriptFileName(transcriptFileName);
   }, [transcriptFileName]);
 
+  const processTranscriptFile = useCallback(
+    (file: File) => {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const rawText = event.target?.result as string;
+          const normalizedName = file.name.toLowerCase();
+          const startsWithWebVTT = rawText
+            .replace(/^\uFEFF/, "")
+            .trimStart()
+            .startsWith("WEBVTT");
+          const isVTTFile =
+            normalizedName.endsWith(".vtt") || file.type === "text/vtt" || startsWithWebVTT;
+
+          if (isVTTFile) {
+            // Pre-validate so we don't update the filename label if content is not VTT
+            if (!isVTTFormat(rawText)) {
+              throw new Error("File does not contain valid WebVTT content.");
+            }
+            onTranscriptUpload(rawText, buildFileReference(file));
+          } else {
+            const data = JSON.parse(rawText);
+            onTranscriptUpload(data, buildFileReference(file));
+          }
+          // Only update the label when parsing succeeded (Bug B fix)
+          setLocalTranscriptFileName(file.name);
+        } catch (err) {
+          logger.error("Failed to parse transcript file.", { error: err });
+          // Show user-visible error (Bug C fix)
+          toast({
+            title: t("import.transcriptFormatError"),
+            description: t("import.transcriptFormatErrorDescription"),
+            variant: "destructive",
+          });
+        }
+      };
+      reader.readAsText(file);
+    },
+    [onTranscriptUpload, toast, t],
+  );
+
   const handleAudioChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
@@ -141,7 +187,7 @@ export function FileUpload({
         multiple: false,
         types: [
           {
-            description: "Audio files",
+            description: t("fileUpload.audioFilesDescription"),
             accept: {
               "audio/*": [".mp3", ".wav", ".m4a", ".ogg", ".flac"],
             },
@@ -166,7 +212,7 @@ export function FileUpload({
       if (err instanceof DOMException && err.name === "AbortError") return;
       logger.error("Failed to pick audio file.", { error: err });
     }
-  }, [onAudioUpload]);
+  }, [onAudioUpload, t]);
 
   const handleRestoreAudio = useCallback(async () => {
     if (!audioHandle || !audioRefKey) return;
@@ -195,24 +241,57 @@ export function FileUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
-        const reader = new FileReader();
-        reader.onload = (event) => {
-          try {
-            const data = JSON.parse(event.target?.result as string);
-            onTranscriptUpload(data, buildFileReference(file));
-            setLocalTranscriptFileName(file.name);
-          } catch (err) {
-            logger.error("Failed to parse transcript JSON.", { error: err });
-          }
-        };
-        reader.readAsText(file);
+        processTranscriptFile(file);
       }
     },
-    [onTranscriptUpload],
+    [processTranscriptFile],
   );
 
+  const handleTranscriptPick = useCallback(async () => {
+    const picker = (
+      window as Window & {
+        showOpenFilePicker?: (options?: {
+          types?: Array<{
+            description?: string;
+            accept: Record<string, string[]>;
+          }>;
+          multiple?: boolean;
+          excludeAcceptAllOption?: boolean;
+        }) => Promise<FileSystemFileHandle[]>;
+      }
+    ).showOpenFilePicker;
+
+    if (!picker) {
+      transcriptInputRef.current?.click();
+      return;
+    }
+
+    try {
+      const [handle] = await picker({
+        multiple: false,
+        types: [
+          {
+            description: t("fileUpload.transcriptFilesDescription"),
+            accept: {
+              "application/json": [".json"],
+              "text/vtt": [".vtt"],
+              "text/plain": [".vtt"],
+            },
+          },
+        ],
+      });
+      if (!handle) return;
+      const file = await handle.getFile();
+      processTranscriptFile(file);
+    } catch (err) {
+      if (err instanceof DOMException && err.name === "AbortError") return;
+      logger.error("Failed to pick transcript file.", { error: err });
+    }
+  }, [processTranscriptFile, t]);
+
   const transcriptLabel =
-    localTranscriptFileName || (transcriptLoaded ? "Transcript Loaded" : "Load Transcript");
+    localTranscriptFileName ||
+    (transcriptLoaded ? t("fileUpload.transcriptLoaded") : t("fileUpload.loadTranscript"));
   const transcriptDisplay = revisionName ? `${transcriptLabel} (${revisionName})` : transcriptLabel;
 
   const content = (
@@ -229,7 +308,7 @@ export function FileUpload({
         <input
           ref={transcriptInputRef}
           type="file"
-          accept=".json"
+          accept=".json,.vtt,.VTT,application/json,text/vtt,text/plain"
           onChange={handleTranscriptChange}
           className="hidden"
           data-testid="input-transcript-file"
@@ -243,10 +322,10 @@ export function FileUpload({
               data-testid="button-upload-audio"
             >
               <FileAudio className="h-4 w-4 mr-2" />
-              {audioFileName || "Load Audio"}
+              {audioFileName || t("fileUpload.loadAudio")}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Load audio file</TooltipContent>
+          <TooltipContent>{t("fileUpload.loadAudioTooltip")}</TooltipContent>
         </Tooltip>
 
         {!audioFileName && audioHandle && (
@@ -258,10 +337,10 @@ export function FileUpload({
                 data-testid="button-restore-audio"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
-                Reopen Audio
+                {t("fileUpload.reopenAudio")}
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Reopen last audio file</TooltipContent>
+            <TooltipContent>{t("fileUpload.reopenAudioTooltip")}</TooltipContent>
           </Tooltip>
         )}
 
@@ -269,20 +348,20 @@ export function FileUpload({
           <TooltipTrigger asChild>
             <Button
               variant={transcriptLoaded ? "secondary" : "outline"}
-              onClick={() => transcriptInputRef.current?.click()}
+              onClick={handleTranscriptPick}
               data-testid="button-upload-transcript"
             >
               <FileText className="h-4 w-4 mr-2" />
               {transcriptDisplay}
             </Button>
           </TooltipTrigger>
-          <TooltipContent>Load transcript JSON</TooltipContent>
+          <TooltipContent>{t("fileUpload.loadTranscriptTooltip")}</TooltipContent>
         </Tooltip>
 
         {variant === "card" && !audioFileName && !transcriptLoaded && (
           <span className="text-sm text-muted-foreground">
             <Upload className="h-4 w-4 inline mr-1" />
-            Drop files or click to upload
+            {t("fileUpload.dropFilesHint")}
           </span>
         )}
       </div>
