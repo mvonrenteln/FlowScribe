@@ -36,6 +36,22 @@ describe("prompt helper functions", () => {
     expect(getMergeUserTemplate(100)).toBeDefined();
   });
 
+  it("preserves incomplete endings from the second segment", () => {
+    const systemPrompt = getMergeSystemPrompt();
+    const simpleTemplate = getMergeUserTemplate(5);
+    const fullTemplate = getMergeUserTemplate(50);
+
+    expect(systemPrompt).toContain(
+      "NEVER delete an incomplete sentence at the end of the second segment",
+    );
+    expect(simpleTemplate).toContain(
+      "NEVER delete incomplete sentence endings from the second segment",
+    );
+    expect(fullTemplate).toContain(
+      "NEVER deletes an incomplete sentence at the end of the second segment",
+    );
+  });
+
   it("references segments for context", () => {
     const simpleTemplate = getMergeUserTemplate(5);
     const fullTemplate = getMergeUserTemplate(50);
