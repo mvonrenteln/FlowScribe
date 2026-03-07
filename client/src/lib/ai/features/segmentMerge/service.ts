@@ -218,6 +218,22 @@ export async function analyzeMergeCandidates(
       const responsePayload = extractRawResponse(result) ?? undefined;
 
       if (!result.success || !result.data) {
+        const recovered = processAIResponse(result, {
+          idMapping: plan.idContext.mapping,
+          enableSmoothing,
+        });
+        if (recovered.suggestions.length > 0) {
+          logger.info(
+            `Batch ${plan.batchIndex + 1} recovered ${recovered.suggestions.length} suggestion(s) from raw response`,
+          );
+          return {
+            status: "success" as const,
+            plan,
+            processed: recovered,
+            batchDurationMs: Date.now() - batchStart,
+            responsePayload,
+          };
+        }
         const batchIssue: MergeAnalysisIssue = {
           level: "error",
           message: result.error ?? `Batch ${plan.batchIndex + 1} failed`,

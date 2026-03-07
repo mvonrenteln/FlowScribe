@@ -173,6 +173,40 @@ describe("segmentMerge utils", () => {
     expect(mapping.pairToIds.get(1)).toEqual(["seg-2", "seg-3"]);
   });
 
+  it("preserves suggestion when smoothedText is a legitimate smoothing of the original", () => {
+    const segC: MergeAnalysisSegment = {
+      id: "seg-1",
+      speaker: "A",
+      start: 0,
+      end: 1.2,
+      text: "it is a good",
+    } as MergeAnalysisSegment;
+    const segD: MergeAnalysisSegment = {
+      id: "seg-2",
+      speaker: "A",
+      start: 1.3,
+      end: 2.5,
+      text: "idea to try",
+    } as MergeAnalysisSegment;
+
+    const raw = {
+      segmentIds: ["seg-1", "seg-2"],
+      confidence: 0.85,
+      smoothedText: "it is a good idea to try this",
+    } as Record<string, unknown>;
+
+    const map = new Map<string, MergeAnalysisSegment>([
+      ["seg-1", segC],
+      ["seg-2", segD],
+    ]);
+    const sug = processSuggestion(
+      raw as Record<string, unknown>,
+      map as Map<string, MergeAnalysisSegment>,
+    );
+
+    expect(sug).not.toBeNull();
+  });
+
   it("drops suggestion when returned text is too different", () => {
     const raw = {
       segmentIds: ["seg-1", "seg-2"],
