@@ -70,4 +70,39 @@ describe("segmentMerge service", () => {
     expect(logEntry?.requestPayload).toContain('[1] [A] (00:00.0 - 00:01.0): "Hello"');
     expect(logEntry?.responsePayload).toBe(rawResponse);
   });
+
+  it("recovers suggestions from a failed batch when responsePayload contains valid JSON", async () => {
+    const segments = [
+      makeSegment("seg-1", 0, 1, "This is the first"),
+      makeSegment("seg-2", 1.1, 2, "part of the sentence"),
+    ];
+    const validPayload = '[{"segmentIds":[1,2],"confidence":0.85,"reason":"Continuation"}]';
+
+    executeFeatureMock.mockResolvedValue({
+      success: false,
+      data: undefined,
+      rawResponse: validPayload,
+      error: "Model timeout after retries",
+      errorCode: "TIMEOUT",
+      metadata: {
+        featureId: "segment-merge",
+        providerId: "test",
+        model: "test",
+        durationMs: 5000,
+      },
+    });
+
+    const result = await analyzeMergeCandidates({
+      segments,
+      maxTimeGap: 2,
+      minConfidence: "low",
+      sameSpeakerOnly: true,
+      enableSmoothing: false,
+      batchSize: 10,
+      providerId: "provider-1",
+      model: "model-1",
+    });
+
+    expect(result.suggestions.length).toBeGreaterThan(0);
+  });
 });

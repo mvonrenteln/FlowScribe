@@ -85,6 +85,7 @@ function toStoreSuggestion(suggestion: MergeSuggestion): AISegmentMergeSuggestio
     timeRange: suggestion.timeRange,
     speaker: suggestion.speaker,
     timeGap: suggestion.timeGap,
+    ...(suggestion.reasonCode !== undefined && { reasonCode: suggestion.reasonCode }),
   };
 }
 
@@ -339,7 +340,7 @@ export const createAISegmentMergeSlice = (
     const state = get();
     const suggestion = state.aiSegmentMergeSuggestions.find((s) => s.id === suggestionId);
 
-    if (suggestion?.status !== "pending") {
+    if (suggestion?.status !== "pending" && suggestion?.status !== "over-smoothed") {
       return;
     }
 

@@ -672,7 +672,7 @@ export interface AIRevisionSlice {
 
 // ==================== AI Segment Merge Types ====================
 
-export type AISegmentMergeSuggestionStatus = "pending" | "accepted" | "rejected";
+export type AISegmentMergeSuggestionStatus = "pending" | "accepted" | "rejected" | "over-smoothed";
 
 export interface AISegmentMergeSuggestion {
   /** Unique ID for this suggestion */
@@ -687,6 +687,8 @@ export interface AISegmentMergeSuggestion {
   reason: string;
   /** Current status */
   status: AISegmentMergeSuggestionStatus;
+  /** Machine-readable reason code for the status (e.g. "low_word_overlap") */
+  reasonCode?: string;
   /** Merged text (without smoothing) */
   mergedText: string;
   /** Smoothed text (if smoothing enabled) */

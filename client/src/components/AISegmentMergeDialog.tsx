@@ -8,6 +8,7 @@
 
 import {
   AlertCircle,
+  AlertTriangle,
   Check,
   CheckCheck,
   ChevronDown,
@@ -21,6 +22,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { MergeSuggestionDiff } from "@/components/merge/MergeSuggestionDiff";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -141,7 +143,9 @@ export function AISegmentMergeDialog({
   const availableModels = selectedProvider?.availableModels ?? [];
 
   // Filter suggestions by status
-  const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
+  const pendingSuggestions = suggestions.filter(
+    (s) => s.status === "pending" || s.status === "over-smoothed",
+  );
   const highConfidence = pendingSuggestions.filter((s) => s.confidence === "high");
   const mediumConfidence = pendingSuggestions.filter((s) => s.confidence === "medium");
   const lowConfidence = pendingSuggestions.filter((s) => s.confidence === "low");
@@ -541,6 +545,7 @@ function MergeSuggestionCard({
   onAcceptWithoutSmoothing,
   onReject,
 }: MergeSuggestionCardProps) {
+  const { t } = useTranslation();
   const relevantSegments = suggestion.segmentIds
     .map((id) => segments.find((s) => s.id === id))
     .filter(Boolean);
@@ -587,6 +592,12 @@ function MergeSuggestionCard({
             <span>Gap: {formatDurationMs(Math.round(suggestion.timeGap * 1000))}</span>
             <span>•</span>
             <span>{Math.round(suggestion.confidenceScore * 100)}% confidence</span>
+            {suggestion.status === "over-smoothed" && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-800 dark:bg-orange-900/30 dark:text-orange-300">
+                <AlertTriangle className="h-3 w-3" aria-hidden="true" />
+                {t("aiBatch.merge.overSmoothed.badgeLabel")}
+              </span>
+            )}
             {suggestion.reason && (
               <>
                 <span>•</span>

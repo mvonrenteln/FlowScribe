@@ -447,13 +447,14 @@ export function processSuggestion(
   const returnedText =
     raw.smoothedText ?? (raw as RawMergeSuggestion & { mergedText?: string }).mergedText;
 
-  if (returnedText && !isReturnedTextCompatible(mergedText, returnedText)) {
-    logger.warn("Discarding merge suggestion due to mismatched returned text", {
+  const isOverSmoothed =
+    returnedText !== undefined && !isReturnedTextCompatible(mergedText, returnedText);
+  if (isOverSmoothed && returnedText !== undefined) {
+    logger.warn("AI over-smoothed: returned text diverges significantly from original", {
       segmentIds: raw.segmentIds,
       expectedPreview: buildPreview(mergedText),
       returnedPreview: buildPreview(returnedText),
     });
-    return null;
   }
 
   // Create smoothing info if provided
@@ -465,7 +466,8 @@ export function processSuggestion(
     confidence: scoreToConfidenceLevel(raw.confidence ?? 0.5),
     confidenceScore: raw.confidence ?? 0.5,
     reason: raw.reason || "Segments appear to belong together",
-    status: "pending",
+    status: isOverSmoothed ? "over-smoothed" : "pending",
+    ...(isOverSmoothed && { reasonCode: "low_word_overlap" }),
     mergedText,
     smoothing,
     timeRange,
@@ -482,8 +484,23 @@ function normalizeTextForComparison(text: string): string {
     .trim();
 }
 
+/**
+ * Checks whether the AI-returned text is compatible with the expected merged text.
+ *
+ * Strict equality is too aggressive when smoothing is enabled: the AI legitimately
+ * rephrases, joins clauses, or adds/removes words. Instead, we require that at least
+ * 50% of the expected words appear in the returned text. This tolerates natural
+ * smoothing while still catching completely unrelated outputs.
+ *
+ * @param expected - The raw concatenation of the segment texts.
+ * @param returned - The smoothedText (or mergedText) returned by the AI.
+ */
 function isReturnedTextCompatible(expected: string, returned: string): boolean {
-  return normalizeTextForComparison(expected) === normalizeTextForComparison(returned);
+  const expectedWords = normalizeTextForComparison(expected).split(" ").filter(Boolean);
+  if (expectedWords.length === 0) return true;
+  const returnedWordSet = new Set(normalizeTextForComparison(returned).split(" ").filter(Boolean));
+  const overlap = expectedWords.filter((w) => returnedWordSet.has(w)).length;
+  return overlap / expectedWords.length >= 0.5;
 }
 
 function buildPreview(text: string): string {
