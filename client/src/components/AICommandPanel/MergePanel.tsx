@@ -110,7 +110,9 @@ export function MergePanel({ filteredSegmentIds, onOpenSettings }: Readonly<Merg
     [batchLog, t],
   );
 
-  const pendingSuggestions = suggestions.filter((s) => s.status === "pending");
+  const pendingSuggestions = suggestions.filter(
+    (s) => s.status === "pending" || s.status === "over-smoothed",
+  );
   const highConfidence = pendingSuggestions.filter((s) => s.confidence === "high");
   const mediumConfidence = pendingSuggestions.filter((s) => s.confidence === "medium");
   const lowConfidence = pendingSuggestions.filter((s) => s.confidence === "low");

@@ -176,4 +176,38 @@ export const createSpeakersSlice = (set: StoreSetter, get: StoreGetter): Speaker
       historyIndex: nextHistory.historyIndex,
     });
   },
+
+  removeSpeaker: (speakerName) => {
+    const {
+      segments,
+      speakers,
+      history,
+      historyIndex,
+      selectedSegmentId,
+      currentTime,
+      chapters,
+      selectedChapterId,
+      confidenceScoresVersion,
+    } = get();
+    if (!speakers.some((speaker) => speaker.name === speakerName)) return;
+    if (segments.some((segment) => segment.speaker === speakerName)) return;
+
+    const newSpeakers = speakers.filter((speaker) => speaker.name !== speakerName);
+    const nextHistory = addToHistory(history, historyIndex, {
+      segments,
+      speakers: newSpeakers,
+      selectedSegmentId,
+      selectedChapterId,
+      currentTime,
+      tags: get().tags,
+      chapters,
+      confidenceScoresVersion,
+    });
+
+    set({
+      speakers: newSpeakers,
+      history: nextHistory.history,
+      historyIndex: nextHistory.historyIndex,
+    });
+  },
 });

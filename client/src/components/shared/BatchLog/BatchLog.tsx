@@ -106,10 +106,7 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
             </TableHeader>
             <TableBody>
               {(() => {
-                const fallbackTotal = sorted.reduce(
-                  (sum, row) => sum + (row.expected ?? 0) + (row.skipped ?? 0),
-                  0,
-                );
+                const fallbackTotal = sorted.reduce((sum, row) => sum + (row.expected ?? 0), 0);
                 const effectiveTotal = typeof total === "number" ? total : fallbackTotal;
                 let processedSoFar = 0;
 
@@ -117,7 +114,8 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
                   const skipped = row.skipped ?? 0;
                   const returned = row.returned ?? 0;
                   const expected = row.expected ?? 0;
-                  processedSoFar += expected + skipped;
+                  processedSoFar += expected;
+                  const processedDisplay = row.processed ?? `${processedSoFar} / ${effectiveTotal}`;
                   return (
                     <TableRow key={row.id} data-testid={`batchrow-${row.id}`}>
                       <TableCell>{idx + 1}</TableCell>
@@ -127,7 +125,7 @@ export function BatchLog({ rows, sortBy = "batch", compact = false, total }: Bat
                       <TableCell>{formatDuration(row.durationMs)}</TableCell>
                       <TableCell>{formatNumber(row.suggestions)}</TableCell>
                       <TableCell>{formatNumber(row.unchanged)}</TableCell>
-                      <TableCell>{`${processedSoFar} / ${effectiveTotal}`}</TableCell>
+                      <TableCell>{processedDisplay}</TableCell>
                       <TableCell>{row.issues ?? "—"}</TableCell>
                       <TableCell>
                         <PayloadButton

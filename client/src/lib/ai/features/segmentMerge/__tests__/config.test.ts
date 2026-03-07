@@ -36,6 +36,21 @@ describe("prompt helper functions", () => {
     expect(getMergeUserTemplate(100)).toBeDefined();
   });
 
+  it("preserves incomplete boundary fragments in system prompt", () => {
+    const systemPrompt = getMergeSystemPrompt();
+    const simpleTemplate = getMergeUserTemplate(5);
+    const fullTemplate = getMergeUserTemplate(50);
+
+    expect(systemPrompt).toContain(
+      "NEVER delete an incomplete sentence at the beginning of the first segment",
+    );
+    expect(systemPrompt).toContain(
+      "NEVER delete an incomplete sentence at the end of the second segment",
+    );
+    expect(simpleTemplate).not.toContain("incomplete sentence");
+    expect(fullTemplate).not.toContain("incomplete sentence");
+  });
+
   it("references segments for context", () => {
     const simpleTemplate = getMergeUserTemplate(5);
     const fullTemplate = getMergeUserTemplate(50);

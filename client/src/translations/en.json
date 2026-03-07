@@ -276,7 +276,10 @@
       "batchSizeHelp": "Number of segments to process in each batch (10-200)",
       "settingsTitle": "Chapter Settings",
       "minLengthLabel": "Min Length (segments)",
-      "maxLengthLabel": "Max Length (segments)"
+      "maxLengthLabel": "Max Length (segments)",
+      "validation": {
+        "maxLengthExceedsBatchSize": "Max length ({{maxLength}}) cannot be greater than batch size ({{batchSize}})."
+      }
     },
     "merge": {
       "settingsTitle": "Merge Settings",
@@ -306,7 +309,13 @@
       },
       "acceptAllHigh": "Accept All High",
       "gapLabel": "Gap {{gap}}",
-      "batchSizeWarning": "High batch sizes (> 10) may exceed some models' context window. Reduce if you encounter errors."
+      "batchSizeWarning": "High batch sizes (> 10) may exceed some models' context window. Reduce if you encounter errors.",
+      "overSmoothed": {
+        "badgeLabel": "AI over-smoothed",
+        "warningTitle": "Text changed significantly",
+        "warningBody": "The AI model changed the text more than expected during smoothing. You can accept the original, accept the AI version, or reject.",
+        "ariaLabel": "Warning: AI over-smoothed this suggestion"
+      }
     }
   },
   "aiErrors": {

@@ -61,6 +61,30 @@ describe("Speakers slice", () => {
     expect(historyIndex).toBe(1);
   });
 
+  it("removes an empty speaker and tracks history", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+
+    useTranscriptStore.getState().addSpeaker("SPEAKER_EMPTY");
+    useTranscriptStore.getState().removeSpeaker("SPEAKER_EMPTY");
+
+    const { speakers, historyIndex } = useTranscriptStore.getState();
+    expect(speakers.map((speaker) => speaker.name)).not.toContain("SPEAKER_EMPTY");
+    expect(historyIndex).toBe(2);
+  });
+
+  it("ignores removing assigned or missing speakers", () => {
+    useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
+    const before = useTranscriptStore.getState();
+
+    useTranscriptStore.getState().removeSpeaker("SPEAKER_00");
+    useTranscriptStore.getState().removeSpeaker("missing");
+
+    const after = useTranscriptStore.getState();
+    expect(after.speakers).toEqual(before.speakers);
+    expect(after.segments).toEqual(before.segments);
+    expect(after.historyIndex).toBe(before.historyIndex);
+  });
+
   it("ignores invalid speaker renames and merges", () => {
     useTranscriptStore.getState().loadTranscript({ segments: sampleSegments });
     const before = useTranscriptStore.getState();

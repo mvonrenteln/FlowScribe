@@ -37,6 +37,11 @@ COMMON TRANSCRIPTION ARTIFACTS TO DETECT:
 - **Fragmented phrases**: Sentence split at awkward points
 - **Continuation markers**: First segment ends with conjunction or incomplete thought
 
+BOUNDARY PRESERVATION RULE:
+- NEVER delete an incomplete sentence at the beginning of the first segment.
+- NEVER delete an incomplete sentence at the end of the second segment.
+- Keep boundary fragments because the missing context may be outside the current pair.
+
 CONFIDENCE SCORING:
 - 0.9-1.0: Obvious merge (incomplete sentence, clear continuation)
 - 0.7-0.89: Likely merge (related content, natural continuation)
