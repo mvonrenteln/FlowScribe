@@ -252,7 +252,8 @@
         "low": "Niedrig: {{count}}"
       },
       "acceptAllHigh": "Alle hohen übernehmen",
-      "gapLabel": "Lücke {{gap}}"
+      "gapLabel": "Lücke {{gap}}",
+      "batchSizeWarning": "Hohe Batch-Größen (> 10) können das Kontextfenster einiger Modelle überschreiten. Reduzieren, falls Fehler auftreten."
     }
   },
   "aiErrors": {

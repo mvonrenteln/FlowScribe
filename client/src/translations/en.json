@@ -305,7 +305,8 @@
         "low": "Low: {{count}}"
       },
       "acceptAllHigh": "Accept All High",
-      "gapLabel": "Gap {{gap}}"
+      "gapLabel": "Gap {{gap}}",
+      "batchSizeWarning": "High batch sizes (> 10) may exceed some models' context window. Reduce if you encounter errors."
     }
   },
   "aiErrors": {
