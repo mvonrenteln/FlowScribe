@@ -256,6 +256,7 @@
       },
       "acceptAllHigh": "Alle hohen übernehmen",
       "gapLabel": "Lücke {{gap}}",
+      "batchSizeWarning": "Hohe Batch-Größen (> 10) können das Kontextfenster einiger Modelle überschreiten. Reduzieren, falls Fehler auftreten.",
       "overSmoothed": {
         "badgeLabel": "KI hat zu stark geglättet",
         "warningTitle": "Text stark verändert",

@@ -84,6 +84,7 @@ export function AISegmentMergeDialog({
   const updateMergeConfig = useTranscriptStore((s) => s.updateMergeConfig);
 
   // Local state
+  const { t } = useTranslation();
   const [settings, setSettings] = useState<PersistedSettings | null>(null);
   const [selectedProviderId, setSelectedProviderId] = useState<string>(
     config.selectedProviderId ?? "",
@@ -210,6 +211,12 @@ export function AISegmentMergeDialog({
                 onChange={(e) => setBatchSize(Number.parseInt(e.target.value, 10) || 10)}
                 className="w-full"
               />
+              {batchSize > 10 ? (
+                <p className="flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
+                  <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+                  {t("aiBatch.merge.batchSizeWarning")}
+                </p>
+              ) : null}
             </div>
             <div className="space-y-2">
               <Label className="text-sm">Min Confidence</Label>

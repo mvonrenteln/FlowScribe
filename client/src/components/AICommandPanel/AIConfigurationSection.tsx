@@ -224,6 +224,13 @@ export function AIConfigurationSection({
               </TooltipProvider>
             ) : null}
           </div>
+
+          {Number(batchSize) > 10 ? (
+            <p className="flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
+              <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
+              {t("aiBatch.merge.batchSizeWarning")}
+            </p>
+          ) : null}
         </div>
       ) : (
         onOpenSettings && (

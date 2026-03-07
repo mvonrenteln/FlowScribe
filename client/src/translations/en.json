@@ -309,6 +309,7 @@
       },
       "acceptAllHigh": "Accept All High",
       "gapLabel": "Gap {{gap}}",
+      "batchSizeWarning": "High batch sizes (> 10) may exceed some models' context window. Reduce if you encounter errors.",
       "overSmoothed": {
         "badgeLabel": "AI over-smoothed",
         "warningTitle": "Text changed significantly",

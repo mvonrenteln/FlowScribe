@@ -7,6 +7,7 @@
  * Syntax:
  * - `{{variable}}` - Simple substitution
  * - `{{#if variable}}...{{/if}}` - Conditional block
+ * - `{{#if variable}}...{{else}}...{{/if}}` - Conditional block with else clause
  * - `{{#each items}}...{{/each}}` - Iteration (limited support)
  *
  * @module ai/prompts/promptBuilder
@@ -53,8 +54,8 @@ export function compileTemplate(template: string, variables: PromptVariables): s
 /**
  * Process conditional blocks in template.
  * Supports: {{#if variable}}content{{/if}}
+ * Supports: {{#if variable}}truthy content{{else}}falsy content{{/if}}
  * Handles nested conditionals by processing innermost first.
- * Does not support else clauses.
  */
 function processConditionals(template: string, variables: PromptVariables): string {
   // Process innermost conditionals first (no nested #if inside)
@@ -68,14 +69,16 @@ function processConditionals(template: string, variables: PromptVariables): stri
     previousResult = result;
     result = result.replace(innerConditionalRegex, (_match, varName, content) => {
       const value = variables[varName];
+      const isTruthy = value !== undefined && value !== null && value !== "" && value !== false;
 
-      // Check if value is truthy
-      if (value !== undefined && value !== null && value !== "" && value !== false) {
-        return content;
+      // Split on {{else}} if present
+      const elseSplit = content.split(/\{\{else}}/);
+      if (elseSplit.length >= 2) {
+        return isTruthy ? (elseSplit[0] ?? "") : (elseSplit[1] ?? "");
       }
 
-      // Condition not met, remove entire block
-      return "";
+      // No else clause: show content when truthy, remove when falsy
+      return isTruthy ? content : "";
     });
   }
 
