@@ -149,6 +149,38 @@ describe("buildVTTExport", () => {
     expect(result).toContain("01:05:30.500 --> 01:06:00.750");
   });
 
+  it("carries millisecond rollover into seconds instead of emitting 4-digit milliseconds", () => {
+    const segments: Segment[] = [
+      makeSegment({
+        id: "s1",
+        start: 1.9995,
+        end: 59.9995,
+        speaker: "Speaker",
+        text: "Rollover edge",
+      }),
+    ];
+
+    const result = buildVTTExport(segments);
+    expect(result).toContain("00:00:02.000 --> 00:01:00.000");
+    expect(result).not.toMatch(/\.\d{4}/);
+  });
+
+  it("carries rollover across hour boundary", () => {
+    const segments: Segment[] = [
+      makeSegment({
+        id: "s1",
+        start: 3599.9995,
+        end: 3600.0004,
+        speaker: "Speaker",
+        text: "Hour boundary",
+      }),
+    ];
+
+    const result = buildVTTExport(segments);
+    expect(result).toContain("01:00:00.000 --> 01:00:00.000");
+    expect(result).not.toMatch(/\.\d{4}/);
+  });
+
   it("produces output with just header for empty segment array", () => {
     const segments: Segment[] = [];
     const result = buildVTTExport(segments);
