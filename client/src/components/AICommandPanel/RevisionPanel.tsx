@@ -1,4 +1,4 @@
-import { Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
+import { Download, Loader2, Sparkles, StopCircle, Trash2 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
@@ -18,6 +18,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { exportRevisionBatchLog } from "@/lib/ai/export/batchLogExport";
 import { formatDurationMs } from "@/lib/formatting";
 import { useTranscriptStore } from "@/lib/store";
 import { AIBatchControlSection } from "./AIBatchControlSection";
@@ -184,11 +185,26 @@ export function RevisionPanel({ filteredSegmentIds, onOpenSettings }: RevisionPa
                   logDrawerRef.current?.focus();
                 }}
               >
-                <DrawerHeader>
-                  <DrawerTitle>{t("aiBatch.batchLog.title")}</DrawerTitle>
-                  <DrawerDescription className="sr-only">
-                    {t("aiBatch.revision.batchLogDescription")}
-                  </DrawerDescription>
+                <DrawerHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <DrawerTitle>{t("aiBatch.batchLog.title")}</DrawerTitle>
+                    <DrawerDescription className="sr-only">
+                      {t("aiBatch.revision.batchLogDescription")}
+                    </DrawerDescription>
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+                      exportRevisionBatchLog(batchLog, `batch-log-revision-${timestamp}`);
+                    }}
+                    disabled={batchLog.length === 0}
+                    aria-label={t("aiBatch.batchLog.exportAriaLabel")}
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    {t("aiBatch.batchLog.export")}
+                  </Button>
                 </DrawerHeader>
                 <div className="px-6 pb-6 flex-1 overflow-hidden">
                   <div className="h-full overflow-auto">

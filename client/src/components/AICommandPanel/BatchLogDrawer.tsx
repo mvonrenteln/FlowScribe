@@ -1,4 +1,5 @@
-import { useRef } from "react";
+import { Download } from "lucide-react";
+import { useCallback, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import BatchLog, { type BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
 import { Button } from "@/components/ui/button";
@@ -10,9 +11,11 @@ import {
   DrawerTitle,
   DrawerTrigger,
 } from "@/components/ui/drawer";
+import { type BatchLogExportFeatureType, exportBatchLog } from "@/lib/ai/export/batchLogExport";
 
 interface BatchLogDrawerProps {
   rows: BatchLogRow[];
+  featureType: BatchLogExportFeatureType;
   total?: number;
   open: boolean;
   onOpenChange: (open: boolean) => void;
@@ -23,6 +26,7 @@ interface BatchLogDrawerProps {
 
 export function BatchLogDrawer({
   rows,
+  featureType,
   total,
   open,
   onOpenChange,
@@ -36,6 +40,11 @@ export function BatchLogDrawer({
   const resolvedTitle = title ?? t("aiBatch.batchLog.title");
   const resolvedDescription = description ?? t("aiBatch.batchLog.description");
   const resolvedTriggerLabel = triggerLabel ?? t("aiBatch.batchLog.title");
+
+  const handleExport = useCallback(() => {
+    const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+    exportBatchLog(featureType, rows, `batch-log-${featureType}-${timestamp}`);
+  }, [featureType, rows]);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>
@@ -53,9 +62,21 @@ export function BatchLogDrawer({
           logDrawerRef.current?.focus();
         }}
       >
-        <DrawerHeader>
-          <DrawerTitle>{resolvedTitle}</DrawerTitle>
-          <DrawerDescription className="sr-only">{resolvedDescription}</DrawerDescription>
+        <DrawerHeader className="flex flex-row items-center justify-between">
+          <div>
+            <DrawerTitle>{resolvedTitle}</DrawerTitle>
+            <DrawerDescription className="sr-only">{resolvedDescription}</DrawerDescription>
+          </div>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            disabled={!hasRows}
+            aria-label={t("aiBatch.batchLog.exportAriaLabel")}
+          >
+            <Download className="mr-2 h-4 w-4" />
+            {t("aiBatch.batchLog.export")}
+          </Button>
         </DrawerHeader>
         <div className="px-6 pb-6 flex-1 overflow-hidden">
           <div className="h-full overflow-auto">

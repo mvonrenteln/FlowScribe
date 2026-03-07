@@ -259,6 +259,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
                 requestPayload: entry.requestPayload,
                 responsePayload: entry.responsePayload,
               }))}
+              featureType="chapter-detection"
               open={isLogOpen}
               onOpenChange={setIsLogOpen}
               total={totalBatches}
