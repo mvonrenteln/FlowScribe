@@ -19,6 +19,7 @@ export function FilterPanel({ open, ...props }: FilterPanelProps) {
         onRenameSpeaker={props.onRenameSpeaker}
         onAddSpeaker={props.onAddSpeaker}
         onMergeSpeakers={props.onMergeSpeakers}
+        onDeleteSpeaker={props.onDeleteSpeaker}
         onSpeakerSelect={props.onSpeakerSelect}
         onClearFilter={props.onClearFilters}
         selectedSpeakerId={props.selectedSpeakerId}
