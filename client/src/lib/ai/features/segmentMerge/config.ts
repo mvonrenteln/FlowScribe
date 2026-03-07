@@ -38,8 +38,9 @@ COMMON TRANSCRIPTION ARTIFACTS TO DETECT:
 - **Continuation markers**: First segment ends with conjunction or incomplete thought
 
 BOUNDARY PRESERVATION RULE:
+- NEVER delete an incomplete sentence at the beginning of the first segment.
 - NEVER delete an incomplete sentence at the end of the second segment.
-- If the second segment ends mid-thought, keep that trailing fragment because the continuation may be in the next segment outside this batch.
+- Keep boundary fragments because the missing context may be outside the current pair.
 
 CONFIDENCE SCORING:
 - 0.9-1.0: Obvious merge (incomplete sentence, clear continuation)
@@ -112,7 +113,6 @@ When suggesting a merge, provide a "smoothedText" that:
 3. Ensures grammatical flow
 4. Preserves the speaker's voice and meaning
 5. Makes minimal changes - only fix obvious transcription artifacts
-6. NEVER deletes an incomplete sentence at the end of the second segment; preserve trailing incomplete text that may continue in the next unseen segment
 
 Include "smoothingChanges" explaining what was changed.
 {{/if}}
@@ -140,7 +140,6 @@ SMOOTHING INSTRUCTIONS:
 3. Ensure grammatical flow
 4. Preserve the speaker's voice and meaning
 5. Make minimal changes—only fix obvious transcription artifacts
-6. NEVER delete incomplete sentence endings from the second segment; preserve trailing fragments that may continue in the next unseen segment
 
 Include "smoothedText" and "smoothingChanges" for each accepted merge.
 {{/if}}
