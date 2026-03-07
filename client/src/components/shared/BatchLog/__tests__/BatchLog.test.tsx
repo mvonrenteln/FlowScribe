@@ -59,4 +59,58 @@ describe("BatchLog", () => {
     const first = screen.getByTestId("batchrow-b");
     expect(first).toBeInTheDocument();
   });
+
+  it("uses pre-computed processed field when available", () => {
+    const rowsWithProcessed = [
+      {
+        id: "x",
+        batchLabel: "1",
+        expected: 5,
+        returned: 3,
+        skipped: 2,
+        processed: "5/100",
+        loggedAt: now,
+      },
+      {
+        id: "y",
+        batchLabel: "2",
+        expected: 5,
+        returned: 5,
+        skipped: 0,
+        processed: "10/100",
+        loggedAt: now + 1000,
+      },
+    ];
+
+    render(<BatchLog rows={rowsWithProcessed} total={100} />);
+    const cells = screen.getAllByRole("cell");
+    const processedValues = cells.map((c) => c.textContent).filter((t) => t?.includes("/100"));
+    expect(processedValues).toEqual(["5/100", "10/100"]);
+  });
+
+  it("falls back to accumulated expected when processed is absent", () => {
+    const rowsNoProcessed = [
+      {
+        id: "a1",
+        batchLabel: "1",
+        expected: 10,
+        returned: 8,
+        skipped: 2,
+        loggedAt: now,
+      },
+      {
+        id: "a2",
+        batchLabel: "2",
+        expected: 15,
+        returned: 15,
+        skipped: 0,
+        loggedAt: now + 1000,
+      },
+    ];
+
+    render(<BatchLog rows={rowsNoProcessed} total={50} />);
+    const cells = screen.getAllByRole("cell");
+    const processedValues = cells.map((c) => c.textContent).filter((t) => t?.includes("/"));
+    expect(processedValues).toEqual(["10 / 50", "25 / 50"]);
+  });
 });
