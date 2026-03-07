@@ -104,7 +104,14 @@ export function ChapterRewriteView({
       const target = e.target;
       if (!(target instanceof Node)) return;
 
-      // If focus moved outside the dialog, bring it back
+      if (target instanceof Element) {
+        const openNestedDialog = target.closest('[role="dialog"][aria-modal="true"]');
+        if (openNestedDialog && openNestedDialog !== dialog) {
+          return;
+        }
+      }
+
+      // If focus moved outside the dialog, bring it back.
       if (!dialog.contains(target)) {
         e.preventDefault();
         closeButtonRef.current?.focus();

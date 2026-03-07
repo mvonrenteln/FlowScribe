@@ -211,5 +211,6 @@ describe("ChapterRewriteView", () => {
     await user.click(refineButton);
 
     expect(screen.getByText("Refine Paragraph")).toBeInTheDocument();
+    expect(screen.getByRole("textbox")).toBeInTheDocument();
   });
 });
