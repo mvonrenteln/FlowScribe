@@ -257,6 +257,41 @@ describe("RewriteSlice", () => {
       );
     });
 
+    it("does not recreate draft when it was cleared while paragraph rewrite was in flight", async () => {
+      const { rewriteParagraph } = await import("@/lib/ai/features/rewrite/service");
+      const prompt = buildPrompt({ rewriteScope: "paragraph" });
+
+      store.setState({
+        aiChapterDetectionConfig: buildConfig(prompt),
+        rewriteDraftByChapterId: {
+          "chapter-1": {
+            text: "First paragraph.\n\nSecond paragraph.",
+            promptId: "prompt-1",
+            providerId: "openai",
+            model: "gpt-4.1",
+          },
+        },
+      });
+
+      let resolveRewrite: ((value: { rewrittenText: string; wordCount: number }) => void) | null =
+        null;
+      (rewriteParagraph as ReturnType<typeof vi.fn>).mockImplementation(
+        () =>
+          new Promise<{ rewrittenText: string; wordCount: number }>((resolve) => {
+            resolveRewrite = resolve;
+          }),
+      );
+
+      const rewritePromise = store.getState().startParagraphRewrite("chapter-1", 1, prompt.id);
+
+      store.getState().clearRewriteDraft("chapter-1");
+      resolveRewrite?.({ rewrittenText: "Updated paragraph.", wordCount: 2 });
+      await rewritePromise;
+
+      expect(store.getState().rewriteDraftByChapterId["chapter-1"]).toBeUndefined();
+      expect(store.getState().updateChapterRewrite).not.toHaveBeenCalled();
+    });
+
     it("ignores invalid paragraph indices", async () => {
       const prompt = buildPrompt({ rewriteScope: "paragraph" });
       store.setState({

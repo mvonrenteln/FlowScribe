@@ -347,12 +347,14 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       });
 
       const updatedText = replaceParagraphAtIndex(sourceText, paragraphIndex, result.rewrittenText);
-      if (draft) {
+      const currentDraft = get().rewriteDraftByChapterId[chapterId];
+
+      if (currentDraft) {
         get().setRewriteDraft(chapterId, {
-          ...draft,
+          ...currentDraft,
           text: updatedText,
         });
-      } else {
+      } else if (!draft) {
         get().updateChapterRewrite(chapterId, updatedText);
       }
     } catch (error) {
