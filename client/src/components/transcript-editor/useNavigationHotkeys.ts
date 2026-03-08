@@ -3,6 +3,10 @@ import { useHotkeys } from "react-hotkeys-hook";
 import type { Segment, Speaker, Tag } from "@/lib/store";
 import type { SeekMeta } from "@/lib/store/types";
 
+const deferSegmentMutation = (mutation: () => void) => {
+  queueMicrotask(mutation);
+};
+
 interface UseNavigationHotkeysOptions {
   isTranscriptEditing: () => boolean;
   handleSkipBack: () => void;
@@ -230,10 +234,12 @@ export function useNavigationHotkeys({
         if (currentIndexInAll === -1 || previousIndexInAll === -1) return;
         if (Math.abs(currentIndexInAll - previousIndexInAll) !== 1) return;
 
-        const mergedId = mergeSegments(previousFilteredSegment.id, selectedSegmentId);
-        if (mergedId) {
-          setSelectedSegmentId(mergedId);
-        }
+        deferSegmentMutation(() => {
+          const mergedId = mergeSegments(previousFilteredSegment.id, selectedSegmentId);
+          if (mergedId) {
+            setSelectedSegmentId(mergedId);
+          }
+        });
       }
     },
     { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
@@ -256,10 +262,12 @@ export function useNavigationHotkeys({
         if (currentIndexInAll === -1 || nextIndexInAll === -1) return;
         if (Math.abs(currentIndexInAll - nextIndexInAll) !== 1) return;
 
-        const mergedId = mergeSegments(selectedSegmentId, nextFilteredSegment.id);
-        if (mergedId) {
-          setSelectedSegmentId(mergedId);
-        }
+        deferSegmentMutation(() => {
+          const mergedId = mergeSegments(selectedSegmentId, nextFilteredSegment.id);
+          if (mergedId) {
+            setSelectedSegmentId(mergedId);
+          }
+        });
       }
     },
     { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
@@ -294,7 +302,9 @@ export function useNavigationHotkeys({
     () => {
       if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
-        toggleSegmentBookmark(selectedSegmentId);
+        deferSegmentMutation(() => {
+          toggleSegmentBookmark(selectedSegmentId);
+        });
       }
     },
     { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
@@ -305,7 +315,9 @@ export function useNavigationHotkeys({
     () => {
       if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
-        confirmSegment(selectedSegmentId);
+        deferSegmentMutation(() => {
+          confirmSegment(selectedSegmentId);
+        });
       }
     },
     { enableOnFormTags: false, enableOnContentEditable: false, preventDefault: true },
@@ -316,8 +328,10 @@ export function useNavigationHotkeys({
     () => {
       if (isTranscriptEditing()) return;
       if (selectedSegmentId) {
-        deleteSegment(selectedSegmentId);
-        setSelectedSegmentId(null);
+        deferSegmentMutation(() => {
+          deleteSegment(selectedSegmentId);
+          setSelectedSegmentId(null);
+        });
       }
     },
     { enableOnFormTags: false },
@@ -339,7 +353,9 @@ export function useNavigationHotkeys({
       const speakerIndex = Number(event.key) - 1;
       if (!Number.isInteger(speakerIndex)) return;
       if (selectedSegmentId && speakers[speakerIndex]) {
-        updateSegmentSpeaker(selectedSegmentId, speakers[speakerIndex].name);
+        deferSegmentMutation(() => {
+          updateSegmentSpeaker(selectedSegmentId, speakers[speakerIndex].name);
+        });
       }
     },
     { enableOnFormTags: false },
@@ -373,7 +389,9 @@ export function useNavigationHotkeys({
       // Prevent default browser behavior and toggle tag
       e.preventDefault();
       e.stopPropagation();
-      toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+      deferSegmentMutation(() => {
+        toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+      });
     };
 
     window.addEventListener("keydown", handler, { capture: true });
@@ -384,7 +402,9 @@ export function useNavigationHotkeys({
     "s",
     () => {
       if (isTranscriptEditing()) return;
-      handleSplitAtCurrentWord();
+      deferSegmentMutation(() => {
+        handleSplitAtCurrentWord();
+      });
     },
     {
       enableOnFormTags: false,
@@ -525,7 +545,9 @@ export function useNavigationHotkeys({
       if (tagIndex >= 0 && tagIndex < tags.length) {
         event.preventDefault();
         event.stopPropagation();
-        toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+        deferSegmentMutation(() => {
+          toggleTagOnSegment(selectedSegmentId, tags[tagIndex].id);
+        });
         tKeyPressedRef.current = false; // Reset flag after successful tag toggle
         if (tKeyTimerRef.current) clearTimeout(tKeyTimerRef.current);
       }

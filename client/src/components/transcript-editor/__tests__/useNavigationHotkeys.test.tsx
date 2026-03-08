@@ -23,6 +23,10 @@ describe("useNavigationHotkeys", () => {
   const selectNextSegment = vi.fn();
   const handlePlayPause = vi.fn();
 
+  const flushMicrotasks = async () => {
+    await Promise.resolve();
+  };
+
   const baseOptions = {
     isTranscriptEditing: () => false,
     handleSkipBack: vi.fn(),
@@ -79,11 +83,12 @@ describe("useNavigationHotkeys", () => {
     vi.clearAllMocks();
   });
 
-  it("assigns speakers with numeric hotkeys", () => {
+  it("assigns speakers with numeric hotkeys", async () => {
     renderHook(() => useNavigationHotkeys(baseOptions));
     const handler = hotkeyHandlers.get("1,2,3,4,5,6,7,8,9");
     expect(handler).toBeDefined();
     handler?.(new KeyboardEvent("keydown", { key: "2" }));
+    await flushMicrotasks();
     expect(updateSegmentSpeaker).toHaveBeenCalledWith("segment-1", "SPEAKER_01");
   });
 
@@ -99,7 +104,7 @@ describe("useNavigationHotkeys", () => {
     expect(onToggleChaptersOutline).toHaveBeenCalled();
   });
 
-  it("handles split, merge, bookmark, confirm, and delete hotkeys", () => {
+  it("handles split, merge, bookmark, confirm, and delete hotkeys", async () => {
     renderHook(() =>
       useNavigationHotkeys({
         ...baseOptions,
@@ -134,26 +139,32 @@ describe("useNavigationHotkeys", () => {
     );
 
     hotkeyHandlers.get("s")?.(new KeyboardEvent("keydown", { key: "s" }));
+    await flushMicrotasks();
     expect(handleSplitAtCurrentWord).toHaveBeenCalled();
 
     hotkeyHandlers.get("p")?.(new KeyboardEvent("keydown", { key: "p" }));
+    await flushMicrotasks();
     expect(setSelectedSegmentId).toHaveBeenCalledWith("merged-id");
 
     hotkeyHandlers.get("m")?.(new KeyboardEvent("keydown", { key: "m" }));
+    await flushMicrotasks();
     expect(mergeSegments).toHaveBeenCalledWith("segment-2", "segment-3");
 
     hotkeyHandlers.get("b")?.(new KeyboardEvent("keydown", { key: "b" }));
+    await flushMicrotasks();
     expect(toggleSegmentBookmark).toHaveBeenCalledWith("segment-2");
 
     hotkeyHandlers.get("c")?.(new KeyboardEvent("keydown", { key: "c" }));
+    await flushMicrotasks();
     expect(confirmSegment).toHaveBeenCalledWith("segment-2");
 
     hotkeyHandlers.get("delete")?.(new KeyboardEvent("keydown", { key: "Delete" }));
+    await flushMicrotasks();
     expect(deleteSegment).toHaveBeenCalledWith("segment-2");
     expect(setSelectedSegmentId).toHaveBeenCalledWith(null);
   });
 
-  it("merges using filtered neighbors for p/m hotkeys", () => {
+  it("merges using filtered neighbors for p/m hotkeys", async () => {
     renderHook(() =>
       useNavigationHotkeys({
         ...baseOptions,
@@ -213,6 +224,7 @@ describe("useNavigationHotkeys", () => {
     );
 
     hotkeyHandlers.get("p")?.(new KeyboardEvent("keydown", { key: "p" }));
+    await flushMicrotasks();
     expect(mergeSegments).toHaveBeenCalledWith("segment-2", "segment-3");
   });
 
