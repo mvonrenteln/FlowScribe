@@ -132,6 +132,7 @@ export function ChapterPanel({ filteredSegmentIds, onOpenSettings }: Readonly<Ch
         batchSize={batchSize}
         batchSizeMin={10}
         batchSizeMax={200}
+        batchSizeWarningThreshold={100}
         batchSizeHelp={t("aiBatch.chapter.batchSizeHelp")}
         onProviderChange={(value) => {
           selectProvider(value);

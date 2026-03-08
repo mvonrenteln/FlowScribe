@@ -165,6 +165,7 @@
       "noModelConfigured": "Kein Modell konfiguriert",
       "batchSizeLabel": "Batch-Größe",
       "batchSizeHelp": "Anzahl der Segmente pro Batch (1-50)",
+      "batchSizeWarning": "Hohe Batch-Größen (> {{threshold}}) können das Kontextfenster einiger Modelle überschreiten. Reduzieren, falls Fehler auftreten.",
       "settingsTooltip": "KI-Anbieter und Prompts konfigurieren",
       "noProviderConfigured": "Kein KI-Anbieter konfiguriert. Bitte in Einstellungen → KI → Server & Modelle hinzufügen."
     },
