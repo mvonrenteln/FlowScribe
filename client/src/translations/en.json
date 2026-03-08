@@ -218,6 +218,7 @@
       "noModelConfigured": "No model configured",
       "batchSizeLabel": "Batch Size",
       "batchSizeHelp": "Number of segments to process in each batch (1-50)",
+      "batchSizeWarning": "High batch sizes (> {{threshold}}) may exceed some models' context window. Reduce if you encounter errors.",
       "settingsTooltip": "Configure AI providers and prompts",
       "noProviderConfigured": "No AI provider configured. Add one in Settings → AI → Server & Models."
     },

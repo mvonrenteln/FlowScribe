@@ -32,6 +32,7 @@ interface AIConfigurationSectionProps {
   batchSizeMin?: number;
   batchSizeMax?: number;
   batchSizeHelp?: string;
+  batchSizeWarningThreshold?: number;
   showBatchSize?: boolean;
   onProviderChange: (value: string) => void;
   onModelChange: (value: string) => void;
@@ -53,6 +54,7 @@ export function AIConfigurationSection({
   batchSizeMin = 1,
   batchSizeMax = 50,
   batchSizeHelp,
+  batchSizeWarningThreshold = 10,
   showBatchSize = true,
   onProviderChange,
   onModelChange,
@@ -225,10 +227,10 @@ export function AIConfigurationSection({
             ) : null}
           </div>
 
-          {Number(batchSize) > 10 ? (
+          {Number(batchSize) > batchSizeWarningThreshold ? (
             <p className="flex items-start gap-1 text-xs text-amber-600 dark:text-amber-400">
               <AlertCircle className="mt-0.5 h-3 w-3 shrink-0" />
-              {t("aiBatch.merge.batchSizeWarning")}
+              {t("aiBatch.config.batchSizeWarning", { threshold: batchSizeWarningThreshold })}
             </p>
           ) : null}
         </div>

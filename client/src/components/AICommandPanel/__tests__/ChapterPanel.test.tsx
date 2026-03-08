@@ -142,4 +142,29 @@ describe("ChapterPanel", () => {
 
     expect(startChapterDetection).not.toHaveBeenCalled();
   });
+
+  it("uses a higher batch warning threshold for chapter detection", async () => {
+    const user = userEvent.setup();
+
+    setStoreState({
+      segments: baseSegments,
+    });
+
+    renderWithI18n(<ChapterPanel filteredSegmentIds={["seg-1"]} onOpenSettings={vi.fn()} />);
+
+    const batchSizeInput = screen.getByLabelText(/batch size/i);
+    await act(async () => {
+      await user.clear(batchSizeInput);
+      await user.type(batchSizeInput, "99");
+    });
+
+    expect(screen.queryByText(/high batch sizes \(> 100\)/i)).not.toBeInTheDocument();
+
+    await act(async () => {
+      await user.clear(batchSizeInput);
+      await user.type(batchSizeInput, "101");
+    });
+
+    expect(screen.getByText(/high batch sizes \(> 100\)/i)).toBeInTheDocument();
+  });
 });

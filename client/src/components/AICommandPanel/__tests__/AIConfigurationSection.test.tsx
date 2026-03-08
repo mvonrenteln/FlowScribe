@@ -70,4 +70,47 @@ describe("AIConfigurationSection", () => {
 
     expect(handleBatchSizeChange).toHaveBeenCalledWith("25");
   });
+
+  it("shows warning above default threshold", () => {
+    renderWithI18n(
+      <AIConfigurationSection
+        id="test"
+        settings={settings}
+        selectedProviderId="provider-1"
+        selectedModel=""
+        isProcessing={false}
+        promptValue="prompt-1"
+        promptOptions={[{ id: "prompt-1", name: "Default Prompt" }]}
+        batchSize="11"
+        onProviderChange={vi.fn()}
+        onModelChange={vi.fn()}
+        onPromptChange={vi.fn()}
+        onBatchSizeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText(/high batch sizes \(> 10\)/i)).toBeInTheDocument();
+  });
+
+  it("uses custom warning threshold for chapter workflow", () => {
+    renderWithI18n(
+      <AIConfigurationSection
+        id="test"
+        settings={settings}
+        selectedProviderId="provider-1"
+        selectedModel=""
+        isProcessing={false}
+        promptValue="prompt-1"
+        promptOptions={[{ id: "prompt-1", name: "Default Prompt" }]}
+        batchSize="99"
+        batchSizeWarningThreshold={100}
+        onProviderChange={vi.fn()}
+        onModelChange={vi.fn()}
+        onPromptChange={vi.fn()}
+        onBatchSizeChange={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByText(/high batch sizes/i)).not.toBeInTheDocument();
+  });
 });
