@@ -36,6 +36,20 @@ export const createFallbackPersister = (sessionsStorageKey: string, globalStorag
     latestFallbackJobId += 1;
     const currentFallbackJobId = latestFallbackJobId;
 
+    const browserWindow = globalThis.window as
+      | (Window & {
+          requestIdleCallback?: (
+            callback: IdleRequestCallback,
+            options?: IdleRequestOptions,
+          ) => number;
+          cancelIdleCallback?: (handle: number) => void;
+        })
+      | undefined;
+
+    if (!browserWindow?.localStorage) {
+      return;
+    }
+
     const syncFallback = () => {
       // Only persist if this is still the latest fallback job
       if (currentFallbackJobId !== latestFallbackJobId) return;
@@ -51,8 +65,8 @@ export const createFallbackPersister = (sessionsStorageKey: string, globalStorag
           });
         }
 
-        window.localStorage.setItem(sessionsStorageKey, sessionsJson);
-        window.localStorage.setItem(globalStorageKey, globalJson);
+        browserWindow.localStorage.setItem(sessionsStorageKey, sessionsJson);
+        browserWindow.localStorage.setItem(globalStorageKey, globalJson);
       } catch (err) {
         if (isQuotaExceeded(err)) {
           console.error("QuotaExceededError: sync fallback persistence failed", err);
@@ -62,10 +76,8 @@ export const createFallbackPersister = (sessionsStorageKey: string, globalStorag
     };
 
     // Defer to idle time when possible, otherwise use setTimeout(0)
-    const { requestIdleCallback, cancelIdleCallback } = window as Window & {
-      requestIdleCallback?: (callback: IdleRequestCallback, options?: IdleRequestOptions) => number;
-      cancelIdleCallback?: (handle: number) => void;
-    };
+    const requestIdleCallback = browserWindow.requestIdleCallback;
+    const cancelIdleCallback = browserWindow.cancelIdleCallback;
 
     if (requestIdleCallback) {
       let hasPersisted = false;
