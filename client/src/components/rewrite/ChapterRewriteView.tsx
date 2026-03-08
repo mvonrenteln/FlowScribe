@@ -92,9 +92,10 @@ export function ChapterRewriteView({
     };
   }, [isMounted, triggerElement]);
 
-  // Focus trap
+  // Focus trap — disabled while the nested paragraph dialog is open so that
+  // the Radix Dialog portal (rendered outside this DOM tree) can receive focus.
   useEffect(() => {
-    if (!isMounted || !dialogRef.current) return;
+    if (!isMounted || !dialogRef.current || paragraphDialogOpen) return;
 
     const dialog = dialogRef.current;
     const focusableSelector =
@@ -145,7 +146,7 @@ export function ChapterRewriteView({
       document.removeEventListener("focusin", handleFocusTrap);
       dialog.removeEventListener("keydown", handleTabKey);
     };
-  }, [isMounted]);
+  }, [isMounted, paragraphDialogOpen]);
 
   const handleAccept = useCallback(() => {
     if (!rewrittenText) return;
@@ -183,14 +184,14 @@ export function ChapterRewriteView({
     if (!isMounted) return;
 
     const handleEscape = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        handleReject();
-      }
+      if (e.key !== "Escape") return;
+      if (paragraphDialogOpen) return;
+      handleReject();
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isMounted, handleReject]);
+  }, [isMounted, handleReject, paragraphDialogOpen]);
 
   const handleRegenerate = useCallback(() => {
     if (!promptId) return;
@@ -320,15 +321,16 @@ export function ChapterRewriteView({
 
       <ChapterRewriteDialog
         open={paragraphDialogOpen}
-        onOpenChange={(open) => {
-          setParagraphDialogOpen(open);
-          if (!open) {
+        onOpenChange={(nextOpen) => {
+          setParagraphDialogOpen(nextOpen);
+          if (!nextOpen) {
             setParagraphDialogIndex(null);
           }
         }}
         chapterId={chapterId}
         mode="paragraph"
         paragraphIndex={paragraphDialogIndex ?? undefined}
+        elevated
       />
 
       {/* Footer Actions */}

@@ -36,6 +36,8 @@ interface ChapterRewriteDialogProps {
   onStartRewrite?: () => void;
   mode?: "chapter" | "paragraph";
   paragraphIndex?: number;
+  /** Render above z-60 overlays (e.g. when nested inside ChapterRewriteView) */
+  elevated?: boolean;
 }
 
 export function ChapterRewriteDialog({
@@ -45,6 +47,7 @@ export function ChapterRewriteDialog({
   onStartRewrite,
   mode = "chapter",
   paragraphIndex,
+  elevated = false,
 }: ChapterRewriteDialogProps) {
   const chapterDetectionConfig = useTranscriptStore((s) => s.aiChapterDetectionConfig);
   const chapter = useTranscriptStore((s) => s.chapters.find((item) => item.id === chapterId));
@@ -98,10 +101,13 @@ export function ChapterRewriteDialog({
     () => chapterDetectionConfig.selectedModel ?? defaultModel,
   );
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: `open` is an intentional trigger — Radix sets body.pointerEvents="none" AFTER React's effects run; setTimeout(0) defers our clear past Radix's own effect so physical mouse clicks reach the nested dialog
   useEffect(() => {
-    if (open) return;
-    document.body.style.pointerEvents = "";
-    document.documentElement.style.pointerEvents = "";
+    const id = setTimeout(() => {
+      document.body.style.pointerEvents = "";
+      document.documentElement.style.pointerEvents = "";
+    }, 0);
+    return () => clearTimeout(id);
   }, [open]);
 
   // Update model when provider changes
@@ -173,7 +179,10 @@ export function ChapterRewriteDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent
+        className={elevated ? "sm:max-w-md z-[70] pointer-events-auto" : "sm:max-w-md"}
+        overlayClassName={elevated ? "z-[70] pointer-events-auto" : undefined}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5" />
@@ -225,7 +234,7 @@ export function ChapterRewriteDialog({
                 <SelectTrigger id="prompt-select">
                   <SelectValue placeholder="Prompt auswählen" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={elevated ? "z-[80]" : undefined}>
                   {allSelectablePrompts.map((prompt: AIPrompt) => (
                     <SelectItem key={prompt.id} value={prompt.id}>
                       {prompt.name}
@@ -245,7 +254,7 @@ export function ChapterRewriteDialog({
               <SelectTrigger id="provider-select">
                 <SelectValue placeholder="Provider auswählen" />
               </SelectTrigger>
-              <SelectContent>
+              <SelectContent className={elevated ? "z-[80]" : undefined}>
                 {settings.aiProviders.map((provider) => (
                   <SelectItem key={provider.id} value={provider.id}>
                     {provider.name}
@@ -265,7 +274,7 @@ export function ChapterRewriteDialog({
                 <SelectTrigger id="model-select">
                   <SelectValue placeholder="Modell auswählen" />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent className={elevated ? "z-[80]" : undefined}>
                   {settings.aiProviders
                     .find((p) => p.id === selectedProvider)
                     ?.availableModels?.map((model) => (
