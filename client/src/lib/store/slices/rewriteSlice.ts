@@ -63,6 +63,7 @@ export interface RewriteSlice {
 
   // Actions - Configuration
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
+  setDefaultRewritePromptForScope: (scope: "chapter" | "paragraph", promptId: string) => void;
 
   // Actions - Prompts
   addRewritePrompt: (prompt: Omit<AIPrompt, "id">) => void;
@@ -123,6 +124,31 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       configUpdates.selectedModel = updates.selectedModel;
     }
     get().updateChapterDetectionConfig(configUpdates);
+  },
+
+  setDefaultRewritePromptForScope: (scope, promptId) => {
+    const state = get();
+    const validPrompt = state.aiChapterDetectionConfig.prompts.find(
+      (prompt) =>
+        prompt.id === promptId &&
+        prompt.operation === "rewrite" &&
+        (prompt.rewriteScope ?? "chapter") === scope,
+    );
+
+    if (!validPrompt) {
+      logger.warn("Cannot set default rewrite prompt for scope because prompt is invalid.", {
+        scope,
+        promptId,
+      });
+      return;
+    }
+
+    const nextDefaults = {
+      ...(state.aiChapterDetectionConfig.defaultRewritePromptIdsByScope ?? {}),
+      [scope]: promptId,
+    };
+
+    get().updateChapterDetectionConfig({ defaultRewritePromptIdsByScope: nextDefaults });
   },
 
   // Prompts

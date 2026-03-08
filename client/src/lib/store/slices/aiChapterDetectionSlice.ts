@@ -666,12 +666,28 @@ export const createAIChapterDetectionSlice = (
       return;
     }
     const prompts = state.aiChapterDetectionConfig.prompts.filter((p) => p.id !== id);
+    const previousScopeDefaults =
+      state.aiChapterDetectionConfig.defaultRewritePromptIdsByScope ?? {};
+    const nextScopeDefaults: Partial<Record<"chapter" | "paragraph", string>> = {
+      ...previousScopeDefaults,
+    };
+    if (nextScopeDefaults.chapter === id) {
+      delete nextScopeDefaults.chapter;
+    }
+    if (nextScopeDefaults.paragraph === id) {
+      delete nextScopeDefaults.paragraph;
+    }
     const activePromptId =
       state.aiChapterDetectionConfig.activePromptId === id
         ? (prompts[0]?.id ?? "")
         : state.aiChapterDetectionConfig.activePromptId;
     set({
-      aiChapterDetectionConfig: { ...state.aiChapterDetectionConfig, prompts, activePromptId },
+      aiChapterDetectionConfig: {
+        ...state.aiChapterDetectionConfig,
+        prompts,
+        activePromptId,
+        defaultRewritePromptIdsByScope: nextScopeDefaults,
+      },
     });
   },
 

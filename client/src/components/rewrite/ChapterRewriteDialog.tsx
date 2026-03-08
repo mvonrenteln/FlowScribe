@@ -68,19 +68,35 @@ export function ChapterRewriteDialog({
   const paragraphProcessingChapterId = useTranscriptStore((s) => s.paragraphRewriteChapterId);
   const paragraphProcessingIndex = useTranscriptStore((s) => s.paragraphRewriteParagraphIndex);
   const updateRewriteConfig = useTranscriptStore((s) => s.updateRewriteConfig);
+  const setDefaultRewritePromptForScope = useTranscriptStore(
+    (s) => s.setDefaultRewritePromptForScope,
+  );
 
   const { t } = useTranslation();
 
   // Local state
   const defaultPromptId = useMemo(() => {
+    const scope = mode === "paragraph" ? "paragraph" : "chapter";
+    const scopedDefaultPromptId = chapterDetectionConfig.defaultRewritePromptIdsByScope?.[scope];
+
     if (
       chapter?.rewritePromptId &&
       prompts.some((prompt) => prompt.id === chapter.rewritePromptId)
     ) {
       return chapter.rewritePromptId;
     }
+
+    if (scopedDefaultPromptId && prompts.some((prompt) => prompt.id === scopedDefaultPromptId)) {
+      return scopedDefaultPromptId;
+    }
+
     return prompts[0]?.id ?? "";
-  }, [chapter?.rewritePromptId, prompts]);
+  }, [
+    chapter?.rewritePromptId,
+    chapterDetectionConfig.defaultRewritePromptIdsByScope,
+    mode,
+    prompts,
+  ]);
   const [selectedPromptId, setSelectedPromptId] = useState<string>(defaultPromptId);
   const [settings] = useState(() => initializeSettings());
   const [customInstructions, setCustomInstructions] = useState<string>("");
@@ -153,8 +169,10 @@ export function ChapterRewriteDialog({
 
     if (mode === "paragraph") {
       if (paragraphIndex === undefined || paragraphIndex === null) return;
+      setDefaultRewritePromptForScope("paragraph", selectedPromptId);
       startParagraphRewrite(chapterId, paragraphIndex, selectedPromptId, customInstructions);
     } else {
+      setDefaultRewritePromptForScope("chapter", selectedPromptId);
       // Start rewrite to set processing state
       startRewrite(chapterId, selectedPromptId, customInstructions);
       // Close dialog and open view - parent component handles the transition
@@ -170,6 +188,7 @@ export function ChapterRewriteDialog({
     updateRewriteConfig,
     startRewrite,
     startParagraphRewrite,
+    setDefaultRewritePromptForScope,
     onStartRewrite,
     onOpenChange,
     customInstructions,

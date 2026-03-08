@@ -26,6 +26,7 @@ export const DEFAULT_AI_CHAPTER_DETECTION_CONFIG: AIChapterDetectionConfig = {
   tagIds: [],
   prompts: [DEFAULT_CHAPTER_DETECTION_PROMPT, ...BUILTIN_METADATA_PROMPTS],
   activePromptId: DEFAULT_CHAPTER_DETECTION_PROMPT.id,
+  defaultRewritePromptIdsByScope: {},
   includeContext: true,
   contextWordLimit: 500,
   includeParagraphContext: true,
@@ -44,6 +45,37 @@ const normalizePrompt = (prompt: AIPrompt): AIPrompt => ({
 });
 
 const normalizePrompts = (prompts: AIPrompt[]) => prompts.map((p) => normalizePrompt(p));
+
+const isPromptIdValidForScope = (
+  prompts: AIPrompt[],
+  scope: "chapter" | "paragraph",
+  promptId: string | undefined,
+) => {
+  if (!promptId) return false;
+  return prompts.some(
+    (prompt) =>
+      prompt.id === promptId &&
+      prompt.operation === "rewrite" &&
+      (prompt.rewriteScope ?? "chapter") === scope,
+  );
+};
+
+const normalizeRewriteScopeDefaults = (
+  prompts: AIPrompt[],
+  defaults: AIChapterDetectionConfig["defaultRewritePromptIdsByScope"] | undefined,
+): AIChapterDetectionConfig["defaultRewritePromptIdsByScope"] => {
+  const normalized: Partial<Record<"chapter" | "paragraph", string>> = {};
+
+  if (isPromptIdValidForScope(prompts, "chapter", defaults?.chapter)) {
+    normalized.chapter = defaults?.chapter;
+  }
+
+  if (isPromptIdValidForScope(prompts, "paragraph", defaults?.paragraph)) {
+    normalized.paragraph = defaults?.paragraph;
+  }
+
+  return normalized;
+};
 
 const ensureBuiltInPrompts = (prompts: AIPrompt[]) => {
   const normalized = normalizePrompts(
@@ -234,6 +266,11 @@ export const normalizeAIChapterDetectionConfig = (
   const paragraphContextCount =
     typeof config?.paragraphContextCount === "number" ? config.paragraphContextCount : 2;
 
+  const defaultRewritePromptIdsByScope = normalizeRewriteScopeDefaults(
+    normalizedPrompts,
+    config?.defaultRewritePromptIdsByScope,
+  );
+
   return {
     batchSize: typeof config?.batchSize === "number" ? config.batchSize : base.batchSize,
     minChapterLength:
@@ -249,6 +286,7 @@ export const normalizeAIChapterDetectionConfig = (
     selectedModel: config?.selectedModel,
     prompts: normalizedPrompts,
     activePromptId,
+    defaultRewritePromptIdsByScope,
     includeContext,
     contextWordLimit,
     includeParagraphContext,

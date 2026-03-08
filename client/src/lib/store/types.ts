@@ -790,6 +790,7 @@ export interface AIChapterDetectionConfig {
   activePromptId: string;
   /** Available prompts for chapter detection */
   prompts: AIPrompt[];
+  defaultRewritePromptIdsByScope?: Partial<Record<"chapter" | "paragraph", string>>;
   /** Include context (summaries + previous chapter) for rewrites/metadata */
   includeContext: boolean;
   /** Maximum words from previous chapter for context */

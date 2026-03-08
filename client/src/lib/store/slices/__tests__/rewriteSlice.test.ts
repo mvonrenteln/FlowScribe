@@ -131,6 +131,22 @@ describe("RewriteSlice", () => {
         contextWordLimit: 750,
       });
     });
+
+    it("should set default rewrite prompt by scope", () => {
+      store.getState().setDefaultRewritePromptForScope("chapter", "prompt-1");
+
+      expect(updateChapterDetectionConfig).toHaveBeenCalledWith({
+        defaultRewritePromptIdsByScope: {
+          chapter: "prompt-1",
+        },
+      });
+    });
+
+    it("should ignore invalid scope default prompt updates", () => {
+      store.getState().setDefaultRewritePromptForScope("paragraph", "prompt-1");
+
+      expect(updateChapterDetectionConfig).not.toHaveBeenCalled();
+    });
   });
 
   describe("Prompt Management", () => {

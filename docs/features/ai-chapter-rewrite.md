@@ -170,6 +170,7 @@ Create your own rewrite styles in **Settings → AI Prompts → Chapters**:
 ### Prompt Management
 
 - **Prompt selection**: Choose a prompt in the rewrite dialog when you start a rewrite
+- **Per-category defaults**: FlowScribe remembers the last prompt per rewrite category (Chapter and Paragraph) and preselects it the next time
 - **Quick access**: Pin frequently-used prompts to appear at the top of the dialog
 - **Custom prompts**: Add, edit, or delete your own styles
 
