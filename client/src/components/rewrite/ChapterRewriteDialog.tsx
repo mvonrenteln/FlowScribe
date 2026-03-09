@@ -79,15 +79,15 @@ export function ChapterRewriteDialog({
     const scope = mode === "paragraph" ? "paragraph" : "chapter";
     const scopedDefaultPromptId = chapterDetectionConfig.defaultRewritePromptIdsByScope?.[scope];
 
+    if (scopedDefaultPromptId && prompts.some((prompt) => prompt.id === scopedDefaultPromptId)) {
+      return scopedDefaultPromptId;
+    }
+
     if (
       chapter?.rewritePromptId &&
       prompts.some((prompt) => prompt.id === chapter.rewritePromptId)
     ) {
       return chapter.rewritePromptId;
-    }
-
-    if (scopedDefaultPromptId && prompts.some((prompt) => prompt.id === scopedDefaultPromptId)) {
-      return scopedDefaultPromptId;
     }
 
     return prompts[0]?.id ?? "";

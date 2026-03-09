@@ -70,6 +70,7 @@ describe("ChapterRewriteDialog", () => {
           segmentCount: 1,
           createdAt: Date.now(),
           source: "manual",
+          rewritePromptId: "chapter-1",
         },
       ],
       aiChapterDetectionConfig: buildConfig(),
@@ -103,6 +104,29 @@ describe("ChapterRewriteDialog", () => {
     await user.click(screen.getByRole("button", { name: "Start" }));
 
     expect(setDefaultRewritePromptForScope).toHaveBeenCalledWith("chapter", "chapter-2");
+    expect(startRewrite).toHaveBeenCalledWith("chapter-id", "chapter-2", "");
+  });
+
+  it("prefers scope default over chapter rewrite history", async () => {
+    const user = userEvent.setup();
+    const startRewrite = vi.fn();
+    const updateRewriteConfig = vi.fn();
+    const setDefaultRewritePromptForScope = vi.fn();
+
+    useTranscriptStore.setState({
+      startRewrite,
+      updateRewriteConfig,
+      setDefaultRewritePromptForScope,
+    });
+
+    render(
+      <I18nProvider>
+        <ChapterRewriteDialog open={true} onOpenChange={vi.fn()} chapterId="chapter-id" />
+      </I18nProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Start" }));
+
     expect(startRewrite).toHaveBeenCalledWith("chapter-id", "chapter-2", "");
   });
 
