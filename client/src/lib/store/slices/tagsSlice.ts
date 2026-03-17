@@ -1,6 +1,7 @@
 import type { StoreApi } from "zustand";
 import { SPEAKER_COLORS } from "../constants";
 import type { Segment, Tag, TagsSlice, TranscriptStore } from "../types";
+import { generateId } from "../utils/id";
 import { getSegmentTags } from "../utils/segmentTags";
 import { addToHistory } from "./historySlice";
 
@@ -37,7 +38,7 @@ export const createTagsSlice = (set: StoreSetter, get: StoreGetter): TagsSlice =
     if (exists) return false;
 
     const newTag: Tag = {
-      id: crypto.randomUUID(),
+      id: generateId(),
       name: normalized,
       color: SPEAKER_COLORS[tags.length % SPEAKER_COLORS.length],
     };
