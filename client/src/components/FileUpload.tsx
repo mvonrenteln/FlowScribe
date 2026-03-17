@@ -26,6 +26,7 @@ interface FileUploadProps {
   audioFileName?: string;
   transcriptFileName?: string;
   transcriptLoaded?: boolean;
+  audioRestoreState?: "pending" | "in-progress" | "done" | "failed";
   variant?: "card" | "inline";
   revisionName?: string | null;
 }
@@ -38,6 +39,7 @@ export function FileUpload({
   audioFileName,
   transcriptFileName,
   transcriptLoaded,
+  audioRestoreState,
   variant = "card",
   revisionName,
 }: FileUploadProps) {
@@ -204,17 +206,16 @@ export function FileUpload({
         const proceed = confirmIfLargeAudio(file);
         if (!proceed) return;
 
-        // Call onAudioUpload FIRST to trigger session creation/change
-        onAudioUpload(file, { mode });
+        const effectiveMode = mode === "reconnect" && audioRef === null ? "replace" : mode;
 
-        if (mode === "reconnect") {
-          return;
-        }
+        // Call onAudioUpload FIRST to trigger session creation/change
+        onAudioUpload(file, { mode: effectiveMode });
 
         // Save the handle using the audio reference key
         // Multiple sessions with the same audio file will share this handle
-        const audioRef = buildFileReference(file);
-        const audioRefKey = buildAudioRefKey(audioRef);
+        const referenceForHandle =
+          effectiveMode === "reconnect" && audioRef !== null ? audioRef : buildFileReference(file);
+        const audioRefKey = buildAudioRefKey(referenceForHandle);
         await saveAudioHandleForAudioRef(audioRefKey, handle);
         setAudioHandle(handle);
       } catch (err) {
@@ -222,7 +223,7 @@ export function FileUpload({
         logger.error("Failed to pick audio file.", { error: err });
       }
     },
-    [onAudioUpload, t],
+    [audioRef, onAudioUpload, t],
   );
 
   const handleRestoreAudio = useCallback(async () => {
@@ -246,16 +247,17 @@ export function FileUpload({
     }
   }, [audioHandle, onAudioUpload, audioRefKey]);
 
+  const restoreFailed = audioRestoreState === "failed" || audioRestoreState === undefined;
   const showReconnectAudio =
-    !audioFileName && (audioHandle !== null || transcriptLoaded || audioRef);
+    !audioFileName && restoreFailed && (audioHandle !== null || transcriptLoaded || audioRef);
 
   const handleReconnectAudio = useCallback(() => {
     if (audioHandle) {
       void handleRestoreAudio();
       return;
     }
-    void handleAudioPick("reconnect");
-  }, [audioHandle, handleAudioPick, handleRestoreAudio]);
+    void handleAudioPick(audioRef ? "reconnect" : "replace");
+  }, [audioHandle, audioRef, handleAudioPick, handleRestoreAudio]);
 
   // confirmIfLargeAudio moved to module scope above to avoid recreating the function on each render
 

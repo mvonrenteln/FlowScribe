@@ -49,6 +49,7 @@ export function Toolbar({
   audioFileName,
   transcriptFileName,
   transcriptLoaded,
+  audioRestoreState,
   sessionKind,
   sessionLabel,
   activeSessionKey,
@@ -155,6 +156,7 @@ export function Toolbar({
               audioFileName={audioFileName}
               transcriptFileName={transcriptFileName}
               transcriptLoaded={transcriptLoaded}
+              audioRestoreState={audioRestoreState}
               revisionName={revisionName}
               variant="inline"
             />

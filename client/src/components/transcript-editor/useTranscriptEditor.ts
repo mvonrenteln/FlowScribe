@@ -197,7 +197,7 @@ export const useTranscriptEditor = () => {
     setSpellcheckCustomEnabled,
   } = transcriptActions;
 
-  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady } =
+  const { handleAudioUpload, handleTranscriptUpload, handleWaveReady, audioRestoreState } =
     useTranscriptInitialization({
       audioFile,
       audioUrl,
@@ -208,7 +208,6 @@ export const useTranscriptEditor = () => {
       setAudioReference,
       reconnectAudio,
       loadTranscript,
-      hasSessionContent: segments.length > 0 || transcriptRef !== null,
     });
 
   const canUndoChecked = canUndo();
@@ -710,6 +709,7 @@ export const useTranscriptEditor = () => {
     audioFileName: audioFile?.name,
     transcriptFileName: transcriptRef?.name,
     transcriptLoaded: segments.length > 0,
+    audioRestoreState,
     sessionKind,
     sessionLabel,
     activeSessionKey: sessionKey,

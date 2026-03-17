@@ -73,7 +73,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef: null,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -101,7 +100,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -130,7 +128,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -147,15 +144,14 @@ describe("useTranscriptInitialization", () => {
     expect(setAudioReference).not.toHaveBeenCalled();
   });
 
-  it("uses reconnectAudio when session content exists but audioRef is missing", () => {
-    const file = new File(["audio"], "session-reconnect.mp3", { type: "audio/mpeg" });
+  it("uses setAudioReference when mode is replace and audioRef is missing", () => {
+    const file = new File(["audio"], "session-replace.mp3", { type: "audio/mpeg" });
     const { result } = renderHook(() =>
       useTranscriptInitialization({
         audioFile: null,
         audioUrl: null,
         audioRef: null,
         duration: 0,
-        hasSessionContent: true,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -165,14 +161,16 @@ describe("useTranscriptInitialization", () => {
     );
 
     act(() => {
-      result.current.handleAudioUpload(file);
+      result.current.handleAudioUpload(file, { mode: "replace" });
     });
 
-    expect(reconnectAudio).toHaveBeenCalledWith(file);
-    expect(setAudioReference).not.toHaveBeenCalled();
+    expect(reconnectAudio).not.toHaveBeenCalled();
+    expect(setAudioReference).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "session-replace.mp3" }),
+    );
   });
 
-  it("supports forced reconnect mode for manual reattach", () => {
+  it("falls back to replace when forced reconnect is used without audioRef", () => {
     const file = new File(["audio"], "force-reconnect.mp3", { type: "audio/mpeg" });
     const { result } = renderHook(() =>
       useTranscriptInitialization({
@@ -180,7 +178,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: "blob:existing-url",
         audioRef: null,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -193,8 +190,10 @@ describe("useTranscriptInitialization", () => {
       result.current.handleAudioUpload(file, { mode: "reconnect" });
     });
 
-    expect(reconnectAudio).toHaveBeenCalledWith(file);
-    expect(setAudioReference).not.toHaveBeenCalled();
+    expect(reconnectAudio).not.toHaveBeenCalled();
+    expect(setAudioReference).toHaveBeenCalledWith(
+      expect.objectContaining({ name: "force-reconnect.mp3" }),
+    );
   });
 
   it("uses setAudioReference (not reconnectAudio) when audio is already loaded (swap case)", () => {
@@ -206,7 +205,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: "blob:existing-url",
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -226,7 +224,12 @@ describe("useTranscriptInitialization", () => {
   });
 
   it("parses transcript uploads and loads transcript", () => {
-    const parsed = { segments: [{ id: "a" }], isWhisperXFormat: false };
+    const parsed = {
+      segments: [{ id: "a" }],
+      isWhisperXFormat: false,
+      tags: undefined,
+      chapters: undefined,
+    };
     mockParseTranscriptData.mockReturnValue(parsed);
     const reference = { name: "transcript.json" };
     const { result } = renderHook(() =>
@@ -235,7 +238,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef: null,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -270,7 +272,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -298,7 +299,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -330,7 +330,6 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
-        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -344,6 +343,84 @@ describe("useTranscriptInitialization", () => {
     });
     expect(setAudioFile).not.toHaveBeenCalled();
     expect(setAudioUrl).not.toHaveBeenCalled();
+    expect(reconnectAudio).not.toHaveBeenCalled();
+  });
+
+  it("audioRestoreState transitions to 'done' after successful restore", async () => {
+    const restoredFile = new File(["audio"], "restored.wav", { type: "audio/wav" });
+    const audioRef = buildFileReference(restoredFile);
+    mockLoadAudioHandle.mockResolvedValue({ getFile: vi.fn().mockResolvedValue(restoredFile) });
+    mockQueryAudioHandlePermission.mockResolvedValue(true);
+
+    const { result } = renderHook(() =>
+      useTranscriptInitialization({
+        audioFile: null,
+        audioUrl: null,
+        audioRef,
+        duration: 0,
+        setAudioFile,
+        setAudioUrl,
+        setAudioReference,
+        reconnectAudio,
+        loadTranscript,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.audioRestoreState).toBe("done");
+    });
+    expect(reconnectAudio).toHaveBeenCalledWith(restoredFile);
+  });
+
+  it("audioRestoreState transitions to 'failed' when no handle is stored", async () => {
+    const restoredFile = new File(["audio"], "nohandle.wav", { type: "audio/wav" });
+    const audioRef = buildFileReference(restoredFile);
+    mockLoadAudioHandle.mockResolvedValue(null);
+
+    const { result } = renderHook(() =>
+      useTranscriptInitialization({
+        audioFile: null,
+        audioUrl: null,
+        audioRef,
+        duration: 0,
+        setAudioFile,
+        setAudioUrl,
+        setAudioReference,
+        reconnectAudio,
+        loadTranscript,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.audioRestoreState).toBe("failed");
+    });
+    expect(reconnectAudio).not.toHaveBeenCalled();
+  });
+
+  it("audioRestoreState transitions to 'failed' when permission is denied", async () => {
+    const restoredFile = new File(["audio"], "noperm.wav", { type: "audio/wav" });
+    const audioRef = buildFileReference(restoredFile);
+    const handle = { getFile: vi.fn().mockResolvedValue(restoredFile) };
+    mockLoadAudioHandle.mockResolvedValue(handle);
+    mockQueryAudioHandlePermission.mockResolvedValue(false);
+
+    const { result } = renderHook(() =>
+      useTranscriptInitialization({
+        audioFile: null,
+        audioUrl: null,
+        audioRef,
+        duration: 0,
+        setAudioFile,
+        setAudioUrl,
+        setAudioReference,
+        reconnectAudio,
+        loadTranscript,
+      }),
+    );
+
+    await waitFor(() => {
+      expect(result.current.audioRestoreState).toBe("failed");
+    });
     expect(reconnectAudio).not.toHaveBeenCalled();
   });
 });
