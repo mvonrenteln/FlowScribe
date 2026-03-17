@@ -208,6 +208,7 @@ export const useTranscriptEditor = () => {
       setAudioReference,
       reconnectAudio,
       loadTranscript,
+      hasSessionContent: segments.length > 0 || transcriptRef !== null,
     });
 
   const canUndoChecked = canUndo();

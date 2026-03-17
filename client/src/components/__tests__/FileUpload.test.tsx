@@ -76,7 +76,7 @@ describe("FileUpload", () => {
 
     await userEvent.click(screen.getByTestId("button-upload-audio"));
 
-    await waitFor(() => expect(onAudioUpload).toHaveBeenCalledWith(file));
+    await waitFor(() => expect(onAudioUpload).toHaveBeenCalledWith(file, { mode: "replace" }));
 
     // Handle should be saved with audio reference key
     const audioRef = buildFileReference(file);
@@ -109,7 +109,7 @@ describe("FileUpload", () => {
     const restoreButton = await screen.findByTestId("button-restore-audio");
     await userEvent.click(restoreButton);
 
-    await waitFor(() => expect(onAudioUpload).toHaveBeenCalledWith(file));
+    await waitFor(() => expect(onAudioUpload).toHaveBeenCalledWith(file, { mode: "reconnect" }));
     expect(mockRequestPermission).toHaveBeenCalledWith(handle);
   });
 
@@ -169,7 +169,38 @@ describe("FileUpload", () => {
     fireEvent.change(fileInput, { target: { files: [newFile] } });
 
     expect(mockClearAudioHandle).toHaveBeenCalled();
-    expect(onAudioUpload).toHaveBeenCalledWith(newFile);
+    expect(onAudioUpload).toHaveBeenCalledWith(newFile, { mode: "replace" });
+  });
+
+  it("shows reconnect button without saved handle when transcript is loaded", async () => {
+    render(<FileUpload onAudioUpload={vi.fn()} onTranscriptUpload={vi.fn()} transcriptLoaded />);
+    expect(await screen.findByTestId("button-restore-audio")).toBeInTheDocument();
+  });
+
+  it("reconnect button uses reconnect mode without creating/saving new handle", async () => {
+    const file = new File(["audio"], "manual-reconnect.mp3", { type: "audio/mpeg" });
+    const handle = {
+      getFile: vi.fn().mockResolvedValue(file),
+    } as unknown as FileSystemFileHandle;
+    const showOpenFilePicker = vi.fn().mockResolvedValue([handle]);
+    Object.defineProperty(window, "showOpenFilePicker", {
+      value: showOpenFilePicker,
+      writable: true,
+    });
+
+    const onAudioUpload = vi.fn();
+    render(
+      <FileUpload onAudioUpload={onAudioUpload} onTranscriptUpload={vi.fn()} transcriptLoaded />,
+    );
+
+    await userEvent.click(await screen.findByTestId("button-restore-audio"));
+
+    await waitFor(() => {
+      expect(onAudioUpload).toHaveBeenCalledWith(file, { mode: "reconnect" });
+    });
+    expect(mockSaveAudioHandle).not.toHaveBeenCalled();
+
+    (window as { showOpenFilePicker?: unknown }).showOpenFilePicker = undefined;
   });
 
   it("uses transcript file picker and passes VTT content through", async () => {

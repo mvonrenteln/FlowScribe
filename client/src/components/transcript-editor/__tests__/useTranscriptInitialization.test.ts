@@ -73,6 +73,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef: null,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -100,6 +101,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -128,6 +130,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -144,6 +147,56 @@ describe("useTranscriptInitialization", () => {
     expect(setAudioReference).not.toHaveBeenCalled();
   });
 
+  it("uses reconnectAudio when session content exists but audioRef is missing", () => {
+    const file = new File(["audio"], "session-reconnect.mp3", { type: "audio/mpeg" });
+    const { result } = renderHook(() =>
+      useTranscriptInitialization({
+        audioFile: null,
+        audioUrl: null,
+        audioRef: null,
+        duration: 0,
+        hasSessionContent: true,
+        setAudioFile,
+        setAudioUrl,
+        setAudioReference,
+        reconnectAudio,
+        loadTranscript,
+      }),
+    );
+
+    act(() => {
+      result.current.handleAudioUpload(file);
+    });
+
+    expect(reconnectAudio).toHaveBeenCalledWith(file);
+    expect(setAudioReference).not.toHaveBeenCalled();
+  });
+
+  it("supports forced reconnect mode for manual reattach", () => {
+    const file = new File(["audio"], "force-reconnect.mp3", { type: "audio/mpeg" });
+    const { result } = renderHook(() =>
+      useTranscriptInitialization({
+        audioFile: null,
+        audioUrl: "blob:existing-url",
+        audioRef: null,
+        duration: 0,
+        hasSessionContent: false,
+        setAudioFile,
+        setAudioUrl,
+        setAudioReference,
+        reconnectAudio,
+        loadTranscript,
+      }),
+    );
+
+    act(() => {
+      result.current.handleAudioUpload(file, { mode: "reconnect" });
+    });
+
+    expect(reconnectAudio).toHaveBeenCalledWith(file);
+    expect(setAudioReference).not.toHaveBeenCalled();
+  });
+
   it("uses setAudioReference (not reconnectAudio) when audio is already loaded (swap case)", () => {
     const file = new File(["audio"], "new-audio.wav", { type: "audio/wav" });
     const audioRef = buildFileReference(new File(["old"], "old-audio.wav", { type: "audio/wav" }));
@@ -153,6 +206,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: "blob:existing-url",
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -181,6 +235,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef: null,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -215,6 +270,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -242,6 +298,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,
@@ -273,6 +330,7 @@ describe("useTranscriptInitialization", () => {
         audioUrl: null,
         audioRef,
         duration: 0,
+        hasSessionContent: false,
         setAudioFile,
         setAudioUrl,
         setAudioReference,

@@ -32,6 +32,7 @@ interface UseTranscriptInitializationParams {
     chapters?: Chapter[] | undefined;
     reference: FileReference | null;
   }) => void;
+  hasSessionContent: boolean;
 }
 
 export const useTranscriptInitialization = ({
@@ -44,6 +45,7 @@ export const useTranscriptInitialization = ({
   setAudioReference,
   reconnectAudio,
   loadTranscript,
+  hasSessionContent,
 }: UseTranscriptInitializationParams) => {
   const { t } = useTranslation();
   const { toast } = useToast();
@@ -53,12 +55,14 @@ export const useTranscriptInitialization = ({
   const restoreAttemptedRef = useRef(false);
 
   const handleAudioUpload = useCallback(
-    (file: File) => {
+    (file: File, options?: { mode?: "replace" | "reconnect" }) => {
       // If a session with transcript data already exists but no audio is loaded
       // (e.g. after a backup restore + page reload), reconnect without resetting
       // transcript state. In all other cases use the normal path which resets the
       // transcript when a new audio file is introduced.
-      const isReconnect = audioUrl === null && audioRef !== null;
+      const isReconnect =
+        options?.mode === "reconnect" ||
+        (audioUrl === null && (audioRef !== null || hasSessionContent));
       if (isReconnect) {
         reconnectAudio(file);
       } else {
@@ -68,7 +72,15 @@ export const useTranscriptInitialization = ({
         setAudioReference(buildFileReference(file));
       }
     },
-    [audioRef, audioUrl, reconnectAudio, setAudioFile, setAudioReference, setAudioUrl],
+    [
+      audioRef,
+      audioUrl,
+      hasSessionContent,
+      reconnectAudio,
+      setAudioFile,
+      setAudioReference,
+      setAudioUrl,
+    ],
   );
 
   const handleTranscriptUpload = useCallback(
