@@ -990,6 +990,27 @@ describe("BackupScheduler", () => {
       mockIsPersistenceSuppressed.mockReturnValue(false);
     });
 
+    it("does not set globalDirty when persistence subscriber increments fingerprint from initial '0' after scheduler start", () => {
+      // Regression: the store initialises globalStateFingerprint to "0". The
+      // persistence subscriber increments it to "1" on the first store tick —
+      // which may happen after scheduler.start() because initBackup() is async.
+      // onStateChange must treat this first increment as a baseline change, not
+      // as a real global-state mutation.
+      const provider = makeMockProvider();
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      store.setState({ globalStateFingerprint: "0" }); // simulate real store initial value
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store); // seeds lastSeenGlobalFingerprint = "0"
+
+      // Persistence subscriber fires and bumps fingerprint to "1"
+      store.setState({ globalStateFingerprint: "1" });
+      store.notify();
+
+      window.dispatchEvent(new Event("beforeunload"));
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
     it("keeps globalDirty false on first tick after startup", async () => {
       const provider = makeMockProvider();
       const store = makeStore({ backupIntervalMinutes: 5 });
