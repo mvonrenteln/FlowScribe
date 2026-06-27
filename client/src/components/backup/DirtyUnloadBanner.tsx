@@ -67,6 +67,12 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     }, 4000);
   }, []);
 
+  const showError = useCallback((message: string) => {
+    clearDirtyUnloadFlag();
+    setErrorMsg(message);
+    setPhase("error");
+  }, []);
+
   const handleDismiss = useCallback(() => {
     clearDirtyUnloadFlag();
     setPhase("hidden");
@@ -79,8 +85,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
-      setPhase("error");
+      showError(t("backup.dirtyUnload.schedulerUnavailable"));
       return;
     }
     await scheduler.backupNow("before-unload");
@@ -91,10 +96,9 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setPhase("success");
       scheduleAutoDismiss();
     } else {
-      setErrorMsg(err);
-      setPhase("error");
+      showError(err);
     }
-  }, [scheduleAutoDismiss, t]);
+  }, [scheduleAutoDismiss, showError, t]);
 
   const handlePermissionNeeded = useCallback(async () => {
     setPhase("saving");
@@ -103,8 +107,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
-      setPhase("error");
+      showError(t("backup.dirtyUnload.schedulerUnavailable"));
       return;
     }
 
@@ -116,8 +119,7 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       const result = await scheduler.reauthorize();
 
       if (!result.ok) {
-        setErrorMsg(result.error);
-        setPhase("error");
+        showError(result.error);
         return;
       }
 
@@ -129,18 +131,22 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
         setPhase("success");
         scheduleAutoDismiss();
       } else {
-        setErrorMsg(err);
-        setPhase("error");
+        showError(err);
       }
     } catch (e) {
-      setErrorMsg(e instanceof Error ? e.message : String(e));
-      setPhase("error");
+      showError(e instanceof Error ? e.message : String(e));
     }
-  }, [scheduleAutoDismiss, t]);
+  }, [scheduleAutoDismiss, showError, t]);
 
   const handleNoBackup = useCallback(() => {
     onOpenSettings?.("backup");
     clearDirtyUnloadFlag();
+    setPhase("hidden");
+  }, [onOpenSettings]);
+
+  const handleOpenBackupSettings = useCallback(() => {
+    clearDirtyUnloadFlag();
+    onOpenSettings?.("backup");
     setPhase("hidden");
   }, [onOpenSettings]);
 
@@ -178,9 +184,24 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
         </div>
 
         {phase === "error" && errorMsg && (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{t("backup.dirtyUnload.errorMessage", { error: errorMsg })}</span>
+          <div className="flex flex-col gap-2 text-sm text-destructive">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{t("backup.dirtyUnload.errorMessage", { error: errorMsg })}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>{t("backup.dirtyUnload.reconnectHint")}</span>
+              {onOpenSettings && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 underline"
+                  onClick={handleOpenBackupSettings}
+                >
+                  {t("backup.dirtyUnload.openBackupSettingsButton")}
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

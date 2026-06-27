@@ -413,6 +413,8 @@
       "dismissButton": "Dismiss",
       "savingMessage": "Creating backup…",
       "successMessage": "Safety backup saved",
+      "reconnectHint": "Reconnect or choose a backup folder in settings.",
+      "openBackupSettingsButton": "Open backup settings",
       "errorMessage": "Backup failed: {{error}}",
       "schedulerNotAvailable": "Backup scheduler not available"
     },

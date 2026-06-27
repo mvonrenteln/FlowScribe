@@ -360,6 +360,8 @@
       "dismissButton": "Schließen",
       "savingMessage": "Backup wird erstellt…",
       "successMessage": "Sicherheits-Backup gespeichert",
+      "reconnectHint": "Verbinde den Backup-Ordner erneut oder wähle einen Ordner in den Einstellungen.",
+      "openBackupSettingsButton": "Backup-Einstellungen öffnen",
       "errorMessage": "Backup fehlgeschlagen: {{error}}",
       "schedulerNotAvailable": "Backup-Planer nicht verfügbar"
     },

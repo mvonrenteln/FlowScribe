@@ -191,7 +191,12 @@ export class BackupScheduler {
     // Before unload: persist dirty flag to localStorage for recovery on next startup
     this.beforeUnloadHandler = () => {
       const state = this.store?.getState();
-      if (state?.backupConfig.enabled && !isPersistenceSuppressed() && this.hasDirty()) {
+      if (
+        state?.backupConfig.enabled &&
+        state.backupState.status === "enabled" &&
+        !isPersistenceSuppressed() &&
+        this.hasDirty()
+      ) {
         setDirtyUnloadFlag();
       }
     };
