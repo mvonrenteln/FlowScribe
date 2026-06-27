@@ -145,7 +145,7 @@ describe("DirtyUnloadBanner", () => {
     expect(mockClearFlag).toHaveBeenCalled();
   });
 
-  it("variant A: clears flag after backup failure so the banner does not loop", async () => {
+  it("variant A: shows error message and does NOT clear flag when backup fails", async () => {
     setFlagPresent();
     setBackupEnabled("enabled");
     // Simulate backup failure by setting lastError in store after backupNow
@@ -171,7 +171,7 @@ describe("DirtyUnloadBanner", () => {
     await waitFor(() => {
       expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
     });
-    expect(mockClearFlag).toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
   });
 
   it("variant A: shows error when scheduler is not available", async () => {
@@ -194,7 +194,7 @@ describe("DirtyUnloadBanner", () => {
       expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
     });
     expect(mockBackupNow).not.toHaveBeenCalled();
-    expect(mockClearFlag).toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
   });
 
   it("dismiss button clears flag and hides banner", async () => {
@@ -376,7 +376,7 @@ describe("DirtyUnloadBanner", () => {
     });
     expect(mockReauthorize).toHaveBeenCalled();
     expect(mockBackupNow).not.toHaveBeenCalled();
-    expect(mockClearFlag).toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
   });
 
   it("variant B: shows error when scheduler is not available", async () => {
@@ -398,7 +398,7 @@ describe("DirtyUnloadBanner", () => {
       expect(screen.getByText(/Backup failed/)).toBeInTheDocument();
     });
     expect(mockReauthorize).not.toHaveBeenCalled();
-    expect(mockClearFlag).toHaveBeenCalled();
+    expect(mockClearFlag).not.toHaveBeenCalled();
   });
 
   it("Bug B: banner does NOT re-appear after dismiss when backupState.status changes", async () => {

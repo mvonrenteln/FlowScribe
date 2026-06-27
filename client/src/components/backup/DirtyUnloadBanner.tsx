@@ -67,12 +67,6 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     }, 4000);
   }, []);
 
-  const showError = useCallback((message: string) => {
-    clearDirtyUnloadFlag();
-    setErrorMsg(message);
-    setPhase("error");
-  }, []);
-
   const handleDismiss = useCallback(() => {
     clearDirtyUnloadFlag();
     setPhase("hidden");
@@ -85,7 +79,8 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      showError(t("backup.dirtyUnload.schedulerUnavailable"));
+      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
+      setPhase("error");
       return;
     }
     await scheduler.backupNow("before-unload");
@@ -96,9 +91,10 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       setPhase("success");
       scheduleAutoDismiss();
     } else {
-      showError(err);
+      setErrorMsg(err);
+      setPhase("error");
     }
-  }, [scheduleAutoDismiss, showError, t]);
+  }, [scheduleAutoDismiss, t]);
 
   const handlePermissionNeeded = useCallback(async () => {
     setPhase("saving");
@@ -107,7 +103,8 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
       .__backupScheduler;
     if (!scheduler) {
-      showError(t("backup.dirtyUnload.schedulerUnavailable"));
+      setErrorMsg(t("backup.dirtyUnload.schedulerUnavailable"));
+      setPhase("error");
       return;
     }
 
@@ -119,7 +116,8 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
       const result = await scheduler.reauthorize();
 
       if (!result.ok) {
-        showError(result.error);
+        setErrorMsg(result.error);
+        setPhase("error");
         return;
       }
 
@@ -131,12 +129,14 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
         setPhase("success");
         scheduleAutoDismiss();
       } else {
-        showError(err);
+        setErrorMsg(err);
+        setPhase("error");
       }
     } catch (e) {
-      showError(e instanceof Error ? e.message : String(e));
+      setErrorMsg(e instanceof Error ? e.message : String(e));
+      setPhase("error");
     }
-  }, [scheduleAutoDismiss, showError, t]);
+  }, [scheduleAutoDismiss, t]);
 
   const handleNoBackup = useCallback(() => {
     onOpenSettings?.("backup");
