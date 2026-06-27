@@ -305,7 +305,16 @@ export class BackupScheduler {
       this.lastSeenGlobalFingerprint = fp;
       // Only mark dirty if the new fingerprint differs from the last backed-up one.
       if (fp !== this.lastBackedUpGlobalFingerprint) {
-        this.globalDirty = true;
+        // The store initialises globalStateFingerprint to "0" and the persistence
+        // subscriber increments it on the first tick — which may happen after
+        // scheduler.start() because initBackup() is async. The "0" value is a
+        // reserved sentinel that means "not yet computed". Treat any transition
+        // away from "0" as a baseline slide, not a real mutation.
+        if (this.lastBackedUpGlobalFingerprint === "0") {
+          this.lastBackedUpGlobalFingerprint = fp;
+        } else {
+          this.globalDirty = true;
+        }
       }
     }
   }
