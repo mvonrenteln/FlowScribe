@@ -543,6 +543,18 @@ export class BackupScheduler {
           this.globalDirty = false;
         }
       }
+      // When includeGlobalState is disabled no global snapshot is ever written,
+      // so globalDirty must be cleared here so that hasDirty() correctly returns
+      // false after a successful session backup. Without this, the beforeunload
+      // handler would set the dirty-unload flag even though all sessions were
+      // backed up cleanly.
+      // Exclude the manual-download-backup path: that path skips global backups
+      // intentionally (download provider writes only the active session), so
+      // globalDirty must stay set for the next scheduled backup to pick up.
+      if (!state.backupConfig.includeGlobalState && !isManualDownloadBackup && this.globalDirty) {
+        this.lastBackedUpGlobalFingerprint = this.lastSeenGlobalFingerprint;
+        this.globalDirty = false;
+      }
       this.pendingInitialSnapshot = false;
 
       // Prune and write manifest
