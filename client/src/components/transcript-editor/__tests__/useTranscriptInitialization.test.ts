@@ -423,4 +423,41 @@ describe("useTranscriptInitialization", () => {
     });
     expect(reconnectAudio).not.toHaveBeenCalled();
   });
+
+  it("tries audio restore again when the audio reference changes", async () => {
+    const missingFile = new File(["missing"], "missing.wav", { type: "audio/wav" });
+    const restoredFile = new File(["restored"], "restored.wav", { type: "audio/wav" });
+    const missingRef = buildFileReference(missingFile);
+    const restoredRef = buildFileReference(restoredFile);
+    const handle = { getFile: vi.fn().mockResolvedValue(restoredFile) };
+    mockLoadAudioHandle.mockResolvedValueOnce(null).mockResolvedValueOnce(handle);
+    mockQueryAudioHandlePermission.mockResolvedValue(true);
+
+    const { rerender, result } = renderHook(
+      ({ audioRef }) =>
+        useTranscriptInitialization({
+          audioFile: null,
+          audioUrl: null,
+          audioRef,
+          duration: 0,
+          setAudioFile,
+          setAudioUrl,
+          setAudioReference,
+          reconnectAudio,
+          loadTranscript,
+        }),
+      { initialProps: { audioRef: missingRef } },
+    );
+
+    await waitFor(() => {
+      expect(result.current.audioRestoreState).toBe("failed");
+    });
+
+    rerender({ audioRef: restoredRef });
+
+    await waitFor(() => {
+      expect(reconnectAudio).toHaveBeenCalledWith(restoredFile);
+    });
+    expect(result.current.audioRestoreState).toBe("done");
+  });
 });

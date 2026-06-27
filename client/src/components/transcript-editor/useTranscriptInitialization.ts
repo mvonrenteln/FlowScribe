@@ -53,11 +53,9 @@ export const useTranscriptInitialization = ({
   // Compute audio reference key for handle storage
   const audioRefKey = audioRef ? buildAudioRefKey(audioRef) : null;
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
-  const restoreAttemptedRef = useRef(false);
-  // "pending"     — we haven't tried yet (audioRefKey not yet known, or effect not run)
-  // "in-progress" — async restore is running
-  // "done"        — restore succeeded (or no handle was needed)
-  // "failed"      — handle missing / permission denied → show Reopen button
+  const restoreAttemptedAudioRefKeyRef = useRef<string | null>(null);
+  // "pending" means the audio ref is known but restore has not run yet.
+  // "failed" means the UI should offer manual reconnect.
   const [audioRestoreState, setAudioRestoreState] = useState<AudioRestoreState>(
     audioRefKey ? "pending" : "done",
   );
@@ -79,6 +77,7 @@ export const useTranscriptInitialization = ({
         setAudioUrl(url);
         setAudioReference(buildFileReference(file));
       }
+      setAudioRestoreState("done");
     },
     [audioRef, audioUrl, reconnectAudio, setAudioFile, setAudioReference, setAudioUrl],
   );
@@ -132,8 +131,12 @@ export const useTranscriptInitialization = ({
   );
 
   useEffect(() => {
-    if (restoreAttemptedRef.current || audioFile || !audioRefKey) return;
-    restoreAttemptedRef.current = true;
+    if (audioFile || !audioRefKey) {
+      setAudioRestoreState("done");
+      return;
+    }
+    if (restoreAttemptedAudioRefKeyRef.current === audioRefKey) return;
+    restoreAttemptedAudioRefKeyRef.current = audioRefKey;
     let isMounted = true;
 
     setAudioRestoreState("in-progress");
