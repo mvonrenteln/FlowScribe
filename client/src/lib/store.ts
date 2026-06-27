@@ -255,7 +255,14 @@ const initialState: InitialStoreState = {
 
 const schedulePersist = canUseLocalStorage() ? createStorageScheduler(PERSIST_THROTTLE_MS) : null;
 let storeContext: StoreContext | null = null;
-let lastGlobalPayload: ReturnType<typeof buildGlobalStatePayload> | null = null;
+// Pre-seed lastGlobalPayload from initialState so that the very first
+// persistence-subscriber tick does not see !lastGlobalPayload and spuriously
+// increment globalStateFingerprint from "0" to "1". Without this, the
+// BackupScheduler (started asynchronously after the store) would observe the
+// "0"→"1" change and set globalDirty=true on every startup.
+let lastGlobalPayload: ReturnType<typeof buildGlobalStatePayload> | null = buildGlobalStatePayload(
+  initialState as unknown as TranscriptStore,
+);
 
 export const useTranscriptStore = create<TranscriptStore>()(
   subscribeWithSelector((set, get) => {
