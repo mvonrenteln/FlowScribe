@@ -1012,6 +1012,37 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
 
+    it("does not write dirty-unload flag after successful backup when includeGlobalState is false", async () => {
+      // Regression: when includeGlobalState is false, globalDirty is never reset
+      // inside backupBatch, so hasDirty() remains true and beforeunload sets the flag
+      // even after a completely successful session backup.
+      const provider = makeMockProvider();
+      const store = makeStore({
+        enabled: true,
+        backupIntervalMinutes: 5,
+        includeGlobalState: false,
+      });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Trigger a global fingerprint change so globalDirty becomes true
+      store.setState({
+        segments: [{ id: "1" }, { id: "2" }] as unknown[],
+        globalStateFingerprint: "fp-changed",
+      });
+      store.notify();
+
+      // Successful backup
+      await scheduler.backupNow("scheduled");
+
+      // globalDirty is still true because includeGlobalState=false skips the reset
+      // beforeunload must NOT set the flag — sessions were cleanly backed up
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
     it("does not mark dirty on disabled to enabled transition", () => {
       const provider = makeMockProvider();
       const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
@@ -1062,6 +1093,26 @@ describe("BackupScheduler", () => {
       });
       store.notify();
 
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
+    it("does NOT write dirty-unload flag after a successful backup", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Simulate an edit → dirty
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      // Backup succeeds
+      await scheduler.backupNow("scheduled");
+
+      // After successful backup the dirty flag must not be set on beforeunload
       window.dispatchEvent(new Event("beforeunload"));
 
       expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
