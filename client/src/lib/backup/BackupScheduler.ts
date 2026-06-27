@@ -166,6 +166,24 @@ export class BackupScheduler {
       this.onStateChange(store.getState());
     });
 
+    // Recover lastBackupAt from the manifest so the UI shows the correct time
+    // on page reload instead of always showing "never". Fire-and-forget: a failure
+    // here is non-critical and must not block the rest of the scheduler setup.
+    if (seed.backupConfig.enabled) {
+      this.provider
+        .readManifest()
+        .then((manifest) => {
+          if (!manifest || !this.store) return;
+          const allEntries = [...manifest.snapshots, ...manifest.globalSnapshots];
+          if (allEntries.length === 0) return;
+          const latestCreatedAt = Math.max(...allEntries.map((e) => e.createdAt));
+          this.store.getState().setBackupState({ lastBackupAt: latestCreatedAt });
+        })
+        .catch(() => {
+          // Non-critical — ignore manifest read errors on startup
+        });
+    }
+
     // Hard interval: the primary backup trigger, fires every backupIntervalMinutes.
     const initialIntervalMs = store.getState().backupConfig.backupIntervalMinutes * 60_000;
     this.currentIntervalMs = initialIntervalMs;
