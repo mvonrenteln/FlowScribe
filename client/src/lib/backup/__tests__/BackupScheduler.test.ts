@@ -1046,6 +1046,28 @@ describe("BackupScheduler", () => {
       scheduler.stop();
     });
 
+    it("does not write dirty-unload flag when backup folder is inaccessible", () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({
+        segments: [{ id: "1" }, { id: "2" }] as unknown[],
+        backupState: {
+          ...store.getState().backupState,
+          status: "error",
+          lastError: "Backup folder not accessible",
+        },
+      });
+      store.notify();
+
+      window.dispatchEvent(new Event("beforeunload"));
+
+      expect(localStorage.getItem("flowscribe:dirty-unload")).toBeNull();
+      scheduler.stop();
+    });
+
     it("does not write dirty-unload flag during persistence suppression", () => {
       mockIsPersistenceSuppressed.mockReturnValue(true);
       const provider = makeMockProvider();

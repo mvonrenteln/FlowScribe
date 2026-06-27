@@ -52,7 +52,7 @@ On startup, if the flag is present, a user-facing banner appears at the bottom o
 **State machine:** `hidden → showing → saving → success / error`
 
 - **Success:** clears flag, auto-dismisses after 4 seconds
-- **Error:** shows inline error, keeps dismiss button, does NOT clear flag (so banner reappears on next load)
+- **Error:** shows inline error, keeps dismiss button, does NOT clear flag (so banner reappears on next load), and links to the Backup settings tab when settings navigation is available
 - **Dismiss:** clears flag, hides banner immediately
 - **Scheduler not available:** treated as error (prevents false success)
 
@@ -67,14 +67,14 @@ On startup, if the flag is present, a user-facing banner appears at the bottom o
 - `client/src/lib/backup/dirtyUnloadFlag.ts` — flag utility (set/read/clear with 24h expiry)
 - `client/src/lib/backup/__tests__/dirtyUnloadFlag.test.ts` — 7 tests
 - `client/src/components/backup/DirtyUnloadBanner.tsx` — banner component
-- `client/src/components/backup/__tests__/DirtyUnloadBanner.test.tsx` — 14 tests
+- `client/src/components/backup/__tests__/DirtyUnloadBanner.test.tsx` — 15 tests
 
 ### Modified files
-- `client/src/lib/backup/BackupScheduler.ts` — uses `setDirtyUnloadFlag()`, stores handler ref, cleans up in `stop()`, adds `reauthorize()` method
-- `client/src/lib/backup/__tests__/BackupScheduler.test.ts` — 3 new beforeunload tests
+- `client/src/lib/backup/BackupScheduler.ts` — uses `setDirtyUnloadFlag()` only while backup access is healthy, stores handler ref, cleans up in `stop()`, adds `reauthorize()` method
+- `client/src/lib/backup/__tests__/BackupScheduler.test.ts` — 4 new beforeunload tests
 - `client/src/components/transcript-editor/EditorDialogs.tsx` — mounts `DirtyUnloadBanner`
-- `client/src/translations/en.json` — 11 keys under `backup.dirtyUnload.*`
-- `client/src/translations/de.json` — 11 keys under `backup.dirtyUnload.*`
+- `client/src/translations/en.json` — 13 keys under `backup.dirtyUnload.*`
+- `client/src/translations/de.json` — 13 keys under `backup.dirtyUnload.*`
 
 ---
 
@@ -83,4 +83,6 @@ On startup, if the flag is present, a user-facing banner appears at the bottom o
 1. **Interactive banner over silent auto-backup:** Auto-backup cannot request FS permissions (requires user gesture), and users deserve to see what happened. The banner pattern is consistent with `RestoreBanner`.
 2. **localStorage over sessionStorage:** `sessionStorage` is cleared on browser close/crash, defeating the purpose. `localStorage` with a timestamp and 24h TTL avoids stale flags accumulating.
 3. **`scheduler.reauthorize()` over new provider instance:** `FileSystemProvider.getHandle()` caches the directory handle on the instance. Creating a new provider instance and calling `enable()` saves a new handle to IndexedDB but leaves the scheduler's cached handle unchanged — subsequent `backupNow()` calls would use the old revoked handle. `reauthorize()` calls `enable()` on the scheduler's own provider, updating the cached handle in place.
-4. **No coordination with RestoreBanner:** Both banners render independently. The scenario where both appear simultaneously is extremely unlikely (requires dirty unload + restorable snapshot from a different session).
+4. **Error keeps the dirty-unload flag:** A failed safety-backup attempt means no backup was created. The flag stays so the user is reminded on the next load.
+5. **No dirty-unload flag while backup access is unhealthy:** If the backup folder is already inaccessible, startup recovery should not route the user into the same failed backup path again.
+6. **No coordination with RestoreBanner:** Both banners render independently. The scenario where both appear simultaneously is extremely unlikely (requires dirty unload + restorable snapshot from a different session).

@@ -144,6 +144,12 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
     setPhase("hidden");
   }, [onOpenSettings]);
 
+  const handleOpenBackupSettings = useCallback(() => {
+    clearDirtyUnloadFlag();
+    onOpenSettings?.("backup");
+    setPhase("hidden");
+  }, [onOpenSettings]);
+
   if (phase === "hidden") return null;
 
   const description =
@@ -178,9 +184,24 @@ export function DirtyUnloadBanner({ onOpenSettings }: DirtyUnloadBannerProps) {
         </div>
 
         {phase === "error" && errorMsg && (
-          <div className="flex items-center gap-2 text-sm text-destructive">
-            <AlertCircle className="h-4 w-4 shrink-0" />
-            <span>{t("backup.dirtyUnload.errorMessage", { error: errorMsg })}</span>
+          <div className="flex flex-col gap-2 text-sm text-destructive">
+            <div className="flex items-center gap-2">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              <span>{t("backup.dirtyUnload.errorMessage", { error: errorMsg })}</span>
+            </div>
+            <div className="flex items-center gap-2 text-muted-foreground">
+              <span>{t("backup.dirtyUnload.reconnectHint")}</span>
+              {onOpenSettings && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="h-auto p-0 underline"
+                  onClick={handleOpenBackupSettings}
+                >
+                  {t("backup.dirtyUnload.openBackupSettingsButton")}
+                </Button>
+              )}
+            </div>
           </div>
         )}
 

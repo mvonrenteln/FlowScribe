@@ -294,6 +294,41 @@ describe("DirtyUnloadBanner", () => {
     expect(screen.getByText("Dismiss")).toBeInTheDocument();
   });
 
+  it("error state links to backup settings", async () => {
+    setFlagPresent();
+    setBackupEnabled("enabled");
+    const onOpenSettings = vi.fn();
+    mockBackupNow.mockImplementationOnce(async () => {
+      useTranscriptStore.setState({
+        backupState: {
+          ...useTranscriptStore.getState().backupState,
+          lastError: "Backup folder not accessible",
+        },
+      });
+    });
+
+    render(<DirtyUnloadBanner onOpenSettings={onOpenSettings} />);
+
+    await waitFor(() => {
+      expect(screen.getByText("Create safety backup")).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText("Create safety backup"));
+    });
+
+    await waitFor(() => {
+      expect(
+        screen.getByText("Reconnect or choose a backup folder in settings."),
+      ).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByText("Open backup settings"));
+
+    expect(onOpenSettings).toHaveBeenCalledWith("backup");
+    expect(mockClearFlag).toHaveBeenCalled();
+  });
+
   it("variant B: re-authorize success triggers backup and shows success", async () => {
     setFlagPresent();
     setBackupEnabled("error");
