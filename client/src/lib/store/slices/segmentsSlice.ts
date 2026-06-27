@@ -190,7 +190,7 @@ export const createSegmentsSlice = (
 
     let fallbackColorIndex = 0;
     const importedTags = incomingTagNames.map((name) => ({
-      id: crypto.randomUUID(),
+      id: generateId(),
       name,
       color:
         incomingTagColors.get(name) ?? SPEAKER_COLORS[fallbackColorIndex++ % SPEAKER_COLORS.length],
