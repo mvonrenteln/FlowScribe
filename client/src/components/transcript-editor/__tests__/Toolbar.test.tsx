@@ -63,6 +63,7 @@ const baseProps: TranscriptEditorState["toolbarProps"] = {
   aiCommandPanelOpen: false,
   onToggleAICommandPanel: vi.fn(),
   onOpenSettings: vi.fn(),
+  audioRestoreState: "done" as const,
 };
 
 describe("Toolbar", () => {

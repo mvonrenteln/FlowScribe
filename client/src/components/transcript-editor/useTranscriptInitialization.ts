@@ -1,4 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+
+type AudioRestoreState = "pending" | "in-progress" | "done" | "failed";
+
 import { useTranslation } from "react-i18next";
 import { useToast } from "@/hooks/use-toast";
 import {
@@ -50,15 +53,22 @@ export const useTranscriptInitialization = ({
   // Compute audio reference key for handle storage
   const audioRefKey = audioRef ? buildAudioRefKey(audioRef) : null;
   const [isWaveReady, setIsWaveReady] = useState(!audioUrl);
-  const restoreAttemptedRef = useRef(false);
+  const restoreAttemptedAudioRefKeyRef = useRef<string | null>(null);
+  // "pending" means the audio ref is known but restore has not run yet.
+  // "failed" means the UI should offer manual reconnect.
+  const [audioRestoreState, setAudioRestoreState] = useState<AudioRestoreState>(
+    audioRefKey ? "pending" : "done",
+  );
 
   const handleAudioUpload = useCallback(
-    (file: File) => {
+    (file: File, options?: { mode?: "replace" | "reconnect" }) => {
       // If a session with transcript data already exists but no audio is loaded
       // (e.g. after a backup restore + page reload), reconnect without resetting
       // transcript state. In all other cases use the normal path which resets the
       // transcript when a new audio file is introduced.
-      const isReconnect = audioUrl === null && audioRef !== null;
+      const isReconnect =
+        (options?.mode === "reconnect" && audioRef !== null) ||
+        (options?.mode !== "replace" && audioUrl === null && audioRef !== null);
       if (isReconnect) {
         reconnectAudio(file);
       } else {
@@ -67,6 +77,7 @@ export const useTranscriptInitialization = ({
         setAudioUrl(url);
         setAudioReference(buildFileReference(file));
       }
+      setAudioRestoreState("done");
     },
     [audioRef, audioUrl, reconnectAudio, setAudioFile, setAudioReference, setAudioUrl],
   );
@@ -120,30 +131,43 @@ export const useTranscriptInitialization = ({
   );
 
   useEffect(() => {
-    if (restoreAttemptedRef.current || audioFile || !audioRefKey) return;
-    restoreAttemptedRef.current = true;
+    if (audioFile || !audioRefKey) {
+      setAudioRestoreState("done");
+      return;
+    }
+    if (restoreAttemptedAudioRefKeyRef.current === audioRefKey) return;
+    restoreAttemptedAudioRefKeyRef.current = audioRefKey;
     let isMounted = true;
+
+    setAudioRestoreState("in-progress");
 
     loadAudioHandleForAudioRef(audioRefKey)
       .then(async (handle) => {
-        if (!handle || !isMounted) return;
+        if (!handle || !isMounted) {
+          if (isMounted) setAudioRestoreState("failed");
+          return;
+        }
         const granted = await queryAudioHandlePermission(handle);
-        if (!granted || !isMounted) return;
+        if (!granted || !isMounted) {
+          if (isMounted) setAudioRestoreState("failed");
+          return;
+        }
         const file = await handle.getFile();
         if (!isMounted) return;
         const proceed = confirmIfLargeAudio(file);
         if (!proceed) {
-          // User declined loading the previously saved large file after reload.
-          // Clear the stored handle for this audio to avoid repeatedly prompting.
           clearAudioHandleForAudioRef(audioRefKey).catch((err) =>
             logger.error("Failed to clear saved audio handle.", { error: err }),
           );
+          if (isMounted) setAudioRestoreState("failed");
           return;
         }
         handleAudioUpload(file);
+        if (isMounted) setAudioRestoreState("done");
       })
       .catch((err) => {
         logger.error("Failed to restore audio handle.", { error: err });
+        if (isMounted) setAudioRestoreState("failed");
       });
 
     return () => {
@@ -164,6 +188,7 @@ export const useTranscriptInitialization = ({
     handleTranscriptUpload,
     handleWaveReady,
     isWaveReady,
+    audioRestoreState,
   };
 };
 

@@ -21,11 +21,12 @@ import { isVTTFormat } from "@/lib/transcriptParsing";
 const logger = createLogger({ feature: "FileUpload", namespace: "UI" });
 
 interface FileUploadProps {
-  onAudioUpload: (file: File) => void;
+  onAudioUpload: (file: File, options?: { mode?: "replace" | "reconnect" }) => void;
   onTranscriptUpload: (data: unknown, reference?: FileReference | null) => void;
   audioFileName?: string;
   transcriptFileName?: string;
   transcriptLoaded?: boolean;
+  audioRestoreState?: "pending" | "in-progress" | "done" | "failed";
   variant?: "card" | "inline";
   revisionName?: string | null;
 }
@@ -38,6 +39,7 @@ export function FileUpload({
   audioFileName,
   transcriptFileName,
   transcriptLoaded,
+  audioRestoreState,
   variant = "card",
   revisionName,
 }: FileUploadProps) {
@@ -46,6 +48,7 @@ export function FileUpload({
   const audioInputRef = useRef<HTMLInputElement>(null);
   const transcriptInputRef = useRef<HTMLInputElement>(null);
   const [audioHandle, setAudioHandle] = useState<FileSystemFileHandle | null>(null);
+  const pendingAudioModeRef = useRef<"replace" | "reconnect">("replace");
   const [localTranscriptFileName, setLocalTranscriptFileName] = useState<string | undefined>(
     transcriptFileName,
   );
@@ -145,11 +148,13 @@ export function FileUpload({
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
       if (file) {
+        const mode = pendingAudioModeRef.current;
+        pendingAudioModeRef.current = "replace";
         const proceed = confirmIfLargeAudio(file);
         if (!proceed) return;
 
         // Clear handle for old audio if exists
-        if (audioRefKey) {
+        if (audioRefKey && mode !== "reconnect") {
           clearAudioHandleForAudioRef(audioRefKey)
             .then(() => setAudioHandle(null))
             .catch((err) => {
@@ -157,62 +162,69 @@ export function FileUpload({
             });
         }
 
-        onAudioUpload(file);
+        onAudioUpload(file, { mode });
       }
     },
     [onAudioUpload, audioRefKey],
   );
 
-  const handleAudioPick = useCallback(async () => {
-    const picker = (
-      window as Window & {
-        showOpenFilePicker?: (options?: {
-          types?: Array<{
-            description?: string;
-            accept: Record<string, string[]>;
-          }>;
-          multiple?: boolean;
-          excludeAcceptAllOption?: boolean;
-        }) => Promise<FileSystemFileHandle[]>;
+  const handleAudioPick = useCallback(
+    async (mode: "replace" | "reconnect" = "replace") => {
+      const picker = (
+        window as Window & {
+          showOpenFilePicker?: (options?: {
+            types?: Array<{
+              description?: string;
+              accept: Record<string, string[]>;
+            }>;
+            multiple?: boolean;
+            excludeAcceptAllOption?: boolean;
+          }) => Promise<FileSystemFileHandle[]>;
+        }
+      ).showOpenFilePicker;
+
+      if (!picker) {
+        pendingAudioModeRef.current = mode;
+        audioInputRef.current?.click();
+        return;
       }
-    ).showOpenFilePicker;
 
-    if (!picker) {
-      audioInputRef.current?.click();
-      return;
-    }
-
-    try {
-      const [handle] = await picker({
-        multiple: false,
-        types: [
-          {
-            description: t("fileUpload.audioFilesDescription"),
-            accept: {
-              "audio/*": [".mp3", ".wav", ".m4a", ".ogg", ".flac"],
+      try {
+        const [handle] = await picker({
+          multiple: false,
+          types: [
+            {
+              description: t("fileUpload.audioFilesDescription"),
+              accept: {
+                "audio/*": [".mp3", ".wav", ".m4a", ".ogg", ".flac"],
+              },
             },
-          },
-        ],
-      });
-      if (!handle) return;
-      const file = await handle.getFile();
-      const proceed = confirmIfLargeAudio(file);
-      if (!proceed) return;
+          ],
+        });
+        if (!handle) return;
+        const file = await handle.getFile();
+        const proceed = confirmIfLargeAudio(file);
+        if (!proceed) return;
 
-      // Call onAudioUpload FIRST to trigger session creation/change
-      onAudioUpload(file);
+        const effectiveMode = mode === "reconnect" && audioRef === null ? "replace" : mode;
 
-      // Save the handle using the audio reference key
-      // Multiple sessions with the same audio file will share this handle
-      const audioRef = buildFileReference(file);
-      const audioRefKey = buildAudioRefKey(audioRef);
-      await saveAudioHandleForAudioRef(audioRefKey, handle);
-      setAudioHandle(handle);
-    } catch (err) {
-      if (err instanceof DOMException && err.name === "AbortError") return;
-      logger.error("Failed to pick audio file.", { error: err });
-    }
-  }, [onAudioUpload, t]);
+        // Call onAudioUpload FIRST to trigger session creation/change
+        onAudioUpload(file, { mode: effectiveMode });
+
+        // Save the handle using the audio reference key
+        // Multiple sessions with the same audio file will share this handle
+        const referenceForHandle =
+          effectiveMode === "reconnect" && audioRef !== null ? audioRef : buildFileReference(file);
+        const audioRefKey = buildAudioRefKey(referenceForHandle);
+        await saveAudioHandleForAudioRef(audioRefKey, handle);
+        setAudioHandle(handle);
+      } catch (err) {
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        logger.error("Failed to pick audio file.", { error: err });
+      }
+    },
+    [audioRef, onAudioUpload, t],
+  );
 
   const handleRestoreAudio = useCallback(async () => {
     if (!audioHandle || !audioRefKey) return;
@@ -229,11 +241,23 @@ export function FileUpload({
           .catch((err) => logger.error("Failed to clear saved audio handle.", { error: err }));
         return;
       }
-      onAudioUpload(file);
+      onAudioUpload(file, { mode: "reconnect" });
     } catch (err) {
       logger.error("Failed to restore audio file.", { error: err });
     }
   }, [audioHandle, onAudioUpload, audioRefKey]);
+
+  const restoreFailed = audioRestoreState === "failed" || audioRestoreState === undefined;
+  const showReconnectAudio =
+    !audioFileName && restoreFailed && (audioHandle !== null || transcriptLoaded || audioRef);
+
+  const handleReconnectAudio = useCallback(() => {
+    if (audioHandle) {
+      void handleRestoreAudio();
+      return;
+    }
+    void handleAudioPick(audioRef ? "reconnect" : "replace");
+  }, [audioHandle, audioRef, handleAudioPick, handleRestoreAudio]);
 
   // confirmIfLargeAudio moved to module scope above to avoid recreating the function on each render
 
@@ -318,7 +342,9 @@ export function FileUpload({
           <TooltipTrigger asChild>
             <Button
               variant={audioFileName ? "secondary" : "default"}
-              onClick={handleAudioPick}
+              onClick={() => {
+                void handleAudioPick("replace");
+              }}
               data-testid="button-upload-audio"
             >
               <FileAudio className="h-4 w-4 mr-2" />
@@ -328,12 +354,12 @@ export function FileUpload({
           <TooltipContent>{t("fileUpload.loadAudioTooltip")}</TooltipContent>
         </Tooltip>
 
-        {!audioFileName && audioHandle && (
+        {showReconnectAudio && (
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
                 variant="outline"
-                onClick={handleRestoreAudio}
+                onClick={handleReconnectAudio}
                 data-testid="button-restore-audio"
               >
                 <RotateCcw className="h-4 w-4 mr-2" />
