@@ -1,13 +1,38 @@
 # FlowScribe / TranscriptEditor Agent Rules (Bootloader)
 
-This repo is a frontend-only Vite/React/TypeScript app: an audio transcription editor that loads audio plus Whisper or WhisperX JSON, renders a waveform, and lets users edit speaker-tagged transcript segments with word-level timestamps.
+This repo is a frontend-only Vite/React/TypeScript app: an audio transcription editor that loads audio plus Whisper or WhisperX JSON, renders a waveform, and lets users edit speaker-tagged transcript segments with word-level timestamps. Manual-first philosophy: every feature must work without AI; AI is only an optional enhancement.
+
+## Runtime environment
+
+- Node: `>=24 <25` (version pinned in `.nvmrc`)
+- npm: `>=11 <12`
+- `nvm` is not auto-initialized in Claude's shell. Initialize it before every `npm`/`node` Bash call:
+
+  ```bash
+  source ~/.nvm/nvm.sh && nvm use
+  ```
+
+  Example: `source ~/.nvm/nvm.sh && nvm use && npm run check`
+
+## Commands
+
+```bash
+npm run dev          # Vite dev server (port 5173)
+npm run build        # Production build
+npm run check        # TypeScript check (tsgo)
+npm run lint         # Biome check
+npm run lint:fix     # Biome check with auto-fixes
+npm test             # Vitest single run
+```
 
 ## Technologies
 
-- React with TypeScript and Vite
+- React 18 with TypeScript and Vite
 - Zustand for state management
-- Tailwind CSS with shadcn/ui components
-- Build: npm, Vitest, biome
+- Tailwind CSS with shadcn/ui components and Radix primitives
+- WaveSurfer.js for audio waveform/playback
+- OpenAI SDK for optional AI features
+- Build: npm, Vitest, Testing Library, jsdom, biome
 - **i18n: react-i18next — all user-facing strings must use `t()`, keys in `client/src/translations/en.json` (default) and `de.json` (see Non-negotiable #5)**
 
 ## Repo map (only the important slices)
@@ -127,6 +152,9 @@ Transcript rendering is performance-sensitive on long files.
 - Do not bypass AI infrastructure layers (`core/`, `providers/`, `parsing/`).
 - Keep seams clean: types → pure utils → services/orchestration.
 - Pure logic goes to utilities; side effects stay in services.
+- Prefer narrow Zustand selectors over grabbing large state objects.
+- Prefer lookup maps over repeated scans on measured hot paths.
+- Use domain types such as `SegmentId`, `SpeakerId`, and `TimeMs` where they already exist.
 - For deeper architectural principles/patterns: `docs/agent-rules/architecture-rules.md`
 
 A change is not considered done unless check, lint, and tests are green!
