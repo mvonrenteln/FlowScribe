@@ -95,7 +95,11 @@ Every string visible to the user (labels, tooltips, toasts, aria-labels, placeho
 
 ### 6) Additional coding constraints
 
+- TypeScript strict mode is required; do not loosen strict compiler settings.
 - Do not use `any`, including in tests.
+- Follow TDD for new behavior and bug fixes: add or update the failing test first, then implement the smallest fix.
+- Use Conventional Commits: `type(scope): description`, where scope names the component, feature, or subsystem.
+- Do not add AI attribution or generated-by footers to commits, such as `Co-authored-by: Claude` or `Generated with Claude Code`.
 - After finishing a task, respond with a commit message suggestion (semantic commit with a title and a longer body).
 - Do not write comments explaining why code was deleted, and do not comment out code. Always delete it directly.
 
