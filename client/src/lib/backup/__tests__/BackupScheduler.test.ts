@@ -883,6 +883,120 @@ describe("BackupScheduler", () => {
     });
   });
 
+  describe("lastBackupAt recovery on startup", () => {
+    it("seeds lastBackupAt from the manifest's most recent snapshot on start", async () => {
+      const provider = makeMockProvider();
+      const latestCreatedAt = Date.now() - 5 * 60_000; // 5 minutes ago
+      (provider.readManifest as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshots: [
+          { sessionKeyHash: "abc", createdAt: latestCreatedAt - 60_000, filename: "a.gz" },
+          { sessionKeyHash: "abc", createdAt: latestCreatedAt, filename: "b.gz" },
+        ],
+        globalSnapshots: [],
+        schemaVersion: 1,
+        appVersion: "0.0.0",
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Wait for the async manifest read
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const recoveryCall = setStateCalls.find(([p]) => p.lastBackupAt === latestCreatedAt);
+      expect(recoveryCall).toBeDefined();
+
+      scheduler.stop();
+    });
+
+    it("uses the most recent createdAt across both snapshots and globalSnapshots", async () => {
+      const provider = makeMockProvider();
+      const newerGlobal = Date.now() - 1 * 60_000;
+      const olderSession = Date.now() - 10 * 60_000;
+      (provider.readManifest as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshots: [{ sessionKeyHash: "abc", createdAt: olderSession, filename: "a.gz" }],
+        globalSnapshots: [{ sessionKeyHash: "global", createdAt: newerGlobal, filename: "g.gz" }],
+        schemaVersion: 1,
+        appVersion: "0.0.0",
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const recoveryCall = setStateCalls.find(([p]) => p.lastBackupAt === newerGlobal);
+      expect(recoveryCall).toBeDefined();
+
+      scheduler.stop();
+    });
+
+    it("does not set lastBackupAt when manifest is empty", async () => {
+      const provider = makeMockProvider();
+      (provider.readManifest as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshots: [],
+        globalSnapshots: [],
+        schemaVersion: 1,
+        appVersion: "0.0.0",
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const store = makeStore({ backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const recoveryCall = setStateCalls.find(([p]) => p.lastBackupAt != null);
+      expect(recoveryCall).toBeUndefined();
+
+      scheduler.stop();
+    });
+
+    it("does not set lastBackupAt when backup is disabled", async () => {
+      const provider = makeMockProvider();
+      const latestCreatedAt = Date.now() - 5 * 60_000;
+      (provider.readManifest as ReturnType<typeof vi.fn>).mockResolvedValue({
+        snapshots: [{ sessionKeyHash: "abc", createdAt: latestCreatedAt, filename: "a.gz" }],
+        globalSnapshots: [],
+        schemaVersion: 1,
+        appVersion: "0.0.0",
+        createdAt: 0,
+        updatedAt: 0,
+      });
+
+      const store = makeStore({ enabled: false, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const recoveryCall = setStateCalls.find(([p]) => p.lastBackupAt != null);
+      expect(recoveryCall).toBeUndefined();
+
+      scheduler.stop();
+    });
+  });
+
   describe("beforeunload flag", () => {
     beforeEach(() => {
       localStorage.clear();

@@ -1707,4 +1707,25 @@ describe("useTranscriptStore persistence", () => {
       ).toBe(true);
     });
   });
+
+  describe("globalStateFingerprint stability on startup", () => {
+    it("does not increment globalStateFingerprint on the first persistence-subscriber tick when no global state has changed", async () => {
+      // Regression: lastGlobalPayload was null on startup, so the first tick
+      // always set globalChanged=true and incremented the fingerprint from "0"
+      // to "1". The BackupScheduler (started async after the store) then saw
+      // "0"→"1" and set globalDirty=true on every startup.
+      // Fix: store.ts pre-seeds lastGlobalPayload from initialState so the
+      // first tick is a genuine no-change comparison.
+      const { useTranscriptStore } = await import("@/lib/store");
+      const before = useTranscriptStore.getState().globalStateFingerprint;
+
+      // Trigger a store mutation that is NOT a global-state change (segment UI state)
+      useTranscriptStore.getState().setCurrentTime(1.0);
+      await vi.advanceTimersByTimeAsync(0);
+      await Promise.resolve();
+
+      const after = useTranscriptStore.getState().globalStateFingerprint;
+      expect(after).toBe(before);
+    });
+  });
 });
