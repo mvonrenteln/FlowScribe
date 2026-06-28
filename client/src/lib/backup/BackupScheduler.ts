@@ -177,7 +177,10 @@ export class BackupScheduler {
           const allEntries = [...manifest.snapshots, ...manifest.globalSnapshots];
           if (allEntries.length === 0) return;
           const latestCreatedAt = Math.max(...allEntries.map((e) => e.createdAt));
-          this.store.getState().setBackupState({ lastBackupAt: latestCreatedAt });
+          const current = this.store.getState().backupState.lastBackupAt;
+          if (current === null || latestCreatedAt > current) {
+            this.store.getState().setBackupState({ lastBackupAt: latestCreatedAt });
+          }
         })
         .catch(() => {
           // Non-critical — ignore manifest read errors on startup
