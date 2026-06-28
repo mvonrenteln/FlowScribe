@@ -152,11 +152,7 @@ describe("RewriteSlice batch rewrite", () => {
   });
 
   it("logs failed and empty chapters without stopping", async () => {
-    store
-      .getState()
-      .selectSegmentsInChapter.mockImplementation((chapterId: string) =>
-        chapterId === "chapter-1" ? [segments[0]] : [],
-      );
+    store.setState({ chapters: [chapters[0], { ...chapters[1], startSegmentId: "missing" }] });
     (rewriteChapter as ReturnType<typeof vi.fn>).mockRejectedValue(new Error("boom"));
 
     await store.getState().startBatchRewrite({ promptId: "prompt-1" });
@@ -165,6 +161,33 @@ describe("RewriteSlice batch rewrite", () => {
     expect(store.getState().batchRewriteLog.map((entry) => entry.status)).toEqual([
       "failed",
       "skipped",
+    ]);
+  });
+
+  it("rewrites full chapters without using the filter-aware chapter selector", async () => {
+    store.getState().selectSegmentsInChapter.mockReturnValue([]);
+    (rewriteChapter as ReturnType<typeof vi.fn>).mockResolvedValue({ rewrittenText: "New" });
+
+    await store.getState().startBatchRewrite({ promptId: "prompt-1" });
+
+    expect(store.getState().selectSegmentsInChapter).not.toHaveBeenCalled();
+    expect(rewriteChapter).toHaveBeenCalledTimes(2);
+    expect((rewriteChapter as ReturnType<typeof vi.fn>).mock.calls[0][0].segments).toEqual([
+      segments[0],
+    ]);
+  });
+
+  it("passes sorted chapters as rewrite context", async () => {
+    store.setState({ chapters: [chapters[1], chapters[0]] });
+    (rewriteChapter as ReturnType<typeof vi.fn>).mockResolvedValue({ rewrittenText: "New" });
+
+    await store.getState().startBatchRewrite({ promptId: "prompt-1" });
+
+    const firstCall = (rewriteChapter as ReturnType<typeof vi.fn>).mock.calls[0][0];
+    expect(firstCall.chapter.id).toBe("chapter-1");
+    expect(firstCall.allChapters.map((chapter: Chapter) => chapter.id)).toEqual([
+      "chapter-1",
+      "chapter-2",
     ]);
   });
 

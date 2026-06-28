@@ -32,6 +32,13 @@ const prompt: AIPrompt = {
   quickAccess: false,
 };
 
+const paragraphPrompt: AIPrompt = {
+  ...prompt,
+  id: "paragraph-prompt",
+  name: "Paragraph Prompt",
+  rewriteScope: "paragraph",
+};
+
 const segments: Segment[] = [
   { id: "seg-1", speaker: "A", start: 0, end: 1, text: "one", words: [] },
   { id: "seg-2", speaker: "A", start: 1, end: 2, text: "two", words: [] },
@@ -161,6 +168,32 @@ describe("RewritePanel", () => {
     expect(updateChapterDetectionConfig).toHaveBeenCalledWith({
       selectedProviderId: "default-ollama",
       selectedModel: "llama3.2",
+    });
+  });
+
+  it("ignores paragraph-scoped rewrite prompts for batch rewrite", async () => {
+    const user = userEvent.setup();
+    const startBatchRewrite = vi.fn();
+    const baseState = createBaseState();
+    setStoreState({
+      startBatchRewrite,
+      aiChapterDetectionConfig: {
+        ...baseState.aiChapterDetectionConfig,
+        prompts: [paragraphPrompt, prompt],
+        activePromptId: paragraphPrompt.id,
+      },
+    });
+
+    renderWithI18n(<RewritePanel onOpenSettings={vi.fn()} />);
+
+    await act(async () => {
+      await user.click(screen.getByRole("button", { name: /start batch/i }));
+    });
+
+    expect(startBatchRewrite).toHaveBeenCalledWith({
+      promptId: "rewrite-prompt",
+      customInstructions: undefined,
+      skipAlreadyRewritten: false,
     });
   });
 

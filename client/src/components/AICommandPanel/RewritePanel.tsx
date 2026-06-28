@@ -39,7 +39,9 @@ export function RewritePanel({ onOpenSettings }: Readonly<RewritePanelProps>) {
   const rejectAllBatchRewrites = useTranscriptStore((s) => s.rejectAllBatchRewrites);
   const updateChapterDetectionConfig = useTranscriptStore((s) => s.updateChapterDetectionConfig);
 
-  const rewritePrompts = config.prompts.filter((prompt) => prompt.operation === "rewrite");
+  const rewritePrompts = config.prompts.filter(
+    (prompt) => prompt.operation === "rewrite" && (prompt.rewriteScope ?? "chapter") === "chapter",
+  );
   const [selectedPromptId, setSelectedPromptId] = useState(() => rewritePrompts[0]?.id ?? "");
   const [customInstructions, setCustomInstructions] = useState("");
   const [skipAlreadyRewritten, setSkipAlreadyRewritten] = useState(false);

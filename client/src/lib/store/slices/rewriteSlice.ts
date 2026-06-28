@@ -17,7 +17,11 @@ import {
   splitRewrittenParagraphs,
 } from "@/lib/rewriteParagraphs";
 import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
-import { buildSegmentIndexMap, sortChaptersByStart } from "../utils/chapters";
+import {
+  buildSegmentIndexMap,
+  getDynamicChapterRangeIndices,
+  sortChaptersByStart,
+} from "../utils/chapters";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
@@ -413,8 +417,16 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
       }));
 
       try {
-        const segments = get().selectSegmentsInChapter(chapter.id);
-        if (segments.length === 0) {
+        const range = getDynamicChapterRangeIndices(
+          chapter.id,
+          state.chapters,
+          indexMap,
+          state.segments.length,
+        );
+        const chapterSegments = range
+          ? state.segments.slice(range.startIndex, range.endIndex + 1)
+          : [];
+        if (chapterSegments.length === 0) {
           replaceLogEntry({
             chapterId: chapter.id,
             chapterTitle: chapter.title,
@@ -430,14 +442,14 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         }
 
         const currentDrafts = get().rewriteDraftByChapterId;
-        const allChaptersWithDrafts = get().chapters.map((item) => {
+        const allChaptersWithDrafts = sortedChapters.map((item) => {
           const draft = currentDrafts[item.id];
           return draft?.text ? { ...item, rewrittenText: draft.text } : item;
         });
 
         const result = await rewriteChapter({
           chapter,
-          segments,
+          segments: chapterSegments,
           allChapters: allChaptersWithDrafts,
           prompt,
           providerId: get().aiChapterDetectionConfig.selectedProviderId,
