@@ -186,12 +186,12 @@ export function ChapterRewriteView({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (paragraphDialogOpen) return;
-      handleReject();
+      onClose();
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isMounted, handleReject, paragraphDialogOpen]);
+  }, [isMounted, onClose, paragraphDialogOpen]);
 
   const handleRegenerate = useCallback(() => {
     if (!promptId) return;
@@ -224,7 +224,7 @@ export function ChapterRewriteView({
             {t("rewrite.view.title")}
           </h2>
           <span id="rewrite-view-description" className="text-sm text-muted-foreground">
-            — {chapter.title}
+            {chapter.title}
           </span>
         </div>
 
@@ -232,8 +232,8 @@ export function ChapterRewriteView({
           ref={closeButtonRef}
           variant="ghost"
           size="icon"
-          onClick={handleReject}
-          aria-label={t("rewrite.view.close", { defaultValue: "Schließen" })}
+          onClick={onClose}
+          aria-label={t("rewrite.view.close")}
         >
           <X className="h-4 w-4" />
         </Button>
