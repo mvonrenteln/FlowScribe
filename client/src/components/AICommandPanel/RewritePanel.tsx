@@ -206,7 +206,11 @@ export function RewritePanel({ onOpenSettings }: Readonly<RewritePanelProps>) {
           <ResultsList
             items={draftsWithChapters}
             getKey={(chapter) => chapter.id}
-            onActivate={(chapter) => setActiveViewChapterId(chapter.id)}
+            onActivate={(chapter) => {
+              if (!isProcessing) {
+                setActiveViewChapterId(chapter.id);
+              }
+            }}
             getItemTitle={(chapter) => chapter.title}
             renderItem={(chapter) => (
               <>
@@ -220,11 +224,22 @@ export function RewritePanel({ onOpenSettings }: Readonly<RewritePanelProps>) {
             )}
           />
           <div className="flex gap-2">
-            <Button variant="outline" size="sm" className="flex-1" onClick={rejectAllBatchRewrites}>
+            <Button
+              variant="outline"
+              size="sm"
+              className="flex-1"
+              onClick={rejectAllBatchRewrites}
+              disabled={isProcessing}
+            >
               <XCircle className="mr-2 h-4 w-4" />
               {t("aiBatch.actions.rejectAll")}
             </Button>
-            <Button size="sm" className="flex-1" onClick={acceptAllBatchRewrites}>
+            <Button
+              size="sm"
+              className="flex-1"
+              onClick={acceptAllBatchRewrites}
+              disabled={isProcessing}
+            >
               <Check className="mr-2 h-4 w-4" />
               {t("aiBatch.actions.acceptAll")}
             </Button>
@@ -236,6 +251,7 @@ export function RewritePanel({ onOpenSettings }: Readonly<RewritePanelProps>) {
         <ChapterRewriteView
           chapterId={activeViewChapterId}
           onClose={() => setActiveViewChapterId(null)}
+          preserveDraftOnClose
         />
       ) : null}
     </div>

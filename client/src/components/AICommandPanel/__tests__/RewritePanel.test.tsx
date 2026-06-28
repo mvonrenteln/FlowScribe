@@ -224,6 +224,33 @@ describe("RewritePanel", () => {
     expect(rejectAllBatchRewrites).toHaveBeenCalled();
   });
 
+  it("blocks draft review and bulk actions while batch rewrite is processing", async () => {
+    const user = userEvent.setup();
+    const acceptAllBatchRewrites = vi.fn();
+    const rejectAllBatchRewrites = vi.fn();
+    setStoreState({
+      acceptAllBatchRewrites,
+      rejectAllBatchRewrites,
+      batchRewriteIsProcessing: true,
+      rewriteDraftByChapterId: {
+        "chapter-1": { text: "Draft one", promptId: "rewrite-prompt" },
+      },
+    });
+
+    renderWithI18n(<RewritePanel onOpenSettings={vi.fn()} />);
+
+    expect(screen.getByRole("button", { name: /accept all/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /reject all/i })).toBeDisabled();
+
+    await act(async () => {
+      await user.click(screen.getByRole("button", { name: /one draft one/i }));
+    });
+
+    expect(screen.queryByTestId("chapter-rewrite-view")).not.toBeInTheDocument();
+    expect(acceptAllBatchRewrites).not.toHaveBeenCalled();
+    expect(rejectAllBatchRewrites).not.toHaveBeenCalled();
+  });
+
   it("shows batch log trigger and exports rewrite log", async () => {
     const user = userEvent.setup();
     const loggedAt = Date.now();
