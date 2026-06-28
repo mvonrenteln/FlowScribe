@@ -1,13 +1,15 @@
 import { Bot, X } from "lucide-react";
 import { useState } from "react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ChapterPanel } from "./ChapterPanel";
 import { MergePanel } from "./MergePanel";
 import { RevisionPanel } from "./RevisionPanel";
+import { RewritePanel } from "./RewritePanel";
 import { SpeakerPanel } from "./SpeakerPanel";
 
-export type AICommandPanelTab = "revision" | "speaker" | "merge" | "chapters";
+export type AICommandPanelTab = "revision" | "speaker" | "merge" | "chapters" | "rewrite";
 
 interface AICommandPanelProps {
   open: boolean;
@@ -22,6 +24,7 @@ export function AICommandPanel({
   filteredSegmentIds,
   onOpenSettings,
 }: AICommandPanelProps) {
+  const { t } = useTranslation();
   const [activeTab, setActiveTab] = useState<AICommandPanelTab>("revision");
 
   if (!open) return null;
@@ -31,13 +34,15 @@ export function AICommandPanel({
       <div className="flex items-center justify-between px-4 py-3 border-b">
         <div className="flex items-center gap-2">
           <Bot className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold text-muted-foreground">AI Command Panel</h2>
+          <h2 className="text-sm font-semibold text-muted-foreground">
+            {t("aiCommandPanel.title")}
+          </h2>
         </div>
         <Button
           size="icon"
           variant="ghost"
           onClick={() => onOpenChange(false)}
-          aria-label="Close AI command panel"
+          aria-label={t("aiCommandPanel.close")}
         >
           <X className="h-4 w-4" />
         </Button>
@@ -47,10 +52,11 @@ export function AICommandPanel({
         <div className="flex gap-1 rounded-lg bg-muted/60 p-1">
           {(
             [
-              { id: "revision", label: "Revision" },
-              { id: "speaker", label: "Speaker" },
-              { id: "merge", label: "Merge" },
-              { id: "chapters", label: "Chapters" },
+              { id: "revision", label: t("aiCommandPanel.tabs.revision") },
+              { id: "speaker", label: t("aiCommandPanel.tabs.speaker") },
+              { id: "merge", label: t("aiCommandPanel.tabs.merge") },
+              { id: "chapters", label: t("aiCommandPanel.tabs.chapters") },
+              { id: "rewrite", label: t("rewriteBatch.tabLabel") },
             ] as const
           ).map((tab) => (
             <button
@@ -83,6 +89,7 @@ export function AICommandPanel({
         {activeTab === "chapters" && (
           <ChapterPanel filteredSegmentIds={filteredSegmentIds} onOpenSettings={onOpenSettings} />
         )}
+        {activeTab === "rewrite" && <RewritePanel onOpenSettings={onOpenSettings} />}
       </div>
     </aside>
   );
