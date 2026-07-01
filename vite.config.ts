@@ -38,5 +38,21 @@ export default defineConfig({
     globals: true,
     setupFiles: "./vitest.setup.ts",
     css: true,
+    coverage: {
+      provider: "v8",
+      reporter: ["text", "text-summary", "lcov", "json-summary"],
+      include: ["src/**/*.{ts,tsx}"],
+      exclude: [
+        "src/**/*.test.{ts,tsx}",
+        "src/**/*.spec.{ts,tsx}",
+        "src/**/*.d.ts",
+        "src/**/types.ts",
+        "src/components/examples/**",
+        "src/**/vite-env.d.ts",
+        "src/main.tsx",
+        "src/test/**",
+        "src/types/**",
+      ],
+    },
   },
 });

@@ -83,7 +83,9 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 
-describe("useTranscriptStore persistence", () => {
+// Each test reloads the whole store module (vi.resetModules + dynamic re-import),
+// which is slow under coverage instrumentation. Raise the timeout for this file only.
+describe("useTranscriptStore persistence", { timeout: 20000 }, () => {
   it("selects the most recent session when no active key is stored", async () => {
     const sessionAKey = buildSessionKey(makeRef("audio-a"), makeRef("transcript-a"));
     const sessionBKey = buildSessionKey(makeRef("audio-b"), makeRef("transcript-b"));
