@@ -307,6 +307,12 @@ export const useTranscriptStore = create<TranscriptStore>()(
   }),
 );
 
+// Seed the reference used by the persistence subscriber's change detection so the
+// first tick after load compares against real state instead of `null`. Without this,
+// the first tick always treats global state as changed and bumps globalStateFingerprint,
+// which makes the BackupScheduler think a real edit happened right after startup.
+lastGlobalPayload = buildGlobalStatePayload(useTranscriptStore.getState());
+
 // Initialize backup scheduler (browser only, not in test environment)
 if (typeof window !== "undefined" && !import.meta.env.VITEST) {
   const initBackup = async () => {
@@ -450,8 +456,13 @@ if (canUseLocalStorage()) {
       }
 
       const nextGlobalPayload = buildGlobalStatePayload(useTranscriptStore.getState());
+      if (!lastGlobalPayload) {
+        // Defensive fallback: lastGlobalPayload should already be seeded at module init.
+        // Seed it here too so we never treat an unseeded reference as a real change and
+        // increment the fingerprint (which would falsely mark the session dirty).
+        lastGlobalPayload = nextGlobalPayload;
+      }
       const globalChanged =
-        !lastGlobalPayload ||
         lastGlobalPayload.backupConfig !== nextGlobalPayload.backupConfig ||
         lastGlobalPayload.lexiconEntries !== nextGlobalPayload.lexiconEntries ||
         lastGlobalPayload.lexiconThreshold !== nextGlobalPayload.lexiconThreshold ||

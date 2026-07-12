@@ -711,6 +711,35 @@ describe("useTranscriptStore persistence", () => {
     expect(session5InRecent).toBeDefined();
   });
 
+  describe("globalStateFingerprint seeding (Bug fix: spurious dirty on startup)", () => {
+    it("does not bump globalStateFingerprint on the first persistence tick when no global field changed", async () => {
+      // Regression: lastGlobalPayload used to start as `null`, so the first subscriber
+      // tick after load always treated global state as "changed" (via the `!lastGlobalPayload`
+      // clause) and bumped globalStateFingerprint from "0" to "1" even though nothing about
+      // lexicon/spellcheck/AI configs/backupConfig actually changed. That false bump made the
+      // BackupScheduler mark the session dirty on every app start.
+      const store = await loadStore();
+
+      expect(store.getState().globalStateFingerprint).toBe("0");
+
+      // Trigger a persistence-subscriber tick via a session-only change (currentTime),
+      // which does not touch any global-state field.
+      store.getState().setCurrentTime(1);
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(store.getState().globalStateFingerprint).toBe("0");
+    });
+
+    it("still bumps globalStateFingerprint when a real global field changes", async () => {
+      const store = await loadStore();
+
+      store.getState().setBackupConfig({ enabled: true });
+      await vi.advanceTimersByTimeAsync(600);
+
+      expect(store.getState().globalStateFingerprint).not.toBe("0");
+    });
+  });
+
   describe("Audio Handle Isolation", () => {
     it("stores and retrieves audio handles separately per audio file", async () => {
       const audioRefA = makeRef("audio-a.mp3");

@@ -1321,6 +1321,60 @@ describe("BackupScheduler", () => {
       expect(localStorage.getItem("flowscribe:dirty-unload")).not.toBeNull();
       scheduler.stop();
     });
+
+    it("does not mark a newly seen session dirty until it is actually edited", () => {
+      // Regression: switching to / loading a session the scheduler has not tracked yet
+      // (sessionKey changes without prior seeding) must not mark it dirty just because
+      // `existing` is undefined on the first sighting.
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      const newSegments = [{ id: "1" }] as unknown[];
+      store.setState({ sessionKey: "other-session", segments: newSegments });
+      store.notify();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const dirtyCalls = setStateCalls.filter(([patch]) => patch.isDirty === true);
+      expect(dirtyCalls).toHaveLength(0);
+
+      // A real edit on that same session afterwards must still be detected.
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      const setStateCallsAfterEdit = (store.getState().setBackupState as ReturnType<typeof vi.fn>)
+        .mock.calls as Array<[Partial<BackupState>]>;
+      const dirtyCallsAfterEdit = setStateCallsAfterEdit.filter(
+        ([patch]) => patch.isDirty === true,
+      );
+      expect(dirtyCallsAfterEdit.length).toBeGreaterThan(0);
+
+      scheduler.stop();
+    });
+
+    it("clears isSaving when the backup folder becomes inaccessible mid-backup", async () => {
+      // Regression: verifyAccess() returning false paused the scheduler but left
+      // isSaving=true forever, leaving the status indicator spinning indefinitely.
+      const provider = makeMockProvider();
+      (provider.verifyAccess as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+
+      await scheduler.backupNow("scheduled");
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const lastPatch = setStateCalls[setStateCalls.length - 1][0];
+      expect(lastPatch).toMatchObject({ status: "paused", isSaving: false });
+
+      scheduler.stop();
+    });
   });
 
   describe("Initial snapshot on enable transition", () => {

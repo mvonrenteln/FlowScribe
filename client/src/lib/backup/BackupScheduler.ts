@@ -290,31 +290,45 @@ export class BackupScheduler {
     const sessionKey = state.sessionKey;
     const existing = this.dirtySessions.get(sessionKey);
 
-    // Detect real session content changes via reference equality on Zustand's immutable arrays.
-    // Any mutation (segment text edit, speaker rename, tag/chapter change) produces a new
-    // array reference, so this comparison catches all user-facing edits — not just count changes.
-    const sessionContentChanged =
-      !existing ||
-      existing.lastBackedUpSegments !== state.segments ||
-      existing.lastBackedUpSpeakers !== state.speakers ||
-      existing.lastBackedUpTags !== state.tags ||
-      existing.lastBackedUpChapters !== state.chapters;
-    if (sessionContentChanged) {
-      // Record when the user last made a real content change.
-      // The hard interval uses this to decide whether to defer.
-      this.lastContentChangeAt = Date.now();
+    if (!existing) {
+      // First time this session is seen (e.g. just switched to / loaded it). Seed the
+      // baseline without marking it dirty — no user edit has happened yet. A real edit
+      // is caught on the next notification via reference inequality below.
       this.dirtySessions.set(sessionKey, {
-        isDirty: true,
-        dirtyAt: existing?.dirtyAt ?? Date.now(),
+        isDirty: false,
+        dirtyAt: Date.now(),
         lastBackedUpSegments: state.segments,
         lastBackedUpSpeakers: state.speakers,
         lastBackedUpTags: state.tags,
         lastBackedUpChapters: state.chapters,
       });
-      // Suppress re-entrant call triggered by this setBackupState.
-      this.isHandlingStateChange = true;
-      state.setBackupState({ isDirty: true });
-      this.isHandlingStateChange = false;
+    } else {
+      // Detect real session content changes via reference equality on Zustand's immutable
+      // arrays. Any mutation (segment text edit, speaker rename, tag/chapter change) produces
+      // a new array reference, so this comparison catches all user-facing edits — not just
+      // count changes.
+      const sessionContentChanged =
+        existing.lastBackedUpSegments !== state.segments ||
+        existing.lastBackedUpSpeakers !== state.speakers ||
+        existing.lastBackedUpTags !== state.tags ||
+        existing.lastBackedUpChapters !== state.chapters;
+      if (sessionContentChanged) {
+        // Record when the user last made a real content change.
+        // The hard interval uses this to decide whether to defer.
+        this.lastContentChangeAt = Date.now();
+        this.dirtySessions.set(sessionKey, {
+          isDirty: true,
+          dirtyAt: existing.dirtyAt,
+          lastBackedUpSegments: state.segments,
+          lastBackedUpSpeakers: state.speakers,
+          lastBackedUpTags: state.tags,
+          lastBackedUpChapters: state.chapters,
+        });
+        // Suppress re-entrant call triggered by this setBackupState.
+        this.isHandlingStateChange = true;
+        state.setBackupState({ isDirty: true });
+        this.isHandlingStateChange = false;
+      }
     }
 
     // Mark global state dirty only when a user-facing global setting actually changed.
@@ -413,7 +427,11 @@ export class BackupScheduler {
     try {
       const accessible = await this.provider.verifyAccess();
       if (!accessible) {
-        state.setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
+        state.setBackupState({
+          status: "paused",
+          lastError: "Backup folder not accessible",
+          isSaving: false,
+        });
         return;
       }
 
