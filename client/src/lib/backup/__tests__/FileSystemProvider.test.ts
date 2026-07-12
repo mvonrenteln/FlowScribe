@@ -1,6 +1,13 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FileSystemProvider, isValidSnapshotPath } from "../providers/FileSystemProvider";
 import type { SnapshotEntry } from "../types";
+
+// Avoid touching real IndexedDB in jsdom; individual tests may override loadDirectoryHandle.
+vi.mock("../backupHandleStorage", () => ({
+  loadDirectoryHandle: vi.fn(async () => null),
+  saveDirectoryHandle: vi.fn(async () => undefined),
+  clearDirectoryHandle: vi.fn(async () => undefined),
+}));
 
 // ─── In-memory mock of the File System Access API ────────────────────────────
 
@@ -122,6 +129,47 @@ describe("FileSystemProvider", () => {
   beforeEach(() => {
     root = new MockDirectoryHandle("backup-root");
     provider = FileSystemProvider.fromHandle(root as unknown as FileSystemDirectoryHandle);
+  });
+
+  describe("requestAccess", () => {
+    type PermissionHandle = MockDirectoryHandle & {
+      requestPermission?: (desc: { mode: string }) => Promise<PermissionState>;
+    };
+    let picker: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+      picker = vi.fn();
+      (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker = picker;
+    });
+
+    afterEach(() => {
+      delete (window as Window & { showDirectoryPicker?: unknown }).showDirectoryPicker;
+    });
+
+    it("returns true when permission is granted, without opening a directory picker", async () => {
+      (root as PermissionHandle).requestPermission = vi.fn(async () => "granted" as const);
+
+      await expect(provider.requestAccess()).resolves.toBe(true);
+      expect(picker).not.toHaveBeenCalled();
+    });
+
+    it("returns false when permission is denied", async () => {
+      (root as PermissionHandle).requestPermission = vi.fn(async () => "denied" as const);
+
+      await expect(provider.requestAccess()).resolves.toBe(false);
+      expect(picker).not.toHaveBeenCalled();
+    });
+
+    it("returns true when requestPermission is unavailable on the handle", async () => {
+      await expect(provider.requestAccess()).resolves.toBe(true);
+    });
+
+    it("returns false when no handle exists", async () => {
+      const emptyProvider = new FileSystemProvider();
+
+      await expect(emptyProvider.requestAccess()).resolves.toBe(false);
+      expect(picker).not.toHaveBeenCalled();
+    });
   });
 
   describe("isValidSnapshotPath", () => {

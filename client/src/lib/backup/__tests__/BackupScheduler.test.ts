@@ -1377,6 +1377,128 @@ describe("BackupScheduler", () => {
     });
   });
 
+  describe("reauthorize and startup access check", () => {
+    it("prefers requestAccess over enable() when the handle grant succeeds", async () => {
+      const provider = {
+        ...makeMockProvider(),
+        requestAccess: vi.fn(async () => true),
+      };
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      const result = await scheduler.reauthorize();
+
+      expect(provider.requestAccess).toHaveBeenCalledTimes(1);
+      expect(provider.enable).not.toHaveBeenCalled();
+      expect(result.ok).toBe(true);
+      scheduler.stop();
+    });
+
+    it("resets status to enabled, clears lastError, and backs up dirty sessions on requestAccess success", async () => {
+      const provider = {
+        ...makeMockProvider(),
+        requestAccess: vi.fn(async () => true),
+      };
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      // Make the session dirty, then simulate a paused state (e.g. after browser restart).
+      store.setState({ segments: [{ id: "1" }, { id: "2" }] as unknown[] });
+      store.notify();
+      store.setState({
+        backupState: {
+          ...store.getState().backupState,
+          status: "paused",
+          lastError: "Backup folder not accessible",
+        },
+      });
+
+      const result = await scheduler.reauthorize();
+
+      expect(result.ok).toBe(true);
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const enabledCall = setStateCalls.find(
+        ([patch]) => patch.status === "enabled" && patch.lastError === null,
+      );
+      expect(enabledCall).toBeDefined();
+      // Dirty session must have been backed up immediately.
+      expect(provider.writeSnapshot).toHaveBeenCalled();
+      scheduler.stop();
+    });
+
+    it("falls back to enable() when requestAccess is not granted", async () => {
+      const provider = {
+        ...makeMockProvider(),
+        requestAccess: vi.fn(async () => false),
+      };
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      const result = await scheduler.reauthorize();
+
+      expect(provider.requestAccess).toHaveBeenCalledTimes(1);
+      expect(provider.enable).toHaveBeenCalledTimes(1);
+      expect(result.ok).toBe(true);
+      scheduler.stop();
+    });
+
+    it("skips requestAccess and opens the picker when forcePicker is set", async () => {
+      const provider = {
+        ...makeMockProvider(),
+        requestAccess: vi.fn(async () => true),
+      };
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await scheduler.reauthorize({ forcePicker: true });
+
+      expect(provider.requestAccess).not.toHaveBeenCalled();
+      expect(provider.enable).toHaveBeenCalledTimes(1);
+      scheduler.stop();
+    });
+
+    it("start() proactively pauses backup when access is denied", async () => {
+      const provider = makeMockProvider();
+      (provider.verifyAccess as ReturnType<typeof vi.fn>).mockResolvedValue(false);
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const pausedCall = setStateCalls.find(([patch]) => patch.status === "paused");
+      expect(pausedCall).toBeDefined();
+      expect(pausedCall?.[0].lastError).toBeTruthy();
+      scheduler.stop();
+    });
+
+    it("start() does not pause backup when access is granted", async () => {
+      const provider = makeMockProvider();
+      const store = makeStore({ enabled: true, backupIntervalMinutes: 5 });
+      const scheduler = new BackupScheduler(provider);
+      scheduler.start(store);
+
+      await Promise.resolve();
+      await Promise.resolve();
+      await Promise.resolve();
+
+      const setStateCalls = (store.getState().setBackupState as ReturnType<typeof vi.fn>).mock
+        .calls as Array<[Partial<BackupState>]>;
+      const pausedCall = setStateCalls.find(([patch]) => patch.status === "paused");
+      expect(pausedCall).toBeUndefined();
+      scheduler.stop();
+    });
+  });
+
   describe("Initial snapshot on enable transition", () => {
     beforeEach(() => {
       mockReadGlobalState.mockReturnValue({ lexiconEntries: [] });

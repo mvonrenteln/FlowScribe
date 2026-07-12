@@ -287,7 +287,11 @@
       "tooltipEnabledNever": "Backup aktiviert",
       "tooltipPaused": "Backup pausiert \u2013 Ordner nicht erreichbar",
       "tooltipError": "Backup-Fehler: {{error}}",
-      "tooltipDefault": "Backup"
+      "tooltipDefault": "Backup",
+      "pausedToastTitle": "Backup pausiert",
+      "pausedToastDescription": "Der Backup-Ordner muss erneut freigegeben werden. Klicke auf das Backup-Symbol, um die Verbindung wiederherzustellen.",
+      "reconnectedTitle": "Backup wieder verbunden",
+      "reconnectedDescription": "Automatische Backups werden im Backup-Ordner fortgesetzt."
     },
     "reminder": {
       "title": "Nicht gesichertes Backup",

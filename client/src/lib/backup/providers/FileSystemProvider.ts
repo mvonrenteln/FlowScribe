@@ -143,6 +143,26 @@ export class FileSystemProvider implements BackupProvider {
     }
   }
 
+  /**
+   * Re-request readwrite permission on the stored handle without opening a picker.
+   * After a browser restart the permission drops to "prompt" while the handle is
+   * still valid — this shows the browser's re-confirmation prompt only.
+   * Must be called from a user gesture. Returns false when no handle is stored
+   * or the user denies the prompt.
+   */
+  async requestAccess(): Promise<boolean> {
+    try {
+      const handle = await this.getHandle();
+      if (!handle) return false;
+      const typedHandle = handle as ExtendedDirHandle;
+      if (!typedHandle.requestPermission) return true;
+      const perm = await typedHandle.requestPermission({ mode: "readwrite" });
+      return perm === "granted";
+    } catch (_e) {
+      return false;
+    }
+  }
+
   async verifyAccess(): Promise<boolean> {
     try {
       const handle = await this.getHandle();

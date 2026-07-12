@@ -1,9 +1,10 @@
 import { AlertCircle, CheckCircle2, Clock, HardDrive, Loader2, PauseCircle } from "lucide-react";
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { toast } from "@/hooks/use-toast";
+import type { BackupScheduler } from "@/lib/backup/BackupScheduler";
 import { useTranscriptStore } from "@/lib/store";
 
 interface BackupStatusIndicatorProps {
@@ -31,21 +32,55 @@ export function BackupStatusIndicator({ onOpenSettings }: BackupStatusIndicatorP
     return () => window.removeEventListener("flowscribe:backup-reminder", handler);
   }, [t]);
 
+  // One-shot toast per pause episode: tells the user how to reconnect the folder
+  // (covers the proactive startup access check after a browser restart).
+  const pausedToastShownRef = useRef(false);
+  useEffect(() => {
+    if (backupConfig.enabled && backupState.status === "paused") {
+      if (!pausedToastShownRef.current) {
+        pausedToastShownRef.current = true;
+        toast({
+          title: t("backup.indicator.pausedToastTitle"),
+          description: t("backup.indicator.pausedToastDescription"),
+        });
+      }
+    } else {
+      pausedToastShownRef.current = false;
+    }
+  }, [backupConfig.enabled, backupState.status, t]);
+
   const handleClick = useCallback(() => {
+    const scheduler = (window as Window & { __backupScheduler?: BackupScheduler })
+      .__backupScheduler;
     if (backupConfig.providerType === "download") {
       // Trigger pending download if available
-      const scheduler = (
-        window as Window & {
-          __backupScheduler?: { triggerDownload: () => void; hasPendingDownload: () => boolean };
-        }
-      ).__backupScheduler;
       if (scheduler?.hasPendingDownload()) {
         scheduler.triggerDownload();
         return;
       }
     }
+    if (
+      backupState.status === "paused" &&
+      backupConfig.providerType === "filesystem" &&
+      scheduler
+    ) {
+      // Re-grant permission on the stored handle in place (browser permission
+      // prompt, no picker). Requires this click as user gesture.
+      void (async () => {
+        const result = await scheduler.reauthorize();
+        if (result.ok) {
+          toast({
+            title: t("backup.indicator.reconnectedTitle"),
+            description: t("backup.indicator.reconnectedDescription"),
+          });
+        } else {
+          onOpenSettings?.("backup");
+        }
+      })();
+      return;
+    }
     onOpenSettings?.("backup");
-  }, [backupConfig.providerType, onOpenSettings]);
+  }, [backupConfig.providerType, backupState.status, onOpenSettings, t]);
 
   if (!backupConfig.enabled) return null;
 
