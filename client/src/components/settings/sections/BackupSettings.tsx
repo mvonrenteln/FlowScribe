@@ -84,7 +84,9 @@ export function BackupSettings() {
         .__backupScheduler;
 
       if (scheduler) {
-        const result = await scheduler.reauthorize();
+        // Choose/Change folder must always show the directory picker, never the
+        // in-place permission re-grant on the previously stored handle.
+        const result = await scheduler.reauthorize({ forcePicker: true });
         if (result.ok) {
           if (!isMountedRef.current) return;
           setBackupConfig({

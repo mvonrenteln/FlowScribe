@@ -222,6 +222,30 @@ export class BackupScheduler {
       }
     };
     window.addEventListener("beforeunload", this.beforeUnloadHandler);
+
+    // Proactive access check: after a browser restart the directory permission
+    // drops to "prompt", so the first scheduled backup would otherwise silently
+    // pause minutes later. Detect it immediately so the UI can offer reconnection.
+    void this.runStartupAccessCheck();
+  }
+
+  /**
+   * Pauses the backup with a descriptive error when the provider reports no
+   * access at startup (e.g. permission reset to "prompt" after browser restart).
+   * Fire-and-forget; never throws.
+   */
+  private async runStartupAccessCheck(): Promise<void> {
+    try {
+      const state = this.store?.getState();
+      if (!state?.backupConfig.enabled) return;
+      const accessible = await this.provider.verifyAccess();
+      if (accessible) return;
+      this.store
+        ?.getState()
+        .setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
+    } catch (_e) {
+      // Never let the startup check break scheduler initialization.
+    }
   }
 
   stop(): void {
@@ -244,7 +268,17 @@ export class BackupScheduler {
   }
 
   /**
-   * Re-authorizes the backup provider by delegating to the provider's `enable()` method.
+   * Re-authorizes the backup provider.
+   *
+   * Prefers `provider.requestAccess()` on the already stored handle (a browser
+   * permission prompt, no directory picker) — this is the common case after a
+   * browser restart, when the permission dropped to "prompt" but the handle is
+   * still valid. Falls back to `provider.enable()` (directory picker) when no
+   * handle exists or the re-grant fails. Pass `forcePicker: true` to always open
+   * the picker (e.g. the "Change folder" action in settings).
+   *
+   * On a successful in-place re-grant, resumes the backup (status "enabled",
+   * error cleared) and immediately backs up any dirty state.
    *
    * This must be called instead of instantiating a new provider, because
    * `FileSystemProvider.getHandle()` caches the directory handle on the instance.
@@ -252,7 +286,20 @@ export class BackupScheduler {
    * IndexedDB, but the scheduler's instance still returns its cached (revoked) handle
    * on subsequent `backupNow()` calls. Using this method updates the handle in place.
    */
-  async reauthorize(): Promise<{ ok: true; locationLabel: string } | { ok: false; error: string }> {
+  async reauthorize(options?: {
+    forcePicker?: boolean;
+  }): Promise<{ ok: true; locationLabel: string } | { ok: false; error: string }> {
+    if (!options?.forcePicker && typeof this.provider.requestAccess === "function") {
+      const granted = await this.provider.requestAccess();
+      if (granted) {
+        const state = this.store?.getState();
+        state?.setBackupState({ status: "enabled", lastError: null });
+        if (this.hasDirty()) {
+          await this.backupNow("scheduled");
+        }
+        return { ok: true, locationLabel: state?.backupConfig.locationLabel ?? "" };
+      }
+    }
     return this.provider.enable();
   }
 
@@ -290,31 +337,45 @@ export class BackupScheduler {
     const sessionKey = state.sessionKey;
     const existing = this.dirtySessions.get(sessionKey);
 
-    // Detect real session content changes via reference equality on Zustand's immutable arrays.
-    // Any mutation (segment text edit, speaker rename, tag/chapter change) produces a new
-    // array reference, so this comparison catches all user-facing edits — not just count changes.
-    const sessionContentChanged =
-      !existing ||
-      existing.lastBackedUpSegments !== state.segments ||
-      existing.lastBackedUpSpeakers !== state.speakers ||
-      existing.lastBackedUpTags !== state.tags ||
-      existing.lastBackedUpChapters !== state.chapters;
-    if (sessionContentChanged) {
-      // Record when the user last made a real content change.
-      // The hard interval uses this to decide whether to defer.
-      this.lastContentChangeAt = Date.now();
+    if (!existing) {
+      // First time this session is seen (e.g. just switched to / loaded it). Seed the
+      // baseline without marking it dirty — no user edit has happened yet. A real edit
+      // is caught on the next notification via reference inequality below.
       this.dirtySessions.set(sessionKey, {
-        isDirty: true,
-        dirtyAt: existing?.dirtyAt ?? Date.now(),
+        isDirty: false,
+        dirtyAt: Date.now(),
         lastBackedUpSegments: state.segments,
         lastBackedUpSpeakers: state.speakers,
         lastBackedUpTags: state.tags,
         lastBackedUpChapters: state.chapters,
       });
-      // Suppress re-entrant call triggered by this setBackupState.
-      this.isHandlingStateChange = true;
-      state.setBackupState({ isDirty: true });
-      this.isHandlingStateChange = false;
+    } else {
+      // Detect real session content changes via reference equality on Zustand's immutable
+      // arrays. Any mutation (segment text edit, speaker rename, tag/chapter change) produces
+      // a new array reference, so this comparison catches all user-facing edits — not just
+      // count changes.
+      const sessionContentChanged =
+        existing.lastBackedUpSegments !== state.segments ||
+        existing.lastBackedUpSpeakers !== state.speakers ||
+        existing.lastBackedUpTags !== state.tags ||
+        existing.lastBackedUpChapters !== state.chapters;
+      if (sessionContentChanged) {
+        // Record when the user last made a real content change.
+        // The hard interval uses this to decide whether to defer.
+        this.lastContentChangeAt = Date.now();
+        this.dirtySessions.set(sessionKey, {
+          isDirty: true,
+          dirtyAt: existing.dirtyAt,
+          lastBackedUpSegments: state.segments,
+          lastBackedUpSpeakers: state.speakers,
+          lastBackedUpTags: state.tags,
+          lastBackedUpChapters: state.chapters,
+        });
+        // Suppress re-entrant call triggered by this setBackupState.
+        this.isHandlingStateChange = true;
+        state.setBackupState({ isDirty: true });
+        this.isHandlingStateChange = false;
+      }
     }
 
     // Mark global state dirty only when a user-facing global setting actually changed.
@@ -413,7 +474,11 @@ export class BackupScheduler {
     try {
       const accessible = await this.provider.verifyAccess();
       if (!accessible) {
-        state.setBackupState({ status: "paused", lastError: "Backup folder not accessible" });
+        state.setBackupState({
+          status: "paused",
+          lastError: "Backup folder not accessible",
+          isSaving: false,
+        });
         return;
       }
 

@@ -340,7 +340,11 @@
       "tooltipEnabledNever": "Backup enabled",
       "tooltipPaused": "Backup paused \u2013 folder not accessible",
       "tooltipError": "Backup error: {{error}}",
-      "tooltipDefault": "Backup"
+      "tooltipDefault": "Backup",
+      "pausedToastTitle": "Backup paused",
+      "pausedToastDescription": "The backup folder needs to be re-authorized. Click the backup icon to reconnect.",
+      "reconnectedTitle": "Backup reconnected",
+      "reconnectedDescription": "Automatic backups will continue in your backup folder."
     },
     "reminder": {
       "title": "Unsaved backup",
