@@ -34,6 +34,13 @@ import {
 import { Separator } from "@/components/ui/separator";
 import { Switch } from "@/components/ui/switch";
 import { createProvider, createProviderConfig, validateProviderConfig } from "@/lib/ai/providers";
+import {
+  addManualProviderModel,
+  applyProviderTypeChange,
+  EMPTY_PROVIDER_FORM,
+  type ProviderFormData,
+  removeProviderModel,
+} from "@/lib/ai/providers/providerForm";
 import type { AIProviderConfig, AIProviderType } from "@/lib/ai/providers/types";
 import {
   AI_CONCURRENCY_LIMITS,
@@ -56,26 +63,6 @@ import { cn } from "@/lib/utils";
 
 // ==================== Provider Form Component ====================
 
-interface ProviderFormData {
-  type: AIProviderType;
-  name: string;
-  baseUrl: string;
-  apiKey: string;
-  model: string;
-  availableModels: string[];
-  isDefault: boolean;
-}
-
-const EMPTY_FORM: ProviderFormData = {
-  type: "ollama",
-  name: "",
-  baseUrl: "http://localhost:11434",
-  apiKey: "",
-  model: "",
-  availableModels: [],
-  isDefault: false,
-};
-
 const PROVIDER_TYPE_OPTIONS: { value: AIProviderType; label: string }[] = [
   { value: "ollama", label: "Ollama (Local)" },
   { value: "openai", label: "OpenAI API" },
@@ -91,7 +78,7 @@ interface ProviderFormProps {
 
 function ProviderForm({ initialData, onSave, onCancel, isEditing }: ProviderFormProps) {
   const [form, setForm] = useState<ProviderFormData>({
-    ...EMPTY_FORM,
+    ...EMPTY_PROVIDER_FORM,
     ...initialData,
   });
   const [errors, setErrors] = useState<string[]>([]);
@@ -130,40 +117,20 @@ function ProviderForm({ initialData, onSave, onCancel, isEditing }: ProviderForm
 
   // Add a model manually
   const handleAddManualModel = () => {
-    const trimmed = manualModelInput.trim();
-    if (trimmed && !form.availableModels.includes(trimmed)) {
-      setForm((prev) => ({
-        ...prev,
-        availableModels: [...prev.availableModels, trimmed],
-        model: prev.model || trimmed,
-      }));
+    const nextForm = addManualProviderModel(form, manualModelInput);
+    if (nextForm !== form) {
+      setForm(nextForm);
       setManualModelInput("");
     }
   };
 
   // Remove a model from the list
   const handleRemoveModel = (modelToRemove: string) => {
-    setForm((prev) => ({
-      ...prev,
-      availableModels: prev.availableModels.filter((m) => m !== modelToRemove),
-      model: prev.model === modelToRemove ? prev.availableModels[0] || "" : prev.model,
-    }));
+    setForm((prev) => removeProviderModel(prev, modelToRemove));
   };
 
   const handleTypeChange = (type: AIProviderType) => {
-    const baseUrl =
-      type === "ollama"
-        ? "http://localhost:11434"
-        : type === "openai"
-          ? "https://api.openai.com/v1"
-          : form.baseUrl;
-
-    setForm((prev) => ({
-      ...prev,
-      type,
-      baseUrl,
-      apiKey: type === "ollama" ? "" : prev.apiKey,
-    }));
+    setForm((prev) => applyProviderTypeChange(prev, type));
   };
 
   const handleSubmit = (e: React.FormEvent) => {
