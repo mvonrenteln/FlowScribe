@@ -17,12 +17,19 @@ import {
   splitRewrittenParagraphs,
 } from "@/lib/rewriteParagraphs";
 import type { AIChapterDetectionConfig, AIPrompt, TranscriptStore } from "../types";
+import {
+  buildSegmentIndexMap,
+  getDynamicChapterRangeIndices,
+  sortChaptersByStart,
+} from "../utils/chapters";
 
 type StoreSetter = StoreApi<TranscriptStore>["setState"];
 type StoreGetter = StoreApi<TranscriptStore>["getState"];
 
 const logger = createLogger({ feature: "RewriteSlice", namespace: "Store" });
 const t = getI18nInstance().t.bind(getI18nInstance());
+
+const isAbortError = (error: unknown) => error instanceof Error && error.name === "AbortError";
 
 // ==================== Types ====================
 
@@ -48,6 +55,24 @@ export interface RewriteDraft {
   model?: string;
 }
 
+export type RewriteBatchItemStatus =
+  | "pending"
+  | "processing"
+  | "done"
+  | "failed"
+  | "skipped"
+  | "cancelled";
+
+export interface RewriteBatchLogEntry {
+  chapterId: string;
+  chapterTitle: string;
+  status: RewriteBatchItemStatus;
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
+  promptId?: string;
+}
+
 export interface RewriteSlice {
   // Processing state
   rewriteInProgress: boolean;
@@ -60,6 +85,13 @@ export interface RewriteSlice {
   paragraphRewriteError: string | null;
   paragraphRewriteAbortController: AbortController | null;
   rewriteDraftByChapterId: Record<string, RewriteDraft | undefined>;
+  batchRewriteIsProcessing: boolean;
+  batchRewriteIsCancelling: boolean;
+  batchRewriteProcessedCount: number;
+  batchRewriteTotalCount: number;
+  batchRewriteError: string | null;
+  batchRewriteAbortController: AbortController | null;
+  batchRewriteLog: RewriteBatchLogEntry[];
 
   // Actions - Configuration
   updateRewriteConfig: (updates: Partial<RewriteConfig>) => void;
@@ -85,6 +117,14 @@ export interface RewriteSlice {
   cancelParagraphRewrite: () => void;
   setRewriteDraft: (chapterId: string, draft: RewriteDraft) => void;
   clearRewriteDraft: (chapterId: string) => void;
+  startBatchRewrite: (options: {
+    promptId: string;
+    customInstructions?: string;
+    skipAlreadyRewritten?: boolean;
+  }) => Promise<void>;
+  cancelBatchRewrite: () => void;
+  acceptAllBatchRewrites: () => void;
+  rejectAllBatchRewrites: () => void;
 }
 
 // ==================== Initial State ====================
@@ -100,6 +140,13 @@ export const initialRewriteState = {
   paragraphRewriteError: null,
   paragraphRewriteAbortController: null,
   rewriteDraftByChapterId: {},
+  batchRewriteIsProcessing: false,
+  batchRewriteIsCancelling: false,
+  batchRewriteProcessedCount: 0,
+  batchRewriteTotalCount: 0,
+  batchRewriteError: null,
+  batchRewriteAbortController: null,
+  batchRewriteLog: [] as RewriteBatchLogEntry[],
 };
 
 // ==================== Slice Creator ====================
@@ -274,6 +321,220 @@ export const createRewriteSlice = (set: StoreSetter, get: StoreGetter): RewriteS
         rewriteDraftByChapterId: rest,
       };
     });
+  },
+
+  startBatchRewrite: async ({ promptId, customInstructions, skipAlreadyRewritten }) => {
+    get().batchRewriteAbortController?.abort();
+
+    const state = get();
+    const prompt = state.aiChapterDetectionConfig.prompts.find((item) => item.id === promptId);
+    if (!prompt || !prompt.systemPrompt?.trim() || !prompt.userPromptTemplate?.trim()) {
+      set({ batchRewriteError: t("aiBatch.errors.promptNotFound", { id: promptId }) });
+      return;
+    }
+
+    const indexMap = buildSegmentIndexMap(state.segments);
+    const sortedChapters = sortChaptersByStart(state.chapters, indexMap);
+    const chaptersToProcess = skipAlreadyRewritten
+      ? sortedChapters.filter(
+          (chapter) => !chapter.rewrittenText && !state.rewriteDraftByChapterId[chapter.id],
+        )
+      : sortedChapters;
+
+    if (chaptersToProcess.length === 0) {
+      set({ batchRewriteError: t("rewriteBatch.errors.noChapters") });
+      return;
+    }
+
+    const abortController = new AbortController();
+    set({
+      batchRewriteIsProcessing: true,
+      batchRewriteIsCancelling: false,
+      batchRewriteProcessedCount: 0,
+      batchRewriteTotalCount: chaptersToProcess.length,
+      batchRewriteError: null,
+      batchRewriteAbortController: abortController,
+      batchRewriteLog: [],
+    });
+
+    const replaceLogEntry = (entry: RewriteBatchLogEntry) => {
+      set((current) => ({
+        batchRewriteLog: current.batchRewriteLog.map((item) =>
+          item.chapterId === entry.chapterId && item.status === "processing" ? entry : item,
+        ),
+      }));
+    };
+
+    const cancelFrom = (currentChapterIndex: number, currentStartedAt?: number) => {
+      if (get().batchRewriteAbortController !== abortController) return;
+      const currentChapter = chaptersToProcess[currentChapterIndex];
+      if (currentChapter && currentStartedAt !== undefined) {
+        replaceLogEntry({
+          chapterId: currentChapter.id,
+          chapterTitle: currentChapter.title,
+          status: "cancelled",
+          loggedAt: Date.now(),
+          durationMs: Date.now() - currentStartedAt,
+          promptId,
+        });
+      }
+      set((current) => ({
+        batchRewriteLog: [
+          ...current.batchRewriteLog,
+          ...chaptersToProcess.slice(currentChapterIndex + 1).map((item) => ({
+            chapterId: item.id,
+            chapterTitle: item.title,
+            status: "cancelled" as const,
+            loggedAt: Date.now(),
+            promptId,
+          })),
+        ],
+        batchRewriteIsProcessing: false,
+        batchRewriteIsCancelling: false,
+        batchRewriteAbortController: null,
+      }));
+    };
+
+    for (let index = 0; index < chaptersToProcess.length; index += 1) {
+      const chapter = chaptersToProcess[index];
+      if (abortController.signal.aborted) {
+        cancelFrom(index - 1);
+        return;
+      }
+
+      const startedAt = Date.now();
+      set((current) => ({
+        batchRewriteLog: [
+          ...current.batchRewriteLog,
+          {
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            status: "processing",
+            loggedAt: startedAt,
+            promptId,
+          },
+        ],
+      }));
+
+      try {
+        const range = getDynamicChapterRangeIndices(
+          chapter.id,
+          state.chapters,
+          indexMap,
+          state.segments.length,
+        );
+        const chapterSegments = range
+          ? state.segments.slice(range.startIndex, range.endIndex + 1)
+          : [];
+        if (chapterSegments.length === 0) {
+          replaceLogEntry({
+            chapterId: chapter.id,
+            chapterTitle: chapter.title,
+            status: "skipped",
+            loggedAt: Date.now(),
+            durationMs: Date.now() - startedAt,
+            promptId,
+          });
+          set((current) => ({
+            batchRewriteProcessedCount: current.batchRewriteProcessedCount + 1,
+          }));
+          continue;
+        }
+
+        const currentDrafts = get().rewriteDraftByChapterId;
+        const allChaptersWithDrafts = sortedChapters.map((item) => {
+          const draft = currentDrafts[item.id];
+          return draft?.text ? { ...item, rewrittenText: draft.text } : item;
+        });
+
+        const result = await rewriteChapter({
+          chapter,
+          segments: chapterSegments,
+          allChapters: allChaptersWithDrafts,
+          prompt,
+          providerId: get().aiChapterDetectionConfig.selectedProviderId,
+          model: get().aiChapterDetectionConfig.selectedModel,
+          signal: abortController.signal,
+          includeContext: get().aiChapterDetectionConfig.includeContext,
+          contextWordLimit: get().aiChapterDetectionConfig.contextWordLimit,
+          customInstructions,
+        });
+
+        if (abortController.signal.aborted) {
+          cancelFrom(index, startedAt);
+          return;
+        }
+
+        get().setRewriteDraft(chapter.id, {
+          text: result.rewrittenText,
+          promptId,
+          providerId: get().aiChapterDetectionConfig.selectedProviderId,
+          model: get().aiChapterDetectionConfig.selectedModel,
+        });
+
+        replaceLogEntry({
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          status: "done",
+          loggedAt: Date.now(),
+          durationMs: Date.now() - startedAt,
+          promptId,
+        });
+        set((current) => ({ batchRewriteProcessedCount: current.batchRewriteProcessedCount + 1 }));
+      } catch (error) {
+        if (abortController.signal.aborted || isAbortError(error)) {
+          cancelFrom(index, startedAt);
+          return;
+        }
+
+        replaceLogEntry({
+          chapterId: chapter.id,
+          chapterTitle: chapter.title,
+          status: "failed",
+          loggedAt: Date.now(),
+          durationMs: Date.now() - startedAt,
+          error: error instanceof Error ? error.message : String(error),
+          promptId,
+        });
+        set((current) => ({ batchRewriteProcessedCount: current.batchRewriteProcessedCount + 1 }));
+      }
+    }
+
+    set({
+      ...(get().batchRewriteAbortController === abortController
+        ? {
+            batchRewriteIsProcessing: false,
+            batchRewriteIsCancelling: false,
+            batchRewriteAbortController: null,
+            batchRewriteError: null,
+          }
+        : {}),
+    });
+  },
+
+  cancelBatchRewrite: () => {
+    get().batchRewriteAbortController?.abort();
+    set({ batchRewriteIsCancelling: true });
+  },
+
+  acceptAllBatchRewrites: () => {
+    const state = get();
+    for (const [chapterId, draft] of Object.entries(state.rewriteDraftByChapterId)) {
+      if (!draft) continue;
+      state.setChapterRewrite(chapterId, draft.text, {
+        promptId: draft.promptId,
+        providerId: draft.providerId,
+        model: draft.model,
+      });
+      state.clearRewriteDraft(chapterId);
+      state.setChapterDisplayMode(chapterId, "rewritten");
+    }
+  },
+
+  rejectAllBatchRewrites: () => {
+    for (const chapterId of Object.keys(get().rewriteDraftByChapterId)) {
+      get().clearRewriteDraft(chapterId);
+    }
   },
 
   startParagraphRewrite: async (chapterId, paragraphIndex, promptId, customInstructions) => {

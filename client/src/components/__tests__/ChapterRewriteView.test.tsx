@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { I18nProvider } from "@/components/i18n/I18nProvider";
 import { ChapterRewriteView } from "@/components/rewrite/ChapterRewriteView";
 import { useTranscriptStore } from "@/lib/store";
@@ -211,5 +211,49 @@ describe("ChapterRewriteView", () => {
     await user.click(refineButton);
 
     expect(screen.getByText("Refine Paragraph")).toBeInTheDocument();
+  });
+
+  it("rejects the pending draft when closed by default", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    useTranscriptStore.setState({
+      rewriteDraftByChapterId: {
+        "chapter-1": { text: "Pending draft", promptId: "prompt-1" },
+      },
+    });
+
+    render(
+      <I18nProvider>
+        <ChapterRewriteView chapterId="chapter-1" onClose={onClose} />
+      </I18nProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(useTranscriptStore.getState().rewriteDraftByChapterId["chapter-1"]).toBeUndefined();
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it("keeps the pending draft when batch review closes", async () => {
+    const user = userEvent.setup();
+    const onClose = vi.fn();
+    useTranscriptStore.setState({
+      rewriteDraftByChapterId: {
+        "chapter-1": { text: "Pending draft", promptId: "prompt-1" },
+      },
+    });
+
+    render(
+      <I18nProvider>
+        <ChapterRewriteView chapterId="chapter-1" onClose={onClose} preserveDraftOnClose />
+      </I18nProvider>,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Close" }));
+
+    expect(useTranscriptStore.getState().rewriteDraftByChapterId["chapter-1"]?.text).toBe(
+      "Pending draft",
+    );
+    expect(onClose).toHaveBeenCalled();
   });
 });

@@ -27,6 +27,7 @@
   "rewrite": {
     "view": {
       "title": "Rewrite Chapter",
+      "close": "Schließen",
       "originalLabel": "Original ({{count}} segments)",
       "rewrittenLabel": "Überarbeitet",
       "processing": "Reformulating chapter...",
@@ -59,6 +60,51 @@
     "paragraph": {
       "errorTitle": "Abschnitt konnte nicht neu formuliert werden"
     }
+  },
+  "aiCommandPanel": {
+    "title": "KI-Befehlsbereich",
+    "close": "KI-Befehlsbereich schließen",
+    "tabs": {
+      "revision": "Revision",
+      "speaker": "Sprecher",
+      "merge": "Merge",
+      "chapters": "Kapitel"
+    }
+  },
+  "rewriteBatch": {
+    "tabLabel": "Rewrite",
+    "scopeTitle": "Bereich",
+    "chaptersCount": "{{count}} Kapitel",
+    "chaptersCount_plural": "{{count}} Kapitel",
+    "chaptersCount_one": "{{count}} Kapitel",
+    "chaptersCount_other": "{{count}} Kapitel",
+    "skipAlreadyRewritten": "Bereits umgeschriebene Kapitel überspringen",
+    "skipAlreadyRewrittenHelp": "Kapitel überspringen, die bereits einen angenommenen oder ausstehenden Rewrite haben",
+    "customInstructions": {
+      "label": "Zusätzliche Anweisungen (optional)",
+      "placeholder": "Zusätzliche Hinweise für alle Kapitel im Prompt"
+    },
+    "batchLogTitle": "Rewrite-Log",
+    "batchLogDescription": "Status des Batch-Rewrites pro Kapitel.",
+    "batchLogTriggerLabel": "Rewrite-Log",
+    "units": {
+      "chapters": "Kapitel"
+    },
+    "status": {
+      "pending": "Ausstehend",
+      "processing": "Wird verarbeitet",
+      "done": "Fertig",
+      "failed": "Fehlgeschlagen",
+      "skipped": "Übersprungen",
+      "cancelled": "Abgebrochen"
+    },
+    "results": {
+      "draftsTitle": "Entwürfe ({{count}} ausstehend)"
+    },
+    "errors": {
+      "noChapters": "Keine Kapitel zum Umschreiben vorhanden"
+    },
+    "noChaptersInTranscript": "Kein Kapitel im Transkript vorhanden. Bitte zuerst Kapitel hinzufügen."
   },
   "import": {
     "transcriptFormatError": "Ungültiges Transkript-Format",

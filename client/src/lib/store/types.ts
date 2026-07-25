@@ -240,6 +240,13 @@ export interface InitialStoreState {
   paragraphRewriteError: string | null;
   paragraphRewriteAbortController: AbortController | null;
   rewriteDraftByChapterId: Record<string, import("./slices/rewriteSlice").RewriteDraft | undefined>;
+  batchRewriteIsProcessing: boolean;
+  batchRewriteIsCancelling: boolean;
+  batchRewriteProcessedCount: number;
+  batchRewriteTotalCount: number;
+  batchRewriteError: string | null;
+  batchRewriteAbortController: AbortController | null;
+  batchRewriteLog: import("./slices/rewriteSlice").RewriteBatchLogEntry[];
   // Backup
   backupConfig: BackupConfig;
   backupState: BackupState;

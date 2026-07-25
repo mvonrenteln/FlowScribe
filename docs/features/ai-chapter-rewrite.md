@@ -84,6 +84,20 @@ Configure context settings in **Settings → AI Prompts → Chapters**.
 
 ---
 
+## Batch Rewrite
+
+The Batch Rewrite feature processes all chapters sequentially from top to bottom and creates a pending rewrite draft for each chapter.
+
+Open the AI Command Panel and select the Rewrite tab. Choose provider, model, prompt, optional additional instructions, and whether already rewritten chapters should be skipped.
+
+Processing is intentionally sequential. Each chapter can use the previous chapter's rewritten text as context. If the previous chapter only has a pending draft, that draft is used as context.
+
+Click any item in the Drafts list to open the standard side-by-side review. Accept or reject individually, or use Accept All / Reject All for bulk handling.
+
+Failed chapters can be retried by opening the item and using Regenerate in the review view.
+
+---
+
 ## Editing Rewritten Text
 
 ### In the Review View (Before Accepting)
@@ -261,7 +275,6 @@ Create your own rewrite styles in **Settings → AI Prompts → Chapters**:
 
 ## Coming Soon
 
-- **Batch rewrite**: Process all chapters at once with progress tracking
 - **Style templates**: Import/export custom prompt libraries
 - **Diff view**: Highlight what changed between original and rewritten
 - **Version history**: Keep multiple rewrite versions per chapter

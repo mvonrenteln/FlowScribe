@@ -20,6 +20,8 @@ interface ChapterRewriteViewProps {
   chapterId: string;
   /** Called when user closes the view */
   onClose: () => void;
+  /** Keep pending drafts when closing from batch review. */
+  preserveDraftOnClose?: boolean;
   /** Optional trigger element to return focus to when closing */
   triggerElement?: HTMLElement | null;
 }
@@ -27,6 +29,7 @@ interface ChapterRewriteViewProps {
 export function ChapterRewriteView({
   chapterId,
   onClose,
+  preserveDraftOnClose = false,
   triggerElement,
 }: ChapterRewriteViewProps) {
   const { t } = useTranslation();
@@ -179,6 +182,14 @@ export function ChapterRewriteView({
     onClose();
   }, [chapterId, clearRewriteDraft, cancelRewrite, onClose]);
 
+  const handleClose = useCallback(() => {
+    if (preserveDraftOnClose) {
+      onClose();
+      return;
+    }
+    handleReject();
+  }, [handleReject, onClose, preserveDraftOnClose]);
+
   // Escape key handler (must be after handleReject definition)
   useEffect(() => {
     if (!isMounted) return;
@@ -186,12 +197,12 @@ export function ChapterRewriteView({
     const handleEscape = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
       if (paragraphDialogOpen) return;
-      handleReject();
+      handleClose();
     };
 
     document.addEventListener("keydown", handleEscape);
     return () => document.removeEventListener("keydown", handleEscape);
-  }, [isMounted, handleReject, paragraphDialogOpen]);
+  }, [handleClose, isMounted, paragraphDialogOpen]);
 
   const handleRegenerate = useCallback(() => {
     if (!promptId) return;
@@ -224,7 +235,7 @@ export function ChapterRewriteView({
             {t("rewrite.view.title")}
           </h2>
           <span id="rewrite-view-description" className="text-sm text-muted-foreground">
-            — {chapter.title}
+            {chapter.title}
           </span>
         </div>
 
@@ -232,8 +243,8 @@ export function ChapterRewriteView({
           ref={closeButtonRef}
           variant="ghost"
           size="icon"
-          onClick={handleReject}
-          aria-label={t("rewrite.view.close", { defaultValue: "Schließen" })}
+          onClick={handleClose}
+          aria-label={t("rewrite.view.close")}
         >
           <X className="h-4 w-4" />
         </Button>

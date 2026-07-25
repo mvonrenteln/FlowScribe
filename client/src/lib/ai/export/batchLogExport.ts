@@ -1,11 +1,13 @@
 import type { BatchLogRow } from "@/components/shared/BatchLog/BatchLog";
+import type { RewriteBatchLogEntry } from "@/lib/store/slices/rewriteSlice";
 import type { AIRevisionBatchLogEntry } from "@/lib/store/types";
 
 export type BatchLogExportFeatureType =
   | "speaker-classification"
   | "segment-merge"
   | "chapter-detection"
-  | "revision";
+  | "revision"
+  | "chapter-rewrite";
 
 export interface BatchLogExportRow {
   id: string;
@@ -34,6 +36,16 @@ export interface RevisionLogExportRow {
   errorCode?: string;
   requestPayload: undefined;
   responsePayload?: string;
+}
+
+export interface RewriteBatchLogExportRow {
+  chapterId: string;
+  chapterTitle: string;
+  status: string;
+  loggedAt: number;
+  durationMs?: number;
+  error?: string;
+  promptId?: string;
 }
 
 export interface BatchLogExport<TRow> {
@@ -75,6 +87,20 @@ export function mapRevisionLogEntryToExport(entry: AIRevisionBatchLogEntry): Rev
   };
 }
 
+export function mapRewriteBatchLogEntryToExport(
+  entry: RewriteBatchLogEntry,
+): RewriteBatchLogExportRow {
+  return {
+    chapterId: entry.chapterId,
+    chapterTitle: entry.chapterTitle,
+    status: entry.status,
+    loggedAt: entry.loggedAt,
+    durationMs: entry.durationMs,
+    error: entry.error,
+    promptId: entry.promptId,
+  };
+}
+
 export function buildBatchLogExport<TRow>(
   featureType: BatchLogExportFeatureType,
   rows: TRow[],
@@ -111,5 +137,10 @@ export function exportBatchLog(
 
 export function exportRevisionBatchLog(rows: AIRevisionBatchLogEntry[], filename: string): void {
   const payload = buildBatchLogExport("revision", rows.map(mapRevisionLogEntryToExport));
+  downloadAsJson(payload, filename);
+}
+
+export function exportRewriteBatchLog(rows: RewriteBatchLogEntry[], filename: string): void {
+  const payload = buildBatchLogExport("chapter-rewrite", rows.map(mapRewriteBatchLogEntryToExport));
   downloadAsJson(payload, filename);
 }

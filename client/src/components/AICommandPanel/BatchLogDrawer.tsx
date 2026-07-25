@@ -22,6 +22,7 @@ interface BatchLogDrawerProps {
   title?: string;
   description?: string;
   triggerLabel?: string;
+  onExport?: () => void;
 }
 
 export function BatchLogDrawer({
@@ -33,6 +34,7 @@ export function BatchLogDrawer({
   title,
   description,
   triggerLabel,
+  onExport,
 }: BatchLogDrawerProps) {
   const { t } = useTranslation();
   const logDrawerRef = useRef<HTMLDivElement>(null);
@@ -42,9 +44,13 @@ export function BatchLogDrawer({
   const resolvedTriggerLabel = triggerLabel ?? t("aiBatch.batchLog.title");
 
   const handleExport = useCallback(() => {
+    if (onExport) {
+      onExport();
+      return;
+    }
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
     exportBatchLog(featureType, rows, `batch-log-${featureType}-${timestamp}`);
-  }, [featureType, rows]);
+  }, [featureType, onExport, rows]);
 
   return (
     <Drawer open={open} onOpenChange={onOpenChange}>

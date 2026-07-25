@@ -65,6 +65,12 @@ Technical architecture for text revision feature including:
 - UI components and accessibility
 - State management and testing
 
+### Batch Chapter Rewrite
+
+📄 [`batch-rewrite-chapter.md`](./batch-rewrite-chapter.md)
+
+Implementation blueprint for the Rewrite tab in the AI Command Panel, including sequential processing, draft-as-context behavior, cancellation, logging, and UI integration.
+
 ---
 
 ## Core Architecture

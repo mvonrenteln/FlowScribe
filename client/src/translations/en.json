@@ -80,6 +80,7 @@
   "rewrite": {
     "view": {
       "title": "Rewrite Chapter",
+      "close": "Close",
       "originalLabel": "Original ({{count}} segments)",
       "rewrittenLabel": "Rewritten",
       "processing": "Reformulating chapter...",
@@ -112,6 +113,51 @@
     "paragraph": {
       "errorTitle": "Paragraph rewrite failed"
     }
+  },
+  "aiCommandPanel": {
+    "title": "AI Command Panel",
+    "close": "Close AI command panel",
+    "tabs": {
+      "revision": "Revision",
+      "speaker": "Speaker",
+      "merge": "Merge",
+      "chapters": "Chapters"
+    }
+  },
+  "rewriteBatch": {
+    "tabLabel": "Rewrite",
+    "scopeTitle": "Scope",
+    "chaptersCount": "{{count}} chapter",
+    "chaptersCount_plural": "{{count}} chapters",
+    "chaptersCount_one": "{{count}} chapter",
+    "chaptersCount_other": "{{count}} chapters",
+    "skipAlreadyRewritten": "Skip already rewritten chapters",
+    "skipAlreadyRewrittenHelp": "Skip chapters that already have an accepted or pending rewrite",
+    "customInstructions": {
+      "label": "Additional instructions (optional)",
+      "placeholder": "Additional notes to include in the prompt for all chapters"
+    },
+    "batchLogTitle": "Rewrite Log",
+    "batchLogDescription": "Per-chapter batch rewrite status.",
+    "batchLogTriggerLabel": "Rewrite Log",
+    "units": {
+      "chapters": "chapters"
+    },
+    "status": {
+      "pending": "Pending",
+      "processing": "Processing",
+      "done": "Done",
+      "failed": "Failed",
+      "skipped": "Skipped",
+      "cancelled": "Cancelled"
+    },
+    "results": {
+      "draftsTitle": "Drafts ({{count}} pending)"
+    },
+    "errors": {
+      "noChapters": "No chapters to rewrite"
+    },
+    "noChaptersInTranscript": "No chapters in transcript. Add chapters first."
   },
   "import": {
     "transcriptFormatError": "Invalid transcript format",
