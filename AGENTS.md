@@ -150,6 +150,11 @@ Transcript rendering is performance-sensitive on long files.
 - Design in `docs/design.md`
 - All developer documentation is referenced in `docs/features/architecture/README.md`.
 
+
+### Tooling & Workflow
+
+- Use small, local patches instead of large-scale rewrites. The `write` tool can freeze when processing very large changes.
+
 ## Architecture guardrails (short)
 
 - Avoid broad refactors. Prefer minimal, test-backed changes.
