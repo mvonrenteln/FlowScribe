@@ -22,6 +22,7 @@ import type { ChatMessage } from "../providers/types";
 import { runConcurrentOrdered } from "./batch";
 import {
   AICancellationError,
+  AIConfigurationError,
   AIParseError,
   isCancellationError,
   isRetryableAIError,
@@ -165,9 +166,29 @@ export async function executeFeature<TOutput>(
 
       // Structured-batch response contract - opted-in features only
       if (config.responseFormat === "structured-batch") {
+        if (!config.responseSchema) {
+          // Defensive guard for a misconfigured feature (responseSchema is
+          // optional on AIFeatureConfig but required for structured-batch).
+          // Returned explicitly rather than thrown so it isn't mislabeled as
+          // a provider failure by the generic catch below.
+          const configError = new AIConfigurationError(
+            `Feature "${featureId}" uses responseFormat "structured-batch" but has no responseSchema configured`,
+          );
+          return {
+            success: false,
+            status: "error",
+            retryable: false,
+            errorSource: "provider",
+            error: configError.toUserMessage(),
+            errorCode: configError.code,
+            rawResponse: response.content,
+            metadata: buildMetadata(featureId, providerConfig, startTime, response.usage),
+          };
+        }
+
         const parsed = parseStructuredBatchResponse<unknown>(
           response.content,
-          config.responseSchema as SimpleSchema,
+          config.responseSchema,
         );
 
         if (parsed.success) {
@@ -181,7 +202,7 @@ export async function executeFeature<TOutput>(
               success: true,
               status: parsed.response.status,
               retryable: false,
-              data: parsed.response.data as unknown as TOutput,
+              data: parsed.response.data as TOutput,
               rawResponse: response.content,
               metadata,
             };

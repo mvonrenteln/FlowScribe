@@ -9,6 +9,7 @@
  */
 
 import type {
+  SimpleSchema,
   StructuredBatchErrorSource,
   StructuredBatchParserFailure,
   StructuredBatchStatus,
@@ -84,14 +85,28 @@ export interface AIFeatureConfig {
   /** Available placeholders for prompt templates */
   availablePlaceholders: string[];
 
-  /** JSON schema for validating AI response (optional) */
-  responseSchema?: ResponseSchema;
+  /**
+   * JSON schema for validating AI response (optional).
+   *
+   * Legacy (non-`structured-batch`) features use `ResponseSchema`, whose
+   * nested `PropertySchema` does not support a `required` array at every
+   * level. Features that opt into `responseFormat: "structured-batch"` are
+   * validated via `parseStructuredBatchResponse`, which expects the
+   * recursive `SimpleSchema` shape (nested `required` supported at every
+   * level) - hence the union here. `ResponseSchema` is always structurally
+   * assignable to `SimpleSchema`, so existing legacy schema values remain
+   * valid without any changes.
+   */
+  responseSchema?: ResponseSchema | SimpleSchema;
 
   /**
    * Opt-in response contract. When set to `"structured-batch"`, the feature's
    * response is parsed via `parseStructuredBatchResponse` (envelope with
    * `status`/`retryable`/`data`/`error`) instead of the legacy lenient
    * JSON parsing path. Omitted for all other (legacy) features.
+   *
+   * When set, `responseSchema` must be provided and describes the shape of
+   * the envelope's `data` array items.
    */
   responseFormat?: "structured-batch";
 }

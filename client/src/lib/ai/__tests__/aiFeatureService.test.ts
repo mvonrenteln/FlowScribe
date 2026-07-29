@@ -345,6 +345,30 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(result.retryable).toBe(false);
   });
 
+  it("guards against a structured-batch feature misconfigured without a responseSchema", async () => {
+    registerFeature({
+      id: "content-transformation",
+      name: "Misconfigured Structured Feature",
+      category: "metadata",
+      systemPrompt: "Return tags.",
+      userPromptTemplate: "Text: {{text}}",
+      batchable: true,
+      streamable: false,
+      defaultBatchSize: 1,
+      requiresConfirmation: false,
+      availablePlaceholders: ["text"],
+      responseFormat: "structured-batch",
+      responseSchema: undefined,
+    });
+    chatQueue.push({ content: okEnvelope([{ tag: "speaker" }]) });
+
+    const result = await executeFeature("content-transformation", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe("CONFIGURATION_ERROR");
+    expect(result.errorSource).toBe("provider");
+  });
+
   it("7) executeBatch counts one ok and one empty result as two successes", async () => {
     chatQueue.push({ content: okEnvelope([{ tag: "speaker" }]) });
     chatQueue.push({ content: emptyEnvelope() });
