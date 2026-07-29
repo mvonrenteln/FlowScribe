@@ -16,6 +16,7 @@ import {
 import { resolveProvider } from "../core/providerResolver";
 import type { AIFeatureConfig, RetryAttemptInfo } from "../core/types";
 import { compileTemplate } from "../prompts/promptBuilder";
+import type { ChatMessage } from "../providers/types";
 
 // ==================== Structured-batch execution mocks ====================
 
@@ -24,6 +25,8 @@ type MockChatResponse = { content: string };
 /** Queue of chat responses/errors consumed in FIFO order by the provider mock. */
 const chatQueue = vi.hoisted(() => [] as Array<MockChatResponse | Error>);
 const chatCallCount = vi.hoisted(() => ({ count: 0 }));
+/** Messages passed to the provider mock on each call, in order. */
+const chatCallsMessages = vi.hoisted(() => [] as ChatMessage[][]);
 const settingsOverrides = vi.hoisted(() => ({
   parseRetryCount: 0,
 }));
@@ -33,8 +36,9 @@ vi.mock("@/lib/ai/core/providerResolver", async () => ({
   resolveProvider: vi.fn(async () => ({
     config: { id: "test-provider", model: "test-model" },
     service: {
-      chat: async (): Promise<MockChatResponse> => {
+      chat: async (messages: ChatMessage[]): Promise<MockChatResponse> => {
         chatCallCount.count++;
+        chatCallsMessages.push(messages);
         const next = chatQueue.shift();
         if (next === undefined) {
           throw new Error("Test chat queue exhausted");
@@ -223,6 +227,7 @@ describe("executeFeature - structured-batch response contract", () => {
     registerFeature(legacyTextFeature);
     chatQueue.length = 0;
     chatCallCount.count = 0;
+    chatCallsMessages.length = 0;
     settingsOverrides.parseRetryCount = 0;
   });
 
@@ -433,5 +438,163 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(result.status).toBeUndefined();
     expect(result.retryable).toBeUndefined();
     expect(result.errorSource).toBeUndefined();
+  });
+
+  it("10) retries a retryable model error without a corrective message, then succeeds", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    chatQueue.push({ content: modelErrorEnvelope("TEMPORARY_FAILURE", "Model overloaded", true) });
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(true);
+    expect(result.status).toBe("ok");
+    expect(chatCallCount.count).toBe(2);
+    expect(chatCallsMessages).toHaveLength(2);
+    expect(chatCallsMessages[1]).toEqual(chatCallsMessages[0]);
+  });
+
+  it("11) does not retry a non-retryable model error even with retry budget available", async () => {
+    settingsOverrides.parseRetryCount = 2;
+    chatQueue.push({
+      content: modelErrorEnvelope("MISSING_REQUIRED_INPUT", "No segments provided", false),
+    });
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.retryable).toBe(false);
+    expect(chatCallCount.count).toBe(1);
+  });
+
+  it("12) retries a retryable provider failure without a corrective message, then succeeds", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    const timeoutError = new Error("Request timed out after 1s");
+    timeoutError.name = "AbortError";
+    chatQueue.push(timeoutError);
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(true);
+    expect(chatCallCount.count).toBe(2);
+    expect(chatCallsMessages).toHaveLength(2);
+    expect(chatCallsMessages[1]).toEqual(chatCallsMessages[0]);
+  });
+
+  it("13) does not retry a non-retryable provider failure (authentication) even with retry budget available", async () => {
+    settingsOverrides.parseRetryCount = 2;
+    chatQueue.push(new Error("Something unexpected happened"));
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.errorSource).toBe("provider");
+    expect(result.retryable).toBe(false);
+    expect(chatCallCount.count).toBe(1);
+  });
+
+  it("14) appends the corrective message on a parser failure retry, then succeeds", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    const invalidContent = okEnvelope([{ notTag: "oops" } as unknown as { tag: string }]);
+    chatQueue.push({ content: invalidContent });
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(true);
+    expect(chatCallsMessages).toHaveLength(2);
+    const firstAttemptMessages = chatCallsMessages[0];
+    const secondAttemptMessages = chatCallsMessages[1];
+    expect(secondAttemptMessages).toHaveLength(firstAttemptMessages.length + 2);
+    expect(secondAttemptMessages.slice(0, firstAttemptMessages.length)).toEqual(
+      firstAttemptMessages,
+    );
+    expect(secondAttemptMessages[firstAttemptMessages.length]).toEqual({
+      role: "assistant",
+      content: invalidContent,
+    });
+    expect(secondAttemptMessages.at(-1)?.role).toBe("user");
+    expect(secondAttemptMessages.at(-1)?.content).toContain("SCHEMA_MISMATCH");
+  });
+
+  it("15) reports retryCategory=parser and corrective=true via onRetry for a parser-failure retry", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    chatQueue.push({ content: "not json" });
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const retryInfos: RetryAttemptInfo[] = [];
+    await executeFeature(
+      "chapter-metadata",
+      { text: "hi" },
+      { onRetry: (info) => retryInfos.push(info) },
+    );
+
+    expect(retryInfos).toHaveLength(1);
+    expect(retryInfos[0].retryCategory).toBe("parser");
+    expect(retryInfos[0].corrective).toBe(true);
+  });
+
+  it("16) reports retryCategory=model and corrective=false via onRetry for a model-error retry", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    chatQueue.push({ content: modelErrorEnvelope("TEMPORARY_FAILURE", "Model overloaded", true) });
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const retryInfos: RetryAttemptInfo[] = [];
+    await executeFeature(
+      "chapter-metadata",
+      { text: "hi" },
+      { onRetry: (info) => retryInfos.push(info) },
+    );
+
+    expect(retryInfos).toHaveLength(1);
+    expect(retryInfos[0].retryCategory).toBe("model");
+    expect(retryInfos[0].corrective).toBe(false);
+  });
+
+  it("17) reports retryCategory=provider and corrective=false via onRetry for a provider-failure retry", async () => {
+    settingsOverrides.parseRetryCount = 1;
+    const timeoutError = new Error("Request timed out after 1s");
+    timeoutError.name = "AbortError";
+    chatQueue.push(timeoutError);
+    chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+    const retryInfos: RetryAttemptInfo[] = [];
+    await executeFeature(
+      "chapter-metadata",
+      { text: "hi" },
+      { onRetry: (info) => retryInfos.push(info) },
+    );
+
+    expect(retryInfos).toHaveLength(1);
+    expect(retryInfos[0].retryCategory).toBe("provider");
+    expect(retryInfos[0].corrective).toBe(false);
+  });
+
+  it("18) does not retry legacy (non-structured-batch) features on a retryable provider failure", async () => {
+    settingsOverrides.parseRetryCount = 2;
+    const timeoutError = new Error("timeout");
+    timeoutError.name = "AbortError";
+    chatQueue.push(timeoutError);
+
+    const result = await executeFeature("text-revision", { text: "hello" });
+
+    expect(result.success).toBe(false);
+    expect(chatCallCount.count).toBe(1);
+  });
+
+  it("19) exhausts the shared retry budget across mixed retry causes and returns the final failure", async () => {
+    // maxRetries = 1 (2 total attempts). Both attempts hit a retryable model
+    // error, so the shared budget is exhausted on the second attempt.
+    settingsOverrides.parseRetryCount = 1;
+    chatQueue.push({ content: modelErrorEnvelope("OUTPUT_TRUNCATED", "Cut off", true) });
+    chatQueue.push({ content: modelErrorEnvelope("OUTPUT_TRUNCATED", "Cut off", true) });
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(chatCallCount.count).toBe(2);
+    expect(result.success).toBe(false);
+    expect(result.errorSource).toBe("model");
+    expect(result.retryable).toBe(true);
   });
 });

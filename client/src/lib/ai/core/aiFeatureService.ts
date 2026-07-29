@@ -20,6 +20,7 @@ import {
 import { parseStructuredBatchResponse } from "../parsing/structuredBatchResponse";
 import type { ChatMessage } from "../providers/types";
 import { runConcurrentOrdered } from "./batch";
+import { buildCorrectiveRetryMessages } from "./correctiveRetry";
 import {
   AICancellationError,
   AIConfigurationError,
@@ -118,7 +119,7 @@ export async function executeFeature<TOutput>(
   const compiledSystem = compileTemplate(systemPrompt, variables);
   const compiledUser = compileTemplate(userPromptTemplate, variables);
 
-  const messages: ChatMessage[] = [
+  let messages: ChatMessage[] = [
     { role: "system", content: compiledSystem },
     { role: "user", content: compiledUser },
   ];
@@ -231,6 +232,28 @@ export async function executeFeature<TOutput>(
           }
 
           // status === "error" - the model itself reported a failure
+          if (parsed.response.retryable && attempt <= maxRetries) {
+            logger.warn("Structured batch model error, retrying.", {
+              attempt,
+              maxAttempts: maxRetries + 1,
+              errorCode: parsed.response.error.code,
+            });
+
+            if (options.onRetry) {
+              const retryInfo: RetryAttemptInfo = {
+                attempt,
+                maxAttempts: maxRetries + 1,
+                errorMessage: parsed.response.error.message,
+                attemptDurationMs: Date.now() - attemptStartTime,
+                retryCategory: "model",
+                corrective: false,
+              };
+              options.onRetry(retryInfo);
+            }
+
+            continue;
+          }
+
           return {
             success: false,
             status: "error",
@@ -271,10 +294,13 @@ export async function executeFeature<TOutput>(
               attemptDurationMs: Date.now() - attemptStartTime,
               parserFailureCode: parserFailure.code,
               parserFailureDiagnostics: parserFailure.diagnostics,
+              retryCategory: "parser",
+              corrective: true,
             };
             options.onRetry(retryInfo);
           }
 
+          messages = buildCorrectiveRetryMessages(messages, response.content, parserFailure);
           continue; // Try again
         }
 
@@ -415,6 +441,33 @@ export async function executeFeature<TOutput>(
 
       // Connection/network errors - don't retry (only retry parse failures)
       const aiError = toAIError(error);
+
+      if (
+        config.responseFormat === "structured-batch" &&
+        isRetryableAIError(aiError) &&
+        attempt <= maxRetries
+      ) {
+        logger.warn("Structured batch provider failure, retrying.", {
+          attempt,
+          maxAttempts: maxRetries + 1,
+          errorCode: aiError.code,
+        });
+
+        if (options.onRetry) {
+          const retryInfo: RetryAttemptInfo = {
+            attempt,
+            maxAttempts: maxRetries + 1,
+            errorMessage: aiError.toUserMessage(),
+            attemptDurationMs: Date.now() - attemptStartTime,
+            retryCategory: "provider",
+            corrective: false,
+          };
+          options.onRetry(retryInfo);
+        }
+
+        continue;
+      }
+
       const metadata = buildMetadata(featureId, providerConfig, startTime);
       if (attempt > 1) {
         metadata.retryAttempts = attempt - 1;
