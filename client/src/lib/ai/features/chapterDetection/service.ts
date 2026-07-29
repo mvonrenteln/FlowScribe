@@ -227,12 +227,32 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
             ? JSON.stringify(result.rawResponse)
             : undefined;
 
+      if (result.status === "empty") {
+        return {
+          status: "success" as const,
+          batchIndex: prepared.batchIndex,
+          batchSize: prepared.batchSegments.length,
+          mapped: [],
+          issues: [],
+          rawItemCount: 0,
+          requestPayload,
+          responsePayload,
+          batchDurationMs: Date.now() - batchStart,
+        };
+      }
+
       if (!result.success || !result.data) {
         const batchIssues: ChapterDetectionIssue[] = [
           {
             level: "error",
             message: result.error ?? `Batch ${prepared.batchIndex + 1} failed`,
-            context: { batchIndex: prepared.batchIndex, errorCode: result.errorCode },
+            context: {
+              batchIndex: prepared.batchIndex,
+              errorCode: result.errorCode,
+              errorSource: result.errorSource,
+              retryable: result.retryable,
+              parserFailure: result.parserFailure,
+            },
           },
         ];
 
@@ -289,7 +309,7 @@ Summary: ${lastDetected.summary ?? "(none)"}
         batchSize: prepared.batchSegments.length,
         mapped,
         issues: [],
-        rawItemCount: Array.isArray(result.data.chapters) ? result.data.chapters.length : 0,
+        rawItemCount: result.data.length,
         requestPayload,
         responsePayload,
         batchDurationMs: Date.now() - batchStart,

@@ -26,9 +26,71 @@ CONSTRAINTS
 - Write summaries as 1 sentence, content-focused.
 - Tags (if any) must be from the provided list of tag IDs.
 
-OUTPUT
-------
-Return JSON that matches the schema.`;
+OUTPUT FORMAT
+-------------
+Return ONLY valid JSON, wrapped in one of the three envelopes below.
+
+Each chapter inside "data" MUST have this EXACT format:
+
+{
+  "title": string,     // 3-8 words, descriptive
+  "summary": string,   // 1 sentence, content-focused (optional)
+  "tags": string[],    // subset of the provided tag IDs (optional)
+  "start": number,     // segment simple ID where the chapter starts
+  "end": number        // segment simple ID where the chapter ends
+}
+
+If you identified at least one chapter in this batch:
+
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "title": "Opening Remarks",
+      "summary": "The speaker welcomes attendees and outlines the agenda.",
+      "tags": ["intro"],
+      "start": 1,
+      "end": 3
+    },
+    {
+      "title": "Q&A Session",
+      "summary": "Attendees ask questions about the roadmap.",
+      "start": 4,
+      "end": 6
+    }
+  ],
+  "error": null
+}
+
+If this batch contains no identifiable chapter boundaries:
+
+{
+  "status": "empty",
+  "retryable": false,
+  "data": [],
+  "error": null
+}
+
+If you cannot produce any chapters:
+
+{
+  "status": "error",
+  "retryable": true,
+  "data": [],
+  "error": { "code": "TEMPORARY_FAILURE", "message": "<brief reason>" }
+}
+
+"error.code" MUST be one of exactly these six values:
+- MISSING_REQUIRED_INPUT (not retryable): required input (segments) is missing
+- INVALID_INPUT_SHAPE (not retryable): the input segments could not be understood
+- CONTRADICTORY_INPUT (not retryable): the segments are contradictory
+- UNSUPPORTED_TASK (not retryable): the requested chapter detection cannot be performed
+- OUTPUT_TRUNCATED (retryable): the response would exceed the output limit
+- TEMPORARY_FAILURE (retryable): a transient failure prevented analysis
+
+IMPORTANT:
+- Only JSON, NO additional text.`;
 
 export const CHAPTER_DETECTION_USER_PROMPT_TEMPLATE = `TRANSCRIPT (BATCH)
 ------------------
@@ -47,48 +109,22 @@ SEGMENTS (SimpleID | Speaker | Text)
 -----------------------------------
 {{segments}}
 
-Return JSON in this exact format:
-{
-  "chapters": [
-    {
-      "title": "…",
-      "summary": "…",
-      "tags": ["tag-id-1"],
-      "start": 1,
-      "end": 3
-    }
-  ]
-}`;
+Respond with ONLY the JSON envelope as specified, with each chapter item holding title, summary, tags, start, end.`;
 
 export const chapterDetectionResponseSchema = {
-  type: "object" as const,
-  properties: {
-    chapters: {
-      type: "array" as const,
-      items: {
-        type: "object" as const,
-        properties: {
-          title: { type: "string" as const },
-          summary: { type: "string" as const },
-          notes: { type: "string" as const },
-          tags: { type: "array" as const, items: { type: "string" as const } },
-          start: { type: "number" as const },
-          end: { type: "number" as const },
-        },
-        required: ["title", "start", "end"],
-      },
+  type: "array" as const,
+  items: {
+    type: "object" as const,
+    properties: {
+      title: { type: "string" as const },
+      summary: { type: "string" as const },
+      notes: { type: "string" as const },
+      tags: { type: "array" as const, items: { type: "string" as const } },
+      start: { type: "number" as const },
+      end: { type: "number" as const },
     },
-    chapterContinuation: {
-      type: "object" as const,
-      properties: {
-        lastChapterTitle: { type: "string" as const },
-        endsAtSimpleId: { type: "number" as const },
-        continuesIntoNextBatch: { type: "boolean" as const },
-      },
-      required: ["lastChapterTitle", "endsAtSimpleId", "continuesIntoNextBatch"],
-    },
+    required: ["title", "start", "end"],
   },
-  required: ["chapters"],
 };
 
 export const chapterDetectionConfig: AIFeatureConfig = {
@@ -114,4 +150,5 @@ export const chapterDetectionConfig: AIFeatureConfig = {
     "previousChapter",
   ],
   responseSchema: chapterDetectionResponseSchema,
+  responseFormat: "structured-batch",
 };

@@ -13,21 +13,16 @@ export interface ChapterDetectionConfig {
   tagsAvailable: Array<{ id: string; label: string }>;
 }
 
-export interface ChapterDetectionResponse {
-  chapters: Array<{
-    title: string;
-    summary?: string;
-    notes?: string;
-    tags?: string[];
-    start: number;
-    end: number;
-  }>;
-  chapterContinuation?: {
-    lastChapterTitle: string;
-    endsAtSimpleId: number;
-    continuesIntoNextBatch: boolean;
-  };
+export interface ChapterDetectionSuggestion {
+  title: string;
+  summary?: string;
+  notes?: string;
+  tags?: string[];
+  start: number;
+  end: number;
 }
+
+export type ChapterDetectionResponse = ChapterDetectionSuggestion[];
 
 export interface ChapterDetectionIssue {
   level: "warn" | "error";

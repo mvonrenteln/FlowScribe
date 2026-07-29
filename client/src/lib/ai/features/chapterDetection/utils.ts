@@ -8,11 +8,7 @@
 
 import type { BatchIdMapping } from "@/lib/ai/core/batchIdMapping";
 import { createBatchIdMapping, normalizeIds } from "@/lib/ai/core/batchIdMapping";
-import type {
-  ChapterDetectionBatch,
-  ChapterDetectionIssue,
-  ChapterDetectionResponse,
-} from "./types";
+import type { ChapterDetectionBatch, ChapterDetectionResponse } from "./types";
 
 export const formatTagsForPrompt = (tags: Array<{ id: string; label: string }>): string =>
   tags.length === 0 ? "(none)" : tags.map((t) => `- ${t.id}: ${t.label}`).join("\n");
@@ -46,10 +42,9 @@ export function mapResponseToRealSegmentIds(
   startSegmentId: string;
   endSegmentId: string;
 }> {
-  const issues: ChapterDetectionIssue[] = [];
-  const chapters = Array.isArray(response.chapters) ? response.chapters : [];
+  const chapters = Array.isArray(response) ? response : [];
 
-  const mapped = chapters
+  return chapters
     .map((ch) => {
       const startNorm = normalizeIds([ch.start], mapping)[0];
       const startFb = fallbackMapping ? normalizeIds([ch.start], fallbackMapping)[0] : undefined;
@@ -68,11 +63,4 @@ export function mapResponseToRealSegmentIds(
       };
     })
     .filter((ch) => ch.title.length > 0 && ch.startSegmentId && ch.endSegmentId);
-
-  if (issues.length > 0) {
-    // Currently unused, but keep structure for future instrumentation.
-    void issues;
-  }
-
-  return mapped;
 }

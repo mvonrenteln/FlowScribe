@@ -10,18 +10,16 @@ describe("chapterDetection utils", () => {
     );
 
     const mapped = mapResponseToRealSegmentIds(
-      {
-        chapters: [
-          {
-            title: "Movement Rules",
-            summary: "  Rules summary. ",
-            notes: "  Notes here. ",
-            tags: ["keep"],
-            start: 1,
-            end: 2,
-          },
-        ],
-      },
+      [
+        {
+          title: "Movement Rules",
+          summary: "  Rules summary. ",
+          notes: "  Notes here. ",
+          tags: ["keep"],
+          start: 1,
+          end: 2,
+        },
+      ],
       mapping,
     );
 
@@ -40,15 +38,13 @@ describe("chapterDetection utils", () => {
     );
 
     const mapped = mapResponseToRealSegmentIds(
-      {
-        chapters: [
-          {
-            title: "Chapter A",
-            start: 2,
-            end: 3,
-          },
-        ],
-      },
+      [
+        {
+          title: "Chapter A",
+          start: 2,
+          end: 3,
+        },
+      ],
       batchMapping,
       globalMapping,
     );
