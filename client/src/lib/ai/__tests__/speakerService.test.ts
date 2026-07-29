@@ -7,6 +7,7 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 import * as settingsStorage from "@/lib/settings/settingsStorage";
 import * as core from "../core";
+import { speakerClassificationConfig } from "../features/speaker/config";
 import {
   classifySpeakers,
   classifySpeakersBatch,
@@ -25,6 +26,31 @@ describe("Speaker Service", () => {
     executeFeatureMock.mockRestore();
   });
 
+  describe("speakerClassificationConfig", () => {
+    it("uses the structured-batch response format", () => {
+      expect(speakerClassificationConfig.responseFormat).toBe("structured-batch");
+    });
+
+    it("documents concrete ok, empty, and error envelopes and all six model error codes", () => {
+      const prompt = speakerClassificationConfig.systemPrompt;
+
+      expect(prompt).toContain('"status": "ok"');
+      expect(prompt).toContain('"status": "empty"');
+      expect(prompt).toContain('"status": "error"');
+
+      for (const code of [
+        "MISSING_REQUIRED_INPUT",
+        "INVALID_INPUT_SHAPE",
+        "CONTRADICTORY_INPUT",
+        "UNSUPPORTED_TASK",
+        "OUTPUT_TRUNCATED",
+        "TEMPORARY_FAILURE",
+      ]) {
+        expect(prompt).toContain(code);
+      }
+    });
+  });
+
   describe("classifySpeakers", () => {
     it("should throw when executeFeature fails", async () => {
       executeFeatureMock.mockResolvedValueOnce({
@@ -41,6 +67,91 @@ describe("Speaker Service", () => {
       await expect(
         classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
       ).rejects.toThrow("Timeout");
+    });
+
+    it("returns no suggestions when the model reports an empty batch, without throwing", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: true,
+        status: "empty",
+        retryable: false,
+        data: [],
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      const results = await classifySpeakers(
+        [{ id: "1", speaker: "[Unknown]", text: "Hello there!" }],
+        ["Alice"],
+      );
+
+      expect(results).toEqual([]);
+    });
+
+    it("preserves errorSource, retryable, and parser diagnostics when the model reports a structured failure", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: false,
+        status: "error",
+        retryable: false,
+        errorSource: "model",
+        error: "Input segments were contradictory",
+        errorCode: "CONTRADICTORY_INPUT",
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      await expect(
+        classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
+      ).rejects.toMatchObject({
+        message: "Input segments were contradictory",
+        code: "CONTRADICTORY_INPUT",
+        details: expect.objectContaining({
+          errorSource: "model",
+          retryable: false,
+        }),
+      });
+    });
+
+    it("preserves parser failure diagnostics when structured-batch parsing fails after retries", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: false,
+        status: "error",
+        retryable: true,
+        errorSource: "parser",
+        error: "Failed to parse AI response",
+        errorCode: "PARSE_ERROR",
+        parserFailure: {
+          code: "SCHEMA_MISMATCH",
+          message: "Structured batch envelope did not match the expected schema",
+          diagnostics: [
+            { path: "data", message: "Expected array", expected: "array", actual: null },
+          ],
+        },
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      await expect(
+        classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
+      ).rejects.toMatchObject({
+        code: "PARSE_ERROR",
+        details: expect.objectContaining({
+          errorSource: "parser",
+          retryable: true,
+          parserFailure: expect.objectContaining({ code: "SCHEMA_MISMATCH" }),
+        }),
+      });
     });
   });
 
@@ -163,6 +274,91 @@ describe("Speaker Service", () => {
           failed: 1,
         });
         expect(batchResults.issues.some((issue) => issue.level === "error")).toBe(true);
+      } finally {
+        settingsSpy.mockRestore();
+      }
+    });
+
+    it("counts an empty-status batch as unchanged, not failed", async () => {
+      const settingsSpy = vi.spyOn(settingsStorage, "initializeSettings").mockReturnValue({
+        ...settingsStorage.DEFAULT_SETTINGS,
+        enableConcurrentRequests: false,
+        maxConcurrentRequests: 1,
+      });
+
+      try {
+        executeFeatureMock.mockResolvedValueOnce({
+          success: true,
+          status: "empty",
+          retryable: false,
+          data: [],
+          metadata: {
+            featureId: "speaker-classification",
+            providerId: "test",
+            model: "llama3.2",
+            durationMs: 1,
+          },
+        });
+
+        const batchResults = await classifySpeakersBatch(
+          [{ id: "1", speaker: "[Unknown]", text: "Hello" }],
+          ["Alice", "Bob"],
+          { batchSize: 1 },
+        );
+
+        expect(batchResults.summary).toEqual({
+          total: 1,
+          classified: 0,
+          unchanged: 1,
+          failed: 0,
+        });
+        expect(batchResults.issues.some((issue) => issue.level === "error")).toBe(false);
+      } finally {
+        settingsSpy.mockRestore();
+      }
+    });
+
+    it("preserves errorSource, retryable, and parser diagnostics in the batch issue context", async () => {
+      const settingsSpy = vi.spyOn(settingsStorage, "initializeSettings").mockReturnValue({
+        ...settingsStorage.DEFAULT_SETTINGS,
+        enableConcurrentRequests: false,
+        maxConcurrentRequests: 1,
+      });
+
+      try {
+        executeFeatureMock.mockResolvedValueOnce({
+          success: false,
+          status: "error",
+          retryable: true,
+          errorSource: "parser",
+          error: "Failed to parse AI response",
+          errorCode: "PARSE_ERROR",
+          parserFailure: {
+            code: "SCHEMA_MISMATCH",
+            message: "Structured batch envelope did not match the expected schema",
+            diagnostics: [],
+          },
+          metadata: {
+            featureId: "speaker-classification",
+            providerId: "test",
+            model: "llama3.2",
+            durationMs: 1,
+          },
+        });
+
+        const batchResults = await classifySpeakersBatch(
+          [{ id: "1", speaker: "[Unknown]", text: "Hello" }],
+          ["Alice", "Bob"],
+          { batchSize: 1 },
+        );
+
+        expect(batchResults.summary.failed).toBe(1);
+        const errorIssue = batchResults.issues.find((issue) => issue.level === "error");
+        expect(errorIssue?.context).toMatchObject({
+          errorSource: "parser",
+          retryable: true,
+          parserFailure: expect.objectContaining({ code: "SCHEMA_MISMATCH" }),
+        });
       } finally {
         settingsSpy.mockRestore();
       }

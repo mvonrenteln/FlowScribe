@@ -125,6 +125,10 @@ export async function classifySpeakers(
     options,
   );
 
+  if (result.status === "empty") {
+    return [];
+  }
+
   if (!result.success || !result.data) {
     const message = result.error ?? "Speaker classification failed";
     logger.error("Classification failed.", { message });
@@ -132,6 +136,9 @@ export async function classifySpeakers(
     throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
       responsePayload,
       rawResponse: result.rawResponse,
+      errorSource: result.errorSource,
+      retryable: result.retryable,
+      parserFailure: result.parserFailure,
     });
   }
 
@@ -215,6 +222,9 @@ export async function classifySpeakersBatch(
           error: aiError.toUserMessage(),
           errorCode: aiError.code,
           responsePayload,
+          errorSource: aiError.details?.errorSource,
+          retryable: aiError.details?.retryable,
+          parserFailure: aiError.details?.parserFailure,
         };
       }
     },
@@ -241,6 +251,9 @@ export async function classifySpeakersBatch(
             segmentIds: outcome.batchSegments.map((s) => s.id),
             errorCode: outcome.errorCode,
             responsePayload: outcome.responsePayload,
+            errorSource: outcome.errorSource,
+            retryable: outcome.retryable,
+            parserFailure: outcome.parserFailure,
           },
         });
       }

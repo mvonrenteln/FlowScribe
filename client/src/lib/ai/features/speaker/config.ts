@@ -19,19 +19,51 @@ For EACH section, assign exactly ONE speaker tag from the available speakers lis
 
 OUTPUT FORMAT
 -------------
-Return ONLY valid JSON:
+Return ONLY valid JSON, wrapped in one of the three envelopes below.
 
-[
-  {
-    "tag": "<one of the available tags>",
-    "confidence": <number between 0 and 1>,
-    "reason": "<brief reasoning in one sentence>"
-  },
-  ...
-]
+If you produced speaker suggestions for at least one section:
+
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "tag": "<one of the available tags>",
+      "confidence": <number between 0 and 1>,
+      "reason": "<brief reasoning in one sentence>"
+    }
+  ],
+  "error": null
+}
+
+If there are no sections to classify:
+
+{
+  "status": "empty",
+  "retryable": false,
+  "data": [],
+  "error": null
+}
+
+If you cannot produce any suggestions:
+
+{
+  "status": "error",
+  "retryable": true,
+  "data": [],
+  "error": { "code": "TEMPORARY_FAILURE", "message": "<brief reason>" }
+}
+
+"error.code" MUST be one of exactly these six values:
+- MISSING_REQUIRED_INPUT (not retryable): required input (sections or speakers) is missing
+- INVALID_INPUT_SHAPE (not retryable): the input sections could not be understood
+- CONTRADICTORY_INPUT (not retryable): the sections or speakers list is contradictory
+- UNSUPPORTED_TASK (not retryable): the requested classification cannot be performed
+- OUTPUT_TRUNCATED (retryable): the response would exceed the output limit
+- TEMPORARY_FAILURE (retryable): a transient failure prevented classification
 
 IMPORTANT:
-- Output order MUST match the order of the provided sections 1:1.
+- Output order in "data" MUST match the order of the provided sections 1:1.
 - Do not skip or add entries.
 - Only JSON, NO additional text.
 - "confidence": 0.9-1.0 = very confident, 0.6-0.89 = medium, below = uncertain.
@@ -78,7 +110,7 @@ SECTIONS TO CLASSIFY
 --------------------
 {{segments}}
 
-Respond with ONLY the JSON array as specified.`;
+Respond with ONLY the JSON envelope as specified.`;
 
 // ==================== Response Schema ====================
 
@@ -122,6 +154,7 @@ export const speakerClassificationConfig: AIFeatureConfig = {
   availablePlaceholders: ["speakers", "segments"],
 
   responseSchema: speakerResponseSchema,
+  responseFormat: "structured-batch",
 };
 
 // ==================== Prompt Helpers ====================
