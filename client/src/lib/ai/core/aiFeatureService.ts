@@ -17,9 +17,16 @@ import {
   getEffectiveAIRequestConcurrency,
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
+import { parseStructuredBatchResponse } from "../parsing/structuredBatchResponse";
 import type { ChatMessage } from "../providers/types";
 import { runConcurrentOrdered } from "./batch";
-import { AICancellationError, AIParseError, isCancellationError, toAIError } from "./errors";
+import {
+  AICancellationError,
+  AIParseError,
+  isCancellationError,
+  isRetryableAIError,
+  toAIError,
+} from "./errors";
 import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
 import type {
   AIBatchResult,
@@ -156,6 +163,97 @@ export async function executeFeature<TOutput>(
 
       lastRawResponse = response.content;
 
+      // Structured-batch response contract - opted-in features only
+      if (config.responseFormat === "structured-batch") {
+        const parsed = parseStructuredBatchResponse<unknown>(
+          response.content,
+          config.responseSchema as SimpleSchema,
+        );
+
+        if (parsed.success) {
+          const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+          if (attempt > 1) {
+            metadata.retryAttempts = attempt - 1;
+          }
+
+          if (parsed.response.status === "ok" || parsed.response.status === "empty") {
+            return {
+              success: true,
+              status: parsed.response.status,
+              retryable: false,
+              data: parsed.response.data as unknown as TOutput,
+              rawResponse: response.content,
+              metadata,
+            };
+          }
+
+          // status === "error" - the model itself reported a failure
+          return {
+            success: false,
+            status: "error",
+            retryable: parsed.response.retryable,
+            errorSource: "model",
+            error: parsed.response.error.message,
+            errorCode: parsed.response.error.code,
+            rawResponse: response.content,
+            metadata,
+          };
+        }
+
+        // Parser failure - retain the existing parse-attempt counting/callback.
+        // Structured-batch responses never fall back to lenient recovery.
+        const parserFailure = parsed.error;
+        lastParseError = parserFailure.message;
+
+        logParseFailure(
+          featureId,
+          providerConfig,
+          response.content,
+          { error: { message: parserFailure.message }, metadata: undefined },
+          attempt,
+        );
+
+        if (attempt <= maxRetries) {
+          logger.warn("Structured batch parse failed, retrying.", {
+            attempt,
+            maxAttempts: maxRetries + 1,
+            parserFailureCode: parserFailure.code,
+          });
+
+          if (options.onRetry) {
+            const retryInfo: RetryAttemptInfo = {
+              attempt,
+              maxAttempts: maxRetries + 1,
+              errorMessage: parserFailure.message,
+              attemptDurationMs: Date.now() - attemptStartTime,
+              parserFailureCode: parserFailure.code,
+              parserFailureDiagnostics: parserFailure.diagnostics,
+            };
+            options.onRetry(retryInfo);
+          }
+
+          continue; // Try again
+        }
+
+        // All retry attempts exhausted - report as a retryable parser failure
+        const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+        if (attempt > 1) {
+          metadata.retryAttempts = attempt - 1;
+        }
+
+        return {
+          success: false,
+          status: "error",
+          retryable: true,
+          errorSource: "parser",
+          error: new AIParseError(parserFailure.message, response.content).toUserMessage(),
+          errorCode: "PARSE_ERROR",
+          parserFailure,
+          rawResponse: response.content,
+          metadata,
+        };
+      }
+
       // Parse response based on feature type
       if (config.responseSchema) {
         // Structured response - parse and validate
@@ -205,20 +303,23 @@ export async function executeFeature<TOutput>(
           continue; // Try again
         }
 
-        // All retries exhausted - try lenient recovery as last resort
-        const lenientResult = tryLenientRecovery<TOutput>(
-          featureId,
-          config,
-          response,
-          variables,
-          providerConfig,
-          startTime,
-          parseResult,
-          attempt - 1,
-        );
+        // All retries exhausted - try lenient recovery as last resort.
+        // Structured-batch features never enter lenient recovery.
+        if (config.responseFormat !== "structured-batch") {
+          const lenientResult = tryLenientRecovery<TOutput>(
+            featureId,
+            config,
+            response,
+            variables,
+            providerConfig,
+            startTime,
+            parseResult,
+            attempt - 1,
+          );
 
-        if (lenientResult) {
-          return lenientResult;
+          if (lenientResult) {
+            return lenientResult;
+          }
         }
 
         // Lenient recovery also failed - return error
@@ -271,8 +372,20 @@ export async function executeFeature<TOutput>(
         metadata.retryAttempts = attempt - 1;
       }
 
+      // Normalize structured fields only for features that opted into the
+      // structured-batch contract; legacy features keep the plain shape.
+      const structuredProviderFields: Partial<AIFeatureResult<TOutput>> =
+        config.responseFormat === "structured-batch"
+          ? {
+              status: "error",
+              retryable: isRetryableAIError(aiError),
+              errorSource: "provider",
+            }
+          : {};
+
       return {
         success: false,
+        ...structuredProviderFields,
         error: aiError.toUserMessage(),
         errorCode: aiError.code,
         rawResponse:

@@ -8,6 +8,11 @@
  * @module ai/core/types
  */
 
+import type {
+  StructuredBatchErrorSource,
+  StructuredBatchParserFailure,
+  StructuredBatchStatus,
+} from "../parsing/types";
 import type { AIProviderConfig, ChatMessage, ChatOptions } from "../providers/types";
 
 // ==================== Feature Types ====================
@@ -81,6 +86,14 @@ export interface AIFeatureConfig {
 
   /** JSON schema for validating AI response (optional) */
   responseSchema?: ResponseSchema;
+
+  /**
+   * Opt-in response contract. When set to `"structured-batch"`, the feature's
+   * response is parsed via `parseStructuredBatchResponse` (envelope with
+   * `status`/`retryable`/`data`/`error`) instead of the legacy lenient
+   * JSON parsing path. Omitted for all other (legacy) features.
+   */
+  responseFormat?: "structured-batch";
 }
 
 // ==================== Feature Execution ====================
@@ -97,6 +110,16 @@ export interface RetryAttemptInfo {
   errorMessage: string;
   /** Duration of the failed attempt in ms */
   attemptDurationMs: number;
+  /**
+   * Structured-batch parser failure code (only present for
+   * `responseFormat: "structured-batch"` features).
+   */
+  parserFailureCode?: StructuredBatchParserFailure["code"];
+  /**
+   * Structured-batch parser diagnostics (only present for
+   * `responseFormat: "structured-batch"` features).
+   */
+  parserFailureDiagnostics?: StructuredBatchParserFailure["diagnostics"];
 }
 
 /**
@@ -149,6 +172,31 @@ export interface AIFeatureResult<T> {
 
   /** Raw response from AI (for debugging) */
   rawResponse?: string;
+
+  /**
+   * Structured-batch outcome status. Only present for features that opt into
+   * `responseFormat: "structured-batch"`; legacy features omit this field.
+   */
+  status?: StructuredBatchStatus;
+
+  /**
+   * Whether this failure is safe to retry. Only present for features that
+   * opt into `responseFormat: "structured-batch"`.
+   */
+  retryable?: boolean;
+
+  /**
+   * Where a structured-batch failure originated (model, provider, or
+   * parser). Only present for features that opt into
+   * `responseFormat: "structured-batch"`.
+   */
+  errorSource?: StructuredBatchErrorSource;
+
+  /**
+   * Parser failure details when a structured-batch response could not be
+   * parsed or validated after all retry attempts were exhausted.
+   */
+  parserFailure?: StructuredBatchParserFailure;
 
   /** Execution metadata */
   metadata: {
