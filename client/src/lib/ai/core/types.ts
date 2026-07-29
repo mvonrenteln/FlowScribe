@@ -114,6 +114,11 @@ export interface AIFeatureConfig {
 // ==================== Feature Execution ====================
 
 /**
+ * Category of retry cause for a `responseFormat: "structured-batch"` retry.
+ */
+export type StructuredBatchRetryCategory = "parser" | "model" | "provider";
+
+/**
  * Information about a retry attempt for logging/UI purposes.
  */
 export interface RetryAttemptInfo {
@@ -135,6 +140,18 @@ export interface RetryAttemptInfo {
    * `responseFormat: "structured-batch"` features).
    */
   parserFailureDiagnostics?: StructuredBatchParserFailure["diagnostics"];
+  /**
+   * Which layer triggered this retry. Only present for
+   * `responseFormat: "structured-batch"` features.
+   */
+  retryCategory?: StructuredBatchRetryCategory;
+  /**
+   * Whether this retry appended a corrective message (invalid assistant
+   * response + repair instruction) to the conversation. `true` only for
+   * `retryCategory === "parser"`; `false` for model/provider retries, which
+   * resend the original prefix unchanged.
+   */
+  corrective?: boolean;
 }
 
 /**
