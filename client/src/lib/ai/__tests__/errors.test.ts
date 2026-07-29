@@ -20,6 +20,7 @@ import {
   getErrorMessage,
   isCancellationError,
   isHardAIErrorCode,
+  isRetryableAIError,
   summarizeAIError,
   toAIError,
 } from "../core/errors";
@@ -208,6 +209,89 @@ describe("toAIError", () => {
     const result = toAIError("error message");
     expect(result).toBeInstanceOf(AIError);
     expect(result.message).toBe("error message");
+  });
+});
+
+describe("isRetryableAIError", () => {
+  it("treats a network interruption as retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Network down", "openai"));
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats a request timeout AbortError as retryable", () => {
+    const abortError = new Error("Request timed out");
+    abortError.name = "AbortError";
+    const error = toAIError(abortError);
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats HTTP 408 as retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Timeout", "openai", 408));
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats HTTP 429 as retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Too many requests", "openai", 429));
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats HTTP 500 as retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Server error", "openai", 500));
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats HTTP 503 as retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Unavailable", "openai", 503));
+    expect(isRetryableAIError(error)).toBe(true);
+  });
+
+  it("treats malformed or schema-invalid output as retryable", () => {
+    expect(isRetryableAIError(new AIParseError("Parse failed"))).toBe(true);
+    expect(isRetryableAIError(new AIValidationError("Validation failed", ["bad field"]))).toBe(
+      true,
+    );
+  });
+
+  it("treats HTTP 400 as non-retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Bad request", "openai", 400));
+    expect(isRetryableAIError(error)).toBe(false);
+  });
+
+  it("treats HTTP 401 as non-retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Unauthorized", "openai", 401));
+    expect(isRetryableAIError(error)).toBe(false);
+  });
+
+  it("treats HTTP 403 as non-retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Forbidden", "openai", 403));
+    expect(isRetryableAIError(error)).toBe(false);
+  });
+
+  it("treats HTTP 422 as non-retryable", () => {
+    const error = toAIError(new AIProviderConnectionError("Unprocessable", "openai", 422));
+    expect(isRetryableAIError(error)).toBe(false);
+  });
+
+  it("treats authentication failures as non-retryable", () => {
+    const error = toAIError(new AIProviderAuthError("Auth failed", "openai"));
+    expect(isRetryableAIError(error)).toBe(false);
+  });
+
+  it("treats missing local configuration as non-retryable", () => {
+    expect(isRetryableAIError(new AIConfigurationError("No provider"))).toBe(false);
+  });
+
+  it("treats user cancellation as non-retryable", () => {
+    expect(isRetryableAIError(new AICancellationError())).toBe(false);
+  });
+
+  it("treats unknown model or unsupported provider option as non-retryable", () => {
+    expect(isRetryableAIError(new AIFeatureNotFoundError("unsupported-feature"))).toBe(false);
+  });
+
+  it("treats unknown/unclassified failures as non-retryable", () => {
+    const error = toAIError(new Error("Something odd happened"));
+    expect(isRetryableAIError(error)).toBe(false);
   });
 });
 

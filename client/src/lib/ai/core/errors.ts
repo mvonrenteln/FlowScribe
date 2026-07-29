@@ -309,6 +309,40 @@ export function toAIError(error: unknown): AIError {
 }
 
 /**
+ * AIError codes that are always retryable, regardless of details.
+ * Covers network interruptions/timeouts (`CONNECTION_ERROR`), provider-side
+ * failures (`PROVIDER_ERROR`, `RATE_LIMIT`), and malformed/truncated or
+ * schema-invalid model output (`PARSE_ERROR`, `VALIDATION_ERROR`).
+ */
+const RETRYABLE_AI_ERROR_CODES = new Set<string>([
+  "CONNECTION_ERROR",
+  "PROVIDER_ERROR",
+  "RATE_LIMIT",
+  "PARSE_ERROR",
+  "VALIDATION_ERROR",
+]);
+
+/**
+ * Determine whether an AIError represents a transient failure that is safe
+ * to retry. Unknown or unclassified errors are treated conservatively as
+ * non-retryable.
+ *
+ * Retryable: network interruption/timeout, HTTP 408/429/5xx, malformed or
+ * schema-invalid output.
+ * Non-retryable: HTTP 400/401/403/422, authentication failure, unknown
+ * model/unsupported provider option, missing local configuration, user
+ * cancellation, and any unclassified failure.
+ */
+export function isRetryableAIError(error: AIError): boolean {
+  if (error.code === "REQUEST_ERROR") {
+    const statusCode = error.details?.statusCode;
+    return statusCode === 408 || statusCode === 429;
+  }
+
+  return RETRYABLE_AI_ERROR_CODES.has(error.code);
+}
+
+/**
  * Create a user-friendly error message from any error.
  */
 export function getErrorMessage(error: unknown): string {
