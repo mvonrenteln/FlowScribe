@@ -14,8 +14,38 @@ import {
   parseRawResponse,
 } from "../features/speaker/service";
 import type { BatchSegment } from "../features/speaker/types";
+import type { ChatMessage } from "../providers/types";
+
+// Queue consumed in FIFO order by the mocked provider, used only by the
+// retry-transparency test below (which runs the real executeFeature).
+type MockChatResponse = { content: string };
+const chatQueue = vi.hoisted(() => [] as Array<MockChatResponse | Error>);
+const chatCallCount = vi.hoisted(() => ({ count: 0 }));
+
+vi.mock("@/lib/ai/core/providerResolver", async () => ({
+  ...(await vi.importActual("@/lib/ai/core/providerResolver")),
+  resolveProvider: vi.fn(async () => ({
+    config: { id: "test-provider", model: "test-model" },
+    service: {
+      chat: async (_messages: ChatMessage[]): Promise<MockChatResponse> => {
+        chatCallCount.count++;
+        const next = chatQueue.shift();
+        if (next === undefined) {
+          throw new Error("Test chat queue exhausted");
+        }
+        if (next instanceof Error) {
+          throw next;
+        }
+        return next;
+      },
+    },
+  })),
+}));
 
 describe("Speaker Service", () => {
+  // Captured before the spy replaces the export, so the retry-transparency
+  // test can delegate to the real implementation instead of the mock.
+  const actualExecuteFeature = core.executeFeature;
   const executeFeatureMock = vi.spyOn(core, "executeFeature");
 
   beforeEach(() => {
@@ -152,6 +182,39 @@ describe("Speaker Service", () => {
           parserFailure: expect.objectContaining({ code: "SCHEMA_MISMATCH" }),
         }),
       });
+    });
+
+    it("transparently retries a transient model error via the real executeFeature retry loop", async () => {
+      chatQueue.length = 0;
+      chatCallCount.count = 0;
+      executeFeatureMock.mockImplementation(actualExecuteFeature);
+
+      chatQueue.push({
+        content: JSON.stringify({
+          status: "error",
+          retryable: true,
+          data: [],
+          error: { code: "TEMPORARY_FAILURE", message: "Model overloaded, try again" },
+        }),
+      });
+      chatQueue.push({
+        content: JSON.stringify({
+          status: "ok",
+          retryable: false,
+          data: [{ tag: "Alice", confidence: 0.9, reason: "Greeting style" }],
+          error: null,
+        }),
+      });
+
+      const results = await classifySpeakers(
+        [{ id: "1", speaker: "[Unknown]", text: "Hello there!" }],
+        ["Alice"],
+      );
+
+      expect(results).toEqual([
+        expect.objectContaining({ segmentId: "1", suggestedSpeaker: "Alice" }),
+      ]);
+      expect(chatCallCount.count).toBe(2);
     });
   });
 
