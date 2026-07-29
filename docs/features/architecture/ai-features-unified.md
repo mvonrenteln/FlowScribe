@@ -767,8 +767,97 @@ export interface AIFeatureConfig {
 
   // Response validation schema
   responseSchema?: SimpleSchema;
+
+  // Opt-in structured envelope contract (see "Structured Batch Outcomes" below)
+  responseFormat?: "structured-batch";
 }
 ```
+
+### Structured Batch Outcomes ✅ Implemented
+
+Speaker classification, segment merge, and chapter detection opt into `responseFormat: "structured-batch"`.
+All other features (text revision, multi-track merge, content transformation, chapter rewrite,
+chapter metadata) keep the legacy plain-text or lenient-JSON response shape unchanged.
+
+For opted-in features, `parseStructuredBatchResponse` (`client/src/lib/ai/parsing/structuredBatchResponse.ts`)
+requires the model to return one of three exact envelopes instead of a bare array:
+
+```json
+// ok - one or more valid items
+{ "status": "ok", "retryable": false, "data": [ /* ≥1 item */ ], "error": null }
+
+// empty - the model explicitly found nothing to return
+{ "status": "empty", "retryable": false, "data": [], "error": null }
+
+// error - the model itself reports a failure
+{ "status": "error", "retryable": true, "data": [], "error": { "code": "TEMPORARY_FAILURE", "message": "..." } }
+```
+
+`empty` is a **terminal successful outcome**: `executeFeature` returns `success: true, status: "empty"`,
+and `executeBatch` counts it toward `summary.succeeded`, not `summary.failed`. It means the model
+completed the task and correctly found no applicable result (e.g. no chapters in this batch) - it is
+never used for "no output" or "couldn't parse".
+
+The model reports exactly six stable error codes for `status: "error"`, each with fixed, non-negotiable
+retryability (enforced by the parser, not by the model's own claim):
+
+| Code | Retryable | Meaning |
+| --- | --- | --- |
+| `MISSING_REQUIRED_INPUT` | No | Required input (segments/speakers) is missing |
+| `INVALID_INPUT_SHAPE` | No | The input could not be understood |
+| `CONTRADICTORY_INPUT` | No | The input is contradictory |
+| `UNSUPPORTED_TASK` | No | The requested operation cannot be performed |
+| `OUTPUT_TRUNCATED` | Yes | The response would exceed the output limit |
+| `TEMPORARY_FAILURE` | Yes | A transient failure prevented completion |
+
+**Invalid structured output is never accepted through lenient recovery.** If the envelope is malformed,
+missing required fields, has an unknown `status`, or the `data` items fail schema validation, the parser
+returns a `SCHEMA_MISMATCH` (or `INVALID_JSON`/`EMPTY_RESPONSE`) failure with diagnostics. `executeFeature`
+retries this like any other parse failure up to `parseRetryCount`, but on exhaustion it returns a plain
+parser failure (`errorSource: "parser"`, `retryable: true`) - it does **not** fall back to
+`tryLenientRecovery`. Legacy (non-structured-batch) features are the only ones that use lenient recovery.
+
+`AIFeatureResult` exposes three fields specific to structured-batch features so callers can distinguish
+outcomes without inferring meaning from array length or error strings:
+
+- `status?: "ok" | "empty" | "error"`
+- `retryable?: boolean`
+- `errorSource?: "model" | "provider" | "parser"` - who reported the failure:
+  - `"model"`: the model itself returned `status: "error"`; `retryable` reflects the fixed table above.
+  - `"provider"`: the HTTP/network/auth layer failed before any envelope was received; `retryable` is
+    derived from `isRetryableAIError` (see the provider retryability table below).
+  - `"parser"`: the response could not be parsed/validated as a structured-batch envelope after all
+    retries; always `retryable: true`.
+
+**Provider retryability** (`isRetryableAIError` in `client/src/lib/ai/core/errors.ts`) - only consulted
+for `errorSource: "provider"` failures:
+
+| `AIError.code` | Retryable | Notes |
+| --- | --- | --- |
+| `CONNECTION_ERROR` | Yes | Network interruption or timeout |
+| `PROVIDER_ERROR` | Yes | Provider-side (5xx-class) failure |
+| `RATE_LIMIT` | Yes | HTTP 429 |
+| `PARSE_ERROR` | Yes | Malformed/truncated output surfaced as a provider-layer error |
+| `VALIDATION_ERROR` | Yes | Schema-invalid output surfaced as a provider-layer error |
+| `REQUEST_ERROR` | Yes, only if `details.statusCode` is 408 or 429 | Other 4xx statuses are not retryable |
+| `AUTH_ERROR` | No | Authentication failure |
+| `CONFIGURATION_ERROR` | No | Missing/invalid local configuration |
+| `CANCELLED` | No | User cancellation |
+| Any other/unclassified code | No | Treated conservatively as non-retryable |
+
+**Current scope (Phase 1 of the batch AI reliability design,** see
+`docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** this phase only exposes the
+envelope, `retryable`, and `errorSource` diagnostics described above. It does **not** add provider-side
+automatic retries or corrective retry messages (re-sending the invalid response plus a repair
+instruction) - a caller that wants a retry must trigger it itself. Planned follow-ups, not yet
+implemented:
+
+- **Phase 2 - Corrective Retries:** owns constructing the corrective retry message (invalid response +
+  parser diagnostics) for malformed/schema-invalid structured-batch responses.
+- **Phase 3 - Mandatory OpenAI Prompt Caching:** always-on `prompt_cache_key`/`prompt_cache_retention`
+  for the built-in OpenAI provider.
+- **Phase 4 - Selective XML Prompt Structure:** XML tags for long/ambiguous prompt sections only, on top
+  of the Phase 1 envelope contract.
 
 ### Prompt System ✅ Implemented
 
@@ -1593,6 +1682,9 @@ Return JSON with chapters array:
    - Schema mismatch
    - Incomplete response
    - **Strategy:** Attempt recovery, show warning, allow manual edit
+   - **Exception:** structured-batch features (speaker classification, segment merge, chapter
+     detection) never attempt lenient recovery for invalid output - see
+     "Structured Batch Outcomes" above.
 
 4. **Validation Errors**
    - Output doesn't match schema

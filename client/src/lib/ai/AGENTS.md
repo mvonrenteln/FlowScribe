@@ -17,6 +17,9 @@
 - AI must remain optional; manual transcript editing must work without AI configuration.
 - Do not bypass `core/`, `providers/`, `parsing/`, or feature orchestration seams.
 - Validate provider responses before applying changes to transcript state.
+- Structured batch features use the shared `ok` / `empty` / `error` envelope.
+- `empty` is a successful terminal outcome; malformed or schema-invalid output remains a parser failure.
+- Structured failures preserve `model`, `provider`, or `parser` origin plus explicit retryability.
 
 ## Work Guidance
 
