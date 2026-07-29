@@ -20,6 +20,7 @@
 - Structured batch features use the shared `ok` / `empty` / `error` envelope.
 - `empty` is a successful terminal outcome; malformed or schema-invalid output remains a parser failure.
 - Structured failures preserve `model`, `provider`, or `parser` origin plus explicit retryability.
+- Structured-batch retries: parser failures retry with a corrective message (invalid response + repair instruction); retryable model/provider failures retry without one. The retry budget (`parseRetryCount`) is shared across all three causes.
 
 ## Work Guidance
 

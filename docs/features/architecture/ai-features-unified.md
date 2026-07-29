@@ -847,19 +847,49 @@ for `errorSource: "provider"` failures:
 | `CANCELLED` | No | User cancellation |
 | Any other/unclassified code | No | Treated conservatively as non-retryable |
 
-**Current scope (Phase 1 of the batch AI reliability design,** see
-`docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** this phase only exposes the
-envelope, `retryable`, and `errorSource` diagnostics described above. It does **not** add provider-side
-automatic retries or corrective retry messages (re-sending the invalid response plus a repair
-instruction) - a caller that wants a retry must trigger it itself. Planned follow-ups, not yet
-implemented:
+**Current scope (Phase 1 + Phase 2 of the batch AI reliability design,** see
+`docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** Phase 1 exposes the envelope,
+`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries) is now
+implemented and described below. Not yet implemented:
 
-- **Phase 2 - Corrective Retries:** owns constructing the corrective retry message (invalid response +
-  parser diagnostics) for malformed/schema-invalid structured-batch responses.
 - **Phase 3 - Mandatory OpenAI Prompt Caching:** always-on `prompt_cache_key`/`prompt_cache_retention`
   for the built-in OpenAI provider.
 - **Phase 4 - Selective XML Prompt Structure:** XML tags for long/ambiguous prompt sections only, on top
   of the Phase 1 envelope contract.
+
+### Corrective Retries ✅ Implemented
+
+For `responseFormat: "structured-batch"` features, `executeFeature`
+(`client/src/lib/ai/core/aiFeatureService.ts`) retries a failed attempt in place of surfacing it,
+subject to a shared retry budget. The decision is made per attempt:
+
+| Origin | Condition | Retry? | Corrective message? |
+| --- | --- | --- | --- |
+| Parser | Envelope malformed/schema-invalid (`errorSource: "parser"`) | Yes, up to `parseRetryCount` | Yes |
+| Model | `status: "error"` with `retryable: true` per the error-code table above | Yes, up to `parseRetryCount` | No |
+| Provider | Provider/network failure with `retryable: true` per `isRetryableAIError` | Yes, up to `parseRetryCount` | No |
+| Any origin | `retryable: false`, or `status: "ok"`/`"empty"` | Never | - |
+
+The retry budget (`settings.parseRetryCount`, default 3) is **shared across all three causes** - it is
+not a separate allowance per origin. An attempt sequence can mix a parser retry, then a model retry,
+then a provider retry, and all three count against the same `maxRetries` ceiling.
+
+Only parser-failure retries send a **corrective message**, built by
+`client/src/lib/ai/core/correctiveRetry.ts`. It appends two messages to the original conversation
+prefix: the model's invalid response (as an `assistant` turn) and a repair instruction (as a `user`
+turn) naming the parser failure `code`, its message, and per-field diagnostics (path, message, and
+expected value where available) - without leaking parser implementation details. Model and provider
+retries resend the original message prefix unchanged, with no corrective content appended.
+
+`RetryAttemptInfo` (passed to `options.onRetry`) carries two new fields describing the retry that just
+happened:
+
+- `retryCategory?: "parser" | "model" | "provider"` - which layer triggered this retry.
+- `corrective?: boolean` - whether a corrective message was appended (`true` only when
+  `retryCategory === "parser"`).
+
+Both fields are additive and optional. Existing `onRetry` consumers (segment merge, chapter detection)
+need no changes: they only read `attempt`, `errorMessage`, and `attemptDurationMs`, which are unchanged.
 
 ### Prompt System ✅ Implemented
 
