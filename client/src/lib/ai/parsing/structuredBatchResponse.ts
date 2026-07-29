@@ -94,8 +94,8 @@ export function parseStructuredBatchResponse<TItem>(
   try {
     extracted = extractJSON(input);
   } catch (rawError) {
-    if (rawError instanceof ParseError && rawError.code === "EMPTY_RESPONSE") {
-      return failure("EMPTY_RESPONSE", rawError.message);
+    if (rawError instanceof ParseError) {
+      return failure(rawError.code, rawError.message);
     }
     const message = rawError instanceof Error ? rawError.message : String(rawError);
     return failure("INVALID_JSON", message);

@@ -95,21 +95,21 @@ describe("parseStructuredBatchResponse", () => {
     expect(result.error.code).toBe("EMPTY_RESPONSE");
   });
 
-  it("returns INVALID_JSON for malformed JSON", () => {
+  it("preserves the extraction error's own code for prose-only input (no JSON at all)", () => {
     const result = parseStructuredBatchResponse<TestItem>("this is not json at all", dataSchema);
 
     expect(result.success).toBe(false);
     if (result.success) throw new Error("expected failure");
-    expect(result.error.code).toBe("INVALID_JSON");
+    expect(result.error.code).toBe("NO_JSON_FOUND");
   });
 
-  it("returns INVALID_JSON for truncated JSON", () => {
+  it("preserves the extraction error's own code for truncated JSON", () => {
     const input = '{"status": "ok", "retryable": false, "data": [{"id": "1"';
     const result = parseStructuredBatchResponse<TestItem>(input, dataSchema);
 
     expect(result.success).toBe(false);
     if (result.success) throw new Error("expected failure");
-    expect(result.error.code).toBe("INVALID_JSON");
+    expect(result.error.code).toBe("NO_JSON_FOUND");
   });
 
   it("rejects an unknown status", () => {

@@ -28,7 +28,11 @@ import {
   isRetryableAIError,
   toAIError,
 } from "./errors";
-import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
+import {
+  type ProviderResolveOptions,
+  type ResolvedProvider,
+  resolveProvider,
+} from "./providerResolver";
 import type {
   AIBatchResult,
   AIFeatureOptions,
@@ -87,7 +91,25 @@ export async function executeFeature<TOutput>(
     model: options.model,
   };
 
-  const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
+  let providerConfig: ResolvedProvider["config"];
+  let provider: ResolvedProvider["service"];
+  try {
+    ({ config: providerConfig, service: provider } = await resolveProvider(resolveOptions));
+  } catch (error) {
+    if (config.responseFormat !== "structured-batch") {
+      throw error;
+    }
+    const aiError = toAIError(error);
+    return {
+      success: false,
+      status: "error",
+      retryable: isRetryableAIError(aiError),
+      errorSource: "provider",
+      error: aiError.toUserMessage(),
+      errorCode: aiError.code,
+      metadata: buildMetadata(featureId, { id: "unknown", model: "unknown" }, startTime),
+    };
+  }
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -378,8 +400,13 @@ export async function executeFeature<TOutput>(
       // Handle cancellation - don't retry
       if (isCancellationError(error)) {
         const cancelError = new AICancellationError();
+        const structuredCancellationFields: Partial<AIFeatureResult<TOutput>> =
+          config.responseFormat === "structured-batch"
+            ? { status: "error", retryable: false, errorSource: "provider" }
+            : {};
         return {
           success: false,
+          ...structuredCancellationFields,
           error: cancelError.toUserMessage(),
           errorCode: cancelError.code,
           metadata: buildMetadata(featureId, providerConfig, startTime),

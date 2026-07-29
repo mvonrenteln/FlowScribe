@@ -13,6 +13,7 @@ import {
   getFeatureOrThrow,
   registerFeature,
 } from "../core/featureRegistry";
+import { resolveProvider } from "../core/providerResolver";
 import type { AIFeatureConfig, RetryAttemptInfo } from "../core/types";
 import { compileTemplate } from "../prompts/promptBuilder";
 
@@ -343,6 +344,49 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(result.success).toBe(false);
     expect(result.errorSource).toBe("provider");
     expect(result.retryable).toBe(false);
+  });
+
+  it("6c) returns a structured error result when provider resolution fails", async () => {
+    vi.mocked(resolveProvider).mockRejectedValueOnce(new Error("No provider configured"));
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.status).toBe("error");
+    expect(result.errorSource).toBe("provider");
+    expect(result.retryable).toBe(false);
+  });
+
+  it("6d) leaves legacy provider-resolution failures throwing (no behavior change)", async () => {
+    vi.mocked(resolveProvider).mockRejectedValueOnce(new Error("No provider configured"));
+
+    await expect(executeFeature("text-revision", { text: "hi" })).rejects.toThrow(
+      "No provider configured",
+    );
+  });
+
+  it("9) includes structured cancellation fields for a structured-batch config", async () => {
+    chatQueue.push(new Error("cancelled"));
+
+    const result = await executeFeature("chapter-metadata", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe("CANCELLED");
+    expect(result.status).toBe("error");
+    expect(result.errorSource).toBe("provider");
+    expect(result.retryable).toBe(false);
+  });
+
+  it("9b) leaves the legacy cancellation result shape untouched", async () => {
+    chatQueue.push(new Error("cancelled"));
+
+    const result = await executeFeature("text-revision", { text: "hi" });
+
+    expect(result.success).toBe(false);
+    expect(result.errorCode).toBe("CANCELLED");
+    expect(result.status).toBeUndefined();
+    expect(result.retryable).toBeUndefined();
+    expect(result.errorSource).toBeUndefined();
   });
 
   it("guards against a structured-batch feature misconfigured without a responseSchema", async () => {

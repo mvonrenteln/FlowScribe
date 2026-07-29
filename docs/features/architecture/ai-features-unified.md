@@ -817,7 +817,7 @@ retries this like any other parse failure up to `parseRetryCount`, but on exhaus
 parser failure (`errorSource: "parser"`, `retryable: true`) - it does **not** fall back to
 `tryLenientRecovery`. Legacy (non-structured-batch) features are the only ones that use lenient recovery.
 
-`AIFeatureResult` exposes three fields specific to structured-batch features so callers can distinguish
+`AIFeatureResult` exposes four fields specific to structured-batch features so callers can distinguish
 outcomes without inferring meaning from array length or error strings:
 
 - `status?: "ok" | "empty" | "error"`
@@ -828,6 +828,8 @@ outcomes without inferring meaning from array length or error strings:
     derived from `isRetryableAIError` (see the provider retryability table below).
   - `"parser"`: the response could not be parsed/validated as a structured-batch envelope after all
     retries; always `retryable: true`.
+- `parserFailure?: StructuredBatchParserFailure` - present when `errorSource === "parser"`; carries the
+  parser failure `code`, `message`, and validation `diagnostics` for the exhausted parse attempt.
 
 **Provider retryability** (`isRetryableAIError` in `client/src/lib/ai/core/errors.ts`) - only consulted
 for `errorSource: "provider"` failures:
@@ -1625,14 +1627,20 @@ User: Analyze these consecutive segments:
 Segment {{index}}: [{{speaker}}] "{{text}}" ({{start}} - {{end}})
 {{/each}}
 
-Return JSON array of merge suggestions with format:
-[
-  {
-    "segmentIds": ["seg_1", "seg_2"],
-    "confidence": "high|medium|low",
-    "reason": "explanation"
-  }
-]
+Respond with the structured-batch envelope (see "Structured Batch Outcomes" above), with each merge
+suggestion under `data`:
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "segmentIds": [1, 2],
+      "confidence": 0.95,
+      "reason": "Incomplete sentence continues in next segment"
+    }
+  ],
+  "error": null
+}
 ```
 
 **Chapter Detection:**
@@ -1647,16 +1655,22 @@ Granularity: {{granularity}}
 
 {{transcriptText}}
 
-Return JSON with chapters array:
-[
-  {
-    "startTime": 0.0,
-    "endTime": 180.5,
-    "title": "Introduction",
-    "summary": "...",
-    "keyPoints": ["...", "..."]
-  }
-]
+Respond with the structured-batch envelope (see "Structured Batch Outcomes" above), with each chapter
+under `data` as a flat item (`start`/`end` are segment IDs, not timestamps):
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "title": "Introduction",
+      "summary": "The speaker welcomes attendees and outlines the agenda.",
+      "tags": ["intro"],
+      "start": 1,
+      "end": 3
+    }
+  ],
+  "error": null
+}
 ```
 
 ---
