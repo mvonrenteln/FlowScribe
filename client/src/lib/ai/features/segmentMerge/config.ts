@@ -55,7 +55,9 @@ DO NOT SUGGEST MERGE WHEN:
 
 OUTPUT FORMAT
 -------------
-Return a JSON array of merge suggestions. Each suggestion MUST have this EXACT format:
+Return ONLY valid JSON, wrapped in one of the three envelopes below.
+
+Each suggestion inside "data" MUST have this EXACT format:
 
 {
   "segmentIds": [number, number],  // Array with the two segment IDs from brackets, e.g. [1, 2]
@@ -73,23 +75,56 @@ CRITICAL: Use ONLY the format shown below. Do NOT use any other format like:
 - ❌ segmentA/segmentB objects
 - ❌ Any other fields or structures
 
-Example output:
-[
-  {
-    "segmentIds": [1, 2],
-    "confidence": 0.95,
-    "reason": "Incomplete sentence continues in next segment",
-    "smoothedText": "So what we're trying to achieve here is better performance.",
-    "smoothingChanges": "Removed incorrect period, fixed capitalization"
-  },
-  {
-    "segmentIds": [3, 4],
-    "confidence": 0.85,
-    "reason": "Short pause between related phrases"
-  }
-]
+If you produced merge suggestions for at least one pair:
 
-If no merges are suggested, return an empty array: []`;
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "segmentIds": [1, 2],
+      "confidence": 0.95,
+      "reason": "Incomplete sentence continues in next segment",
+      "smoothedText": "So what we're trying to achieve here is better performance.",
+      "smoothingChanges": "Removed incorrect period, fixed capitalization"
+    },
+    {
+      "segmentIds": [3, 4],
+      "confidence": 0.85,
+      "reason": "Short pause between related phrases"
+    }
+  ],
+  "error": null
+}
+
+If no merges are suggested:
+
+{
+  "status": "empty",
+  "retryable": false,
+  "data": [],
+  "error": null
+}
+
+If you cannot produce any suggestions:
+
+{
+  "status": "error",
+  "retryable": true,
+  "data": [],
+  "error": { "code": "TEMPORARY_FAILURE", "message": "<brief reason>" }
+}
+
+"error.code" MUST be one of exactly these six values:
+- MISSING_REQUIRED_INPUT (not retryable): required input (segments) is missing
+- INVALID_INPUT_SHAPE (not retryable): the input segments could not be understood
+- CONTRADICTORY_INPUT (not retryable): the segments are contradictory
+- UNSUPPORTED_TASK (not retryable): the requested merge analysis cannot be performed
+- OUTPUT_TRUNCATED (retryable): the response would exceed the output limit
+- TEMPORARY_FAILURE (retryable): a transient failure prevented analysis
+
+IMPORTANT:
+- Only JSON, NO additional text.`;
 
 // ==================== User Prompt Template ====================
 
@@ -117,7 +152,7 @@ When suggesting a merge, provide a "smoothedText" that:
 Include "smoothingChanges" explaining what was changed.
 {{/if}}
 
-Return your merge suggestions as a JSON array.`;
+Respond with ONLY the JSON envelope as specified.`;
 
 // ==================== User Prompt Template (Simple) ====================
 
@@ -144,7 +179,7 @@ SMOOTHING INSTRUCTIONS:
 Include "smoothedText" and "smoothingChanges" for each accepted merge.
 {{/if}}
 
-Return merge suggestions as a JSON array with segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
+Respond with ONLY the JSON envelope, with each suggestion holding segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
 
 // ==================== Response Schema ====================
 
@@ -194,6 +229,7 @@ export const segmentMergeConfig: AIFeatureConfig = {
   availablePlaceholders: ["segments", "maxTimeGap", "enableSmoothing"],
 
   responseSchema: mergeResponseSchema,
+  responseFormat: "structured-batch",
 };
 
 // ==================== Prompt Variants ====================

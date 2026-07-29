@@ -27,6 +27,36 @@ describe("segmentMergeConfig - structural checks", () => {
     expect(segmentMergeConfig.responseSchema).toBeDefined();
     expect(segmentMergeConfig.availablePlaceholders).toContain("segments");
   });
+
+  it("uses the structured-batch response format", () => {
+    expect(segmentMergeConfig.responseFormat).toBe("structured-batch");
+  });
+
+  it("documents concrete ok, empty, and error envelopes and all six model error codes", () => {
+    const prompt = segmentMergeConfig.systemPrompt;
+
+    expect(prompt).toContain('"status": "ok"');
+    expect(prompt).toContain('"status": "empty"');
+    expect(prompt).toContain('"status": "error"');
+
+    for (const code of [
+      "MISSING_REQUIRED_INPUT",
+      "INVALID_INPUT_SHAPE",
+      "CONTRADICTORY_INPUT",
+      "UNSUPPORTED_TASK",
+      "OUTPUT_TRUNCATED",
+      "TEMPORARY_FAILURE",
+    ]) {
+      expect(prompt).toContain(code);
+    }
+  });
+
+  it("instructs no-merge results via the empty envelope, not a raw top-level array", () => {
+    const prompt = segmentMergeConfig.systemPrompt;
+
+    expect(prompt).not.toContain("return an empty array: []");
+    expect(prompt).not.toContain("Return a JSON array of merge suggestions");
+  });
 });
 
 describe("prompt helper functions", () => {
