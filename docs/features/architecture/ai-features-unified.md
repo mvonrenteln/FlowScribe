@@ -1,7 +1,7 @@
 # AI Features: Unified Architecture & Implementation Guide
 
-*Last Updated: February 5, 2026*
-*Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Refactoring Complete ✅*
+*Last Updated: July 31, 2026*
+*Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Phase 3 Complete ✅ - Refactoring Complete ✅*
 
 ---
 
@@ -844,16 +844,15 @@ for `errorSource: "provider"` failures:
 | `REQUEST_ERROR` | Yes, only if `details.statusCode` is 408 or 429 | Other 4xx statuses are not retryable |
 | `AUTH_ERROR` | No | Authentication failure |
 | `CONFIGURATION_ERROR` | No | Missing/invalid local configuration |
+| `UNSUPPORTED_ENVIRONMENT_ERROR` | No | Required browser capability (Web Crypto) unavailable in the current context |
 | `CANCELLED` | No | User cancellation |
 | Any other/unclassified code | No | Treated conservatively as non-retryable |
 
-**Current scope (Phase 1 + Phase 2 of the batch AI reliability design,** see
+**Current scope (Phase 1 + Phase 2 + Phase 3 of the batch AI reliability design,** see
 `docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** Phase 1 exposes the envelope,
-`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries) is now
-implemented and described below. Not yet implemented:
+`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries) and Phase 3
+(Mandatory OpenAI Prompt Caching) are now implemented and described below. Not yet implemented:
 
-- **Phase 3 - Mandatory OpenAI Prompt Caching:** always-on `prompt_cache_key`/`prompt_cache_retention`
-  for the built-in OpenAI provider.
 - **Phase 4 - Selective XML Prompt Structure:** XML tags for long/ambiguous prompt sections only, on top
   of the Phase 1 envelope contract.
 
@@ -960,9 +959,21 @@ appended. This maintains cache coherence across retries without fragmenting the 
 
 - This is **provider-side prefix caching**, not response caching or client-side result storage.
 - No settings, UI toggles, translations, or telemetry were added.
-- Cached-token telemetry (via the OpenAI API's `usage.cache_read_input_tokens` field) is
-  intentionally omitted under YAGNI; callers may inspect it directly if needed.
+- Cached-token telemetry (the OpenAI API's `usage.prompt_tokens_details.cached_tokens` field) is
+  intentionally omitted under YAGNI; `OpenAIProvider.chat` only maps `prompt_tokens`,
+  `completion_tokens`, and `total_tokens` into `ChatResponse.usage`, so this field is never
+  surfaced to callers today.
 - No response cache interface or Responses API integration.
+- A custom system-prompt override (`options.customPrompt?.systemPrompt`) that itself contains
+  per-batch runtime values will fragment the provider-side cache across batches. This only affects
+  cache efficiency, not correctness — it is a documented cost/efficiency tradeoff, not a bug.
+- **Web Crypto unavailable (non-secure context):** if `globalThis.crypto.subtle` is not available
+  (for example, this self-hostable app served over plain HTTP on a LAN instead of HTTPS/localhost),
+  `OpenAIProvider.chat` fails fast with a non-retryable `AIProviderUnsupportedEnvironmentError`
+  (mapped to `AIUnsupportedEnvironmentError` / `UNSUPPORTED_ENVIRONMENT_ERROR`) instead of silently
+  sending an uncached request or being misclassified as a transient `CONNECTION_ERROR`. Since
+  caching is mandatory and all-or-nothing for built-in OpenAI providers, this is the only correct
+  behavior in that environment; serving the app over HTTPS or localhost resolves it.
 
 **Direct `OpenAIProvider.chat` Calls:**
 
@@ -1579,13 +1590,19 @@ transcript editor. Fix spelling, grammar, remove fillers, improve clarity.`;
 
 ### State Management
 
+> **Speculative sketch, not implemented:** the interface below is an original pre-Phase-1 design
+> sketch and was never built. No client-side AI result cache/store exists in the current
+> implementation; results are held only transiently in component/hook state. Do not confuse this
+> with Phase 3's provider-side OpenAI prompt caching (see "Mandatory OpenAI Prompt Caching" above),
+> which is unrelated and does not cache results at all.
+
 ```typescript
-// Zustand store for AI features
+// Zustand store for AI features (speculative sketch, not implemented)
 interface AIFeatureStore {
   // Active operations
   activeOperations: Map<string, AIOperation>;
   
-  // Results cache
+  // In-memory results, held only for the current session (not a caching layer)
   results: Map<string, AIFeatureResult<any>>;
   
   // Settings
@@ -1599,9 +1616,9 @@ interface AIFeatureStore {
   cancelOperation: (id: string) => void;
   
   // Results
-  cacheResult: (key: string, result: any) => void;
-  getResult: (key: string) => any | null;
-  clearResult: (key: string) => void;
+  storeResult: (key: string, result: any) => void;
+  getStoredResult: (key: string) => any | null;
+  clearStoredResult: (key: string) => void;
 }
 ```
 
@@ -1636,7 +1653,7 @@ interface AIFeatureStore {
    └─> Return typed MergeSuggestion[]
 
 6. AIFeatureService
-   └─> Cache result
+   └─> Return result
    └─> Return to UI component
 
 7. UI Component
@@ -1946,6 +1963,11 @@ only a message, that message is stored as the response payload so it is visible 
 4. **User can choose provider** (local Ollama for privacy)
 
 ### Settings
+
+> **Speculative sketch, not implemented:** no such `PrivacySettings` interface, result cache, or
+> cache-expiry setting exists in the codebase. Actual caching behavior is limited to Phase 3's
+> mandatory, settings-free, provider-side OpenAI prompt cache (see "Mandatory OpenAI Prompt
+> Caching" above), which stores no results and has no expiry configuration.
 
 ```typescript
 interface PrivacySettings {
