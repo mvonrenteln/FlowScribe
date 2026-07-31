@@ -897,9 +897,9 @@ need no changes: they only read `attempt`, `errorMessage`, and `attemptDurationM
 ### Provider Retry-After Timing ✅ Implemented
 
 Retryable provider failures (network, connection, 5xx, rate limit) automatically wait for the
-provider's `Retry-After` timing before the next attempt. The wait is **abortable** — if the
-operation is cancelled via `AbortSignal`, the function returns `CANCELLED` immediately without
-sending another request.
+provider's `Retry-After` timing before the next attempt, when one was supplied. The wait is
+**abortable** — if the operation is cancelled via `AbortSignal`, the function returns `CANCELLED`
+immediately without sending another request.
 
 **Timing normalization:**
 

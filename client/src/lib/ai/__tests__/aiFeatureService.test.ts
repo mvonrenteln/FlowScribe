@@ -640,12 +640,17 @@ describe("executeFeature - structured-batch response contract", () => {
       vi.useRealTimers();
     });
 
-    it("21) waits the provider-supplied retryAfter (in ms) before sending the next request on RATE_LIMIT", async () => {
+    it("21) waits the provider-supplied retryAfter (in ms) before sending the next request on RATE_LIMIT, and reports a duration unaffected by the wait", async () => {
       settingsOverrides.parseRetryCount = 1;
       chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 2));
       chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
 
-      const resultPromise = executeFeature("chapter-metadata", { text: "hi" });
+      const retryInfos: RetryAttemptInfo[] = [];
+      const resultPromise = executeFeature(
+        "chapter-metadata",
+        { text: "hi" },
+        { onRetry: (info) => retryInfos.push(info) },
+      );
 
       await vi.advanceTimersByTimeAsync(1_999);
       expect(chatCallCount.count).toBe(1);
@@ -655,6 +660,11 @@ describe("executeFeature - structured-batch response contract", () => {
 
       const result = await resultPromise;
       expect(result.success).toBe(true);
+
+      // The reported attempt duration must reflect only the failed attempt
+      // itself, not the ~2000ms retry-after wait that follows it.
+      expect(retryInfos).toHaveLength(1);
+      expect(retryInfos[0].attemptDurationMs).toBeLessThan(1_000);
     });
 
     it("22) caps an oversized retryAfter at 30,000ms", async () => {
@@ -765,13 +775,12 @@ describe("executeFeature - structured-batch response contract", () => {
       expect(vi.getTimerCount()).toBe(0);
     });
 
-    it("27) removes its listener and leaves no dangling timer when aborted mid-wait", async () => {
+    it("27) leaves no dangling timer and makes no further provider call when aborted mid-wait", async () => {
       settingsOverrides.parseRetryCount = 1;
       chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 5));
       chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
 
       const controller = new AbortController();
-      const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
 
       const resultPromise = executeFeature(
         "chapter-metadata",
@@ -784,11 +793,36 @@ describe("executeFeature - structured-batch response contract", () => {
       await vi.advanceTimersByTimeAsync(0);
       await resultPromise;
 
-      // The abort listener is registered with { once: true }, so the browser
-      // removes it automatically on firing; the wait itself has no
-      // explicit removeEventListener call on the abort path.
       expect(vi.getTimerCount()).toBe(0);
-      expect(removeSpy).not.toHaveBeenCalled();
+      expect(chatCallCount.count).toBe(1);
+    });
+
+    it.each([
+      ["an undefined retryAfter", undefined, 0],
+      ["a NaN retryAfter", Number.NaN, 0],
+      ["a non-finite (Infinity) retryAfter", Number.POSITIVE_INFINITY, 0],
+      ["a negative retryAfter", -5, 0],
+      ["a zero retryAfter", 0, 0],
+      ["a small retryAfter", 2, 2_000],
+      ["an oversized retryAfter", 999, 30_000],
+    ])("28) computes the retry delay for %s as %ims", async (_label, retryAfter, expectedDelayMs) => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", retryAfter));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const resultPromise = executeFeature("chapter-metadata", { text: "hi" });
+
+      if (expectedDelayMs > 0) {
+        await vi.advanceTimersByTimeAsync(expectedDelayMs - 1);
+        expect(chatCallCount.count).toBe(1);
+        await vi.advanceTimersByTimeAsync(1);
+      } else {
+        await vi.advanceTimersByTimeAsync(0);
+      }
+      expect(chatCallCount.count).toBe(2);
+
+      const result = await resultPromise;
+      expect(result.success).toBe(true);
     });
   });
 });

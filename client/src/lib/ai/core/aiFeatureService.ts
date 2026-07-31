@@ -426,18 +426,12 @@ export async function executeFeature<TOutput>(
     } catch (error) {
       // Handle cancellation - don't retry
       if (isCancellationError(error)) {
-        const cancelError = new AICancellationError();
-        const structuredCancellationFields: Partial<AIFeatureResult<TOutput>> =
-          config.responseFormat === "structured-batch"
-            ? { status: "error", retryable: false, errorSource: "provider" }
-            : {};
-        return {
-          success: false,
-          ...structuredCancellationFields,
-          error: cancelError.toUserMessage(),
-          errorCode: cancelError.code,
-          metadata: buildMetadata(featureId, providerConfig, startTime),
-        };
+        return buildCancellationResult<TOutput>(
+          featureId,
+          providerConfig,
+          startTime,
+          config.responseFormat === "structured-batch",
+        );
       }
 
       // Connection/network errors - don't retry (only retry parse failures)
@@ -448,20 +442,14 @@ export async function executeFeature<TOutput>(
         isRetryableAIError(aiError) &&
         attempt <= maxRetries
       ) {
+        // Capture the attempt duration now, before the retry-after wait below,
+        // so a multi-second wait never gets folded into the reported duration.
+        const attemptDurationMs = Date.now() - attemptStartTime;
         const delayMs = getProviderRetryDelayMs(aiError);
         await waitForRetryDelay(delayMs, options.signal);
 
         if (options.signal?.aborted) {
-          const cancelError = new AICancellationError();
-          return {
-            success: false,
-            status: "error",
-            retryable: false,
-            errorSource: "provider",
-            error: cancelError.toUserMessage(),
-            errorCode: cancelError.code,
-            metadata: buildMetadata(featureId, providerConfig, startTime),
-          };
+          return buildCancellationResult<TOutput>(featureId, providerConfig, startTime, true);
         }
 
         logger.warn("Structured batch provider failure, retrying.", {
@@ -476,7 +464,7 @@ export async function executeFeature<TOutput>(
             attempt,
             maxAttempts: maxRetries + 1,
             errorMessage: aiError.toUserMessage(),
-            attemptDurationMs: Date.now() - attemptStartTime,
+            attemptDurationMs,
             retryCategory: "provider",
             corrective: false,
           };
@@ -523,6 +511,37 @@ export async function executeFeature<TOutput>(
     error: new AIParseError(lastParseError ?? "Unknown error after retries").toUserMessage(),
     errorCode: "PARSE_ERROR",
     rawResponse: lastRawResponse,
+    metadata: buildMetadata(featureId, providerConfig, startTime),
+  };
+}
+
+/**
+ * Build the shared cancellation result shape for a cancelled feature
+ * execution. Used both when the provider request itself is cancelled and
+ * when a pending structured-batch provider retry is cancelled during its
+ * retry-after wait, so the two stay in lockstep if the shape ever changes.
+ *
+ * @param featureId - ID of the feature being executed.
+ * @param providerConfig - Resolved provider configuration for metadata.
+ * @param startTime - Execution start time (ms) for duration metadata.
+ * @param structured - Whether to include the structured-batch result fields
+ *   (`status`, `retryable`, `errorSource`); legacy features omit them.
+ */
+function buildCancellationResult<TOutput>(
+  featureId: AIFeatureType,
+  providerConfig: ResolvedProvider["config"],
+  startTime: number,
+  structured: boolean,
+): AIFeatureResult<TOutput> {
+  const cancelError = new AICancellationError();
+  const structuredCancellationFields: Partial<AIFeatureResult<TOutput>> = structured
+    ? { status: "error", retryable: false, errorSource: "provider" }
+    : {};
+  return {
+    success: false,
+    ...structuredCancellationFields,
+    error: cancelError.toUserMessage(),
+    errorCode: cancelError.code,
     metadata: buildMetadata(featureId, providerConfig, startTime),
   };
 }
