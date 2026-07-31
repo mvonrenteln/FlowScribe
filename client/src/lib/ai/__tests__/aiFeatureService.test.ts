@@ -17,7 +17,11 @@ import { resolveProvider } from "../core/providerResolver";
 import type { AIFeatureConfig, RetryAttemptInfo } from "../core/types";
 import { compileTemplate } from "../prompts/promptBuilder";
 import type { ChatMessage } from "../providers/types";
-import { AIProviderAuthError } from "../providers/types";
+import {
+  AIProviderAuthError,
+  AIProviderConnectionError,
+  AIProviderRateLimitError,
+} from "../providers/types";
 
 // ==================== Structured-batch execution mocks ====================
 
@@ -625,5 +629,166 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(result.retryable).toBe(true);
     expect(chatCallsMessages).toHaveLength(3);
     expect(chatCallsMessages[2]).toEqual(chatCallsMessages[1]);
+  });
+
+  describe("provider retry-after backoff", () => {
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    it("21) waits the provider-supplied retryAfter (in ms) before sending the next request on RATE_LIMIT", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 2));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const resultPromise = executeFeature("chapter-metadata", { text: "hi" });
+
+      await vi.advanceTimersByTimeAsync(1_999);
+      expect(chatCallCount.count).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(chatCallCount.count).toBe(2);
+
+      const result = await resultPromise;
+      expect(result.success).toBe(true);
+    });
+
+    it("22) caps an oversized retryAfter at 30,000ms", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 999));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const resultPromise = executeFeature("chapter-metadata", { text: "hi" });
+
+      await vi.advanceTimersByTimeAsync(29_999);
+      expect(chatCallCount.count).toBe(1);
+
+      await vi.advanceTimersByTimeAsync(1);
+      expect(chatCallCount.count).toBe(2);
+
+      const result = await resultPromise;
+      expect(result.success).toBe(true);
+    });
+
+    it("23) retries a retryable provider failure without retryAfter (connection/provider/408) with 0ms delay", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderConnectionError("Request failed", "openai", 408));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const resultPromise = executeFeature("chapter-metadata", { text: "hi" });
+
+      // No timers need to advance: a missing retryAfter must not delay the retry.
+      await vi.advanceTimersByTimeAsync(0);
+      expect(chatCallCount.count).toBe(2);
+
+      const result = await resultPromise;
+      expect(result.success).toBe(true);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("24) cancelling during the retry-after wait returns CANCELLED without another provider call or onRetry", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 2));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const controller = new AbortController();
+      const retryInfos: RetryAttemptInfo[] = [];
+      const resultPromise = executeFeature(
+        "chapter-metadata",
+        { text: "hi" },
+        { signal: controller.signal, onRetry: (info) => retryInfos.push(info) },
+      );
+
+      await vi.advanceTimersByTimeAsync(500);
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(0);
+
+      const result = await resultPromise;
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe("CANCELLED");
+      expect(result.retryable).toBe(false);
+      expect(chatCallCount.count).toBe(1);
+      expect(retryInfos).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("25) an already-aborted signal behaves the same as cancelling mid-wait", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 2));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const controller = new AbortController();
+      controller.abort();
+      const retryInfos: RetryAttemptInfo[] = [];
+
+      const result = await executeFeature(
+        "chapter-metadata",
+        { text: "hi" },
+        { signal: controller.signal, onRetry: (info) => retryInfos.push(info) },
+      );
+
+      expect(result.success).toBe(false);
+      expect(result.errorCode).toBe("CANCELLED");
+      expect(result.retryable).toBe(false);
+      expect(chatCallCount.count).toBe(1);
+      expect(retryInfos).toHaveLength(0);
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("26) removes its abort listener and clears its timer once the wait resolves normally", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 1));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const controller = new AbortController();
+      // Only `waitForRetryDelay`'s own abort listener is ever explicitly removed;
+      // the unrelated request-abort forwarding listener registered per attempt
+      // relies on its own `{ once: true }` firing and is never removed directly.
+      const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+      const resultPromise = executeFeature(
+        "chapter-metadata",
+        { text: "hi" },
+        { signal: controller.signal },
+      );
+
+      await vi.advanceTimersByTimeAsync(1_000);
+      const result = await resultPromise;
+
+      expect(result.success).toBe(true);
+      expect(removeSpy).toHaveBeenCalledTimes(1);
+      expect(removeSpy).toHaveBeenCalledWith("abort", expect.any(Function));
+      expect(vi.getTimerCount()).toBe(0);
+    });
+
+    it("27) removes its listener and leaves no dangling timer when aborted mid-wait", async () => {
+      settingsOverrides.parseRetryCount = 1;
+      chatQueue.push(new AIProviderRateLimitError("Rate limited", "openai", 5));
+      chatQueue.push({ content: okEnvelope([{ tag: "x" }]) });
+
+      const controller = new AbortController();
+      const removeSpy = vi.spyOn(controller.signal, "removeEventListener");
+
+      const resultPromise = executeFeature(
+        "chapter-metadata",
+        { text: "hi" },
+        { signal: controller.signal },
+      );
+
+      await vi.advanceTimersByTimeAsync(500);
+      controller.abort();
+      await vi.advanceTimersByTimeAsync(0);
+      await resultPromise;
+
+      // The abort listener is registered with { once: true }, so the browser
+      // removes it automatically on firing; the wait itself has no
+      // explicit removeEventListener call on the abort path.
+      expect(vi.getTimerCount()).toBe(0);
+      expect(removeSpy).not.toHaveBeenCalled();
+    });
   });
 });

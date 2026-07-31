@@ -24,6 +24,7 @@ import { buildCorrectiveRetryMessages } from "./correctiveRetry";
 import {
   AICancellationError,
   AIConfigurationError,
+  type AIError,
   AIParseError,
   isCancellationError,
   isRetryableAIError,
@@ -447,10 +448,27 @@ export async function executeFeature<TOutput>(
         isRetryableAIError(aiError) &&
         attempt <= maxRetries
       ) {
+        const delayMs = getProviderRetryDelayMs(aiError);
+        await waitForRetryDelay(delayMs, options.signal);
+
+        if (options.signal?.aborted) {
+          const cancelError = new AICancellationError();
+          return {
+            success: false,
+            status: "error",
+            retryable: false,
+            errorSource: "provider",
+            error: cancelError.toUserMessage(),
+            errorCode: cancelError.code,
+            metadata: buildMetadata(featureId, providerConfig, startTime),
+          };
+        }
+
         logger.warn("Structured batch provider failure, retrying.", {
           attempt,
           maxAttempts: maxRetries + 1,
           errorCode: aiError.code,
+          delayMs,
         });
 
         if (options.onRetry) {
@@ -507,6 +525,55 @@ export async function executeFeature<TOutput>(
     rawResponse: lastRawResponse,
     metadata: buildMetadata(featureId, providerConfig, startTime),
   };
+}
+
+/**
+ * Upper bound on how long a structured-batch provider retry will wait for,
+ * regardless of what the provider's `Retry-After` timing suggests.
+ */
+const MAX_PROVIDER_RETRY_DELAY_MS = 30_000;
+
+/**
+ * Compute the delay (in milliseconds) to wait before retrying a retryable
+ * provider failure, honoring the provider's normalized `retryAfter` (seconds)
+ * when present. Only `AIRateLimitError` carries `retryAfter`; other
+ * retryable provider errors (connection, provider-unavailable, non-rate-limit
+ * request errors) have no timing and retry immediately (0ms).
+ *
+ * @param error - The normalized AI error from the failed attempt.
+ * @returns Delay in milliseconds, capped at {@link MAX_PROVIDER_RETRY_DELAY_MS}.
+ */
+function getProviderRetryDelayMs(error: AIError): number {
+  const retryAfter = error.details?.retryAfter;
+  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter <= 0) {
+    return 0;
+  }
+  return Math.min(retryAfter * 1000, MAX_PROVIDER_RETRY_DELAY_MS);
+}
+
+/**
+ * Wait for a provider retry delay, abortable via `signal`. Resolves (never
+ * rejects) whether the wait completes normally or is aborted early, and
+ * always clears its timer and removes its own abort listener so no dangling
+ * timer or listener remains after it resolves.
+ *
+ * @param delayMs - Delay to wait, in milliseconds. No-op if `<= 0` or the
+ *   signal is already aborted.
+ * @param signal - Optional abort signal for external cancellation.
+ */
+async function waitForRetryDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (delayMs <= 0 || signal?.aborted) return;
+  await new Promise<void>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**
