@@ -8,7 +8,6 @@
  */
 
 import type { PromptVariables } from "@/lib/ai";
-import { escapeXmlText } from "@/lib/ai/prompts";
 import { getMergeSystemPrompt, getMergeUserTemplate } from "./config";
 import type { MergeAnalysisSegment } from "./types";
 import {
@@ -119,17 +118,13 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
   const finalUserTemplate = userTemplate ?? getMergeUserTemplate(segments.length);
 
   // The default templates place {{segments}} inside an XML-tagged block
-  // (<segments_for_context>); escape reserved XML characters so untrusted
-  // transcript text can't break out of the tag. Custom system-prompt/user-
-  // template overrides are not guaranteed to use XML structure, so their
-  // segments value is passed through unescaped and unchanged.
-  const usesDefaultPrompts = !systemPrompt && !userTemplate;
-  const finalSegments = usesDefaultPrompts ? escapeXmlText(segmentsFormatted) : segmentsFormatted;
-
-  // Build variables
+  // (<segments_for_context>); the tag is a prompt-structuring hint for the
+  // LLM only, not real XML — it is not validated or escaped, so the segments
+  // value is always passed through as-is, whether the prompt is the built-in
+  // default or a custom override.
   const variables: PromptVariables = {
     segmentPairsJson: pairMappingJson,
-    segments: finalSegments,
+    segments: segmentsFormatted,
     maxTimeGap: maxTimeGap.toString(),
     enableSmoothing,
   };

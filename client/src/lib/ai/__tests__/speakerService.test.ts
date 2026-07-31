@@ -15,7 +15,7 @@ import {
 } from "../features/speaker/service";
 import type { BatchSegment } from "../features/speaker/types";
 import { formatSegmentsForPrompt, formatSpeakersForPrompt } from "../features/speaker/utils";
-import { escapeXmlText, extractPlaceholders } from "../prompts";
+import { extractPlaceholders } from "../prompts";
 import type { ChatMessage } from "../providers/types";
 
 /**
@@ -159,7 +159,9 @@ describe("Speaker Service", () => {
 
       expect(firstTagIndex).toBeGreaterThan(0);
       expect(prompt.slice(0, firstTagIndex)).toContain("TASK");
-      expect(prompt.slice(0, firstTagIndex)).not.toContain("<");
+      // No escaped-entity artifacts should appear before the first tag; the
+      // prose itself is free to contain other characters.
+      expect(prompt.slice(0, firstTagIndex)).not.toMatch(/&(amp|lt|gt|quot|apos);/);
     });
 
     it("wraps only the dynamic bodies of the user template in available_speakers and sections_to_classify", () => {
@@ -205,7 +207,7 @@ describe("Speaker Service", () => {
       ).rejects.toThrow("Timeout");
     });
 
-    it("escapes default speaker/segment values exactly once before they reach executeFeature", async () => {
+    it("passes raw, untransformed speaker/segment values to executeFeature with the default prompts", async () => {
       executeFeatureMock.mockResolvedValueOnce({
         success: true,
         data: [],
@@ -222,20 +224,14 @@ describe("Speaker Service", () => {
 
       await classifySpeakers(segments, speakers);
 
-      const expectedSegments = escapeXmlText(formatSegmentsForPrompt(segments));
-      const expectedSpeakers = escapeXmlText(formatSpeakersForPrompt(speakers));
-
       expect(executeFeatureMock).toHaveBeenCalledWith(
         "speaker-classification",
-        { segments: expectedSegments, speakers: expectedSpeakers },
+        {
+          segments: formatSegmentsForPrompt(segments),
+          speakers: formatSpeakersForPrompt(speakers),
+        },
         expect.anything(),
       );
-
-      // Idempotency guard: escaping the already-escaped call arguments again
-      // must not change them, proving they were escaped exactly once.
-      const [, calledVariables] = executeFeatureMock.mock.calls[0];
-      expect(escapeXmlText(calledVariables.segments as string)).toBe(calledVariables.segments);
-      expect(escapeXmlText(calledVariables.speakers as string)).toBe(calledVariables.speakers);
     });
 
     it("passes raw, unescaped values when a custom system prompt is supplied", async () => {

@@ -95,6 +95,42 @@ const structuredFeatures = [
   },
 ] as const;
 
+/**
+ * Extracts the substring between the first balanced `<tag>...</tag>` pair.
+ */
+function extractTaggedBlock(text: string, tag: string): string {
+  const openTag = `<${tag}>`;
+  const closeTag = `</${tag}>`;
+  const openIndex = text.indexOf(openTag);
+  const closeIndex = text.indexOf(closeTag);
+  expect(openIndex).toBeGreaterThanOrEqual(0);
+  expect(closeIndex).toBeGreaterThan(openIndex);
+
+  return text.slice(openIndex + openTag.length, closeIndex);
+}
+
+const MODEL_ERROR_CODES = [
+  "MISSING_REQUIRED_INPUT",
+  "INVALID_INPUT_SHAPE",
+  "CONTRADICTORY_INPUT",
+  "UNSUPPORTED_TASK",
+  "OUTPUT_TRUNCATED",
+  "TEMPORARY_FAILURE",
+];
+
+const PROVIDER_LAYER_TERMS = [
+  "auth",
+  "unauthorized",
+  "network",
+  "rate limit",
+  "rate-limit",
+  "timeout",
+  "timed out",
+  "server error",
+  "5xx",
+  "429",
+];
+
 describe("structured prompt cacheability", () => {
   describe.each(structuredFeatures)("$name", ({
     config,
@@ -129,6 +165,19 @@ describe("structured prompt cacheability", () => {
 
       for (const placeholder of runtimePlaceholders) {
         expect(userPlaceholders).toContain(placeholder);
+      }
+    });
+
+    it("keeps <response_contract> provider-agnostic: only the six model-observable error codes, never provider-layer auth/network/rate-limit/timeout/server concerns", () => {
+      const contractBlock = extractTaggedBlock(defaultSystemPrompt, "response_contract");
+      const lowerCaseBlock = contractBlock.toLowerCase();
+
+      for (const code of MODEL_ERROR_CODES) {
+        expect(contractBlock).toContain(code);
+      }
+
+      for (const term of PROVIDER_LAYER_TERMS) {
+        expect(lowerCaseBlock).not.toContain(term);
       }
     });
   });

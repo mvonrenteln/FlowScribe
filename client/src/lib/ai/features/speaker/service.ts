@@ -22,7 +22,6 @@ import {
   toAIError,
 } from "../../core";
 import { extractJSON } from "../../parsing";
-import { escapeXmlText } from "../../prompts";
 import { speakerClassificationConfig } from "./config";
 import type {
   BatchIssue,
@@ -112,26 +111,20 @@ export async function classifySpeakers(
     return [];
   }
 
-  // Build prompt variables
+  // Build prompt variables. The default prompt places these values inside
+  // XML-tagged blocks (<sections_to_classify>, <available_speakers>), but
+  // those tags are prompt-structuring hints for the LLM only, not real XML —
+  // they are not validated or escaped, so values are always passed through
+  // as-is, whether the prompt is the built-in default or a custom override.
   const segmentsText = formatSegmentsForPrompt(segments);
   const speakersText = formatSpeakersForPrompt(availableSpeakers);
-
-  // Default prompts place these values inside XML-tagged blocks
-  // (<sections_to_classify>, <available_speakers>); escape reserved XML
-  // characters so untrusted transcript/speaker text can't break out of the
-  // tags. Custom prompts are not guaranteed to use XML structure, so their
-  // values are passed through unescaped and unchanged.
-  const usesDefaultPrompts =
-    !options.customPrompt?.systemPrompt && !options.customPrompt?.userPromptTemplate;
-  const escapeIfDefault = (value: string): string =>
-    usesDefaultPrompts ? escapeXmlText(value) : value;
 
   // Execute feature
   const result = await executeFeature<SpeakerSuggestion[]>(
     "speaker-classification",
     {
-      segments: escapeIfDefault(segmentsText),
-      speakers: escapeIfDefault(speakersText),
+      segments: segmentsText,
+      speakers: speakersText,
     },
     options,
   );

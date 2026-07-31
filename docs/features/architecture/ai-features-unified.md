@@ -998,33 +998,25 @@ intentionally left unconverted.
 | Segment merge (`features/segmentMerge/config.ts`) | `<merge_rules>` (merge criteria), `<response_contract>` (outcome section) | `<segments_for_context>` (both template variants), `<smoothing_rules>` (nested inside the existing `{{#if enableSmoothing}}` conditional, both variants) |
 | Chapter detection (`features/chapterDetection/config.ts`) | `<response_contract>` (long response contract only; short TASK/CONSTRAINTS text and batch metadata stay plain) | `<available_tag_ids>`, `<previous_chapter_context>` (nested inside the existing `{{#if previousChapter}}` conditional, so the whole tagged block is omitted on the first batch rather than emitted empty), `<transcript_segments>` |
 
-**Escaping raw dynamic content:**
+**No escaping of dynamic content:**
 
-`escapeXmlText` (`client/src/lib/ai/prompts/promptBuilder.ts`, exported from
-`client/src/lib/ai/prompts/index.ts`) escapes exactly the five named XML entities -
-`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;` - and is idempotent (re-escaping already-escaped text
-does not double-escape it). It does not alter `compileTemplate`, `compilePrompt`, or
-`PromptVariables` - it is a plain string transform applied to values before they are placed into
-prompt variables.
+The XML tags used in these prompts are **not real XML** - they are plain prompt-structuring hints
+that help the model locate a block, not a markup format that is parsed or validated by anything in
+this codebase. Because they carry no parsing semantics, dynamic content placed inside a tagged
+block is inserted exactly like any other template variable: as-is, with no entity escaping and no
+transformation.
 
-Each feature service escapes dynamic values placed into its own tagged default blocks, and **only**
-when the default prompt is in use:
+- `classifySpeakers` (`features/speaker/service.ts`) passes the formatted speaker list and segment
+  text through unchanged, regardless of whether the default or a custom prompt is active.
+- `buildMergePrompt` (`features/segmentMerge/promptBuilder.ts`) passes `variables.segments` through
+  unchanged in all cases.
+- `detectChapters` (`features/chapterDetection/service.ts`) passes `tagsAvailable`, `segments`, and
+  `previousChapter` through unchanged in all cases, including when building the **next** batch's
+  request variables from the previous batch's stored results.
 
-- `classifySpeakers` (`features/speaker/service.ts`) escapes the formatted speaker list and segment
-  text only when neither `customPrompt.systemPrompt` nor `customPrompt.userPromptTemplate` is
-  supplied.
-- `buildMergePrompt` (`features/segmentMerge/promptBuilder.ts`) escapes `variables.segments` only
-  when both `params.systemPrompt` and `params.userTemplate` are absent.
-- `detectChapters` (`features/chapterDetection/service.ts`) escapes `tagsAvailable`, `segments`,
-  and `previousChapter` only when no custom prompt override is active - and escapes
-  `previousChapter` only when building the **next** batch's request variables. Stored chapter
-  results (titles, summaries, callbacks, logs) are never escaped, so downstream consumers always
-  see raw text.
-
-**Custom prompts stay fully raw:** when a caller supplies `customPrompt.systemPrompt` and/or
-`customPrompt.userPromptTemplate`, every dynamic value is passed through unescaped and unchanged -
-never partially escaped. Custom prompts are not guaranteed to use XML structure at all, so
-escaping would be both unnecessary and potentially incorrect for them.
+Custom prompts (`customPrompt.systemPrompt` / `customPrompt.userPromptTemplate`) always received raw
+values and still do - there is no longer a behavioral distinction between the default and
+custom-prompt paths with respect to dynamic content.
 
 **What did not change:** provider code, cache-key derivation, response schemas, result types,
 the structured-batch envelope (`ok`/`empty`/`error`, all six model error codes, and their fixed

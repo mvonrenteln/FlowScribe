@@ -9,7 +9,7 @@
 
 import { executeFeature, runBatchCoordinator, toAIError } from "@/lib/ai/core";
 import type { AIFeatureOptions } from "@/lib/ai/core/types";
-import { compileTemplate, escapeXmlText } from "@/lib/ai/prompts";
+import { compileTemplate } from "@/lib/ai/prompts";
 import type { PromptVariables } from "@/lib/ai/prompts/types";
 import type { Chapter } from "@/types/chapter";
 import { chapterDetectionConfig } from "./config";
@@ -37,10 +37,6 @@ export interface DetectChaptersParams extends AIFeatureOptions {
   minChapterLength: number;
   maxChapterLength: number;
   tagsAvailable: Array<{ id: string; label: string }>;
-  customPrompt?: {
-    systemPrompt?: string;
-    userPromptTemplate?: string;
-  };
   onProgress?: (processedBatches: number, totalBatches: number) => void;
   onBatchLog?: (entry: ChapterDetectionBatchLogEntry) => void;
   onBatchComplete?: (
@@ -150,26 +146,19 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
 
       // The default templates place tagsAvailable, segments, and
       // previousChapter inside XML-tagged blocks (<available_tag_ids>,
-      // <transcript_segments>, <previous_chapter_context>); escape reserved
-      // XML characters so untrusted transcript/tag/title text can't break
-      // out of the tags. Custom system-prompt/user-template overrides are
-      // not guaranteed to use XML structure, so their values are passed
-      // through unescaped and unchanged.
-      const usesDefaultPrompts = !customPrompt?.systemPrompt && !customPrompt?.userPromptTemplate;
-      const escapeIfDefault = (value: string): string =>
-        usesDefaultPrompts ? escapeXmlText(value) : value;
-
+      // <transcript_segments>, <previous_chapter_context>). Those tags are
+      // prompt-structuring hints for the LLM only, not real XML — they are
+      // not validated or escaped, so values are always passed through as-is,
+      // whether the prompt is the built-in default or a custom override.
       const variables: PromptVariables = {
         batchIndex: prepared.batchIndex + 1,
         totalBatches,
         batchSize: prepared.batchSegments.length,
         minChapterLength,
         maxChapterLength,
-        tagsAvailable: escapeIfDefault(formatTagsForPrompt(tagsAvailable)),
-        segments: escapeIfDefault(
-          formatSegmentsForPrompt(prepared.batchSegments, prepared.mapping),
-        ),
-        previousChapter: escapeIfDefault(previousChapterSummaryBlock),
+        tagsAvailable: formatTagsForPrompt(tagsAvailable),
+        segments: formatSegmentsForPrompt(prepared.batchSegments, prepared.mapping),
+        previousChapter: previousChapterSummaryBlock,
       };
 
       const systemPrompt = customPrompt?.systemPrompt ?? chapterDetectionConfig.systemPrompt;
@@ -310,9 +299,7 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
 
       const lastDetected = detected[detected.length - 1];
       previousChapterSummaryBlock = lastDetected
-        ? `PREVIOUS CHAPTER CONTEXT
-------------------------
-Title: ${lastDetected.title}
+        ? `Title: ${lastDetected.title}
 Summary: ${lastDetected.summary ?? "(none)"}
 `
         : "";

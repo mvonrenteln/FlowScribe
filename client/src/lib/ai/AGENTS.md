@@ -26,7 +26,7 @@
 - Custom OpenAI-compatible and Ollama request bodies must not receive OpenAI prompt-cache fields.
 - Structured feature system prompts remain runtime-free; retries preserve their immutable system/user prefix.
 - Use descriptive XML tags only around long or ambiguous default prompt blocks; do not impose a global tag vocabulary or wrap every prompt section.
-- Escape raw dynamic text placed in built-in XML blocks with the shared prompt helper; do not alter global template interpolation or custom prompts.
+- These XML tags are prompt-structuring hints for the LLM only — not real XML, not parsed, not validated. Dynamic content placed inside a tagged block is inserted as-is, the same as any other template variable; do not escape or otherwise transform it, and do not alter global template interpolation.
 - Structured system prompts remain runtime-free, and prompt edits must preserve outcome, retry, and cache-prefix contracts.
 
 ## Work Guidance

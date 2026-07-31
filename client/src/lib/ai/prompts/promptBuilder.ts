@@ -15,34 +15,6 @@
 
 import type { CompiledPrompt, PromptTemplate, PromptVariables } from "./types";
 
-// ==================== XML Text Escaping ====================
-
-/**
- * Escape reserved XML characters (`&`, `<`, `>`, `"`, `'`) in a plain-text
- * value so it can be safely placed inside an XML-tagged prompt block.
- *
- * This is an opt-in helper for XML *text content* only — it does not parse
- * or validate XML, and it is not used by {@link compileTemplate} or
- * {@link compilePrompt}. Callers that build XML-tagged prompt sections must
- * call this explicitly on dynamic values before interpolation.
- *
- * Idempotent: re-applying this function to already-escaped text (containing
- * only the five lowercase named entities `&amp;`, `&lt;`, `&gt;`, `&quot;`,
- * `&apos;`) does not double-escape it, because an ampersand that already
- * starts one of those exact entities is left untouched.
- *
- * @param text - Raw text to escape
- * @returns Text with reserved XML characters replaced by named entities
- */
-export function escapeXmlText(text: string): string {
-  return text
-    .replace(/&(?!amp;|lt;|gt;|quot;|apos;)/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&apos;");
-}
-
 // ==================== Template Compilation ====================
 
 /**

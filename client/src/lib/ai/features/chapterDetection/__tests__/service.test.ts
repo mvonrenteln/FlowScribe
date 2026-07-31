@@ -350,7 +350,7 @@ describe("chapterDetection service", () => {
     expect(logEntry?.fatal).toBe(true);
   });
 
-  it("escapes tagsAvailable, segments, and previousChapter for the default prompt path, and escapes previousChapter only when building the next request (not when stored or reported)", async () => {
+  it("passes tagsAvailable, segments, and previousChapter through as-is for the default prompt path, including across sequential batches", async () => {
     const variablesSeen: PromptVariables[] = [];
     let callIndex = 0;
     executeFeatureMock.mockImplementation((_featureId, variables) => {
@@ -397,23 +397,20 @@ describe("chapterDetection service", () => {
       onBatchComplete,
     });
 
-    // Default-prompt path: tagsAvailable/segments escaped on the first request.
-    expect(variablesSeen[0]?.tagsAvailable).toContain("&amp;");
-    expect(variablesSeen[0]?.tagsAvailable).toContain("&lt;intro&gt;");
+    // Default-prompt path: tagsAvailable/segments reach executeFeature raw.
+    expect(variablesSeen[0]?.tagsAvailable).toBe("- q&a: Q&A <intro>");
     expect(variablesSeen[0]?.previousChapter).toBe("");
 
-    // Numeric metadata is unaffected by escaping.
+    // Numeric metadata is unaffected.
     expect(variablesSeen[0]?.batchIndex).toBe(1);
     expect(variablesSeen[0]?.totalBatches).toBe(2);
     expect(variablesSeen[0]?.batchSize).toBe(1);
 
-    // previousChapter is escaped only when inserted into the *next* default request.
-    expect(variablesSeen[1]?.previousChapter).toContain("A &amp; B &lt;title&gt;");
-    expect(variablesSeen[1]?.previousChapter).toContain("C &lt; D");
-    // Escaped exactly once (no double-escaping of the ampersand entity itself).
-    expect(variablesSeen[1]?.previousChapter).not.toContain("&amp;amp;");
+    // previousChapter is passed through raw when inserted into the next request.
+    expect(variablesSeen[1]?.previousChapter).toContain("A & B <title>");
+    expect(variablesSeen[1]?.previousChapter).toContain("C < D");
 
-    // Stored chapter results and callbacks stay raw/unescaped.
+    // Stored chapter results and callbacks stay raw/unchanged, same as the request.
     expect(result.chapters[0]?.title).toBe("A & B <title>");
     expect(result.chapters[0]?.summary).toBe("C < D");
     expect(onBatchComplete.mock.calls[0]?.[1][0]?.title).toBe("A & B <title>");
