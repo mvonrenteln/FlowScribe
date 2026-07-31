@@ -8,6 +8,7 @@
 export {
   compilePrompt,
   compileTemplate,
+  escapeXmlText,
   extractPlaceholders,
   validateVariables,
 } from "./promptBuilder";

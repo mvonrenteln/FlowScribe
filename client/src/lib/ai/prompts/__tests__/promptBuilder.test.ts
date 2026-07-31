@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { compileTemplate, extractPlaceholders } from "../promptBuilder";
+import { compileTemplate, escapeXmlText, extractPlaceholders } from "../promptBuilder";
 
 describe("compileTemplate – simple variable substitution", () => {
   it("replaces a single variable", () => {
@@ -138,6 +138,54 @@ describe("batch size warning threshold", () => {
     expect(shouldWarn(1)).toBe(false);
     expect(shouldWarn(5)).toBe(false);
     expect(shouldWarn(9)).toBe(false);
+  });
+});
+
+describe("escapeXmlText", () => {
+  it("leaves plain text unchanged", () => {
+    expect(escapeXmlText("Hello world")).toBe("Hello world");
+  });
+
+  it("returns an empty string for empty input", () => {
+    expect(escapeXmlText("")).toBe("");
+  });
+
+  it("escapes all five reserved XML characters", () => {
+    expect(escapeXmlText(`&<>"'`)).toBe("&amp;&lt;&gt;&quot;&apos;");
+  });
+
+  it("escapes reserved characters within multiline transcript text", () => {
+    const input = "Speaker said \"hello\" & <laughs>\nNext line with 'quotes'";
+    const expected =
+      "Speaker said &quot;hello&quot; &amp; &lt;laughs&gt;\nNext line with &apos;quotes&apos;";
+    expect(escapeXmlText(input)).toBe(expected);
+  });
+
+  it("escapes reserved characters that sit adjacent to existing entities", () => {
+    expect(escapeXmlText("&amp;<")).toBe("&amp;&lt;");
+    expect(escapeXmlText("<&amp;")).toBe("&lt;&amp;");
+  });
+
+  it("preserves the five existing named entities without double-escaping their ampersand", () => {
+    const input = "&amp; &lt; &gt; &quot; &apos;";
+    expect(escapeXmlText(input)).toBe(input);
+  });
+
+  it("is idempotent when applied twice", () => {
+    const input = `Tom & Jerry said "run" <fast> it's 'ok'`;
+    const once = escapeXmlText(input);
+    const twice = escapeXmlText(once);
+    expect(twice).toBe(once);
+  });
+
+  it("does not treat similarly-named but invalid entities as already escaped", () => {
+    expect(escapeXmlText("&AMP;")).toBe("&amp;AMP;");
+    expect(escapeXmlText("&ampx;")).toBe("&amp;ampx;");
+  });
+
+  it("does not affect direct compileTemplate substitution, which stays raw", () => {
+    const result = compileTemplate("Text: {{value}}", { value: `<tag>&"'` });
+    expect(result).toBe(`Text: <tag>&"'`);
   });
 });
 
