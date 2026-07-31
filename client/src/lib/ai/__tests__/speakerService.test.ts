@@ -14,7 +14,30 @@ import {
   parseRawResponse,
 } from "../features/speaker/service";
 import type { BatchSegment } from "../features/speaker/types";
+import { formatSegmentsForPrompt, formatSpeakersForPrompt } from "../features/speaker/utils";
+import { escapeXmlText, extractPlaceholders } from "../prompts";
 import type { ChatMessage } from "../providers/types";
+
+/**
+ * Extracts the substring between the first balanced `<tag>...</tag>` pair,
+ * failing loudly (via a thrown assertion-friendly error) if the tag is
+ * missing, duplicated, or unbalanced.
+ */
+function extractTaggedBlock(text: string, tag: string): string {
+  const openTag = `<${tag}>`;
+  const closeTag = `</${tag}>`;
+  const openCount = text.split(openTag).length - 1;
+  const closeCount = text.split(closeTag).length - 1;
+  expect(openCount).toBe(1);
+  expect(closeCount).toBe(1);
+
+  const openIndex = text.indexOf(openTag);
+  const closeIndex = text.indexOf(closeTag);
+  expect(openIndex).toBeGreaterThanOrEqual(0);
+  expect(closeIndex).toBeGreaterThan(openIndex);
+
+  return text.slice(openIndex + openTag.length, closeIndex);
+}
 
 // Queue consumed in FIFO order by the mocked provider, used only by the
 // retry-transparency test below (which runs the real executeFeature).
@@ -81,6 +104,87 @@ describe("Speaker Service", () => {
         expect(prompt).toContain(code);
       }
     });
+
+    it("wraps the response contract and recognition rules in exactly one balanced tag pair each", () => {
+      const prompt = speakerClassificationConfig.systemPrompt;
+
+      const contractBlock = extractTaggedBlock(prompt, "response_contract");
+      const rulesBlock = extractTaggedBlock(prompt, "speaker_recognition_rules");
+
+      expect(contractBlock.length).toBeGreaterThan(0);
+      expect(rulesBlock.length).toBeGreaterThan(0);
+    });
+
+    it("keeps every envelope field/state, all six error codes, and retryability inside the response contract", () => {
+      const contractBlock = extractTaggedBlock(
+        speakerClassificationConfig.systemPrompt,
+        "response_contract",
+      );
+
+      expect(contractBlock).toContain('"status": "ok"');
+      expect(contractBlock).toContain('"status": "empty"');
+      expect(contractBlock).toContain('"status": "error"');
+      expect(contractBlock).toContain('"retryable": false');
+      expect(contractBlock).toContain('"retryable": true');
+      expect(contractBlock).toContain('"data"');
+      expect(contractBlock).toContain('"error"');
+
+      for (const code of [
+        "MISSING_REQUIRED_INPUT",
+        "INVALID_INPUT_SHAPE",
+        "CONTRADICTORY_INPUT",
+        "UNSUPPORTED_TASK",
+        "OUTPUT_TRUNCATED",
+        "TEMPORARY_FAILURE",
+      ]) {
+        expect(contractBlock).toContain(code);
+      }
+    });
+
+    it("keeps the recognition heuristics, humor guidance, and decision steps inside the tagged rules block", () => {
+      const rulesBlock = extractTaggedBlock(
+        speakerClassificationConfig.systemPrompt,
+        "speaker_recognition_rules",
+      );
+
+      expect(rulesBlock).toContain("HEURISTICS FOR SPEAKER RECOGNITION");
+      expect(rulesBlock).toContain("IMPORTANT NOTE ON HUMOR");
+      expect(rulesBlock).toContain("DECISION STEPS FOR EACH SECTION");
+      expect(rulesBlock).toContain("[Unknown?]");
+    });
+
+    it("keeps the short TASK prose untagged before the first XML tag", () => {
+      const prompt = speakerClassificationConfig.systemPrompt;
+      const firstTagIndex = prompt.indexOf("<response_contract>");
+
+      expect(firstTagIndex).toBeGreaterThan(0);
+      expect(prompt.slice(0, firstTagIndex)).toContain("TASK");
+      expect(prompt.slice(0, firstTagIndex)).not.toContain("<");
+    });
+
+    it("wraps only the dynamic bodies of the user template in available_speakers and sections_to_classify", () => {
+      const template = speakerClassificationConfig.userPromptTemplate;
+
+      const speakersBlock = extractTaggedBlock(template, "available_speakers");
+      const sectionsBlock = extractTaggedBlock(template, "sections_to_classify");
+
+      expect(speakersBlock).toContain("{{speakers}}");
+      expect(sectionsBlock).toContain("{{segments}}");
+      expect(template).toContain("AVAILABLE SPEAKERS");
+      expect(template).toContain("SECTIONS TO CLASSIFY");
+
+      const speakersHeadingIndex = template.indexOf("AVAILABLE SPEAKERS");
+      const speakersTagIndex = template.indexOf("<available_speakers>");
+      expect(speakersHeadingIndex).toBeLessThan(speakersTagIndex);
+    });
+
+    it("keeps placeholders exactly speakers and segments in the user template, with none in the system prompt", () => {
+      expect(extractPlaceholders(speakerClassificationConfig.systemPrompt)).toEqual([]);
+      expect(extractPlaceholders(speakerClassificationConfig.userPromptTemplate)).toEqual([
+        "speakers",
+        "segments",
+      ]);
+    });
   });
 
   describe("classifySpeakers", () => {
@@ -99,6 +203,129 @@ describe("Speaker Service", () => {
       await expect(
         classifySpeakers([{ id: "1", speaker: "[Unknown]", text: "Hello there!" }], ["Alice"]),
       ).rejects.toThrow("Timeout");
+    });
+
+    it("escapes default speaker/segment values exactly once before they reach executeFeature", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      const segments = [{ id: "1", speaker: "[Unknown]", text: 'Rule: "A" & <B> > C' }];
+      const speakers = ['Alice & "Bob"', "<GM>"];
+
+      await classifySpeakers(segments, speakers);
+
+      const expectedSegments = escapeXmlText(formatSegmentsForPrompt(segments));
+      const expectedSpeakers = escapeXmlText(formatSpeakersForPrompt(speakers));
+
+      expect(executeFeatureMock).toHaveBeenCalledWith(
+        "speaker-classification",
+        { segments: expectedSegments, speakers: expectedSpeakers },
+        expect.anything(),
+      );
+
+      // Idempotency guard: escaping the already-escaped call arguments again
+      // must not change them, proving they were escaped exactly once.
+      const [, calledVariables] = executeFeatureMock.mock.calls[0];
+      expect(escapeXmlText(calledVariables.segments as string)).toBe(calledVariables.segments);
+      expect(escapeXmlText(calledVariables.speakers as string)).toBe(calledVariables.speakers);
+    });
+
+    it("passes raw, unescaped values when a custom system prompt is supplied", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      const segments = [{ id: "1", speaker: "[Unknown]", text: 'Rule: "A" & <B> > C' }];
+      const speakers = ['Alice & "Bob"', "<GM>"];
+
+      await classifySpeakers(segments, speakers, {
+        customPrompt: { systemPrompt: "Custom system prompt" },
+      });
+
+      expect(executeFeatureMock).toHaveBeenCalledWith(
+        "speaker-classification",
+        {
+          segments: formatSegmentsForPrompt(segments),
+          speakers: formatSpeakersForPrompt(speakers),
+        },
+        expect.anything(),
+      );
+    });
+
+    it("passes raw, unescaped values when a custom user prompt template is supplied", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      const segments = [{ id: "1", speaker: "[Unknown]", text: 'Rule: "A" & <B> > C' }];
+      const speakers = ['Alice & "Bob"', "<GM>"];
+
+      await classifySpeakers(segments, speakers, {
+        customPrompt: { userPromptTemplate: "{{speakers}} {{segments}}" },
+      });
+
+      expect(executeFeatureMock).toHaveBeenCalledWith(
+        "speaker-classification",
+        {
+          segments: formatSegmentsForPrompt(segments),
+          speakers: formatSpeakersForPrompt(speakers),
+        },
+        expect.anything(),
+      );
+    });
+
+    it("passes raw, unescaped values when both a custom system prompt and user prompt template are supplied", async () => {
+      executeFeatureMock.mockResolvedValueOnce({
+        success: true,
+        data: [],
+        metadata: {
+          featureId: "speaker-classification",
+          providerId: "test",
+          model: "llama3.2",
+          durationMs: 10,
+        },
+      });
+
+      const segments = [{ id: "1", speaker: "[Unknown]", text: 'Rule: "A" & <B> > C' }];
+      const speakers = ['Alice & "Bob"', "<GM>"];
+
+      await classifySpeakers(segments, speakers, {
+        customPrompt: {
+          systemPrompt: "Custom system prompt",
+          userPromptTemplate: "{{speakers}} {{segments}}",
+        },
+      });
+
+      expect(executeFeatureMock).toHaveBeenCalledWith(
+        "speaker-classification",
+        {
+          segments: formatSegmentsForPrompt(segments),
+          speakers: formatSpeakersForPrompt(speakers),
+        },
+        expect.anything(),
+      );
     });
 
     it("returns no suggestions when the model reports an empty batch, without throwing", async () => {

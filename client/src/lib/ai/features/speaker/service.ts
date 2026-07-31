@@ -22,6 +22,7 @@ import {
   toAIError,
 } from "../../core";
 import { extractJSON } from "../../parsing";
+import { escapeXmlText } from "../../prompts";
 import { speakerClassificationConfig } from "./config";
 import type {
   BatchIssue,
@@ -115,12 +116,22 @@ export async function classifySpeakers(
   const segmentsText = formatSegmentsForPrompt(segments);
   const speakersText = formatSpeakersForPrompt(availableSpeakers);
 
+  // Default prompts place these values inside XML-tagged blocks
+  // (<sections_to_classify>, <available_speakers>); escape reserved XML
+  // characters so untrusted transcript/speaker text can't break out of the
+  // tags. Custom prompts are not guaranteed to use XML structure, so their
+  // values are passed through unescaped and unchanged.
+  const usesDefaultPrompts =
+    !options.customPrompt?.systemPrompt && !options.customPrompt?.userPromptTemplate;
+  const escapeIfDefault = (value: string): string =>
+    usesDefaultPrompts ? escapeXmlText(value) : value;
+
   // Execute feature
   const result = await executeFeature<SpeakerSuggestion[]>(
     "speaker-classification",
     {
-      segments: segmentsText,
-      speakers: speakersText,
+      segments: escapeIfDefault(segmentsText),
+      speakers: escapeIfDefault(speakersText),
     },
     options,
   );

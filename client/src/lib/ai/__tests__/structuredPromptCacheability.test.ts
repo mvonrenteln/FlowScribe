@@ -133,6 +133,35 @@ describe("structured prompt cacheability", () => {
     });
   });
 
+  describe("speaker classification XML structure (Task 2)", () => {
+    it("wraps the response contract and recognition rules in the system prompt, and the dynamic bodies in the user template, each exactly once", () => {
+      for (const tag of ["response_contract", "speaker_recognition_rules"]) {
+        const openCount = (SPEAKER_SYSTEM_PROMPT.match(new RegExp(`<${tag}>`, "g")) ?? []).length;
+        const closeCount = (SPEAKER_SYSTEM_PROMPT.match(new RegExp(`</${tag}>`, "g")) ?? []).length;
+        expect(openCount).toBe(1);
+        expect(closeCount).toBe(1);
+      }
+
+      for (const tag of ["available_speakers", "sections_to_classify"]) {
+        const openCount = (SPEAKER_USER_PROMPT_TEMPLATE.match(new RegExp(`<${tag}>`, "g")) ?? [])
+          .length;
+        const closeCount = (SPEAKER_USER_PROMPT_TEMPLATE.match(new RegExp(`</${tag}>`, "g")) ?? [])
+          .length;
+        expect(openCount).toBe(1);
+        expect(closeCount).toBe(1);
+      }
+    });
+
+    it("still compiles the system prompt identically regardless of runtime variable content with XML tags present", () => {
+      const compiledA = compileTemplate(SPEAKER_SYSTEM_PROMPT, runtimeVariablesA);
+      const compiledB = compileTemplate(SPEAKER_SYSTEM_PROMPT, runtimeVariablesB);
+
+      expect(compiledA).toBe(compiledB);
+      expect(compiledA).toContain("<response_contract>");
+      expect(compiledA).toContain("<speaker_recognition_rules>");
+    });
+  });
+
   it("retains runtime placeholders in both segment-merge user-template variants", () => {
     const runtimePlaceholders = ["segments", "maxTimeGap", "enableSmoothing"];
 

@@ -17,6 +17,7 @@ TASK
 You receive a list of text sections ("sections") with unique IDs.
 For EACH section, assign exactly ONE speaker tag from the available speakers list below.
 
+<response_contract>
 OUTPUT FORMAT
 -------------
 Return ONLY valid JSON, wrapped in one of the three envelopes below.
@@ -69,7 +70,9 @@ IMPORTANT:
 - "confidence": 0.9-1.0 = very confident, 0.6-0.89 = medium, below = uncertain.
 - "reason" should be kept brief (one sentence max).
 - If unsure, prefer lower confidence over guessing.
+</response_contract>
 
+<speaker_recognition_rules>
 HEURISTICS FOR SPEAKER RECOGNITION
 ----------------------------------
 Use these hints when available in the input context:
@@ -100,15 +103,20 @@ DECISION STEPS FOR EACH SECTION
    → use the NPC name/function
 
 5. Uncertain which character?
-   → use [Unknown?] with low confidence`;
+   → use [Unknown?] with low confidence
+</speaker_recognition_rules>`;
 
 export const SPEAKER_USER_PROMPT_TEMPLATE = `AVAILABLE SPEAKERS
 ------------------
+<available_speakers>
 {{speakers}}
+</available_speakers>
 
 SECTIONS TO CLASSIFY
 --------------------
+<sections_to_classify>
 {{segments}}
+</sections_to_classify>
 
 Respond with ONLY the JSON envelope as specified.`;
 
