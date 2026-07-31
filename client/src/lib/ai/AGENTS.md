@@ -22,6 +22,9 @@
 - Structured failures preserve `model`, `provider`, or `parser` origin plus explicit retryability.
 - Structured-batch retries: parser failures retry with a corrective message (invalid response + repair instruction); retryable model/provider failures retry without one. The retry budget (`parseRetryCount`) is shared across all three causes.
 - Retryable provider failures wait for the provider's normalized `retryAfter` (capped at 30s, 0ms if absent) before retrying; the wait is abortable and cancellation during it is terminal.
+- Built-in OpenAI chat requests always use a privacy-safe cache key derived from the exact model and system-message identity with in-memory retention.
+- Custom OpenAI-compatible and Ollama request bodies must not receive OpenAI prompt-cache fields.
+- Structured feature system prompts remain runtime-free; retries preserve their immutable system/user prefix.
 
 ## Work Guidance
 

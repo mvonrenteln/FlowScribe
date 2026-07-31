@@ -916,6 +916,60 @@ immediately without sending another request.
 **Scope:** Applies only to structured-batch provider retries (`executeFeature`). Parser and model
 retries are unaffected by retry-after timing — they retry per their own logic and budgets.
 
+### Mandatory OpenAI Prompt Caching ✅ Implemented
+
+Every built-in OpenAI chat request (`AIProviderConfig.type === "openai"`) automatically carries a
+stable, privacy-safe **prompt cache key** and **in-memory retention directive**, computed via browser
+Web Crypto with no new dependency.
+
+**Cache Key Derivation:**
+
+The key is a **SHA-256 digest** (64 lowercase hexadecimal characters) of the exact **model string**
+and the **ordered list of system-message contents** (only `role: "system"` messages), encoded via
+`JSON.stringify` for unambiguous string representation. User, assistant, and repair messages
+(transcript content, corrective retry history) are intentionally excluded so that:
+
+- Appended retry messages do not fragment the cache.
+- Raw prompt, transcript text, API keys, endpoint URLs, or provider identities never leak into the
+  key sent to OpenAI.
+
+**Built-in vs. Custom Providers:**
+
+- **Built-in OpenAI (`type: "openai"`):** Every request includes both `prompt_cache_key` and
+  `prompt_cache_retention: "in-memory"`.
+- **Custom OpenAI-compatible (`type: "custom"`):** Request body is unchanged; no cache fields
+  are added.
+- **Ollama and other providers:** No cache fields are added.
+
+**System Prompt Stability:**
+
+Structured-batch features (speaker classification, segment merge, chapter detection) keep their
+**system prompts runtime-free** — no placeholders like `{{speakers}}` or `{{batchIndex}}` appear
+in the immutable system message. Runtime values live only in the user template, so the cache key
+remains identical across requests with different transcript or configuration content. This enables
+OpenAI's prefix cache to be reused across all batches and retries within a session.
+
+**Plan 2 Corrective Retry Prefix Invariance:**
+
+When a parser failure triggers a corrective retry, the **immutable prefix** (system + initial user
+message) is preserved and reused as-is, while corrective history is appended. Because the cache
+key is derived only from system messages, the key does **not change** as corrective turns are
+appended. This maintains cache coherence across retries without fragmenting the cache key.
+
+**Scope & Limitations:**
+
+- This is **provider-side prefix caching**, not response caching or client-side result storage.
+- No settings, UI toggles, translations, or telemetry were added.
+- Cached-token telemetry (via the OpenAI API's `usage.cache_read_input_tokens` field) is
+  intentionally omitted under YAGNI; callers may inspect it directly if needed.
+- No response cache interface or Responses API integration.
+
+**Direct `OpenAIProvider.chat` Calls:**
+
+Custom code calling `new OpenAIProvider().chat(messages)` directly also receives the cache fields
+automatically, so all OpenAI usage—built-in features, custom features, and direct calls—benefits
+from prompt caching without modification.
+
 ### Prompt System ✅ Implemented
 
 Prompts use **Handlebars syntax** for variable interpolation:
@@ -1851,10 +1905,10 @@ only a message, that message is stored as the response payload so it is visible 
    - Combine multiple small requests when possible
    - Trade-off: Latency vs. throughput
 
-2. **Caching**
-   - Cache AI results keyed by input hash
-   - Invalidate on prompt change
-   - Store in IndexedDB for persistence
+2. **Provider-Side Prefix Caching (OpenAI)**
+   - Built-in OpenAI requests automatically use prompt caching via OpenAI's API
+   - Cache key is derived from model + system-message identity
+   - In-memory retention only; no client-side result storage or telemetry
 
 3. **Parallel Processing**
    - Process independent requests in parallel
