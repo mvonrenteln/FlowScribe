@@ -894,6 +894,28 @@ happened:
 Both fields are additive and optional. Existing `onRetry` consumers (segment merge, chapter detection)
 need no changes: they only read `attempt`, `errorMessage`, and `attemptDurationMs`, which are unchanged.
 
+### Provider Retry-After Timing ✅ Implemented
+
+Retryable provider failures (network, connection, 5xx, rate limit) automatically wait for the
+provider's `Retry-After` timing before the next attempt. The wait is **abortable** — if the
+operation is cancelled via `AbortSignal`, the function returns `CANCELLED` immediately without
+sending another request.
+
+**Timing normalization:**
+
+- `AIRateLimitError` carries `details.retryAfter` (seconds from HTTP 429 headers or provider response)
+- Other retryable provider errors (`AIProviderConnectionError`, `AIProviderError`, non-rate-limit `AIRequestError` with status 408) have no `retryAfter` and retry immediately (0ms delay)
+- The normalized delay is capped at 30 seconds maximum, regardless of the provider's claimed value
+
+**Abort behavior:**
+
+- If the signal is already aborted when the wait begins, it resolves without waiting
+- If the signal is aborted while waiting, the wait clears its timeout, removes its listeners, and resolves immediately
+- A cancelled wait-for-retry returns `CANCELLED` to the caller with no additional provider call or `onRetry` callback
+
+**Scope:** Applies only to structured-batch provider retries (`executeFeature`). Parser and model
+retries are unaffected by retry-after timing — they retry per their own logic and budgets.
+
 ### Prompt System ✅ Implemented
 
 Prompts use **Handlebars syntax** for variable interpolation:

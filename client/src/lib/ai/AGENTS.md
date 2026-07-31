@@ -21,6 +21,7 @@
 - `empty` is a successful terminal outcome; malformed or schema-invalid output remains a parser failure.
 - Structured failures preserve `model`, `provider`, or `parser` origin plus explicit retryability.
 - Structured-batch retries: parser failures retry with a corrective message (invalid response + repair instruction); retryable model/provider failures retry without one. The retry budget (`parseRetryCount`) is shared across all three causes.
+- Retryable provider failures wait for the provider's normalized `retryAfter` (capped at 30s, 0ms if absent) before retrying; the wait is abortable and cancellation during it is terminal.
 
 ## Work Guidance
 
