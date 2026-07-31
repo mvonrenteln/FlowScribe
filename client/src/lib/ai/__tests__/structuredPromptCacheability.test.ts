@@ -207,6 +207,48 @@ describe("structured prompt cacheability", () => {
     }
   });
 
+  describe("chapter detection XML structure (Task 4)", () => {
+    it("wraps only the response contract in the system prompt, exactly once", () => {
+      const openCount = (CHAPTER_DETECTION_SYSTEM_PROMPT.match(/<response_contract>/g) ?? [])
+        .length;
+      const closeCount = (CHAPTER_DETECTION_SYSTEM_PROMPT.match(/<\/response_contract>/g) ?? [])
+        .length;
+      expect(openCount).toBe(1);
+      expect(closeCount).toBe(1);
+    });
+
+    it("wraps tagsAvailable, previousChapter, and segments in the user template, each exactly once", () => {
+      for (const tag of ["available_tag_ids", "previous_chapter_context", "transcript_segments"]) {
+        const openCount = (
+          CHAPTER_DETECTION_USER_PROMPT_TEMPLATE.match(new RegExp(`<${tag}>`, "g")) ?? []
+        ).length;
+        const closeCount = (
+          CHAPTER_DETECTION_USER_PROMPT_TEMPLATE.match(new RegExp(`</${tag}>`, "g")) ?? []
+        ).length;
+        expect(openCount).toBe(1);
+        expect(closeCount).toBe(1);
+      }
+    });
+
+    it("omits the previous-chapter-context tag entirely when there is no previous chapter", () => {
+      const compiled = compileTemplate(CHAPTER_DETECTION_USER_PROMPT_TEMPLATE, {
+        ...runtimeVariablesA,
+        previousChapter: "",
+      });
+
+      expect(compiled).not.toContain("<previous_chapter_context>");
+      expect(compiled).not.toContain("</previous_chapter_context>");
+    });
+
+    it("still compiles the system prompt identically regardless of runtime variable content with XML tags present", () => {
+      const compiledA = compileTemplate(CHAPTER_DETECTION_SYSTEM_PROMPT, runtimeVariablesA);
+      const compiledB = compileTemplate(CHAPTER_DETECTION_SYSTEM_PROMPT, runtimeVariablesB);
+
+      expect(compiledA).toBe(compiledB);
+      expect(compiledA).toContain("<response_contract>");
+    });
+  });
+
   describe("compiled message stability across sentinel changes", () => {
     it("speaker classification: user message changes, system message stays exact", () => {
       const compiledSystemA = compileTemplate(SPEAKER_SYSTEM_PROMPT, runtimeVariablesA);

@@ -1,4 +1,5 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { compileTemplate, extractPlaceholders } from "@/lib/ai/prompts";
 import type { PromptVariables } from "@/lib/ai/prompts/types";
 import { chapterDetectionConfig } from "../config";
 
@@ -36,6 +37,104 @@ describe("chapterDetectionConfig", () => {
     expect(prompt).toContain('"status": "empty"');
     expect(prompt).toContain('"data": []');
     expect(prompt).toContain('"status": "error"');
+  });
+
+  it("wraps only the structured response contract in <response_contract>, leaving TASK/CONSTRAINTS headings unwrapped", () => {
+    const prompt = chapterDetectionConfig.systemPrompt;
+
+    const openCount = (prompt.match(/<response_contract>/g) ?? []).length;
+    const closeCount = (prompt.match(/<\/response_contract>/g) ?? []).length;
+    expect(openCount).toBe(1);
+    expect(closeCount).toBe(1);
+
+    const taskIndex = prompt.indexOf("TASK\n");
+    const constraintsIndex = prompt.indexOf("CONSTRAINTS\n");
+    const openIndex = prompt.indexOf("<response_contract>");
+    const closeIndex = prompt.indexOf("</response_contract>");
+    const outputFormatIndex = prompt.indexOf("OUTPUT FORMAT");
+
+    expect(taskIndex).toBeGreaterThanOrEqual(0);
+    expect(constraintsIndex).toBeGreaterThan(taskIndex);
+    // TASK/CONSTRAINTS headings sit before the tagged block and are not wrapped.
+    expect(openIndex).toBeGreaterThan(constraintsIndex);
+    expect(prompt.slice(taskIndex, openIndex)).not.toContain("<response_contract>");
+    expect(outputFormatIndex).toBeGreaterThan(openIndex);
+    expect(closeIndex).toBeGreaterThan(outputFormatIndex);
+  });
+
+  it("keeps batch metadata untagged in the user template", () => {
+    const template = chapterDetectionConfig.userPromptTemplate;
+
+    for (const placeholder of ["batchIndex", "totalBatches", "batchSize"]) {
+      const idx = template.indexOf(`{{${placeholder}}}`);
+      expect(idx).toBeGreaterThanOrEqual(0);
+      // No XML tag immediately wraps the batch metadata placeholders.
+      expect(template.slice(Math.max(0, idx - 40), idx)).not.toMatch(/<\w+>\s*$/);
+    }
+  });
+
+  it("wraps tagsAvailable, previousChapter, and segments with the three selected tags exactly once each", () => {
+    const template = chapterDetectionConfig.userPromptTemplate;
+
+    for (const tag of ["available_tag_ids", "previous_chapter_context", "transcript_segments"]) {
+      const openCount = (template.match(new RegExp(`<${tag}>`, "g")) ?? []).length;
+      const closeCount = (template.match(new RegExp(`</${tag}>`, "g")) ?? []).length;
+      expect(openCount).toBe(1);
+      expect(closeCount).toBe(1);
+    }
+
+    expect(template).toContain("<available_tag_ids>\n{{tagsAvailable}}\n</available_tag_ids>");
+    expect(template).toContain(
+      "<previous_chapter_context>\n{{previousChapter}}\n</previous_chapter_context>",
+    );
+    expect(template).toContain("<transcript_segments>\n{{segments}}\n</transcript_segments>");
+  });
+
+  it("does not render an empty <previous_chapter_context> tag for the first batch (no previous chapter)", () => {
+    const compiled = compileTemplate(chapterDetectionConfig.userPromptTemplate, {
+      batchIndex: 1,
+      totalBatches: 1,
+      batchSize: 2,
+      minChapterLength: 1,
+      maxChapterLength: 10,
+      tagsAvailable: "(none)",
+      segments: "1 | A | hello",
+      previousChapter: "",
+    });
+
+    expect(compiled).not.toContain("<previous_chapter_context>");
+    expect(compiled).not.toContain("</previous_chapter_context>");
+  });
+
+  it("renders the <previous_chapter_context> tag with content once a previous chapter exists", () => {
+    const compiled = compileTemplate(chapterDetectionConfig.userPromptTemplate, {
+      batchIndex: 2,
+      totalBatches: 2,
+      batchSize: 2,
+      minChapterLength: 1,
+      maxChapterLength: 10,
+      tagsAvailable: "(none)",
+      segments: "1 | A | hello",
+      previousChapter: "PREVIOUS CHAPTER CONTEXT\n------------------------\nTitle: Intro\n",
+    });
+
+    expect(compiled).toContain("<previous_chapter_context>");
+    expect(compiled).toContain("Title: Intro");
+    expect(compiled).toContain("</previous_chapter_context>");
+  });
+
+  it("keeps all eight placeholders unchanged and the system prompt placeholder-free", () => {
+    expect(chapterDetectionConfig.availablePlaceholders).toEqual([
+      "batchIndex",
+      "totalBatches",
+      "batchSize",
+      "minChapterLength",
+      "maxChapterLength",
+      "tagsAvailable",
+      "segments",
+      "previousChapter",
+    ]);
+    expect(extractPlaceholders(chapterDetectionConfig.systemPrompt)).toEqual([]);
   });
 });
 
@@ -249,5 +348,127 @@ describe("chapterDetection service", () => {
 
     const logEntry = onBatchLog.mock.calls[0]?.[0];
     expect(logEntry?.fatal).toBe(true);
+  });
+
+  it("escapes tagsAvailable, segments, and previousChapter for the default prompt path, and escapes previousChapter only when building the next request (not when stored or reported)", async () => {
+    const variablesSeen: PromptVariables[] = [];
+    let callIndex = 0;
+    executeFeatureMock.mockImplementation((_featureId, variables) => {
+      variablesSeen.push(variables as PromptVariables);
+      callIndex += 1;
+      if (callIndex === 1) {
+        return Promise.resolve({
+          success: true,
+          status: "ok" as const,
+          retryable: false,
+          data: [{ title: "A & B <title>", summary: "C < D", start: 1, end: 1 }],
+          rawResponse: "first",
+          metadata: {
+            featureId: "chapter-detection",
+            providerId: "test",
+            model: "test",
+            durationMs: 1,
+          },
+        });
+      }
+      return Promise.resolve({
+        success: true,
+        status: "ok" as const,
+        retryable: false,
+        data: [{ title: "Next", summary: "Sum2", start: 1, end: 1 }],
+        rawResponse: "second",
+        metadata: {
+          featureId: "chapter-detection",
+          providerId: "test",
+          model: "test",
+          durationMs: 1,
+        },
+      });
+    });
+
+    const onBatchComplete = vi.fn();
+
+    const result = await detectChapters({
+      segments: [makeSegment("s1", 0), makeSegment("s2", 1)],
+      batchSize: 1,
+      minChapterLength: 1,
+      maxChapterLength: 10,
+      tagsAvailable: [{ id: "q&a", label: "Q&A <intro>" }],
+      onBatchComplete,
+    });
+
+    // Default-prompt path: tagsAvailable/segments escaped on the first request.
+    expect(variablesSeen[0]?.tagsAvailable).toContain("&amp;");
+    expect(variablesSeen[0]?.tagsAvailable).toContain("&lt;intro&gt;");
+    expect(variablesSeen[0]?.previousChapter).toBe("");
+
+    // Numeric metadata is unaffected by escaping.
+    expect(variablesSeen[0]?.batchIndex).toBe(1);
+    expect(variablesSeen[0]?.totalBatches).toBe(2);
+    expect(variablesSeen[0]?.batchSize).toBe(1);
+
+    // previousChapter is escaped only when inserted into the *next* default request.
+    expect(variablesSeen[1]?.previousChapter).toContain("A &amp; B &lt;title&gt;");
+    expect(variablesSeen[1]?.previousChapter).toContain("C &lt; D");
+    // Escaped exactly once (no double-escaping of the ampersand entity itself).
+    expect(variablesSeen[1]?.previousChapter).not.toContain("&amp;amp;");
+
+    // Stored chapter results and callbacks stay raw/unescaped.
+    expect(result.chapters[0]?.title).toBe("A & B <title>");
+    expect(result.chapters[0]?.summary).toBe("C < D");
+    expect(onBatchComplete.mock.calls[0]?.[1][0]?.title).toBe("A & B <title>");
+  });
+
+  it("preserves raw values when a custom system prompt, custom user template, or both are supplied", async () => {
+    const variablesSeen: PromptVariables[] = [];
+    executeFeatureMock.mockImplementation((_featureId, variables) => {
+      variablesSeen.push(variables as PromptVariables);
+      return Promise.resolve({
+        success: true,
+        status: "ok" as const,
+        retryable: false,
+        data: [{ title: "Chapter", start: 1, end: 1 }],
+        rawResponse: "r",
+        metadata: {
+          featureId: "chapter-detection",
+          providerId: "test",
+          model: "test",
+          durationMs: 1,
+        },
+      });
+    });
+
+    const customCases: Array<{
+      name: string;
+      customPrompt: { systemPrompt?: string; userPromptTemplate?: string };
+    }> = [
+      { name: "custom system prompt only", customPrompt: { systemPrompt: "custom system" } },
+      {
+        name: "custom user template only",
+        customPrompt: { userPromptTemplate: "custom user {{segments}}" },
+      },
+      {
+        name: "both custom",
+        customPrompt: {
+          systemPrompt: "custom system",
+          userPromptTemplate: "custom user {{segments}}",
+        },
+      },
+    ];
+
+    for (const { customPrompt } of customCases) {
+      variablesSeen.length = 0;
+      await detectChapters({
+        segments: [makeSegment("s1", 0)],
+        batchSize: 10,
+        minChapterLength: 1,
+        maxChapterLength: 10,
+        tagsAvailable: [{ id: "q&a", label: "Q&A <intro>" }],
+        customPrompt,
+      });
+
+      expect(variablesSeen[0]?.tagsAvailable).toBe("- q&a: Q&A <intro>");
+      expect(variablesSeen[0]?.tagsAvailable).not.toContain("&amp;");
+    }
   });
 });

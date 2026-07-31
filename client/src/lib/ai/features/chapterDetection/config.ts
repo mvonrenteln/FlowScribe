@@ -26,6 +26,7 @@ CONSTRAINTS
 - Write summaries as 1 sentence, content-focused.
 - Tags (if any) must be from the provided list of tag IDs.
 
+<response_contract>
 OUTPUT FORMAT
 -------------
 Return ONLY valid JSON, wrapped in one of the three envelopes below.
@@ -90,7 +91,8 @@ If you cannot produce any chapters:
 - TEMPORARY_FAILURE (retryable): a transient failure prevented analysis
 
 IMPORTANT:
-- Only JSON, NO additional text.`;
+- Only JSON, NO additional text.
+</response_contract>`;
 
 export const CHAPTER_DETECTION_USER_PROMPT_TEMPLATE = `TRANSCRIPT (BATCH)
 ------------------
@@ -101,13 +103,21 @@ Max chapter length (segments): {{maxChapterLength}}
 
 AVAILABLE TAG IDS
 -----------------
+<available_tag_ids>
 {{tagsAvailable}}
+</available_tag_ids>
 
+{{#if previousChapter}}
+<previous_chapter_context>
 {{previousChapter}}
+</previous_chapter_context>
+{{/if}}
 
 SEGMENTS (SimpleID | Speaker | Text)
 -----------------------------------
+<transcript_segments>
 {{segments}}
+</transcript_segments>
 
 Respond with ONLY the JSON envelope as specified, with each chapter item holding title, summary, tags, start, end.`;
 
