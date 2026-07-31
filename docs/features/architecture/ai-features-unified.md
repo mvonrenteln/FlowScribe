@@ -879,7 +879,10 @@ Only parser-failure retries send a **corrective message**, built by
 prefix: the model's invalid response (as an `assistant` turn) and a repair instruction (as a `user`
 turn) naming the parser failure `code`, its message, and per-field diagnostics (path, message, and
 expected value where available) - without leaking parser implementation details. Model and provider
-retries resend the original message prefix unchanged, with no corrective content appended.
+retries resend the original message prefix unchanged, with no corrective content appended. "Unchanged"
+means whatever messages the previous attempt sent - which may already include corrective turns
+appended by an earlier parser-failure retry within the same `executeFeature` call; a model or provider
+retry never appends a *new* corrective turn of its own, but it does not strip turns added by a prior one.
 
 `RetryAttemptInfo` (passed to `options.onRetry`) carries two new fields describing the retry that just
 happened:

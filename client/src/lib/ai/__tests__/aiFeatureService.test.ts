@@ -17,6 +17,7 @@ import { resolveProvider } from "../core/providerResolver";
 import type { AIFeatureConfig, RetryAttemptInfo } from "../core/types";
 import { compileTemplate } from "../prompts/promptBuilder";
 import type { ChatMessage } from "../providers/types";
+import { AIProviderAuthError } from "../providers/types";
 
 // ==================== Structured-batch execution mocks ====================
 
@@ -484,13 +485,14 @@ describe("executeFeature - structured-batch response contract", () => {
 
   it("13) does not retry a non-retryable provider failure (authentication) even with retry budget available", async () => {
     settingsOverrides.parseRetryCount = 2;
-    chatQueue.push(new Error("Something unexpected happened"));
+    chatQueue.push(new AIProviderAuthError("Invalid API key", "openai"));
 
     const result = await executeFeature("chapter-metadata", { text: "hi" });
 
     expect(result.success).toBe(false);
     expect(result.errorSource).toBe("provider");
     expect(result.retryable).toBe(false);
+    expect(result.errorCode).toBe("AUTH_ERROR");
     expect(chatCallCount.count).toBe(1);
   });
 
@@ -583,7 +585,7 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(chatCallCount.count).toBe(1);
   });
 
-  it("19) exhausts the shared retry budget across mixed retry causes and returns the final failure", async () => {
+  it("19) exhausts the shared retry budget when the same retryable cause repeats", async () => {
     // maxRetries = 1 (2 total attempts). Both attempts hit a retryable model
     // error, so the shared budget is exhausted on the second attempt.
     settingsOverrides.parseRetryCount = 1;
@@ -596,5 +598,32 @@ describe("executeFeature - structured-batch response contract", () => {
     expect(result.success).toBe(false);
     expect(result.errorSource).toBe("model");
     expect(result.retryable).toBe(true);
+  });
+
+  it("20) exhausts the shared retry budget across genuinely mixed retry causes and returns the final failure", async () => {
+    // maxRetries = 2 (3 total attempts). Attempt 1: parser failure (corrective
+    // retry). Attempt 2: retryable model error (its messages already carry
+    // attempt 1's corrective turns). Attempt 3: retryable model error again,
+    // exhausting the shared budget - and it must not append a second
+    // corrective turn on top of attempt 2's messages.
+    settingsOverrides.parseRetryCount = 2;
+    chatQueue.push({ content: "not json" });
+    chatQueue.push({ content: modelErrorEnvelope("TEMPORARY_FAILURE", "Model overloaded", true) });
+    chatQueue.push({ content: modelErrorEnvelope("TEMPORARY_FAILURE", "Model overloaded", true) });
+
+    const retryInfos: RetryAttemptInfo[] = [];
+    const result = await executeFeature(
+      "chapter-metadata",
+      { text: "hi" },
+      { onRetry: (info) => retryInfos.push(info) },
+    );
+
+    expect(chatCallCount.count).toBe(3);
+    expect(retryInfos.map((info) => info.retryCategory)).toEqual(["parser", "model"]);
+    expect(result.success).toBe(false);
+    expect(result.errorSource).toBe("model");
+    expect(result.retryable).toBe(true);
+    expect(chatCallsMessages).toHaveLength(3);
+    expect(chatCallsMessages[2]).toEqual(chatCallsMessages[1]);
   });
 });

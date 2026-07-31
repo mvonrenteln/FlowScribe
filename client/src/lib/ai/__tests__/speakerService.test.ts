@@ -50,6 +50,8 @@ describe("Speaker Service", () => {
 
   beforeEach(() => {
     executeFeatureMock.mockReset();
+    chatQueue.length = 0;
+    chatCallCount.count = 0;
   });
 
   afterAll(() => {
@@ -185,8 +187,6 @@ describe("Speaker Service", () => {
     });
 
     it("transparently retries a transient model error via the real executeFeature retry loop", async () => {
-      chatQueue.length = 0;
-      chatCallCount.count = 0;
       executeFeatureMock.mockImplementation(actualExecuteFeature);
 
       chatQueue.push({
