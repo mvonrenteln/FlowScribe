@@ -17,6 +17,7 @@ TASK
 Analyze consecutive transcript segment pairs and determine if they should be merged.
 When text smoothing is requested, also provide a grammatically corrected merged text.
 
+<merge_rules>
 IMPORTANT: All segment pairs presented to you have already been pre-filtered:
 - Only same-speaker pairs (if speaker filtering is enabled)
 - Only pairs with acceptable time gaps (based on maxTimeGap parameter)
@@ -52,7 +53,9 @@ DO NOT SUGGEST MERGE WHEN:
 - Both segments are complete, standalone sentences without strong connection
 - Topic clearly changes between segments
 - Intentional pause for emphasis or dramatic effect
+</merge_rules>
 
+<response_contract>
 OUTPUT FORMAT
 -------------
 Return ONLY valid JSON, wrapped in one of the three envelopes below.
@@ -124,7 +127,8 @@ If you cannot produce any suggestions:
 - TEMPORARY_FAILURE (retryable): a transient failure prevented analysis
 
 IMPORTANT:
-- Only JSON, NO additional text.`;
+- Only JSON, NO additional text.
+</response_contract>`;
 
 // ==================== User Prompt Template ====================
 
@@ -138,9 +142,12 @@ NOTE: Only consider consecutive segments in the order provided.
 Your task is to evaluate the CONTENT and determine if merging makes semantic sense.
 
 SEGMENTS FOR CONTEXT:
+<segments_for_context>
 {{segments}}
+</segments_for_context>
 
 {{#if enableSmoothing}}
+<smoothing_rules>
 SMOOTHING INSTRUCTIONS:
 When suggesting a merge, provide a "smoothedText" that:
 1. Removes incorrect sentence breaks (period + capital mid-sentence)
@@ -150,6 +157,7 @@ When suggesting a merge, provide a "smoothedText" that:
 5. Makes minimal changes - only fix obvious transcription artifacts
 
 Include "smoothingChanges" explaining what was changed.
+</smoothing_rules>
 {{/if}}
 
 Respond with ONLY the JSON envelope as specified.`;
@@ -166,9 +174,12 @@ IMPORTANT:
 Only consider consecutive segments in the order provided.
 
 SEGMENTS FOR CONTEXT:
+<segments_for_context>
 {{segments}}
+</segments_for_context>
 
 {{#if enableSmoothing}}
+<smoothing_rules>
 SMOOTHING INSTRUCTIONS:
 1. Remove incorrect sentence breaks (period + capital mid-sentence)
 2. Fix capitalization issues at merge points
@@ -177,6 +188,7 @@ SMOOTHING INSTRUCTIONS:
 5. Make minimal changes—only fix obvious transcription artifacts
 
 Include "smoothedText" and "smoothingChanges" for each accepted merge.
+</smoothing_rules>
 {{/if}}
 
 Respond with ONLY the JSON envelope, with each suggestion holding segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;

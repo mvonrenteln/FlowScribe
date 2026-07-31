@@ -8,6 +8,7 @@
  */
 
 import type { PromptVariables } from "@/lib/ai";
+import { escapeXmlText } from "@/lib/ai/prompts";
 import { getMergeSystemPrompt, getMergeUserTemplate } from "./config";
 import type { MergeAnalysisSegment } from "./types";
 import {
@@ -113,17 +114,25 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
   // Build pair mapping JSON (uses REAL segment IDs for normalization)
   const pairMappingJson = buildPairMappingJson(pairsWithSimpleIds);
 
-  // Build variables
-  const variables: PromptVariables = {
-    segmentPairsJson: pairMappingJson,
-    segments: segmentsFormatted,
-    maxTimeGap: maxTimeGap.toString(),
-    enableSmoothing,
-  };
-
   // Get prompts (use provided or fallback to defaults)
   const finalSystemPrompt = systemPrompt ?? getMergeSystemPrompt();
   const finalUserTemplate = userTemplate ?? getMergeUserTemplate(segments.length);
+
+  // The default templates place {{segments}} inside an XML-tagged block
+  // (<segments_for_context>); escape reserved XML characters so untrusted
+  // transcript text can't break out of the tag. Custom system-prompt/user-
+  // template overrides are not guaranteed to use XML structure, so their
+  // segments value is passed through unescaped and unchanged.
+  const usesDefaultPrompts = !systemPrompt && !userTemplate;
+  const finalSegments = usesDefaultPrompts ? escapeXmlText(segmentsFormatted) : segmentsFormatted;
+
+  // Build variables
+  const variables: PromptVariables = {
+    segmentPairsJson: pairMappingJson,
+    segments: finalSegments,
+    maxTimeGap: maxTimeGap.toString(),
+    enableSmoothing,
+  };
 
   return {
     variables,

@@ -162,6 +162,39 @@ describe("structured prompt cacheability", () => {
     });
   });
 
+  describe("segment merge XML structure (Task 3)", () => {
+    it("wraps merge rules and the response contract in the system prompt, each exactly once", () => {
+      for (const tag of ["merge_rules", "response_contract"]) {
+        const openCount = (MERGE_ANALYSIS_SYSTEM_PROMPT.match(new RegExp(`<${tag}>`, "g")) ?? [])
+          .length;
+        const closeCount = (MERGE_ANALYSIS_SYSTEM_PROMPT.match(new RegExp(`</${tag}>`, "g")) ?? [])
+          .length;
+        expect(openCount).toBe(1);
+        expect(closeCount).toBe(1);
+      }
+    });
+
+    it("wraps {{segments}} and conditional smoothing rules in both built-in user templates, each exactly once", () => {
+      for (const template of [MERGE_ANALYSIS_USER_TEMPLATE, MERGE_ANALYSIS_USER_TEMPLATE_SIMPLE]) {
+        for (const tag of ["segments_for_context", "smoothing_rules"]) {
+          const openCount = (template.match(new RegExp(`<${tag}>`, "g")) ?? []).length;
+          const closeCount = (template.match(new RegExp(`</${tag}>`, "g")) ?? []).length;
+          expect(openCount).toBe(1);
+          expect(closeCount).toBe(1);
+        }
+      }
+    });
+
+    it("still compiles the system prompt identically regardless of runtime variable content with XML tags present", () => {
+      const compiledA = compileTemplate(MERGE_ANALYSIS_SYSTEM_PROMPT, runtimeVariablesA);
+      const compiledB = compileTemplate(MERGE_ANALYSIS_SYSTEM_PROMPT, runtimeVariablesB);
+
+      expect(compiledA).toBe(compiledB);
+      expect(compiledA).toContain("<merge_rules>");
+      expect(compiledA).toContain("<response_contract>");
+    });
+  });
+
   it("retains runtime placeholders in both segment-merge user-template variants", () => {
     const runtimePlaceholders = ["segments", "maxTimeGap", "enableSmoothing"];
 

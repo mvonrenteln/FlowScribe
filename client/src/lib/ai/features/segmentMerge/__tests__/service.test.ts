@@ -67,7 +67,7 @@ describe("segmentMerge service", () => {
     const logEntry = progress?.batchLogEntry;
     expect(logEntry?.requestPayload).toContain("SYSTEM");
     expect(logEntry?.requestPayload).toContain("SEGMENTS FOR CONTEXT:");
-    expect(logEntry?.requestPayload).toContain('[1] [A] (00:00.0 - 00:01.0): "Hello"');
+    expect(logEntry?.requestPayload).toContain("[1] [A] (00:00.0 - 00:01.0): &quot;Hello&quot;");
     expect(logEntry?.responsePayload).toBe(rawResponse);
   });
 
