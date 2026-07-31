@@ -25,6 +25,9 @@
 - Built-in OpenAI chat requests always use a privacy-safe cache key derived from the exact model and system-message identity with in-memory retention.
 - Custom OpenAI-compatible and Ollama request bodies must not receive OpenAI prompt-cache fields.
 - Structured feature system prompts remain runtime-free; retries preserve their immutable system/user prefix.
+- Use descriptive XML tags only around long or ambiguous default prompt blocks; do not impose a global tag vocabulary or wrap every prompt section.
+- Escape raw dynamic text placed in built-in XML blocks with the shared prompt helper; do not alter global template interpolation or custom prompts.
+- Structured system prompts remain runtime-free, and prompt edits must preserve outcome, retry, and cache-prefix contracts.
 
 ## Work Guidance
 

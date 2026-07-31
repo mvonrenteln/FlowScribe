@@ -848,13 +848,11 @@ for `errorSource: "provider"` failures:
 | `CANCELLED` | No | User cancellation |
 | Any other/unclassified code | No | Treated conservatively as non-retryable |
 
-**Current scope (Phase 1 + Phase 2 + Phase 3 of the batch AI reliability design,** see
+**Current scope (Phase 1 + Phase 2 + Phase 3 + Phase 4 of the batch AI reliability design,** see
 `docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** Phase 1 exposes the envelope,
-`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries) and Phase 3
-(Mandatory OpenAI Prompt Caching) are now implemented and described below. Not yet implemented:
-
-- **Phase 4 - Selective XML Prompt Structure:** XML tags for long/ambiguous prompt sections only, on top
-  of the Phase 1 envelope contract.
+`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries), Phase 3
+(Mandatory OpenAI Prompt Caching), and Phase 4 (Selective XML Prompt Structure) are all implemented
+and described below.
 
 ### Corrective Retries ✅ Implemented
 
@@ -980,6 +978,67 @@ appended. This maintains cache coherence across retries without fragmenting the 
 Custom code calling `new OpenAIProvider().chat(messages)` directly also receives the cache fields
 automatically, so all OpenAI usage—built-in features, custom features, and direct calls—benefits
 from prompt caching without modification.
+
+### Selective XML Prompt Structure ✅ Implemented
+
+The three structured-batch default prompts (speaker classification, segment merge, chapter
+detection) use descriptive XML tags **only** around long or ambiguous blocks - the response
+contract and any dynamic transcript/context content. Short, unambiguous instructions (task
+statements, constraints, batch metadata) stay as plain prose/headings. There is **no mandatory
+tag vocabulary, no wrapper schema, and no rule requiring every prompt or every section to use
+XML** - this is a targeted readability aid for the model, not a structural requirement. Text-only
+prompts (transcript revision, chapter rewrite, chapter metadata, content transformation) were
+intentionally left unconverted.
+
+**Selected blocks per feature:**
+
+| Feature | System prompt tags | User template tags |
+| --- | --- | --- |
+| Speaker classification (`features/speaker/config.ts`) | `<response_contract>` (full envelope contract), `<speaker_recognition_rules>` (recognition heuristics) | `<available_speakers>`, `<sections_to_classify>` |
+| Segment merge (`features/segmentMerge/config.ts`) | `<merge_rules>` (merge criteria), `<response_contract>` (outcome section) | `<segments_for_context>` (both template variants), `<smoothing_rules>` (nested inside the existing `{{#if enableSmoothing}}` conditional, both variants) |
+| Chapter detection (`features/chapterDetection/config.ts`) | `<response_contract>` (long response contract only; short TASK/CONSTRAINTS text and batch metadata stay plain) | `<available_tag_ids>`, `<previous_chapter_context>` (nested inside the existing `{{#if previousChapter}}` conditional, so the whole tagged block is omitted on the first batch rather than emitted empty), `<transcript_segments>` |
+
+**Escaping raw dynamic content:**
+
+`escapeXmlText` (`client/src/lib/ai/prompts/promptBuilder.ts`, exported from
+`client/src/lib/ai/prompts/index.ts`) escapes exactly the five named XML entities -
+`&amp;`, `&lt;`, `&gt;`, `&quot;`, `&apos;` - and is idempotent (re-escaping already-escaped text
+does not double-escape it). It does not alter `compileTemplate`, `compilePrompt`, or
+`PromptVariables` - it is a plain string transform applied to values before they are placed into
+prompt variables.
+
+Each feature service escapes dynamic values placed into its own tagged default blocks, and **only**
+when the default prompt is in use:
+
+- `classifySpeakers` (`features/speaker/service.ts`) escapes the formatted speaker list and segment
+  text only when neither `customPrompt.systemPrompt` nor `customPrompt.userPromptTemplate` is
+  supplied.
+- `buildMergePrompt` (`features/segmentMerge/promptBuilder.ts`) escapes `variables.segments` only
+  when both `params.systemPrompt` and `params.userTemplate` are absent.
+- `detectChapters` (`features/chapterDetection/service.ts`) escapes `tagsAvailable`, `segments`,
+  and `previousChapter` only when no custom prompt override is active - and escapes
+  `previousChapter` only when building the **next** batch's request variables. Stored chapter
+  results (titles, summaries, callbacks, logs) are never escaped, so downstream consumers always
+  see raw text.
+
+**Custom prompts stay fully raw:** when a caller supplies `customPrompt.systemPrompt` and/or
+`customPrompt.userPromptTemplate`, every dynamic value is passed through unescaped and unchanged -
+never partially escaped. Custom prompts are not guaranteed to use XML structure at all, so
+escaping would be both unnecessary and potentially incorrect for them.
+
+**What did not change:** provider code, cache-key derivation, response schemas, result types,
+the structured-batch envelope (`ok`/`empty`/`error`, all six model error codes, and their fixed
+retryability), corrective retry message building, and Ollama/other-provider request handling were
+untouched by this work. The response contract text itself remains provider-agnostic: it lists only
+the six model-observable error codes and never mentions provider-layer auth/network/rate-limit/
+timeout/server-level classification. This was already true before the XML conversion and is not a
+newly added disclaimer - the conversion only wrapped the existing contract text in a tag, it did
+not add new prose to it.
+
+**Cache impact:** wrapping static system-prompt text in XML tags changes the system-message string,
+so it creates **exactly one new OpenAI cache identity** the first time each feature runs after this
+change. After that one-time shift, each default system prompt is static and placeholder-free again
+(see "System Prompt Stability" above), so the Phase 3 caching behavior is unaffected long-term.
 
 ### Prompt System ✅ Implemented
 
