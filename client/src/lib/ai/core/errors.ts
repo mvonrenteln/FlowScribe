@@ -13,6 +13,7 @@ import {
   AIProviderConnectionError,
   AIProviderError,
   AIProviderRateLimitError,
+  AIProviderUnsupportedEnvironmentError,
 } from "../providers/types";
 import { summarizeMessages } from "./formatting";
 
@@ -22,6 +23,7 @@ export {
   AIProviderConnectionError,
   AIProviderError,
   AIProviderRateLimitError,
+  AIProviderUnsupportedEnvironmentError,
 } from "../providers/types";
 
 const t = getI18nInstance().t.bind(getI18nInstance());
@@ -205,6 +207,23 @@ export class AIConnectionError extends AIError {
   }
 }
 
+/**
+ * Error thrown when a required browser capability (e.g. Web Crypto) is
+ * unavailable in the current execution context. This is a permanent
+ * environment limitation, not a transient network condition, and is never
+ * retryable.
+ */
+export class AIUnsupportedEnvironmentError extends AIError {
+  constructor(details?: Record<string, unknown>) {
+    super(t("aiErrors.unsupportedEnvironment"), "UNSUPPORTED_ENVIRONMENT_ERROR", details);
+    this.name = "AIUnsupportedEnvironmentError";
+  }
+
+  toUserMessage(): string {
+    return t("aiErrors.unsupportedEnvironment");
+  }
+}
+
 // ==================== Error Utilities ====================
 
 /**
@@ -240,6 +259,13 @@ export function isCancellationError(error: unknown): boolean {
 export function toAIError(error: unknown): AIError {
   if (error instanceof AIError) {
     return error;
+  }
+
+  if (error instanceof AIProviderUnsupportedEnvironmentError) {
+    return new AIUnsupportedEnvironmentError({
+      providerType: error.providerType,
+      ...error.details,
+    });
   }
 
   if (error instanceof AIProviderAuthError) {
@@ -358,6 +384,7 @@ const HARD_ERROR_CODES = new Set<string>([
   "REQUEST_ERROR",
   "PROVIDER_ERROR",
   "CONNECTION_ERROR",
+  "UNSUPPORTED_ENVIRONMENT_ERROR",
 ]);
 
 /**

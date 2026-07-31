@@ -16,6 +16,7 @@ import {
   AIProviderUnavailableError,
   AIRateLimitError,
   AIRequestError,
+  AIUnsupportedEnvironmentError,
   AIValidationError,
   getErrorMessage,
   isCancellationError,
@@ -28,6 +29,7 @@ import {
   AIProviderAuthError,
   AIProviderConnectionError,
   AIProviderRateLimitError,
+  AIProviderUnsupportedEnvironmentError,
 } from "../providers/types";
 
 describe("AIError", () => {
@@ -210,6 +212,13 @@ describe("toAIError", () => {
     expect(result).toBeInstanceOf(AIError);
     expect(result.message).toBe("error message");
   });
+
+  it("should map unsupported-environment provider errors to AIUnsupportedEnvironmentError", () => {
+    const error = new AIProviderUnsupportedEnvironmentError("Web Crypto unavailable", "openai");
+    const result = toAIError(error);
+    expect(result).toBeInstanceOf(AIUnsupportedEnvironmentError);
+    expect(result.code).toBe("UNSUPPORTED_ENVIRONMENT_ERROR");
+  });
 });
 
 describe("isRetryableAIError", () => {
@@ -293,6 +302,13 @@ describe("isRetryableAIError", () => {
     const error = toAIError(new Error("Something odd happened"));
     expect(isRetryableAIError(error)).toBe(false);
   });
+
+  it("treats an unavailable Web Crypto environment as a permanent, non-retryable failure", () => {
+    const error = toAIError(
+      new AIProviderUnsupportedEnvironmentError("Web Crypto unavailable", "openai"),
+    );
+    expect(isRetryableAIError(error)).toBe(false);
+  });
 });
 
 describe("getErrorMessage", () => {
@@ -360,6 +376,7 @@ describe("isHardAIErrorCode", () => {
     expect(isHardAIErrorCode("REQUEST_ERROR")).toBe(true);
     expect(isHardAIErrorCode("PROVIDER_ERROR")).toBe(true);
     expect(isHardAIErrorCode("CONNECTION_ERROR")).toBe(true);
+    expect(isHardAIErrorCode("UNSUPPORTED_ENVIRONMENT_ERROR")).toBe(true);
   });
 
   it("should ignore non-hard error codes", () => {

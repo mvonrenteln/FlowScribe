@@ -58,6 +58,7 @@ export {
   AIProviderUnavailableError,
   AIRateLimitError,
   AIRequestError,
+  AIUnsupportedEnvironmentError,
   AIValidationError,
   getErrorMessage,
   isCancellationError,

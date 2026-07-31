@@ -2,8 +2,9 @@
  * OpenAI Provider Helpers Tests
  */
 
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ChatMessage } from "../types";
+import { AIProviderUnsupportedEnvironmentError } from "../types";
 
 const { createMock } = vi.hoisted(() => ({
   createMock: vi.fn(),
@@ -275,5 +276,52 @@ describe("OpenAIProvider prompt cache controls", () => {
     });
     expect(body).not.toHaveProperty("prompt_cache_key");
     expect(body).not.toHaveProperty("prompt_cache_retention");
+  });
+
+  it("11. derives the cache key as sha256(JSON.stringify([model, systemContents])), pinned against an independent digest", async () => {
+    const provider = makeProvider("openai", "gpt-4o");
+    const messages: ChatMessage[] = [
+      { role: "system", content: "Immutable system prompt" },
+      { role: "user", content: "Immutable compiled batch input" },
+    ];
+
+    const body = await captureBody(provider, messages);
+
+    const identity = JSON.stringify(["gpt-4o", ["Immutable system prompt"]]);
+    const digest = await globalThis.crypto.subtle.digest(
+      "SHA-256",
+      new TextEncoder().encode(identity),
+    );
+    const expectedKey = Array.from(new Uint8Array(digest), (byte) =>
+      byte.toString(16).padStart(2, "0"),
+    ).join("");
+
+    expect(body.prompt_cache_key).toBe(expectedKey);
+  });
+
+  describe("when Web Crypto is unavailable", () => {
+    afterEach(() => {
+      vi.unstubAllGlobals();
+    });
+
+    it("12. fails fast with a non-retryable, clearly-labeled error instead of sending an uncached request", async () => {
+      vi.stubGlobal("crypto", {});
+      const provider = makeProvider("openai");
+
+      await expect(provider.chat([{ role: "user", content: "Hello" }])).rejects.toBeInstanceOf(
+        AIProviderUnsupportedEnvironmentError,
+      );
+      expect(createMock).not.toHaveBeenCalled();
+    });
+
+    it("13. does not attempt cache-key derivation for custom providers", async () => {
+      vi.stubGlobal("crypto", {});
+      const provider = makeProvider("custom");
+
+      const body = await captureBody(provider, [{ role: "user", content: "Hello" }]);
+
+      expect(body).not.toHaveProperty("prompt_cache_key");
+      expect(body).not.toHaveProperty("prompt_cache_retention");
+    });
   });
 });

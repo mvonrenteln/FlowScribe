@@ -20,6 +20,7 @@ import {
   AIProviderConnectionError,
   type AIProviderError,
   AIProviderRateLimitError,
+  AIProviderUnsupportedEnvironmentError,
 } from "./types";
 
 const OPENAI_TEMPERATURE_LIMITS = {
@@ -61,11 +62,25 @@ export function normalizeOpenAITemperature(model: string, temperature: number): 
  * are intentionally excluded so that appended retry messages do not change the
  * key, and so that no raw prompt, transcript, or response text leaks into the
  * cache key sent to the provider.
+ *
+ * Caching is mandatory for built-in OpenAI requests, so an unavailable Web
+ * Crypto API (e.g. the app served over a non-secure/plain-HTTP origin) is
+ * treated as a permanent, non-retryable environment failure rather than
+ * silently sending an uncached request or surfacing a misleading transient
+ * "connection error".
  */
 async function buildPromptCacheKey(
   model: string,
   messages: readonly ChatMessage[],
 ): Promise<string> {
+  if (!globalThis.crypto?.subtle) {
+    throw new AIProviderUnsupportedEnvironmentError(
+      "Web Crypto (crypto.subtle) is unavailable in this browser context. " +
+        "OpenAI prompt caching requires a secure context (HTTPS or localhost).",
+      "openai",
+    );
+  }
+
   const systemContents = messages
     .filter((message) => message.role === "system")
     .map((message) => message.content);
@@ -158,6 +173,9 @@ export class OpenAIProvider implements AIProviderService {
       };
     } catch (error) {
       if (options?.signal?.aborted) {
+        throw error;
+      }
+      if (error instanceof AIProviderUnsupportedEnvironmentError) {
         throw error;
       }
       throw this.handleError(error);

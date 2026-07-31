@@ -276,7 +276,8 @@
     "rateLimit": "Rate-Limit erreicht. Bitte warten und erneut versuchen.",
     "request": "Anfrage abgelehnt. Modell und Parameter prüfen.",
     "providerUnavailable": "Anbieterfehler. Bitte später erneut versuchen.",
-    "connection": "Verbindung fehlgeschlagen. Netzwerk und Base URL prüfen."
+    "connection": "Verbindung fehlgeschlagen. Netzwerk und Base URL prüfen.",
+    "unsupportedEnvironment": "Dieser Browser-Kontext unterstützt die erforderlichen Sicherheitsfunktionen (Web Crypto) nicht. Die App muss über HTTPS oder localhost bereitgestellt werden, um OpenAI zu nutzen."
   },
   "backup": {
     "indicator": {
