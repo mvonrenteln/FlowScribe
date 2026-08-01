@@ -111,7 +111,11 @@ export async function classifySpeakers(
     return [];
   }
 
-  // Build prompt variables
+  // Build prompt variables. The default prompt places these values inside
+  // XML-tagged blocks (<sections_to_classify>, <available_speakers>), but
+  // those tags are prompt-structuring hints for the LLM only, not real XML —
+  // they are not validated or escaped, so values are always passed through
+  // as-is, whether the prompt is the built-in default or a custom override.
   const segmentsText = formatSegmentsForPrompt(segments);
   const speakersText = formatSpeakersForPrompt(availableSpeakers);
 
@@ -125,6 +129,10 @@ export async function classifySpeakers(
     options,
   );
 
+  if (result.status === "empty") {
+    return [];
+  }
+
   if (!result.success || !result.data) {
     const message = result.error ?? "Speaker classification failed";
     logger.error("Classification failed.", { message });
@@ -132,6 +140,9 @@ export async function classifySpeakers(
     throw new AIError(message, result.errorCode ?? "UNKNOWN_ERROR", {
       responsePayload,
       rawResponse: result.rawResponse,
+      errorSource: result.errorSource,
+      retryable: result.retryable,
+      parserFailure: result.parserFailure,
     });
   }
 
@@ -215,6 +226,9 @@ export async function classifySpeakersBatch(
           error: aiError.toUserMessage(),
           errorCode: aiError.code,
           responsePayload,
+          errorSource: aiError.details?.errorSource,
+          retryable: aiError.details?.retryable,
+          parserFailure: aiError.details?.parserFailure,
         };
       }
     },
@@ -241,6 +255,9 @@ export async function classifySpeakersBatch(
             segmentIds: outcome.batchSegments.map((s) => s.id),
             errorCode: outcome.errorCode,
             responsePayload: outcome.responsePayload,
+            errorSource: outcome.errorSource,
+            retryable: outcome.retryable,
+            parserFailure: outcome.parserFailure,
           },
         });
       }

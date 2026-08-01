@@ -17,6 +17,7 @@ TASK
 Analyze consecutive transcript segment pairs and determine if they should be merged.
 When text smoothing is requested, also provide a grammatically corrected merged text.
 
+<merge_rules>
 IMPORTANT: All segment pairs presented to you have already been pre-filtered:
 - Only same-speaker pairs (if speaker filtering is enabled)
 - Only pairs with acceptable time gaps (based on maxTimeGap parameter)
@@ -52,10 +53,14 @@ DO NOT SUGGEST MERGE WHEN:
 - Both segments are complete, standalone sentences without strong connection
 - Topic clearly changes between segments
 - Intentional pause for emphasis or dramatic effect
+</merge_rules>
 
+<response_contract>
 OUTPUT FORMAT
 -------------
-Return a JSON array of merge suggestions. Each suggestion MUST have this EXACT format:
+Return ONLY valid JSON, wrapped in one of the three envelopes below.
+
+Each suggestion inside "data" MUST have this EXACT format:
 
 {
   "segmentIds": [number, number],  // Array with the two segment IDs from brackets, e.g. [1, 2]
@@ -73,23 +78,57 @@ CRITICAL: Use ONLY the format shown below. Do NOT use any other format like:
 - ❌ segmentA/segmentB objects
 - ❌ Any other fields or structures
 
-Example output:
-[
-  {
-    "segmentIds": [1, 2],
-    "confidence": 0.95,
-    "reason": "Incomplete sentence continues in next segment",
-    "smoothedText": "So what we're trying to achieve here is better performance.",
-    "smoothingChanges": "Removed incorrect period, fixed capitalization"
-  },
-  {
-    "segmentIds": [3, 4],
-    "confidence": 0.85,
-    "reason": "Short pause between related phrases"
-  }
-]
+If you produced merge suggestions for at least one pair:
 
-If no merges are suggested, return an empty array: []`;
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "segmentIds": [1, 2],
+      "confidence": 0.95,
+      "reason": "Incomplete sentence continues in next segment",
+      "smoothedText": "So what we're trying to achieve here is better performance.",
+      "smoothingChanges": "Removed incorrect period, fixed capitalization"
+    },
+    {
+      "segmentIds": [3, 4],
+      "confidence": 0.85,
+      "reason": "Short pause between related phrases"
+    }
+  ],
+  "error": null
+}
+
+If no merges are suggested:
+
+{
+  "status": "empty",
+  "retryable": false,
+  "data": [],
+  "error": null
+}
+
+If you cannot produce any suggestions:
+
+{
+  "status": "error",
+  "retryable": true,
+  "data": [],
+  "error": { "code": "TEMPORARY_FAILURE", "message": "<brief reason>" }
+}
+
+"error.code" MUST be one of exactly these six values:
+- MISSING_REQUIRED_INPUT (not retryable): required input (segments) is missing
+- INVALID_INPUT_SHAPE (not retryable): the input segments could not be understood
+- CONTRADICTORY_INPUT (not retryable): the segments are contradictory
+- UNSUPPORTED_TASK (not retryable): the requested merge analysis cannot be performed
+- OUTPUT_TRUNCATED (retryable): the response would exceed the output limit
+- TEMPORARY_FAILURE (retryable): a transient failure prevented analysis
+
+IMPORTANT:
+- Only JSON, NO additional text.
+</response_contract>`;
 
 // ==================== User Prompt Template ====================
 
@@ -103,9 +142,12 @@ NOTE: Only consider consecutive segments in the order provided.
 Your task is to evaluate the CONTENT and determine if merging makes semantic sense.
 
 SEGMENTS FOR CONTEXT:
+<segments_for_context>
 {{segments}}
+</segments_for_context>
 
 {{#if enableSmoothing}}
+<smoothing_rules>
 SMOOTHING INSTRUCTIONS:
 When suggesting a merge, provide a "smoothedText" that:
 1. Removes incorrect sentence breaks (period + capital mid-sentence)
@@ -115,9 +157,10 @@ When suggesting a merge, provide a "smoothedText" that:
 5. Makes minimal changes - only fix obvious transcription artifacts
 
 Include "smoothingChanges" explaining what was changed.
+</smoothing_rules>
 {{/if}}
 
-Return your merge suggestions as a JSON array.`;
+Respond with ONLY the JSON envelope as specified.`;
 
 // ==================== User Prompt Template (Simple) ====================
 
@@ -131,9 +174,12 @@ IMPORTANT:
 Only consider consecutive segments in the order provided.
 
 SEGMENTS FOR CONTEXT:
+<segments_for_context>
 {{segments}}
+</segments_for_context>
 
 {{#if enableSmoothing}}
+<smoothing_rules>
 SMOOTHING INSTRUCTIONS:
 1. Remove incorrect sentence breaks (period + capital mid-sentence)
 2. Fix capitalization issues at merge points
@@ -142,9 +188,10 @@ SMOOTHING INSTRUCTIONS:
 5. Make minimal changes—only fix obvious transcription artifacts
 
 Include "smoothedText" and "smoothingChanges" for each accepted merge.
+</smoothing_rules>
 {{/if}}
 
-Return merge suggestions as a JSON array with segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
+Respond with ONLY the JSON envelope, with each suggestion holding segmentIds, confidence, reason{{#if enableSmoothing}}, smoothedText, smoothingChanges{{/if}}.`;
 
 // ==================== Response Schema ====================
 
@@ -194,6 +241,7 @@ export const segmentMergeConfig: AIFeatureConfig = {
   availablePlaceholders: ["segments", "maxTimeGap", "enableSmoothing"],
 
   responseSchema: mergeResponseSchema,
+  responseFormat: "structured-batch",
 };
 
 // ==================== Prompt Variants ====================

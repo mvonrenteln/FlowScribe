@@ -8,43 +8,40 @@ import {
 const mockExecuteFeature = vi.hoisted(() =>
   vi.fn(async () => ({
     success: true,
-    data: {
-      chapters: [
-        {
-          title: "Creature description and initial reactions",
-          summary:
-            "The group describes the monster's appearance, behavior, and considers their first possible actions.",
-          tags: ["keep"],
-          start: 1,
-          end: 30,
-          notes:
-            "Establishes the scene, introduces the threat and each character's perspective, setting up the conflict.",
-          confidence: 0.94,
-        },
-        {
-          title: "Tactical brainstorming and initiative rolls",
-          summary:
-            "Players debate using the shield as a springboard, discuss the creature's size, and roll initiative and action dice.",
-          tags: ["keep"],
-          start: 31,
-          end: 70,
-          notes:
-            "Develops strategy, resolves mechanical steps, and builds tension as the party prepares to act.",
-          confidence: 0.92,
-        },
-        {
-          title: "Equipment checks and movement decision",
-          summary:
-            "The party reviews armor, load, waits for Glymbar, and decides to advance toward the beast.",
-          tags: ["keep"],
-          start: 71,
-          end: 100,
-          notes:
-            "Finalizes preparations, confirms readiness, and initiates the group's advance, moving the narrative forward.",
-          confidence: 0.93,
-        },
-      ],
-    },
+    status: "ok" as const,
+    retryable: false,
+    data: [
+      {
+        title: "Creature description and initial reactions",
+        summary:
+          "The group describes the monster's appearance, behavior, and considers their first possible actions.",
+        tags: ["keep"],
+        start: 1,
+        end: 30,
+        notes:
+          "Establishes the scene, introduces the threat and each character's perspective, setting up the conflict.",
+      },
+      {
+        title: "Tactical brainstorming and initiative rolls",
+        summary:
+          "Players debate using the shield as a springboard, discuss the creature's size, and roll initiative and action dice.",
+        tags: ["keep"],
+        start: 31,
+        end: 70,
+        notes:
+          "Develops strategy, resolves mechanical steps, and builds tension as the party prepares to act.",
+      },
+      {
+        title: "Equipment checks and movement decision",
+        summary:
+          "The party reviews armor, load, waits for Glymbar, and decides to advance toward the beast.",
+        tags: ["keep"],
+        start: 71,
+        end: 100,
+        notes:
+          "Finalizes preparations, confirms readiness, and initiates the group's advance, moving the narrative forward.",
+      },
+    ],
     metadata: {
       featureId: "chapter-detection",
       providerId: "test-provider",
@@ -169,19 +166,18 @@ describe("aiChapterDetectionSlice integration", () => {
   it("limits detection to scoped segment ids when provided", async () => {
     mockExecuteFeature.mockResolvedValueOnce({
       success: true,
-      data: {
-        chapters: [
-          {
-            title: "Scoped chapter",
-            summary: "Scoped summary",
-            tags: ["keep"],
-            start: 1,
-            end: 2,
-            notes: "Scoped notes",
-            confidence: 0.9,
-          },
-        ],
-      },
+      status: "ok" as const,
+      retryable: false,
+      data: [
+        {
+          title: "Scoped chapter",
+          summary: "Scoped summary",
+          tags: ["keep"],
+          start: 1,
+          end: 2,
+          notes: "Scoped notes",
+        },
+      ],
       metadata: {
         featureId: "chapter-detection",
         providerId: "test-provider",
@@ -244,28 +240,26 @@ describe("aiChapterDetectionSlice integration", () => {
 
     const successResp = async () => ({
       success: true,
-      data: {
-        chapters: [
-          {
-            title: "A",
-            summary: "summary A",
-            notes: "notes A",
-            tags: ["keep"],
-            start: 1,
-            end: 10,
-            confidence: 0.9,
-          },
-          {
-            title: "B",
-            summary: "summary B",
-            notes: "notes B",
-            tags: ["keep"],
-            start: 11,
-            end: 20,
-            confidence: 0.8,
-          },
-        ],
-      },
+      status: "ok" as const,
+      retryable: false,
+      data: [
+        {
+          title: "A",
+          summary: "summary A",
+          notes: "notes A",
+          tags: ["keep"],
+          start: 1,
+          end: 10,
+        },
+        {
+          title: "B",
+          summary: "summary B",
+          notes: "notes B",
+          tags: ["keep"],
+          start: 11,
+          end: 20,
+        },
+      ],
       metadata: {
         featureId: "chapter-detection",
         providerId: "test",

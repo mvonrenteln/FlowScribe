@@ -64,6 +64,8 @@ describe("OllamaProvider", () => {
     expect(body.messages).toEqual(messages);
     expect(body.options.num_predict).toBe(128);
     expect(body.options.temperature).toBe(0.2);
+    expect(body).not.toHaveProperty("prompt_cache_key");
+    expect(body).not.toHaveProperty("prompt_cache_retention");
   });
 
   it("falls back to /api/generate when /api/chat is unavailable", async () => {
@@ -97,6 +99,8 @@ describe("OllamaProvider", () => {
     const secondBody = JSON.parse((secondInit as RequestInit).body as string);
     expect(secondBody.prompt).toBe("Hello");
     expect(secondBody.system).toBe("You are helpful.");
+    expect(secondBody).not.toHaveProperty("prompt_cache_key");
+    expect(secondBody).not.toHaveProperty("prompt_cache_retention");
   });
 
   it("wraps network errors as connection errors", async () => {

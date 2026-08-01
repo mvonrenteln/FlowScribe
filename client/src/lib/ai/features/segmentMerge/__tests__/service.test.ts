@@ -71,7 +71,7 @@ describe("segmentMerge service", () => {
     expect(logEntry?.responsePayload).toBe(rawResponse);
   });
 
-  it("recovers suggestions from a failed batch when responsePayload contains valid JSON", async () => {
+  it("does not recover suggestions from a failed batch even when the raw response contains parseable JSON", async () => {
     const segments = [
       makeSegment("seg-1", 0, 1, "This is the first"),
       makeSegment("seg-2", 1.1, 2, "part of the sentence"),
@@ -80,6 +80,9 @@ describe("segmentMerge service", () => {
 
     executeFeatureMock.mockResolvedValue({
       success: false,
+      status: "error",
+      retryable: true,
+      errorSource: "parser",
       data: undefined,
       rawResponse: validPayload,
       error: "Model timeout after retries",
@@ -103,6 +106,90 @@ describe("segmentMerge service", () => {
       model: "model-1",
     });
 
-    expect(result.suggestions.length).toBeGreaterThan(0);
+    expect(result.suggestions).toEqual([]);
+  });
+
+  it("produces zero suggestions and a nonfatal batch log when the model reports an empty batch", async () => {
+    const segments = [makeSegment("seg-1", 0, 1, "Hello"), makeSegment("seg-2", 1.1, 2, "world")];
+
+    executeFeatureMock.mockResolvedValue({
+      success: true,
+      status: "empty",
+      retryable: false,
+      data: [],
+      rawResponse: '{"status":"empty","retryable":false,"data":[],"error":null}',
+      metadata: {
+        featureId: "segment-merge",
+        providerId: "test",
+        model: "test",
+        durationMs: 1,
+      },
+    });
+
+    const onProgress = vi.fn();
+
+    const result = await analyzeMergeCandidates({
+      segments,
+      maxTimeGap: 2,
+      minConfidence: "low",
+      sameSpeakerOnly: true,
+      enableSmoothing: false,
+      batchSize: 10,
+      providerId: "provider-1",
+      model: "model-1",
+      onProgress,
+    });
+
+    expect(result.suggestions).toEqual([]);
+    expect(result.issues.some((issue) => issue.level === "error")).toBe(false);
+
+    const logEntry = onProgress.mock.calls[0]?.[0]?.batchLogEntry;
+    expect(logEntry?.fatal).toBe(false);
+    expect(logEntry?.suggestionCount).toBe(0);
+    expect(logEntry?.rawItemCount).toBe(0);
+  });
+
+  it("preserves errorSource, retryable, errorCode, and parser diagnostics in the batch issue context", async () => {
+    const segments = [makeSegment("seg-1", 0, 1, "Hello"), makeSegment("seg-2", 1.1, 2, "world")];
+
+    executeFeatureMock.mockResolvedValue({
+      success: false,
+      status: "error",
+      retryable: true,
+      errorSource: "parser",
+      error: "Failed to parse AI response",
+      errorCode: "PARSE_ERROR",
+      parserFailure: {
+        code: "SCHEMA_MISMATCH",
+        message: "Structured batch envelope did not match the expected schema",
+        diagnostics: [{ path: "data", message: "Expected array", expected: "array", actual: null }],
+      },
+      metadata: {
+        featureId: "segment-merge",
+        providerId: "test",
+        model: "test",
+        durationMs: 10,
+      },
+    });
+
+    const result = await analyzeMergeCandidates({
+      segments,
+      maxTimeGap: 2,
+      minConfidence: "low",
+      sameSpeakerOnly: true,
+      enableSmoothing: false,
+      batchSize: 10,
+      providerId: "provider-1",
+      model: "model-1",
+    });
+
+    expect(result.suggestions).toEqual([]);
+    const errorIssue = result.issues.find((issue) => issue.level === "error");
+    expect(errorIssue?.context).toMatchObject({
+      errorCode: "PARSE_ERROR",
+      errorSource: "parser",
+      retryable: true,
+      parserFailure: expect.objectContaining({ code: "SCHEMA_MISMATCH" }),
+    });
   });
 });

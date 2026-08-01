@@ -8,6 +8,12 @@
  * @module ai/core/types
  */
 
+import type {
+  SimpleSchema,
+  StructuredBatchErrorSource,
+  StructuredBatchParserFailure,
+  StructuredBatchStatus,
+} from "../parsing/types";
 import type { AIProviderConfig, ChatMessage, ChatOptions } from "../providers/types";
 
 // ==================== Feature Types ====================
@@ -79,11 +85,38 @@ export interface AIFeatureConfig {
   /** Available placeholders for prompt templates */
   availablePlaceholders: string[];
 
-  /** JSON schema for validating AI response (optional) */
-  responseSchema?: ResponseSchema;
+  /**
+   * JSON schema for validating AI response (optional).
+   *
+   * Legacy (non-`structured-batch`) features use `ResponseSchema`, whose
+   * nested `PropertySchema` does not support a `required` array at every
+   * level. Features that opt into `responseFormat: "structured-batch"` are
+   * validated via `parseStructuredBatchResponse`, which expects the
+   * recursive `SimpleSchema` shape (nested `required` supported at every
+   * level) - hence the union here. `ResponseSchema` is always structurally
+   * assignable to `SimpleSchema`, so existing legacy schema values remain
+   * valid without any changes.
+   */
+  responseSchema?: ResponseSchema | SimpleSchema;
+
+  /**
+   * Opt-in response contract. When set to `"structured-batch"`, the feature's
+   * response is parsed via `parseStructuredBatchResponse` (envelope with
+   * `status`/`retryable`/`data`/`error`) instead of the legacy lenient
+   * JSON parsing path. Omitted for all other (legacy) features.
+   *
+   * When set, `responseSchema` must be provided and describes the shape of
+   * the envelope's `data` array items.
+   */
+  responseFormat?: "structured-batch";
 }
 
 // ==================== Feature Execution ====================
+
+/**
+ * Category of retry cause for a `responseFormat: "structured-batch"` retry.
+ */
+export type StructuredBatchRetryCategory = "parser" | "model" | "provider";
 
 /**
  * Information about a retry attempt for logging/UI purposes.
@@ -97,6 +130,28 @@ export interface RetryAttemptInfo {
   errorMessage: string;
   /** Duration of the failed attempt in ms */
   attemptDurationMs: number;
+  /**
+   * Structured-batch parser failure code (only present for
+   * `responseFormat: "structured-batch"` features).
+   */
+  parserFailureCode?: StructuredBatchParserFailure["code"];
+  /**
+   * Structured-batch parser diagnostics (only present for
+   * `responseFormat: "structured-batch"` features).
+   */
+  parserFailureDiagnostics?: StructuredBatchParserFailure["diagnostics"];
+  /**
+   * Which layer triggered this retry. Only present for
+   * `responseFormat: "structured-batch"` features.
+   */
+  retryCategory?: StructuredBatchRetryCategory;
+  /**
+   * Whether this retry appended a corrective message (invalid assistant
+   * response + repair instruction) to the conversation. `true` only for
+   * `retryCategory === "parser"`; `false` for model/provider retries, which
+   * resend the original prefix unchanged.
+   */
+  corrective?: boolean;
 }
 
 /**
@@ -149,6 +204,31 @@ export interface AIFeatureResult<T> {
 
   /** Raw response from AI (for debugging) */
   rawResponse?: string;
+
+  /**
+   * Structured-batch outcome status. Only present for features that opt into
+   * `responseFormat: "structured-batch"`; legacy features omit this field.
+   */
+  status?: StructuredBatchStatus;
+
+  /**
+   * Whether this failure is safe to retry. Only present for features that
+   * opt into `responseFormat: "structured-batch"`.
+   */
+  retryable?: boolean;
+
+  /**
+   * Where a structured-batch failure originated (model, provider, or
+   * parser). Only present for features that opt into
+   * `responseFormat: "structured-batch"`.
+   */
+  errorSource?: StructuredBatchErrorSource;
+
+  /**
+   * Parser failure details when a structured-batch response could not be
+   * parsed or validated after all retry attempts were exhausted.
+   */
+  parserFailure?: StructuredBatchParserFailure;
 
   /** Execution metadata */
   metadata: {

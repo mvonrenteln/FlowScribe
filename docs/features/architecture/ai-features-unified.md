@@ -1,7 +1,7 @@
 # AI Features: Unified Architecture & Implementation Guide
 
-*Last Updated: February 5, 2026*
-*Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Refactoring Complete ✅*
+*Last Updated: July 31, 2026*
+*Status: Phase 1 Complete ✅ - Phase 2 Complete ✅ - Phase 3 Complete ✅ - Refactoring Complete ✅*
 
 ---
 
@@ -767,8 +767,270 @@ export interface AIFeatureConfig {
 
   // Response validation schema
   responseSchema?: SimpleSchema;
+
+  // Opt-in structured envelope contract (see "Structured Batch Outcomes" below)
+  responseFormat?: "structured-batch";
 }
 ```
+
+### Structured Batch Outcomes ✅ Implemented
+
+Speaker classification, segment merge, and chapter detection opt into `responseFormat: "structured-batch"`.
+All other features (text revision, multi-track merge, content transformation, chapter rewrite,
+chapter metadata) keep the legacy plain-text or lenient-JSON response shape unchanged.
+
+For opted-in features, `parseStructuredBatchResponse` (`client/src/lib/ai/parsing/structuredBatchResponse.ts`)
+requires the model to return one of three exact envelopes instead of a bare array:
+
+```json
+// ok - one or more valid items
+{ "status": "ok", "retryable": false, "data": [ /* ≥1 item */ ], "error": null }
+
+// empty - the model explicitly found nothing to return
+{ "status": "empty", "retryable": false, "data": [], "error": null }
+
+// error - the model itself reports a failure
+{ "status": "error", "retryable": true, "data": [], "error": { "code": "TEMPORARY_FAILURE", "message": "..." } }
+```
+
+`empty` is a **terminal successful outcome**: `executeFeature` returns `success: true, status: "empty"`,
+and `executeBatch` counts it toward `summary.succeeded`, not `summary.failed`. It means the model
+completed the task and correctly found no applicable result (e.g. no chapters in this batch) - it is
+never used for "no output" or "couldn't parse".
+
+The model reports exactly six stable error codes for `status: "error"`, each with fixed, non-negotiable
+retryability (enforced by the parser, not by the model's own claim):
+
+| Code | Retryable | Meaning |
+| --- | --- | --- |
+| `MISSING_REQUIRED_INPUT` | No | Required input (segments/speakers) is missing |
+| `INVALID_INPUT_SHAPE` | No | The input could not be understood |
+| `CONTRADICTORY_INPUT` | No | The input is contradictory |
+| `UNSUPPORTED_TASK` | No | The requested operation cannot be performed |
+| `OUTPUT_TRUNCATED` | Yes | The response would exceed the output limit |
+| `TEMPORARY_FAILURE` | Yes | A transient failure prevented completion |
+
+**Invalid structured output is never accepted through lenient recovery.** If the envelope is malformed,
+missing required fields, has an unknown `status`, or the `data` items fail schema validation, the parser
+returns a `SCHEMA_MISMATCH` (or `INVALID_JSON`/`EMPTY_RESPONSE`) failure with diagnostics. `executeFeature`
+retries this like any other parse failure up to `parseRetryCount`, but on exhaustion it returns a plain
+parser failure (`errorSource: "parser"`, `retryable: true`) - it does **not** fall back to
+`tryLenientRecovery`. Legacy (non-structured-batch) features are the only ones that use lenient recovery.
+
+`AIFeatureResult` exposes four fields specific to structured-batch features so callers can distinguish
+outcomes without inferring meaning from array length or error strings:
+
+- `status?: "ok" | "empty" | "error"`
+- `retryable?: boolean`
+- `errorSource?: "model" | "provider" | "parser"` - who reported the failure:
+  - `"model"`: the model itself returned `status: "error"`; `retryable` reflects the fixed table above.
+  - `"provider"`: the HTTP/network/auth layer failed before any envelope was received; `retryable` is
+    derived from `isRetryableAIError` (see the provider retryability table below).
+  - `"parser"`: the response could not be parsed/validated as a structured-batch envelope after all
+    retries; always `retryable: true`.
+- `parserFailure?: StructuredBatchParserFailure` - present when `errorSource === "parser"`; carries the
+  parser failure `code`, `message`, and validation `diagnostics` for the exhausted parse attempt.
+
+**Provider retryability** (`isRetryableAIError` in `client/src/lib/ai/core/errors.ts`) - only consulted
+for `errorSource: "provider"` failures:
+
+| `AIError.code` | Retryable | Notes |
+| --- | --- | --- |
+| `CONNECTION_ERROR` | Yes | Network interruption or timeout |
+| `PROVIDER_ERROR` | Yes | Provider-side (5xx-class) failure |
+| `RATE_LIMIT` | Yes | HTTP 429 |
+| `PARSE_ERROR` | Yes | Malformed/truncated output surfaced as a provider-layer error |
+| `VALIDATION_ERROR` | Yes | Schema-invalid output surfaced as a provider-layer error |
+| `REQUEST_ERROR` | Yes, only if `details.statusCode` is 408 or 429 | Other 4xx statuses are not retryable |
+| `AUTH_ERROR` | No | Authentication failure |
+| `CONFIGURATION_ERROR` | No | Missing/invalid local configuration |
+| `UNSUPPORTED_ENVIRONMENT_ERROR` | No | Required browser capability (Web Crypto) unavailable in the current context |
+| `CANCELLED` | No | User cancellation |
+| Any other/unclassified code | No | Treated conservatively as non-retryable |
+
+**Current scope (Phase 1 + Phase 2 + Phase 3 + Phase 4 of the batch AI reliability design,** see
+`docs/superpowers/specs/2026-07-25-batch-ai-reliability-design.md`**):** Phase 1 exposes the envelope,
+`retryable`, and `errorSource` diagnostics described above. Phase 2 (Corrective Retries), Phase 3
+(Mandatory OpenAI Prompt Caching), and Phase 4 (Selective XML Prompt Structure) are all implemented
+and described below.
+
+### Corrective Retries ✅ Implemented
+
+For `responseFormat: "structured-batch"` features, `executeFeature`
+(`client/src/lib/ai/core/aiFeatureService.ts`) retries a failed attempt in place of surfacing it,
+subject to a shared retry budget. The decision is made per attempt:
+
+| Origin | Condition | Retry? | Corrective message? |
+| --- | --- | --- | --- |
+| Parser | Envelope malformed/schema-invalid (`errorSource: "parser"`) | Yes, up to `parseRetryCount` | Yes |
+| Model | `status: "error"` with `retryable: true` per the error-code table above | Yes, up to `parseRetryCount` | No |
+| Provider | Provider/network failure with `retryable: true` per `isRetryableAIError` | Yes, up to `parseRetryCount` | No |
+| Any origin | `retryable: false`, or `status: "ok"`/`"empty"` | Never | - |
+
+The retry budget (`settings.parseRetryCount`, default 3) is **shared across all three causes** - it is
+not a separate allowance per origin. An attempt sequence can mix a parser retry, then a model retry,
+then a provider retry, and all three count against the same `maxRetries` ceiling.
+
+Only parser-failure retries send a **corrective message**, built by
+`client/src/lib/ai/core/correctiveRetry.ts`. It appends two messages to the original conversation
+prefix: the model's invalid response (as an `assistant` turn) and a repair instruction (as a `user`
+turn) naming the parser failure `code`, its message, and per-field diagnostics (path, message, and
+expected value where available) - without leaking parser implementation details. Model and provider
+retries resend the original message prefix unchanged, with no corrective content appended. "Unchanged"
+means whatever messages the previous attempt sent - which may already include corrective turns
+appended by an earlier parser-failure retry within the same `executeFeature` call; a model or provider
+retry never appends a *new* corrective turn of its own, but it does not strip turns added by a prior one.
+
+`RetryAttemptInfo` (passed to `options.onRetry`) carries two new fields describing the retry that just
+happened:
+
+- `retryCategory?: "parser" | "model" | "provider"` - which layer triggered this retry.
+- `corrective?: boolean` - whether a corrective message was appended (`true` only when
+  `retryCategory === "parser"`).
+
+Both fields are additive and optional. Existing `onRetry` consumers (segment merge, chapter detection)
+need no changes: they only read `attempt`, `errorMessage`, and `attemptDurationMs`, which are unchanged.
+
+### Provider Retry-After Timing ✅ Implemented
+
+Retryable provider failures (network, connection, 5xx, rate limit) automatically wait for the
+provider's `Retry-After` timing before the next attempt, when one was supplied. The wait is
+**abortable** — if the operation is cancelled via `AbortSignal`, the function returns `CANCELLED`
+immediately without sending another request.
+
+**Timing normalization:**
+
+- `AIRateLimitError` carries `details.retryAfter` (seconds from HTTP 429 headers or provider response)
+- Other retryable provider errors (`AIProviderConnectionError`, `AIProviderError`, non-rate-limit `AIRequestError` with status 408) have no `retryAfter` and retry immediately (0ms delay)
+- The normalized delay is capped at 30 seconds maximum, regardless of the provider's claimed value
+
+**Abort behavior:**
+
+- If the signal is already aborted when the wait begins, it resolves without waiting
+- If the signal is aborted while waiting, the wait clears its timeout, removes its listeners, and resolves immediately
+- A cancelled wait-for-retry returns `CANCELLED` to the caller with no additional provider call or `onRetry` callback
+
+**Scope:** Applies only to structured-batch provider retries (`executeFeature`). Parser and model
+retries are unaffected by retry-after timing — they retry per their own logic and budgets.
+
+### Mandatory OpenAI Prompt Caching ✅ Implemented
+
+Every built-in OpenAI chat request (`AIProviderConfig.type === "openai"`) automatically carries a
+stable, privacy-safe **prompt cache key** and **in-memory retention directive**, computed via browser
+Web Crypto with no new dependency.
+
+**Cache Key Derivation:**
+
+The key is a **SHA-256 digest** (64 lowercase hexadecimal characters) of the exact **model string**
+and the **ordered list of system-message contents** (only `role: "system"` messages), encoded via
+`JSON.stringify` for unambiguous string representation. User, assistant, and repair messages
+(transcript content, corrective retry history) are intentionally excluded so that:
+
+- Appended retry messages do not fragment the cache.
+- Raw prompt, transcript text, API keys, endpoint URLs, or provider identities never leak into the
+  key sent to OpenAI.
+
+**Built-in vs. Custom Providers:**
+
+- **Built-in OpenAI (`type: "openai"`):** Every request includes both `prompt_cache_key` and
+  `prompt_cache_retention: "in-memory"`.
+- **Custom OpenAI-compatible (`type: "custom"`):** Request body is unchanged; no cache fields
+  are added.
+- **Ollama and other providers:** No cache fields are added.
+
+**System Prompt Stability:**
+
+Structured-batch features (speaker classification, segment merge, chapter detection) keep their
+**system prompts runtime-free** — no placeholders like `{{speakers}}` or `{{batchIndex}}` appear
+in the immutable system message. Runtime values live only in the user template, so the cache key
+remains identical across requests with different transcript or configuration content. This enables
+OpenAI's prefix cache to be reused across all batches and retries within a session.
+
+**Plan 2 Corrective Retry Prefix Invariance:**
+
+When a parser failure triggers a corrective retry, the **immutable prefix** (system + initial user
+message) is preserved and reused as-is, while corrective history is appended. Because the cache
+key is derived only from system messages, the key does **not change** as corrective turns are
+appended. This maintains cache coherence across retries without fragmenting the cache key.
+
+**Scope & Limitations:**
+
+- This is **provider-side prefix caching**, not response caching or client-side result storage.
+- No settings, UI toggles, translations, or telemetry were added.
+- Cached-token telemetry (the OpenAI API's `usage.prompt_tokens_details.cached_tokens` field) is
+  intentionally omitted under YAGNI; `OpenAIProvider.chat` only maps `prompt_tokens`,
+  `completion_tokens`, and `total_tokens` into `ChatResponse.usage`, so this field is never
+  surfaced to callers today.
+- No response cache interface or Responses API integration.
+- A custom system-prompt override (`options.customPrompt?.systemPrompt`) that itself contains
+  per-batch runtime values will fragment the provider-side cache across batches. This only affects
+  cache efficiency, not correctness — it is a documented cost/efficiency tradeoff, not a bug.
+- **Web Crypto unavailable (non-secure context):** if `globalThis.crypto.subtle` is not available
+  (for example, this self-hostable app served over plain HTTP on a LAN instead of HTTPS/localhost),
+  `OpenAIProvider.chat` fails fast with a non-retryable `AIProviderUnsupportedEnvironmentError`
+  (mapped to `AIUnsupportedEnvironmentError` / `UNSUPPORTED_ENVIRONMENT_ERROR`) instead of silently
+  sending an uncached request or being misclassified as a transient `CONNECTION_ERROR`. Since
+  caching is mandatory and all-or-nothing for built-in OpenAI providers, this is the only correct
+  behavior in that environment; serving the app over HTTPS or localhost resolves it.
+
+**Direct `OpenAIProvider.chat` Calls:**
+
+Custom code calling `new OpenAIProvider().chat(messages)` directly also receives the cache fields
+automatically, so all OpenAI usage—built-in features, custom features, and direct calls—benefits
+from prompt caching without modification.
+
+### Selective XML Prompt Structure ✅ Implemented
+
+The three structured-batch default prompts (speaker classification, segment merge, chapter
+detection) use descriptive XML tags **only** around long or ambiguous blocks - the response
+contract and any dynamic transcript/context content. Short, unambiguous instructions (task
+statements, constraints, batch metadata) stay as plain prose/headings. There is **no mandatory
+tag vocabulary, no wrapper schema, and no rule requiring every prompt or every section to use
+XML** - this is a targeted readability aid for the model, not a structural requirement. Text-only
+prompts (transcript revision, chapter rewrite, chapter metadata, content transformation) were
+intentionally left unconverted.
+
+**Selected blocks per feature:**
+
+| Feature | System prompt tags | User template tags |
+| --- | --- | --- |
+| Speaker classification (`features/speaker/config.ts`) | `<response_contract>` (full envelope contract), `<speaker_recognition_rules>` (recognition heuristics) | `<available_speakers>`, `<sections_to_classify>` |
+| Segment merge (`features/segmentMerge/config.ts`) | `<merge_rules>` (merge criteria), `<response_contract>` (outcome section) | `<segments_for_context>` (both template variants), `<smoothing_rules>` (nested inside the existing `{{#if enableSmoothing}}` conditional, both variants) |
+| Chapter detection (`features/chapterDetection/config.ts`) | `<response_contract>` (long response contract only; short TASK/CONSTRAINTS text and batch metadata stay plain) | `<available_tag_ids>`, `<previous_chapter_context>` (nested inside the existing `{{#if previousChapter}}` conditional, so the whole tagged block is omitted on the first batch rather than emitted empty), `<transcript_segments>` |
+
+**No escaping of dynamic content:**
+
+The XML tags used in these prompts are **not real XML** - they are plain prompt-structuring hints
+that help the model locate a block, not a markup format that is parsed or validated by anything in
+this codebase. Because they carry no parsing semantics, dynamic content placed inside a tagged
+block is inserted exactly like any other template variable: as-is, with no entity escaping and no
+transformation.
+
+- `classifySpeakers` (`features/speaker/service.ts`) passes the formatted speaker list and segment
+  text through unchanged, regardless of whether the default or a custom prompt is active.
+- `buildMergePrompt` (`features/segmentMerge/promptBuilder.ts`) passes `variables.segments` through
+  unchanged in all cases.
+- `detectChapters` (`features/chapterDetection/service.ts`) passes `tagsAvailable`, `segments`, and
+  `previousChapter` through unchanged in all cases, including when building the **next** batch's
+  request variables from the previous batch's stored results.
+
+Custom prompts (`customPrompt.systemPrompt` / `customPrompt.userPromptTemplate`) always received raw
+values and still do - there is no longer a behavioral distinction between the default and
+custom-prompt paths with respect to dynamic content.
+
+**What did not change:** provider code, cache-key derivation, response schemas, result types,
+the structured-batch envelope (`ok`/`empty`/`error`, all six model error codes, and their fixed
+retryability), corrective retry message building, and Ollama/other-provider request handling were
+untouched by this work. The response contract text itself remains provider-agnostic: it lists only
+the six model-observable error codes and never mentions provider-layer auth/network/rate-limit/
+timeout/server-level classification. This was already true before the XML conversion and is not a
+newly added disclaimer - the conversion only wrapped the existing contract text in a tag, it did
+not add new prose to it.
+
+**Cache impact:** wrapping static system-prompt text in XML tags changes the system-message string,
+so it creates **exactly one new OpenAI cache identity** the first time each feature runs after this
+change. After that one-time shift, each default system prompt is static and placeholder-free again
+(see "System Prompt Stability" above), so the Phase 3 caching behavior is unaffected long-term.
 
 ### Prompt System ✅ Implemented
 
@@ -1379,13 +1641,19 @@ transcript editor. Fix spelling, grammar, remove fillers, improve clarity.`;
 
 ### State Management
 
+> **Speculative sketch, not implemented:** the interface below is an original pre-Phase-1 design
+> sketch and was never built. No client-side AI result cache/store exists in the current
+> implementation; results are held only transiently in component/hook state. Do not confuse this
+> with Phase 3's provider-side OpenAI prompt caching (see "Mandatory OpenAI Prompt Caching" above),
+> which is unrelated and does not cache results at all.
+
 ```typescript
-// Zustand store for AI features
+// Zustand store for AI features (speculative sketch, not implemented)
 interface AIFeatureStore {
   // Active operations
   activeOperations: Map<string, AIOperation>;
   
-  // Results cache
+  // In-memory results, held only for the current session (not a caching layer)
   results: Map<string, AIFeatureResult<any>>;
   
   // Settings
@@ -1399,9 +1667,9 @@ interface AIFeatureStore {
   cancelOperation: (id: string) => void;
   
   // Results
-  cacheResult: (key: string, result: any) => void;
-  getResult: (key: string) => any | null;
-  clearResult: (key: string) => void;
+  storeResult: (key: string, result: any) => void;
+  getStoredResult: (key: string) => any | null;
+  clearStoredResult: (key: string) => void;
 }
 ```
 
@@ -1436,7 +1704,7 @@ interface AIFeatureStore {
    └─> Return typed MergeSuggestion[]
 
 6. AIFeatureService
-   └─> Cache result
+   └─> Return result
    └─> Return to UI component
 
 7. UI Component
@@ -1536,14 +1804,20 @@ User: Analyze these consecutive segments:
 Segment {{index}}: [{{speaker}}] "{{text}}" ({{start}} - {{end}})
 {{/each}}
 
-Return JSON array of merge suggestions with format:
-[
-  {
-    "segmentIds": ["seg_1", "seg_2"],
-    "confidence": "high|medium|low",
-    "reason": "explanation"
-  }
-]
+Respond with the structured-batch envelope (see "Structured Batch Outcomes" above), with each merge
+suggestion under `data`:
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "segmentIds": [1, 2],
+      "confidence": 0.95,
+      "reason": "Incomplete sentence continues in next segment"
+    }
+  ],
+  "error": null
+}
 ```
 
 **Chapter Detection:**
@@ -1558,16 +1832,22 @@ Granularity: {{granularity}}
 
 {{transcriptText}}
 
-Return JSON with chapters array:
-[
-  {
-    "startTime": 0.0,
-    "endTime": 180.5,
-    "title": "Introduction",
-    "summary": "...",
-    "keyPoints": ["...", "..."]
-  }
-]
+Respond with the structured-batch envelope (see "Structured Batch Outcomes" above), with each chapter
+under `data` as a flat item (`start`/`end` are segment IDs, not timestamps):
+{
+  "status": "ok",
+  "retryable": false,
+  "data": [
+    {
+      "title": "Introduction",
+      "summary": "The speaker welcomes attendees and outlines the agenda.",
+      "tags": ["intro"],
+      "start": 1,
+      "end": 3
+    }
+  ],
+  "error": null
+}
 ```
 
 ---
@@ -1593,6 +1873,9 @@ Return JSON with chapters array:
    - Schema mismatch
    - Incomplete response
    - **Strategy:** Attempt recovery, show warning, allow manual edit
+   - **Exception:** structured-batch features (speaker classification, segment merge, chapter
+     detection) never attempt lenient recovery for invalid output - see
+     "Structured Batch Outcomes" above.
 
 4. **Validation Errors**
    - Output doesn't match schema
@@ -1690,10 +1973,10 @@ only a message, that message is stored as the response payload so it is visible 
    - Combine multiple small requests when possible
    - Trade-off: Latency vs. throughput
 
-2. **Caching**
-   - Cache AI results keyed by input hash
-   - Invalidate on prompt change
-   - Store in IndexedDB for persistence
+2. **Provider-Side Prefix Caching (OpenAI)**
+   - Built-in OpenAI requests automatically use prompt caching via OpenAI's API
+   - Cache key is derived from model + system-message identity
+   - In-memory retention only; no client-side result storage or telemetry
 
 3. **Parallel Processing**
    - Process independent requests in parallel
@@ -1731,6 +2014,11 @@ only a message, that message is stored as the response payload so it is visible 
 4. **User can choose provider** (local Ollama for privacy)
 
 ### Settings
+
+> **Speculative sketch, not implemented:** no such `PrivacySettings` interface, result cache, or
+> cache-expiry setting exists in the codebase. Actual caching behavior is limited to Phase 3's
+> mandatory, settings-free, provider-side OpenAI prompt cache (see "Mandatory OpenAI Prompt
+> Caching" above), which stores no results and has no expiry configuration.
 
 ```typescript
 interface PrivacySettings {

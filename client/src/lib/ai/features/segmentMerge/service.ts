@@ -217,27 +217,32 @@ export async function analyzeMergeCandidates(
 
       const responsePayload = extractRawResponse(result) ?? undefined;
 
+      if (result.status === "empty") {
+        logger.info(`Batch ${plan.batchIndex + 1}: model reported no merge suggestions`);
+        return {
+          status: "success" as const,
+          plan,
+          processed: {
+            suggestions: [],
+            issues: [],
+            rawItemCount: 0,
+            normalizedCount: 0,
+          },
+          batchDurationMs: Date.now() - batchStart,
+          responsePayload,
+        };
+      }
+
       if (!result.success || !result.data) {
-        const recovered = processAIResponse(result, {
-          idMapping: plan.idContext.mapping,
-          enableSmoothing,
-        });
-        if (recovered.suggestions.length > 0) {
-          logger.info(
-            `Batch ${plan.batchIndex + 1} recovered ${recovered.suggestions.length} suggestion(s) from raw response`,
-          );
-          return {
-            status: "success" as const,
-            plan,
-            processed: recovered,
-            batchDurationMs: Date.now() - batchStart,
-            responsePayload,
-          };
-        }
         const batchIssue: MergeAnalysisIssue = {
           level: "error",
           message: result.error ?? `Batch ${plan.batchIndex + 1} failed`,
-          context: { errorCode: result.errorCode },
+          context: {
+            errorCode: result.errorCode,
+            errorSource: result.errorSource,
+            retryable: result.retryable,
+            parserFailure: result.parserFailure,
+          },
         };
         return {
           status: "failed" as const,

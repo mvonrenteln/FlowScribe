@@ -329,7 +329,8 @@
     "rateLimit": "Rate limit hit. Please wait and try again.",
     "request": "Request rejected. Check model and parameters.",
     "providerUnavailable": "Provider error. Please try again later.",
-    "connection": "Connection failed. Check your network and base URL."
+    "connection": "Connection failed. Check your network and base URL.",
+    "unsupportedEnvironment": "This browser context does not support the required security features (Web Crypto). Serve the app over HTTPS or localhost to use OpenAI."
   },
   "backup": {
     "indicator": {

@@ -113,17 +113,21 @@ export function buildMergePrompt(params: PromptBuildParams): BuiltPrompt {
   // Build pair mapping JSON (uses REAL segment IDs for normalization)
   const pairMappingJson = buildPairMappingJson(pairsWithSimpleIds);
 
-  // Build variables
+  // Get prompts (use provided or fallback to defaults)
+  const finalSystemPrompt = systemPrompt ?? getMergeSystemPrompt();
+  const finalUserTemplate = userTemplate ?? getMergeUserTemplate(segments.length);
+
+  // The default templates place {{segments}} inside an XML-tagged block
+  // (<segments_for_context>); the tag is a prompt-structuring hint for the
+  // LLM only, not real XML — it is not validated or escaped, so the segments
+  // value is always passed through as-is, whether the prompt is the built-in
+  // default or a custom override.
   const variables: PromptVariables = {
     segmentPairsJson: pairMappingJson,
     segments: segmentsFormatted,
     maxTimeGap: maxTimeGap.toString(),
     enableSmoothing,
   };
-
-  // Get prompts (use provided or fallback to defaults)
-  const finalSystemPrompt = systemPrompt ?? getMergeSystemPrompt();
-  const finalUserTemplate = userTemplate ?? getMergeUserTemplate(segments.length);
 
   return {
     variables,

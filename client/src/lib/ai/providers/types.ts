@@ -171,3 +171,17 @@ export class AIProviderRateLimitError extends AIProviderError {
     this.name = "AIProviderRateLimitError";
   }
 }
+
+/**
+ * Error thrown when a required browser capability is unavailable in the
+ * current execution context (e.g. `crypto.subtle` is not exposed because the
+ * app is served over a non-secure origin). This represents a permanent
+ * environment limitation rather than a transient network failure and must
+ * never be classified as retryable.
+ */
+export class AIProviderUnsupportedEnvironmentError extends AIProviderError {
+  constructor(message: string, providerType: AIProviderType, details?: Record<string, unknown>) {
+    super(message, providerType, details);
+    this.name = "AIProviderUnsupportedEnvironmentError";
+  }
+}

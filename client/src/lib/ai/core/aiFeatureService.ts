@@ -17,10 +17,24 @@ import {
   getEffectiveAIRequestConcurrency,
   initializeSettings,
 } from "@/lib/settings/settingsStorage";
+import { parseStructuredBatchResponse } from "../parsing/structuredBatchResponse";
 import type { ChatMessage } from "../providers/types";
 import { runConcurrentOrdered } from "./batch";
-import { AICancellationError, AIParseError, isCancellationError, toAIError } from "./errors";
-import { type ProviderResolveOptions, resolveProvider } from "./providerResolver";
+import { buildCorrectiveRetryMessages } from "./correctiveRetry";
+import {
+  AICancellationError,
+  AIConfigurationError,
+  type AIError,
+  AIParseError,
+  isCancellationError,
+  isRetryableAIError,
+  toAIError,
+} from "./errors";
+import {
+  type ProviderResolveOptions,
+  type ResolvedProvider,
+  resolveProvider,
+} from "./providerResolver";
 import type {
   AIBatchResult,
   AIFeatureOptions,
@@ -79,7 +93,25 @@ export async function executeFeature<TOutput>(
     model: options.model,
   };
 
-  const { config: providerConfig, service: provider } = await resolveProvider(resolveOptions);
+  let providerConfig: ResolvedProvider["config"];
+  let provider: ResolvedProvider["service"];
+  try {
+    ({ config: providerConfig, service: provider } = await resolveProvider(resolveOptions));
+  } catch (error) {
+    if (config.responseFormat !== "structured-batch") {
+      throw error;
+    }
+    const aiError = toAIError(error);
+    return {
+      success: false,
+      status: "error",
+      retryable: isRetryableAIError(aiError),
+      errorSource: "provider",
+      error: aiError.toUserMessage(),
+      errorCode: aiError.code,
+      metadata: buildMetadata(featureId, { id: "unknown", model: "unknown" }, startTime),
+    };
+  }
 
   // Build messages
   const systemPrompt = options.customPrompt?.systemPrompt ?? config.systemPrompt;
@@ -88,7 +120,7 @@ export async function executeFeature<TOutput>(
   const compiledSystem = compileTemplate(systemPrompt, variables);
   const compiledUser = compileTemplate(userPromptTemplate, variables);
 
-  const messages: ChatMessage[] = [
+  let messages: ChatMessage[] = [
     { role: "system", content: compiledSystem },
     { role: "user", content: compiledUser },
   ];
@@ -156,6 +188,142 @@ export async function executeFeature<TOutput>(
 
       lastRawResponse = response.content;
 
+      // Structured-batch response contract - opted-in features only
+      if (config.responseFormat === "structured-batch") {
+        if (!config.responseSchema) {
+          // Defensive guard for a misconfigured feature (responseSchema is
+          // optional on AIFeatureConfig but required for structured-batch).
+          // Returned explicitly rather than thrown so it isn't mislabeled as
+          // a provider failure by the generic catch below.
+          const configError = new AIConfigurationError(
+            `Feature "${featureId}" uses responseFormat "structured-batch" but has no responseSchema configured`,
+          );
+          return {
+            success: false,
+            status: "error",
+            retryable: false,
+            errorSource: "provider",
+            error: configError.toUserMessage(),
+            errorCode: configError.code,
+            rawResponse: response.content,
+            metadata: buildMetadata(featureId, providerConfig, startTime, response.usage),
+          };
+        }
+
+        const parsed = parseStructuredBatchResponse<unknown>(
+          response.content,
+          config.responseSchema,
+        );
+
+        if (parsed.success) {
+          const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+          if (attempt > 1) {
+            metadata.retryAttempts = attempt - 1;
+          }
+
+          if (parsed.response.status === "ok" || parsed.response.status === "empty") {
+            return {
+              success: true,
+              status: parsed.response.status,
+              retryable: false,
+              data: parsed.response.data as TOutput,
+              rawResponse: response.content,
+              metadata,
+            };
+          }
+
+          // status === "error" - the model itself reported a failure
+          if (parsed.response.retryable && attempt <= maxRetries) {
+            logger.warn("Structured batch model error, retrying.", {
+              attempt,
+              maxAttempts: maxRetries + 1,
+              errorCode: parsed.response.error.code,
+            });
+
+            if (options.onRetry) {
+              const retryInfo: RetryAttemptInfo = {
+                attempt,
+                maxAttempts: maxRetries + 1,
+                errorMessage: parsed.response.error.message,
+                attemptDurationMs: Date.now() - attemptStartTime,
+                retryCategory: "model",
+                corrective: false,
+              };
+              options.onRetry(retryInfo);
+            }
+
+            continue;
+          }
+
+          return {
+            success: false,
+            status: "error",
+            retryable: parsed.response.retryable,
+            errorSource: "model",
+            error: parsed.response.error.message,
+            errorCode: parsed.response.error.code,
+            rawResponse: response.content,
+            metadata,
+          };
+        }
+
+        // Parser failure - retain the existing parse-attempt counting/callback.
+        // Structured-batch responses never fall back to lenient recovery.
+        const parserFailure = parsed.error;
+        lastParseError = parserFailure.message;
+
+        logParseFailure(
+          featureId,
+          providerConfig,
+          response.content,
+          { error: { message: parserFailure.message }, metadata: undefined },
+          attempt,
+        );
+
+        if (attempt <= maxRetries) {
+          logger.warn("Structured batch parse failed, retrying.", {
+            attempt,
+            maxAttempts: maxRetries + 1,
+            parserFailureCode: parserFailure.code,
+          });
+
+          if (options.onRetry) {
+            const retryInfo: RetryAttemptInfo = {
+              attempt,
+              maxAttempts: maxRetries + 1,
+              errorMessage: parserFailure.message,
+              attemptDurationMs: Date.now() - attemptStartTime,
+              parserFailureCode: parserFailure.code,
+              parserFailureDiagnostics: parserFailure.diagnostics,
+              retryCategory: "parser",
+              corrective: true,
+            };
+            options.onRetry(retryInfo);
+          }
+
+          messages = buildCorrectiveRetryMessages(messages, response.content, parserFailure);
+          continue; // Try again
+        }
+
+        // All retry attempts exhausted - report as a retryable parser failure
+        const metadata = buildMetadata(featureId, providerConfig, startTime, response.usage);
+        if (attempt > 1) {
+          metadata.retryAttempts = attempt - 1;
+        }
+
+        return {
+          success: false,
+          status: "error",
+          retryable: true,
+          errorSource: "parser",
+          error: new AIParseError(parserFailure.message, response.content).toUserMessage(),
+          errorCode: "PARSE_ERROR",
+          parserFailure,
+          rawResponse: response.content,
+          metadata,
+        };
+      }
+
       // Parse response based on feature type
       if (config.responseSchema) {
         // Structured response - parse and validate
@@ -205,20 +373,23 @@ export async function executeFeature<TOutput>(
           continue; // Try again
         }
 
-        // All retries exhausted - try lenient recovery as last resort
-        const lenientResult = tryLenientRecovery<TOutput>(
-          featureId,
-          config,
-          response,
-          variables,
-          providerConfig,
-          startTime,
-          parseResult,
-          attempt - 1,
-        );
+        // All retries exhausted - try lenient recovery as last resort.
+        // Structured-batch features never enter lenient recovery.
+        if (config.responseFormat !== "structured-batch") {
+          const lenientResult = tryLenientRecovery<TOutput>(
+            featureId,
+            config,
+            response,
+            variables,
+            providerConfig,
+            startTime,
+            parseResult,
+            attempt - 1,
+          );
 
-        if (lenientResult) {
-          return lenientResult;
+          if (lenientResult) {
+            return lenientResult;
+          }
         }
 
         // Lenient recovery also failed - return error
@@ -255,24 +426,73 @@ export async function executeFeature<TOutput>(
     } catch (error) {
       // Handle cancellation - don't retry
       if (isCancellationError(error)) {
-        const cancelError = new AICancellationError();
-        return {
-          success: false,
-          error: cancelError.toUserMessage(),
-          errorCode: cancelError.code,
-          metadata: buildMetadata(featureId, providerConfig, startTime),
-        };
+        return buildCancellationResult<TOutput>(
+          featureId,
+          providerConfig,
+          startTime,
+          config.responseFormat === "structured-batch",
+        );
       }
 
       // Connection/network errors - don't retry (only retry parse failures)
       const aiError = toAIError(error);
+
+      if (
+        config.responseFormat === "structured-batch" &&
+        isRetryableAIError(aiError) &&
+        attempt <= maxRetries
+      ) {
+        // Capture the attempt duration now, before the retry-after wait below,
+        // so a multi-second wait never gets folded into the reported duration.
+        const attemptDurationMs = Date.now() - attemptStartTime;
+        const delayMs = getProviderRetryDelayMs(aiError);
+        await waitForRetryDelay(delayMs, options.signal);
+
+        if (options.signal?.aborted) {
+          return buildCancellationResult<TOutput>(featureId, providerConfig, startTime, true);
+        }
+
+        logger.warn("Structured batch provider failure, retrying.", {
+          attempt,
+          maxAttempts: maxRetries + 1,
+          errorCode: aiError.code,
+          delayMs,
+        });
+
+        if (options.onRetry) {
+          const retryInfo: RetryAttemptInfo = {
+            attempt,
+            maxAttempts: maxRetries + 1,
+            errorMessage: aiError.toUserMessage(),
+            attemptDurationMs,
+            retryCategory: "provider",
+            corrective: false,
+          };
+          options.onRetry(retryInfo);
+        }
+
+        continue;
+      }
+
       const metadata = buildMetadata(featureId, providerConfig, startTime);
       if (attempt > 1) {
         metadata.retryAttempts = attempt - 1;
       }
 
+      // Normalize structured fields only for features that opted into the
+      // structured-batch contract; legacy features keep the plain shape.
+      const structuredProviderFields: Partial<AIFeatureResult<TOutput>> =
+        config.responseFormat === "structured-batch"
+          ? {
+              status: "error",
+              retryable: isRetryableAIError(aiError),
+              errorSource: "provider",
+            }
+          : {};
+
       return {
         success: false,
+        ...structuredProviderFields,
         error: aiError.toUserMessage(),
         errorCode: aiError.code,
         rawResponse:
@@ -293,6 +513,86 @@ export async function executeFeature<TOutput>(
     rawResponse: lastRawResponse,
     metadata: buildMetadata(featureId, providerConfig, startTime),
   };
+}
+
+/**
+ * Build the shared cancellation result shape for a cancelled feature
+ * execution. Used both when the provider request itself is cancelled and
+ * when a pending structured-batch provider retry is cancelled during its
+ * retry-after wait, so the two stay in lockstep if the shape ever changes.
+ *
+ * @param featureId - ID of the feature being executed.
+ * @param providerConfig - Resolved provider configuration for metadata.
+ * @param startTime - Execution start time (ms) for duration metadata.
+ * @param structured - Whether to include the structured-batch result fields
+ *   (`status`, `retryable`, `errorSource`); legacy features omit them.
+ */
+function buildCancellationResult<TOutput>(
+  featureId: AIFeatureType,
+  providerConfig: ResolvedProvider["config"],
+  startTime: number,
+  structured: boolean,
+): AIFeatureResult<TOutput> {
+  const cancelError = new AICancellationError();
+  const structuredCancellationFields: Partial<AIFeatureResult<TOutput>> = structured
+    ? { status: "error", retryable: false, errorSource: "provider" }
+    : {};
+  return {
+    success: false,
+    ...structuredCancellationFields,
+    error: cancelError.toUserMessage(),
+    errorCode: cancelError.code,
+    metadata: buildMetadata(featureId, providerConfig, startTime),
+  };
+}
+
+/**
+ * Upper bound on how long a structured-batch provider retry will wait for,
+ * regardless of what the provider's `Retry-After` timing suggests.
+ */
+const MAX_PROVIDER_RETRY_DELAY_MS = 30_000;
+
+/**
+ * Compute the delay (in milliseconds) to wait before retrying a retryable
+ * provider failure, honoring the provider's normalized `retryAfter` (seconds)
+ * when present. Only `AIRateLimitError` carries `retryAfter`; other
+ * retryable provider errors (connection, provider-unavailable, non-rate-limit
+ * request errors) have no timing and retry immediately (0ms).
+ *
+ * @param error - The normalized AI error from the failed attempt.
+ * @returns Delay in milliseconds, capped at {@link MAX_PROVIDER_RETRY_DELAY_MS}.
+ */
+function getProviderRetryDelayMs(error: AIError): number {
+  const retryAfter = error.details?.retryAfter;
+  if (typeof retryAfter !== "number" || !Number.isFinite(retryAfter) || retryAfter <= 0) {
+    return 0;
+  }
+  return Math.min(retryAfter * 1000, MAX_PROVIDER_RETRY_DELAY_MS);
+}
+
+/**
+ * Wait for a provider retry delay, abortable via `signal`. Resolves (never
+ * rejects) whether the wait completes normally or is aborted early, and
+ * always clears its timer and removes its own abort listener so no dangling
+ * timer or listener remains after it resolves.
+ *
+ * @param delayMs - Delay to wait, in milliseconds. No-op if `<= 0` or the
+ *   signal is already aborted.
+ * @param signal - Optional abort signal for external cancellation.
+ */
+async function waitForRetryDelay(delayMs: number, signal?: AbortSignal): Promise<void> {
+  if (delayMs <= 0 || signal?.aborted) return;
+  await new Promise<void>((resolve) => {
+    const timeoutId = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    const onAbort = () => {
+      clearTimeout(timeoutId);
+      resolve();
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
 }
 
 /**

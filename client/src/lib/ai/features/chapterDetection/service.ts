@@ -37,10 +37,6 @@ export interface DetectChaptersParams extends AIFeatureOptions {
   minChapterLength: number;
   maxChapterLength: number;
   tagsAvailable: Array<{ id: string; label: string }>;
-  customPrompt?: {
-    systemPrompt: string;
-    userPromptTemplate: string;
-  };
   onProgress?: (processedBatches: number, totalBatches: number) => void;
   onBatchLog?: (entry: ChapterDetectionBatchLogEntry) => void;
   onBatchComplete?: (
@@ -147,6 +143,13 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
     },
     execute: async (prepared) => {
       const batchStart = Date.now();
+
+      // The default templates place tagsAvailable, segments, and
+      // previousChapter inside XML-tagged blocks (<available_tag_ids>,
+      // <transcript_segments>, <previous_chapter_context>). Those tags are
+      // prompt-structuring hints for the LLM only, not real XML — they are
+      // not validated or escaped, so values are always passed through as-is,
+      // whether the prompt is the built-in default or a custom override.
       const variables: PromptVariables = {
         batchIndex: prepared.batchIndex + 1,
         totalBatches,
@@ -227,12 +230,32 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
             ? JSON.stringify(result.rawResponse)
             : undefined;
 
+      if (result.status === "empty") {
+        return {
+          status: "success" as const,
+          batchIndex: prepared.batchIndex,
+          batchSize: prepared.batchSegments.length,
+          mapped: [],
+          issues: [],
+          rawItemCount: 0,
+          requestPayload,
+          responsePayload,
+          batchDurationMs: Date.now() - batchStart,
+        };
+      }
+
       if (!result.success || !result.data) {
         const batchIssues: ChapterDetectionIssue[] = [
           {
             level: "error",
             message: result.error ?? `Batch ${prepared.batchIndex + 1} failed`,
-            context: { batchIndex: prepared.batchIndex, errorCode: result.errorCode },
+            context: {
+              batchIndex: prepared.batchIndex,
+              errorCode: result.errorCode,
+              errorSource: result.errorSource,
+              retryable: result.retryable,
+              parserFailure: result.parserFailure,
+            },
           },
         ];
 
@@ -276,9 +299,7 @@ export async function detectChapters(params: DetectChaptersParams): Promise<Dete
 
       const lastDetected = detected[detected.length - 1];
       previousChapterSummaryBlock = lastDetected
-        ? `PREVIOUS CHAPTER CONTEXT
-------------------------
-Title: ${lastDetected.title}
+        ? `Title: ${lastDetected.title}
 Summary: ${lastDetected.summary ?? "(none)"}
 `
         : "";
@@ -289,7 +310,7 @@ Summary: ${lastDetected.summary ?? "(none)"}
         batchSize: prepared.batchSegments.length,
         mapped,
         issues: [],
-        rawItemCount: Array.isArray(result.data.chapters) ? result.data.chapters.length : 0,
+        rawItemCount: result.data.length,
         requestPayload,
         responsePayload,
         batchDurationMs: Date.now() - batchStart,

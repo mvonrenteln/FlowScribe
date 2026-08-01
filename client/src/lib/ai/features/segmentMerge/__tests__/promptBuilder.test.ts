@@ -5,7 +5,11 @@
 import { describe, expect, it } from "vitest";
 import { buildMergePrompt, hasEligiblePairs } from "../promptBuilder";
 import type { MergeAnalysisSegment } from "../types";
-import { createSimpleIdContext } from "../utils";
+import {
+  collectSegmentPairsWithSimpleIds,
+  createSimpleIdContext,
+  formatSegmentsWithSimpleIds,
+} from "../utils";
 
 const createSegment = (overrides?: Partial<MergeAnalysisSegment>): MergeAnalysisSegment => ({
   id: `seg-${Math.random()}`,
@@ -197,6 +201,121 @@ describe("Prompt Builder", () => {
       });
 
       expect(hasEligiblePairs(prompt)).toBe(false);
+    });
+  });
+
+  describe("raw passthrough of default transcript content (Task 3)", () => {
+    const segmentsWithSpecialChars = [
+      createSegment({ id: "seg-1", text: 'Rule: "A" & <B> > C', start: 0, end: 1 }),
+      createSegment({ id: "seg-2", text: "Second & <segment>", start: 1.5, end: 2.5 }),
+    ];
+
+    it("passes the default formatted segment string through as-is, without transformation", () => {
+      const idContext = createSimpleIdContext(segmentsWithSpecialChars);
+
+      const prompt = buildMergePrompt({
+        segments: segmentsWithSpecialChars,
+        maxTimeGap: 2.0,
+        sameSpeakerOnly: false,
+        enableSmoothing: "true",
+        idContext,
+      });
+
+      const rawFormatted = formatSegmentsWithSimpleIds(
+        segmentsWithSpecialChars,
+        idContext.getSimpleId,
+      );
+
+      expect(prompt.variables.segments).toBe(rawFormatted);
+    });
+
+    it("does not transform other variables", () => {
+      const idContext = createSimpleIdContext(segmentsWithSpecialChars);
+
+      const prompt = buildMergePrompt({
+        segments: segmentsWithSpecialChars,
+        maxTimeGap: 2.0,
+        sameSpeakerOnly: false,
+        enableSmoothing: "true",
+        idContext,
+      });
+
+      const expectedPairs = collectSegmentPairsWithSimpleIds(
+        segmentsWithSpecialChars,
+        2.0,
+        false,
+        idContext.mapping,
+        idContext.getSimpleId,
+      );
+      const expectedSegmentPairsJson = JSON.stringify(
+        expectedPairs.map((pair) => ({
+          pairIndex: pair.pairIndex,
+          segmentIds: [pair.segmentA.id, pair.segmentB.id],
+          simpleIds: [String(pair.simpleIdA), String(pair.simpleIdB)],
+        })),
+      );
+
+      expect(prompt.variables.maxTimeGap).toBe("2");
+      expect(prompt.variables.enableSmoothing).toBe("true");
+      expect(prompt.variables.segmentPairsJson).toBe(expectedSegmentPairsJson);
+    });
+
+    it("keeps segments raw when a custom systemPrompt override is supplied", () => {
+      const idContext = createSimpleIdContext(segmentsWithSpecialChars);
+
+      const prompt = buildMergePrompt({
+        segments: segmentsWithSpecialChars,
+        maxTimeGap: 2.0,
+        sameSpeakerOnly: false,
+        enableSmoothing: "true",
+        idContext,
+        systemPrompt: "Custom system prompt",
+      });
+
+      const rawFormatted = formatSegmentsWithSimpleIds(
+        segmentsWithSpecialChars,
+        idContext.getSimpleId,
+      );
+      expect(prompt.variables.segments).toBe(rawFormatted);
+    });
+
+    it("keeps segments raw when a custom userTemplate override is supplied", () => {
+      const idContext = createSimpleIdContext(segmentsWithSpecialChars);
+
+      const prompt = buildMergePrompt({
+        segments: segmentsWithSpecialChars,
+        maxTimeGap: 2.0,
+        sameSpeakerOnly: false,
+        enableSmoothing: "true",
+        idContext,
+        userTemplate: "{{segments}}",
+      });
+
+      const rawFormatted = formatSegmentsWithSimpleIds(
+        segmentsWithSpecialChars,
+        idContext.getSimpleId,
+      );
+      expect(prompt.variables.segments).toBe(rawFormatted);
+    });
+
+    it("keeps segments raw when both custom systemPrompt and userTemplate overrides are supplied", () => {
+      const idContext = createSimpleIdContext(segmentsWithSpecialChars);
+
+      const prompt = buildMergePrompt({
+        segments: segmentsWithSpecialChars,
+        maxTimeGap: 2.0,
+        sameSpeakerOnly: false,
+        enableSmoothing: "true",
+        idContext,
+        systemPrompt: "Custom system prompt",
+        userTemplate: "{{segments}}",
+      });
+
+      const rawFormatted = formatSegmentsWithSimpleIds(
+        segmentsWithSpecialChars,
+        idContext.getSimpleId,
+      );
+      expect(prompt.variables.segments).toBe(rawFormatted);
     });
   });
 });

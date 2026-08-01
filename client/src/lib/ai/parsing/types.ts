@@ -108,6 +108,68 @@ export interface ValidationError {
   actual?: unknown;
 }
 
+// ==================== Structured Batch Outcomes ====================
+
+/**
+ * Outcome status for a structured-batch AI response.
+ * - `ok`: the model returned one or more valid items.
+ * - `empty`: the model explicitly reported it has nothing to return.
+ * - `error`: the model or provider reported a failure instead of data.
+ */
+export type StructuredBatchStatus = "ok" | "empty" | "error";
+
+/**
+ * Where a structured-batch error originated.
+ */
+export type StructuredBatchErrorSource = "model" | "provider" | "parser";
+
+/**
+ * Model-reported error codes for a structured-batch response.
+ * Retryability for each code is fixed in `STRUCTURED_BATCH_MODEL_ERROR_RETRYABILITY`.
+ */
+export type StructuredBatchModelErrorCode =
+  | "MISSING_REQUIRED_INPUT"
+  | "INVALID_INPUT_SHAPE"
+  | "CONTRADICTORY_INPUT"
+  | "UNSUPPORTED_TASK"
+  | "OUTPUT_TRUNCATED"
+  | "TEMPORARY_FAILURE";
+
+/**
+ * Structured error payload reported by the model itself (status "error").
+ */
+export interface StructuredBatchModelError {
+  code: StructuredBatchModelErrorCode;
+  message: string;
+}
+
+/**
+ * Validated structured-batch envelope for a given item type.
+ * Exactly one of the three status variants applies; `data` and `error`
+ * are mutually exclusive and their shape is tied to `status`.
+ */
+export type StructuredBatchResponse<TItem> =
+  | { status: "ok"; retryable: false; data: TItem[]; error: null }
+  | { status: "empty"; retryable: false; data: []; error: null }
+  | { status: "error"; retryable: boolean; data: []; error: StructuredBatchModelError };
+
+/**
+ * Failure produced when a structured-batch response could not be parsed
+ * or did not satisfy the envelope/data schema.
+ */
+export interface StructuredBatchParserFailure {
+  code: ParseErrorCode;
+  message: string;
+  diagnostics: ValidationError[];
+}
+
+/**
+ * Result of attempting to parse a structured-batch response.
+ */
+export type StructuredBatchParseResult<TItem> =
+  | { success: true; response: StructuredBatchResponse<TItem> }
+  | { success: false; error: StructuredBatchParserFailure };
+
 // ==================== Schema Types ====================
 
 /**

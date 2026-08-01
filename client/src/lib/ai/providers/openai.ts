@@ -20,6 +20,7 @@ import {
   AIProviderConnectionError,
   type AIProviderError,
   AIProviderRateLimitError,
+  AIProviderUnsupportedEnvironmentError,
 } from "./types";
 
 const OPENAI_TEMPERATURE_LIMITS = {
@@ -47,6 +48,50 @@ export function normalizeOpenAITemperature(model: string, temperature: number): 
     OPENAI_TEMPERATURE_LIMITS.max,
     Math.max(OPENAI_TEMPERATURE_LIMITS.min, temperature),
   );
+}
+
+/**
+ * Derive a stable, privacy-safe OpenAI prompt-cache key for a chat request.
+ *
+ * The key is a SHA-256 digest (lowercase hex) of the exact model string and the
+ * ordered list of system-message contents, encoded unambiguously via
+ * `JSON.stringify`. Only browser-standard Web Crypto is used; no dependency,
+ * no local caching of the digest, and no fallback hashing.
+ *
+ * User/assistant messages (transcript content, corrective retry history, etc.)
+ * are intentionally excluded so that appended retry messages do not change the
+ * key, and so that no raw prompt, transcript, or response text leaks into the
+ * cache key sent to the provider.
+ *
+ * Caching is mandatory for built-in OpenAI requests, so an unavailable Web
+ * Crypto API (e.g. the app served over a non-secure/plain-HTTP origin) is
+ * treated as a permanent, non-retryable environment failure rather than
+ * silently sending an uncached request or surfacing a misleading transient
+ * "connection error".
+ */
+async function buildPromptCacheKey(
+  model: string,
+  messages: readonly ChatMessage[],
+): Promise<string> {
+  if (!globalThis.crypto?.subtle) {
+    throw new AIProviderUnsupportedEnvironmentError(
+      "Web Crypto (crypto.subtle) is unavailable in this browser context. " +
+        "OpenAI prompt caching requires a secure context (HTTPS or localhost).",
+      "openai",
+    );
+  }
+
+  const systemContents = messages
+    .filter((message) => message.role === "system")
+    .map((message) => message.content);
+
+  const identity = JSON.stringify([model, systemContents]);
+  const digest = await globalThis.crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(identity),
+  );
+
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 /**
@@ -92,6 +137,14 @@ export class OpenAIProvider implements AIProviderService {
         options?.temperature ?? fallbackTemperature,
       );
 
+      const promptCache =
+        this.config.type === "openai"
+          ? {
+              prompt_cache_key: await buildPromptCacheKey(this.config.model, messages),
+              prompt_cache_retention: "in-memory" as const,
+            }
+          : {};
+
       const completion = await this.client.chat.completions.create(
         {
           model: this.config.model,
@@ -101,6 +154,7 @@ export class OpenAIProvider implements AIProviderService {
           })),
           max_tokens: options?.maxTokens ?? 2048,
           temperature,
+          ...promptCache,
         },
         {
           signal: options?.signal,
@@ -119,6 +173,9 @@ export class OpenAIProvider implements AIProviderService {
       };
     } catch (error) {
       if (options?.signal?.aborted) {
+        throw error;
+      }
+      if (error instanceof AIProviderUnsupportedEnvironmentError) {
         throw error;
       }
       throw this.handleError(error);
